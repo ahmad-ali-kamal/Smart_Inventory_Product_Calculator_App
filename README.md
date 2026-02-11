@@ -1,4 +1,5 @@
-Salla Merchant App – Smart Inventory Management & Calculator for Salla Merchants
+Salla Merchant App
+Smart Inventory Management & Calculator for Salla Merchants
 
 An advanced Laravel application designed for Salla merchants that provides smart inventory tracking and automated quantity calculations.
 
