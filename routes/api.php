@@ -3,6 +3,8 @@
 use App\Http\Controllers\WebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\CalculatorSettingsController;
+use App\Http\Controllers\Api\CalculatorProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,5 +21,17 @@ use Illuminate\Support\Facades\Route;
 //    return $request->user();
 //});
 
+// settings
+    Route::get('/settings', [CalculatorSettingsController::class, 'show']);
+    Route::post('/settings', [CalculatorSettingsController::class, 'store']);
+    Route::put('/settings', [CalculatorSettingsController::class, 'update']);
+
+    
+    // product control
+    Route::post('/activate', [CalculatorProductController::class, 'activate']);
+    Route::post('/deactivate', [CalculatorProductController::class, 'deactivate']);
+    Route::post('/bulk-activate', [CalculatorProductController::class, 'bulkActivate']);
+
+    
 // Salla webhook
 Route::post('/webhook', WebhookController::class)->name('webhook');
