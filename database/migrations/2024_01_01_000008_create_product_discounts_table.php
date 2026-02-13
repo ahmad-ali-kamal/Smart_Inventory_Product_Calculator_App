@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('product_discounts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('batch_id')->nullable()->constrained('product_batches')->nullOnDelete();
+            $table->foreignId('batch_id')->nullable()->constrained('batches')->nullOnDelete();
             $table->decimal('discount_percentage', 5, 2);
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('ends_at')->nullable();
@@ -19,10 +19,11 @@ return new class extends Migration
             $table->boolean('is_ai_suggested')->default(false);
             $table->boolean('applied_to_salla')->default(false);
             $table->string('salla_special_price_id')->nullable();
-            $table->text('ai_reasoning')->nullable(); // سبب الاقتراح من AI
+            $table->text('ai_reasoning')->nullable();
             $table->timestamps();
             
             $table->index(['product_id', 'status']);
+            $table->index(['batch_id', 'status']);
             $table->index('ends_at');
         });
     }

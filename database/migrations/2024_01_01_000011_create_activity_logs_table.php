@@ -11,8 +11,11 @@ return new class extends Migration
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('merchant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('action'); // 'discount_applied', 'product_hidden', etc.
+            
+            // Polymorphic relationship
+            $table->morphs('loggable'); // loggable_id + loggable_type
+            
+            $table->string('action'); // 'discount_applied', 'product_hidden', 'batch_created', etc.
             $table->text('description');
             $table->json('metadata')->nullable();
             $table->timestamp('created_at');
