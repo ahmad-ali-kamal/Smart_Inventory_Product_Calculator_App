@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Product extends Model
 {
@@ -19,7 +21,7 @@ class Product extends Model
         'sku',
         'price',
         'quantity',
-        'image_url',
+        'category',
         'status',
         'synced_at',
         'metadata',
@@ -33,6 +35,7 @@ class Product extends Model
     ];
 
     protected $appends = [
+        'main_image_url',
         'overall_status',
         'has_expiry_data',
         'has_calculator_enabled',
@@ -44,9 +47,27 @@ class Product extends Model
         return $this->belongsTo(Merchant::class);
     }
 
-    public function batches(): HasMany
+    public function images(): HasMany
     {
-        return $this->hasMany(ProductBatch::class);
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+    public function mainImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->where('is_main', true);
+    }
+
+    public function batches(): BelongsToMany
+    {
+        return $this->belongsToMany(Batch::class, 'batch_items')
+            ->using(BatchItem::class)
+            ->withPivot(['quantity', 'sold_quantity', 'unit_cost'])
+            ->withTimestamps();
+    }
+
+    public function batchItems(): HasMany
+    {
+        return $this->hasMany(BatchItem::class);
     }
 
     public function discounts(): HasMany
@@ -59,41 +80,42 @@ class Product extends Model
         return $this->hasOne(ProductCalculator::class);
     }
 
-    public function activityLogs(): HasMany
+    public function activityLogs(): MorphMany
     {
-        return $this->hasMany(ActivityLog::class);
+        return $this->morphMany(ActivityLog::class, 'loggable');
     }
 
-    // Scopes
-    public function scopeActive($query)
+    public function categoryMapping(): BelongsTo
     {
-        return $query->where('status', 'active');
-    }
-
-    public function scopeWithStatus($query, string $status)
-    {
-        return $query->whereHas('batches', function ($q) use ($status) {
-            $q->where('status', $status);
-        });
-    }
-
-    public function scopeWithCalculatorEnabled($query)
-    {
-        return $query->whereHas('calculator', function ($q) {
-            $q->where('is_enabled', true);
-        });
+        return $this->belongsTo(CategoryMapping::class, 'category', 'category_name')
+            ->where('merchant_id', $this->merchant_id);
     }
 
     // Accessors
+    public function getMainImageUrlAttribute(): ?string
+    {
+        return $this->mainImage?->image_url ?? $this->images()->first()?->image_url;
+    }
+
     public function getOverallStatusAttribute(): ?string
     {
-        $batch = $this->batches()->orderBy('days_until_expiry')->first();
-        return $batch?->status;
+        // Get the most urgent batch status
+        $batchItem = $this->batchItems()
+            ->whereHas('batch')
+            ->with('batch')
+            ->get()
+            ->sortBy(function ($item) {
+                $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
+                return $order[$item->batch->status] ?? 99;
+            })
+            ->first();
+
+        return $batchItem?->batch->status;
     }
 
     public function getHasExpiryDataAttribute(): bool
     {
-        return $this->batches()->exists();
+        return $this->batchItems()->exists();
     }
 
     public function getHasCalculatorEnabledAttribute(): bool
@@ -118,5 +140,38 @@ class Product extends Model
             ->where('status', 'active')
             ->where('ends_at', '>', now())
             ->first();
+    }
+
+    public function getExpiringBatches(): HasMany
+    {
+        return $this->batchItems()
+            ->whereHas('batch', function ($q) {
+                $q->where('status', '!=', 'green');
+            });
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    public function scopeWithStatus($query, string $status)
+    {
+        return $query->whereHas('batchItems.batch', function ($q) use ($status) {
+            $q->where('status', $status);
+        });
+    }
+
+    public function scopeWithCalculatorEnabled($query)
+    {
+        return $query->whereHas('calculator', function ($q) {
+            $q->where('is_enabled', true);
+        });
+    }
+
+    public function scopeInCategory($query, string $category)
+    {
+        return $query->where('category', $category);
     }
 }

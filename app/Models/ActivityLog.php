@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class ActivityLog extends Model
 {
@@ -14,7 +15,8 @@ class ActivityLog extends Model
 
     protected $fillable = [
         'merchant_id',
-        'product_id',
+        'loggable_type',
+        'loggable_id',
         'action',
         'description',
         'metadata',
@@ -31,9 +33,9 @@ class ActivityLog extends Model
         return $this->belongsTo(Merchant::class);
     }
 
-    public function product(): BelongsTo
+    public function loggable(): MorphTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->morphTo();
     }
 
     // Static Methods
@@ -41,12 +43,13 @@ class ActivityLog extends Model
         int $merchantId,
         string $action,
         string $description,
-        ?int $productId = null,
+        ?Model $loggable = null,
         ?array $metadata = null
     ): self {
         return self::create([
             'merchant_id' => $merchantId,
-            'product_id' => $productId,
+            'loggable_type' => $loggable ? get_class($loggable) : null,
+            'loggable_id' => $loggable?->id,
             'action' => $action,
             'description' => $description,
             'metadata' => $metadata,
@@ -59,11 +62,6 @@ class ActivityLog extends Model
         return $query->where('merchant_id', $merchantId);
     }
 
-    public function scopeForProduct($query, int $productId)
-    {
-        return $query->where('product_id', $productId);
-    }
-
     public function scopeByAction($query, string $action)
     {
         return $query->where('action', $action);
@@ -72,5 +70,11 @@ class ActivityLog extends Model
     public function scopeRecent($query, int $days = 7)
     {
         return $query->where('created_at', '>=', now()->subDays($days));
+    }
+
+    public function scopeForModel($query, Model $model)
+    {
+        return $query->where('loggable_type', get_class($model))
+            ->where('loggable_id', $model->id);
     }
 }
