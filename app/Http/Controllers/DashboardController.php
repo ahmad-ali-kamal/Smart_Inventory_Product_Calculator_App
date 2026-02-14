@@ -2,74 +2,94 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\SallaAuthService;
-use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
+use App\Models\Merchant;
+use App\Models\Product;
+use App\Models\Batch;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     /**
-     * @var SallaAuthService
+     * عرض الصفحة الرئيسية (Dashboard)
      */
-    private $salla;
-
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct(SallaAuthService $salla)
+    public function index(Request $request)
     {
-        $this->middleware('auth');
-        $this->salla = $salla;
+        $merchant = $request->user();
+
+        // استخدام الكاش لتسريع العمليات
+        $cacheKey = "dashboard_stats_{$merchant->id}";
+        $cacheDuration = now()->addMinutes(5); // 5 دقائق
+
+        $stats = Cache::remember($cacheKey, $cacheDuration, function () use ($merchant) {
+            return [
+                // إحصائيات المنتجات
+                'products' => [
+                    'total' => $merchant->products()->count(),
+                    'active' => $merchant->products()->active()->count(),
+                    'synced' => $merchant->products()
+                        ->whereNotNull('synced_at')
+                        ->count(),
+                ],
+
+                // إحصائيات المخزون
+                'inventory' => [
+                    'green' => $merchant->batches()->safe()->count(),
+                    'yellow' => $merchant->batches()->warning()->count(),
+                    'red' => $merchant->batches()->expired()->count(),
+                    'total_batches' => $merchant->batches()->count(),
+                ],
+
+                // إحصائيات الآلة الحاسبة
+                'calculator' => [
+                    'has_settings' => $merchant->hasCalculatorSettings(),
+                    'enabled_products' => $merchant->products()
+                        ->withCalculatorEnabled()
+                        ->count(),
+                ],
+
+                // إحصائيات إضافية
+                'settings' => [
+                    'has_batch_settings' => $merchant->hasBatchSettings(),
+                    'has_calculator_settings' => $merchant->hasCalculatorSettings(),
+                ],
+            ];
+        });
+
+        // آخر النشاطات (بدون كاش لأنها ديناميكية)
+        $recentActivities = $merchant->activityLogs()
+            ->with('loggable')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'description' => $log->description,
+                    'created_at' => $log->created_at->diffForHumans(),
+                    'loggable_type' => class_basename($log->loggable_type),
+                ];
+            });
+
+        return Inertia::render('Dashboard', [
+            'merchant' => $merchant->only(['id', 'store_name', 'email']),
+            'stats' => $stats,
+            'recentActivities' => $recentActivities,
+        ]);
     }
 
     /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable|\Illuminate\Http\RedirectResponse
-     * @throws IdentityProviderException
+     * مسح الكاش للتاجر
      */
-    public function __invoke()
+    public function clearCache(Request $request)
     {
-        $products = [];
-        $store = null;
+        $merchant = $request->user();
+        $cacheKey = "dashboard_stats_{$merchant->id}";
 
-        if (auth()->user()->token) {
-            // set the access token to our service
-            // you can load the user profile from your database in your app
-            $this->salla->forUser(auth()->user());
+        Cache::forget($cacheKey);
 
-            // you need always to check the token before made a request
-            // If the token expired, lets request a new one and save it to the database
-            try {
-                $this->salla->getNewAccessToken();
-            } catch (IdentityProviderException $exception) {
-                // in case the token access token & refresh token is expired
-                // lets redirect the user again to Salla authorization service to get a new token
-                return redirect()->route('oauth.redirect');
-            }
-
-            // let's get the store details to show it
-            $store = $this->salla->getStoreDetail();
-
-            // let's get the product of store via salla service
-            $products = $this->salla->request('GET', 'https://api.salla.dev/admin/v2/products')['data'];
-
-            /**
-             * Or you can use Http client of laravel to get the products
-             */
-            //$response = Http::asJson()->withToken($this->salla->getToken()->access_token)
-            //    ->get('https://api.salla.dev/admin/v2/products');
-
-            //if ($response->status() === 200) {
-            //    $products = $response->json()['data'];
-            //}
-        }
-
-        return view('dashboard', [
-            // get the first 8 products from the response
-            'products' => array_slice($products, 0, min(8, count($products))),
-            'store'    => $store
-        ]);
+        return back()->with('success', 'تم مسح الكاش بنجاح');
     }
 }
