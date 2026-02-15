@@ -9,6 +9,35 @@ use Illuminate\Support\Facades\Route;
 | Web Routes - Blade Templates
 |--------------------------------------------------------------------------
 */
+// ====================================================================
+// 🧪 TEMP - UI Testing Only - Remove before merge
+// ====================================================================
+Route::prefix('ui-test')->name('calculator.')->group(function () {
+
+    Route::get('/instructions', function () {
+        return view('calculator.instructions');
+    })->name('instructions');
+
+    Route::get('/settings', function () {
+        return view('calculator.settings');
+    })->name('settings');
+
+    Route::get('/dashboard', function () {
+        return view('calculator.dashboard', [
+            'hasSettings' => true,
+            'stats' => [
+                'total_products'   => 8,
+                'enabled_products' => 3,
+            ],
+            'products' => collect([]),
+        ]);
+    })->name('dashboard');
+
+    Route::get('/products', function () {
+        return view('calculator.products');
+    })->name('products');
+
+});
 
 // ====================================================================
 // صفحة الترحيب (Welcome Page)
