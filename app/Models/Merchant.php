@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
+
 class Merchant extends Authenticatable
 {
     use HasFactory, Notifiable;
