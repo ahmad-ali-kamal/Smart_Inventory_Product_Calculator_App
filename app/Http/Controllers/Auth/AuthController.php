@@ -18,7 +18,7 @@ class AuthController extends Controller
      */
     public function showLogin()
     {
-        return Inertia::render('Auth/Login');
+        return veiw::render('Auth/Login');
     }
 
     /**
