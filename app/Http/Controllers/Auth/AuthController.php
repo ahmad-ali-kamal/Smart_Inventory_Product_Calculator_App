@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
 
 class AuthController extends Controller
 {
@@ -18,7 +17,7 @@ class AuthController extends Controller
      */
     public function showLogin()
     {
-        return veiw::render('Auth/Login');
+        return view('auth.login'); // ✅ Blade بدلاً من Inertia
     }
 
     /**
@@ -80,7 +79,6 @@ class AuthController extends Controller
         try {
             $this->fetchMerchantData($merchant);
         } catch (\Exception $e) {
-            // يمكن المتابعة حتى لو فشل جلب البيانات
             \Log::warning('Failed to fetch merchant data during verification', [
                 'merchant_id' => $merchant->id,
                 'error' => $e->getMessage(),
