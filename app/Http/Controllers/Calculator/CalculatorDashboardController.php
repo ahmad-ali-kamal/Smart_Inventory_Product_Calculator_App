@@ -3,62 +3,42 @@
 namespace App\Http\Controllers\Calculator;
 
 use App\Http\Controllers\Controller;
+use App\Models\CalculatorSetting;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class CalculatorDashboardController extends Controller
 {
     /**
-     * عرض داشبورد الآلة الحاسبة
+     * عرض Dashboard الآلة الحاسبة
      */
     public function index(Request $request)
     {
         $merchant = $request->user();
-        $hasSettings = $merchant->hasCalculatorSettings();
 
-        // إذا لم يكن لديه إعدادات، عرض الحالة الفارغة
-        if (!$hasSettings) {
-            return Inertia::render('Calculator/Dashboard', [
-                'hasSettings' => false,
-                'stats' => null,
-                'products' => [],
-            ]);
-        }
+        // الحصول على الإعدادات
+        $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
 
-        // إحصائيات
+        // إحصائيات المنتجات
         $stats = [
-            'total_products' => $merchant->products()->count(),
-            'enabled_products' => $merchant->products()
-                ->withCalculatorEnabled()
+            'total_products' => Product::where('merchant_id', $merchant->id)->count(),
+            'enabled_products' => Product::where('merchant_id', $merchant->id)
+                ->whereHas('calculator', function ($q) {
+                    $q->where('is_enabled', true);
+                })
+                ->count(),
+            'disabled_products' => Product::where('merchant_id', $merchant->id)
+                ->whereHas('calculator', function ($q) {
+                    $q->where('is_enabled', false);
+                })
+                ->orWhereDoesntHave('calculator')
                 ->count(),
         ];
 
-        // المنتجات المفعلة للآلة الحاسبة
-        $products = Product::where('merchant_id', $merchant->id)
-            ->withCalculatorEnabled()
-            ->with('calculator')
-            ->get()
-            ->map(function ($product) use ($merchant) {
-                $settings = $merchant->calculatorSettings;
-                
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'image_url' => $product->image_url,
-                    'price' => $product->price,
-                    'is_enabled' => true,
-                    'settings' => [
-                        'coverage' => $settings->coverage_per_unit,
-                        'waste' => $settings->waste_percentage,
-                    ],
-                ];
-            });
-
-        return Inertia::render('Calculator/Dashboard', [
-            'hasSettings' => true,
+        return view('calculator.dashboard', [
+            'settings' => $settings,
             'stats' => $stats,
-            'products' => $products,
+            'hasSettings' => !is_null($settings),
         ]);
     }
 }
