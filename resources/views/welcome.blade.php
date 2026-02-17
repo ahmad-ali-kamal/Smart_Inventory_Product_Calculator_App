@@ -2,7 +2,6 @@
 
 @section('content')
 
-<!-- ========== HERO ========== -->
 <section class="hero-section">
 
     {{-- Floating background icons --}}
@@ -23,7 +22,6 @@
 
 </section>
 
-<!-- ========== FEATURES ========== -->
 <section id="features" class="py-32 px-6">
     <div class="mx-auto" style="max-width:64rem">
 
@@ -74,7 +72,6 @@
     </div>
 </section>
 
-<!-- ========== TOOLS ========== -->
 <section id="tools" class="py-32 px-6">
     <div class="mx-auto" style="max-width:64rem">
 
@@ -98,7 +95,8 @@
                     Monitor time-sensitive inventory and prevent avoidable loss
                     with smart, expiry-aware action.
                 </p>
-                <a href="{{ route('login') }}" class="btn-apricot">
+                {{-- ✅ تم التعديل: التوجيه لداشبورد المخزون --}}
+                <a href="{{ route('inventory.dashboard') }}" class="btn-apricot">
                     Manage Inventory <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
@@ -114,7 +112,8 @@
                     Define your calculation logic once and apply it across selected products —
                     ensuring accurate quantities, every time.
                 </p>
-                <a  href="{{ route('login') }}" class="btn-mauve">
+                {{-- ✅ تم التعديل: التوجيه لداشبورد الحاسبة --}}
+                <a href="{{ route('calculator.dashboard') }}" class="btn-mauve">
                     Open Calculator <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
