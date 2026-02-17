@@ -13,47 +13,49 @@ class Merchant extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    /**
+     * الحقول القابلة للتعبئة (Mass Assignment)
+     * مطابقة تماماً لجدول merchants في قاعدة البيانات
+     */
     protected $fillable = [
         'salla_merchant_id',
-        'store_name',
+        'name',          // الاسم في قاعدة البيانات
         'email',
+        'mobile',
         'access_token',
         'refresh_token',
         'token_expires_at',
-        'store_info',
-        'is_active',
+        'store_info',    // حقل JSON لكامل البيانات
     ];
 
+    /**
+     * الحقول المخفية عند تحويل المودل إلى Array/JSON
+     */
     protected $hidden = [
         'access_token',
         'refresh_token',
     ];
 
+    /**
+     * تحويل أنواع البيانات تلقائياً
+     */
     protected $casts = [
         'token_expires_at' => 'datetime',
         'store_info' => 'array',
-        'is_active' => 'boolean',
     ];
 
-    /**
-     * 🔒 تشفير وفك تشفير التوكن تلقائياً
-     * لضمان حماية بيانات التاجر في قاعدة البيانات
-     */
-    public function getAccessTokenAttribute($value): ?string
-    {
-        try {
-            return $value ? Crypt::decryptString($value) : null;
-        } catch (\Exception $e) {
-            return $value; // في حال لم يكن مشفراً مسبقاً
-        }
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | التشفير والحماية (Encryption)
+    |--------------------------------------------------------------------------
+    */
 
-    public function setAccessTokenAttribute($value): void
+    public function setAccessTokenAttribute($value)
     {
         $this->attributes['access_token'] = $value ? Crypt::encryptString($value) : null;
     }
 
-    public function getRefreshTokenAttribute($value): ?string
+    public function getAccessTokenAttribute($value)
     {
         try {
             return $value ? Crypt::decryptString($value) : null;
@@ -62,14 +64,26 @@ class Merchant extends Authenticatable
         }
     }
 
-    public function setRefreshTokenAttribute($value): void
+    public function setRefreshTokenAttribute($value)
     {
         $this->attributes['refresh_token'] = $value ? Crypt::encryptString($value) : null;
     }
 
-    /**
-     * التحقق من صلاحية الـ Token
-     */
+    public function getRefreshTokenAttribute($value)
+    {
+        try {
+            return $value ? Crypt::decryptString($value) : null;
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | دوال مساعدة (Helper Methods)
+    |--------------------------------------------------------------------------
+    */
+
     public function isTokenExpired(): bool
     {
         return $this->token_expires_at && $this->token_expires_at->isPast();
@@ -80,9 +94,12 @@ class Merchant extends Authenticatable
         return !empty($this->access_token) && !$this->isTokenExpired();
     }
 
-    /**
-     * العلاقات (Relationships)
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | العلاقات (Relationships)
+    |--------------------------------------------------------------------------
+    */
+
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
@@ -111,13 +128,5 @@ class Merchant extends Authenticatable
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
-    }
-
-    /**
-     * Scopes لمساعدتك في الاستعلامات
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 }

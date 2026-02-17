@@ -7,76 +7,96 @@ use App\Models\Merchant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+
+// تأكد من وجود هذا الملف لاحقاً لجلب المنتجات
+use App\Services\SallaApiService; 
 
 class SallaOAuthController extends Controller
 {
     /**
-     * توجيه التاجر إلى صفحة تسجيل الدخول في سلة (Authorize)
+     * إعادة التوجيه لصفحة تسجيل الدخول في سلة
      */
     public function redirect()
     {
-        // توليد State لمنع هجمات CSRF
+        // 1. إنشاء رمز عشوائي للتحقق من الأمان (CSRF Protection)
         $state = Str::random(40);
         session(['oauth_state' => $state]);
 
-        $params = [
+        // 2. بناء رابط التوجيه مع الباراميترات المطلوبة
+        $query = http_build_query([
             'client_id'     => config('services.salla.client_id'),
             'redirect_uri'  => config('services.salla.callback_url'),
             'response_type' => 'code',
-            'scope' => 'offline_access', // 👈 اجعلها هكذا فقط للتجربة الآن
+            'scope'         => 'offline_access', // لمنح صلاحية العمل في الخلفية
             'state'         => $state,
-        ];
+        ]);
 
-        $authUrl = 'https://accounts.salla.sa/oauth2/auth?' . http_build_query($params);
-
-        return redirect($authUrl);
+        return redirect('https://accounts.salla.sa/oauth2/auth?' . $query);
     }
 
     /**
-     * معالجة الرد (Callback) القادم من سلة بعد موافقة التاجر
+     * معالجة الـCallback القادم من سلة بعد تسجيل الدخول
      */
     public function callback(Request $request)
     {
-        // 1. التحقق من الـ State لضمان أمان الطلب
+        // 1. التحقق من تطابق الـ State (للحماية من هجمات CSRF)
         if ($request->state !== session('oauth_state')) {
             return redirect()->route('login')->with('error', 'انتهت صلاحية الجلسة، يرجى المحاولة مرة أخرى.');
         }
 
-        // 2. التحقق من وجود الكود
+        // 2. التحقق من وجود كود التفويض
         if (!$request->has('code')) {
-            return redirect()->route('login')->with('error', 'فشلت عملية المصادقة مع سلة.');
+            return redirect()->route('login')->with('error', 'فشل تسجيل الدخول. لم يتم استلام كود التفويض من سلة.');
         }
 
         try {
-            // 3. استبدال الـ Code بـ Access Token
+            // الخطوة 1: استبدال الكود بـ Access Token
             $tokenData = $this->getAccessToken($request->code);
 
-            // 4. جلب معلومات التاجر والمتجر باستخدام التوكن الجديد
+            // الخطوة 2: جلب معلومات التاجر من سلة
             $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
 
-            // 5. إنشاء أو تحديث بيانات التاجر في قاعدة البيانات
-            $merchant = $this->createOrUpdateMerchant($merchantInfo, $tokenData);
+            // الخطوة 3: حفظ أو تحديث التاجر في قاعدة البيانات
+            $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData);
 
-            // 6. تسجيل الدخول يدوياً للتاجر
+            // الخطوة 4: تسجيل دخول التاجر في التطبيق
             Auth::login($merchant);
 
-            return redirect()->route('dashboard')
-                ->with('success', 'تم تسجيل الدخول بنجاح! مرحباً بك في لوحة التحكم.');
+            // الخطوة 5: ✅ التوجيه لصفحة Welcome (الرئيسية) بدلاً من Dashboard
+            return redirect()->route('welcome')
+                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم تسجيل الدخول بنجاح!');
 
         } catch (\Exception $e) {
-            Log::error('Salla OAuth Error: ' . $e->getMessage());
-            
+            // تسجيل الخطأ في ملفات اللوج للرجوع إليه
+            Log::error('Salla OAuth Login Error: ' . $e->getMessage());
+
             return redirect()->route('login')
-                ->with('error', 'حدث خطأ أثناء الاتصال بسلة. يرجى المحاولة لاحقاً.');
+                ->with('error', 'حدث خطأ أثناء الاتصال بسلة: ' . $e->getMessage());
         }
     }
 
     /**
-     * طلب Access Token من خوادم سلة
+     * تسجيل الخروج
      */
-    protected function getAccessToken(string $code): array
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('welcome')->with('success', 'تم تسجيل الخروج بنجاح.');
+    }
+
+    // ====================================================================
+    // Private Methods (دوال مساعدة خاصة)
+    // ====================================================================
+
+    /**
+     * طلب Access Token من سلة
+     */
+    private function getAccessToken(string $code): array
     {
         $response = Http::asForm()->post('https://accounts.salla.sa/oauth2/token', [
             'grant_type'    => 'authorization_code',
@@ -86,59 +106,64 @@ class SallaOAuthController extends Controller
             'code'          => $code,
         ]);
 
-        if (!$response->successful()) {
-            throw new \Exception('Failed to exchange code for token: ' . $response->body());
+        if ($response->failed()) {
+            throw new \Exception('فشل استبدال الكود بالتوكن: ' . $response->body());
         }
 
         return $response->json();
     }
 
     /**
-     * جلب تفاصيل التاجر من API سلة
+     * جلب بيانات التاجر من API سلة
      */
-    protected function getMerchantInfo(string $accessToken): array
+    private function getMerchantInfo(string $accessToken): array
     {
         $response = Http::withToken($accessToken)
             ->get('https://accounts.salla.sa/oauth2/user/info');
 
-        if (!$response->successful()) {
-            throw new \Exception('Failed to fetch merchant info: ' . $response->body());
+        if ($response->failed()) {
+            throw new \Exception('فشل جلب بيانات المستخدم: ' . $response->body());
         }
 
-        // استخراج البيانات من داخل مفتاح 'data' حسب توثيق سلة
         return $response->json()['data'];
     }
 
     /**
-     * حفظ بيانات التاجر في قاعدة البيانات
+     * حفظ التاجر في قاعدة البيانات ومحاولة جلب المنتجات
      */
-    protected function createOrUpdateMerchant(array $data, array $tokenData): Merchant
+    private function saveOrUpdateMerchant(array $info, array $tokenData): Merchant
     {
-        return Merchant::updateOrCreate(
-            ['salla_merchant_id' => $data['merchant']['id']],
+        // تحديث أو إنشاء التاجر
+        $merchant = Merchant::updateOrCreate(
+            ['salla_merchant_id' => $info['merchant']['id']],
             [
-                'store_name'       => $data['merchant']['name'] ?? 'متجر سلة',
-                'email'            => $data['merchant']['email'],
+                'name'             => $info['merchant']['name'] ?? 'تاجر سلة',
+                'email'            => $info['merchant']['email'] ?? null,
+                'mobile'           => $info['merchant']['mobile'] ?? null,
                 'access_token'     => $tokenData['access_token'],
-                'refresh_token'    => $tokenData['refresh_token'],
-                // تحويل expires_in (ثواني) إلى تاريخ وقت حقيقي
-                'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
-                'store_info'       => $data,
-                'is_active'        => true,
+                'refresh_token'    => $tokenData['refresh_token'] ?? null,
+                'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 3600),
+                'store_info'       => $info,
             ]
         );
-    }
 
-    /**
-     * تسجيل الخروج وإبطال الجلسة
-     */
-    public function logout(Request $request)
-    {
-        Auth::logout();
+        /*
+         * محاولة مزامنة المنتجات فوراً (اختياري)
+         * نضعها داخل try-catch حتى لا يتوقف التطبيق إذا كان ملف السيرفس غير موجود
+         */
+        try {
+            if (class_exists(SallaApiService::class)) {
+                $sallaService = new SallaApiService($merchant);
+                // تأكد أن دالة syncProducts موجودة في السيرفس
+                if (method_exists($sallaService, 'syncProducts')) {
+                    $sallaService->syncProducts();
+                }
+            }
+        } catch (\Exception $e) {
+            // نكتفي بتسجيل تحذير ونكمل تسجيل الدخول
+            Log::warning('Product Sync Warning: ' . $e->getMessage());
+        }
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('login')->with('success', 'تم تسجيل الخروج بنجاح.');
+        return $merchant;
     }
 }
