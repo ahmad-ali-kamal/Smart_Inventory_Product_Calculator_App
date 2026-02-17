@@ -2,18 +2,14 @@
 
 namespace App\Models;
 
-// 1. استدعاء الواجهة المطلوبة للتحقق
-use Illuminate\Contracts\Auth\MustVerifyEmail; 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Str;
 
-// 2. إضافة implements MustVerifyEmail للكلاس
-class Merchant extends Authenticatable implements MustVerifyEmail
+class Merchant extends Authenticatable
 {
     use HasFactory, Notifiable;
 
@@ -21,8 +17,6 @@ class Merchant extends Authenticatable implements MustVerifyEmail
         'salla_merchant_id',
         'store_name',
         'email',
-        'verification_token',
-        'email_verified_at',
         'access_token',
         'refresh_token',
         'token_expires_at',
@@ -30,20 +24,65 @@ class Merchant extends Authenticatable implements MustVerifyEmail
         'is_active',
     ];
 
+    protected $hidden = [
+        'access_token',
+        'refresh_token',
+    ];
+
     protected $casts = [
-        'email_verified_at' => 'datetime',
         'token_expires_at' => 'datetime',
         'store_info' => 'array',
         'is_active' => 'boolean',
     ];
 
-    protected $hidden = [
-        'access_token',
-        'refresh_token',
-        'verification_token',
-    ];
+    /**
+     * 🔒 تشفير وفك تشفير التوكن تلقائياً
+     * لضمان حماية بيانات التاجر في قاعدة البيانات
+     */
+    public function getAccessTokenAttribute($value): ?string
+    {
+        try {
+            return $value ? Crypt::decryptString($value) : null;
+        } catch (\Exception $e) {
+            return $value; // في حال لم يكن مشفراً مسبقاً
+        }
+    }
 
-    // Relationships
+    public function setAccessTokenAttribute($value): void
+    {
+        $this->attributes['access_token'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    public function getRefreshTokenAttribute($value): ?string
+    {
+        try {
+            return $value ? Crypt::decryptString($value) : null;
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
+    public function setRefreshTokenAttribute($value): void
+    {
+        $this->attributes['refresh_token'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    /**
+     * التحقق من صلاحية الـ Token
+     */
+    public function isTokenExpired(): bool
+    {
+        return $this->token_expires_at && $this->token_expires_at->isPast();
+    }
+
+    public function hasValidToken(): bool
+    {
+        return !empty($this->access_token) && !$this->isTokenExpired();
+    }
+
+    /**
+     * العلاقات (Relationships)
+     */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
@@ -74,71 +113,9 @@ class Merchant extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ActivityLog::class);
     }
 
-    // Accessors & Mutators
-    public function getAccessTokenAttribute($value): ?string
-    {
-        return $value ? Crypt::decryptString($value) : null;
-    }
-
-    public function setAccessTokenAttribute($value): void
-    {
-        $this->attributes['access_token'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    public function getRefreshTokenAttribute($value): ?string
-    {
-        return $value ? Crypt::decryptString($value) : null;
-    }
-
-    public function setRefreshTokenAttribute($value): void
-    {
-        $this->attributes['refresh_token'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    // Helper Methods
-    public function isEmailVerified(): bool
-    {
-        return !is_null($this->email_verified_at);
-    }
-
-    public function generateVerificationToken(): string
-    {
-        $this->verification_token = Str::random(64);
-        $this->save();
-
-        return $this->verification_token;
-    }
-
-    public function markEmailAsVerified(): bool
-    {
-        $this->email_verified_at = now();
-        $this->is_active = true;
-        $this->verification_token = null;
-
-        return $this->save();
-    }
-
-    public function isTokenExpired(): bool
-    {
-        return $this->token_expires_at && $this->token_expires_at->isPast();
-    }
-
-    public function hasCalculatorSettings(): bool
-    {
-        return $this->calculatorSettings()->exists();
-    }
-
-    public function hasBatchSettings(): bool
-    {
-        return $this->batchSettings()->exists();
-    }
-
-    // Scopes
-    public function scopeVerified($query)
-    {
-        return $query->whereNotNull('email_verified_at');
-    }
-
+    /**
+     * Scopes لمساعدتك في الاستعلامات
+     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

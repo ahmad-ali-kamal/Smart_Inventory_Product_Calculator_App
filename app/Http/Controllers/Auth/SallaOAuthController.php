@@ -4,136 +4,133 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
-use App\Services\SallaApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SallaOAuthController extends Controller
 {
     /**
-     * إعادة التوجيه لصفحة تسجيل الدخول في سلة
+     * توجيه التاجر إلى صفحة تسجيل الدخول في سلة (Authorize)
      */
     public function redirect()
     {
+        // توليد State لمنع هجمات CSRF
+        $state = Str::random(40);
+        session(['oauth_state' => $state]);
+
         $params = [
-            'client_id' => config('salla.client_id'),
-            'redirect_uri' => config('salla.redirect_uri'),
+            'client_id'     => config('services.salla.client_id'),
+            'redirect_uri'  => config('services.salla.callback_url'),
             'response_type' => 'code',
-            'scope' => 'offline_access',
-            'state' => Str::random(40),
+            'scope' => 'offline_access', // 👈 اجعلها هكذا فقط للتجربة الآن
+            'state'         => $state,
         ];
 
-        session(['oauth_state' => $params['state']]);
-
-        $query = http_build_query($params);
-        $authUrl = config('salla.authorization_url') . '?' . $query;
+        $authUrl = 'https://accounts.salla.sa/oauth2/auth?' . http_build_query($params);
 
         return redirect($authUrl);
     }
 
     /**
-     * معالجة Callback من سلة
+     * معالجة الرد (Callback) القادم من سلة بعد موافقة التاجر
      */
     public function callback(Request $request)
     {
-        // التحقق من الـstate
+        // 1. التحقق من الـ State لضمان أمان الطلب
         if ($request->state !== session('oauth_state')) {
-            return redirect()->route('login')
-                ->with('error', 'Invalid state parameter');
+            return redirect()->route('login')->with('error', 'انتهت صلاحية الجلسة، يرجى المحاولة مرة أخرى.');
         }
 
-        // التحقق من وجود الـcode
+        // 2. التحقق من وجود الكود
         if (!$request->has('code')) {
-            return redirect()->route('login')
-                ->with('error', 'Authorization failed');
+            return redirect()->route('login')->with('error', 'فشلت عملية المصادقة مع سلة.');
         }
 
         try {
-            // الحصول على Access Token
+            // 3. استبدال الـ Code بـ Access Token
             $tokenData = $this->getAccessToken($request->code);
 
-            // الحصول على معلومات التاجر من سلة
-            $merchantData = $this->getMerchantInfo($tokenData['access_token']);
+            // 4. جلب معلومات التاجر والمتجر باستخدام التوكن الجديد
+            $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
 
-            // إنشاء أو تحديث التاجر
-            $merchant = $this->createOrUpdateMerchant($merchantData, $tokenData);
+            // 5. إنشاء أو تحديث بيانات التاجر في قاعدة البيانات
+            $merchant = $this->createOrUpdateMerchant($merchantInfo, $tokenData);
 
-            // تسجيل الدخول
+            // 6. تسجيل الدخول يدوياً للتاجر
             Auth::login($merchant);
 
             return redirect()->route('dashboard')
-                ->with('success', 'مرحباً بك في Salla Merchant App!');
+                ->with('success', 'تم تسجيل الدخول بنجاح! مرحباً بك في لوحة التحكم.');
 
         } catch (\Exception $e) {
-            \Log::error('OAuth callback failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
+            Log::error('Salla OAuth Error: ' . $e->getMessage());
+            
             return redirect()->route('login')
-                ->with('error', 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+                ->with('error', 'حدث خطأ أثناء الاتصال بسلة. يرجى المحاولة لاحقاً.');
         }
     }
 
     /**
-     * الحصول على Access Token من سلة
+     * طلب Access Token من خوادم سلة
      */
     protected function getAccessToken(string $code): array
     {
-        $response = \Http::asForm()->post(config('salla.token_url'), [
-            'grant_type' => 'authorization_code',
-            'client_id' => config('salla.client_id'),
-            'client_secret' => config('salla.client_secret'),
-            'redirect_uri' => config('salla.redirect_uri'),
-            'code' => $code,
+        $response = Http::asForm()->post('https://accounts.salla.sa/oauth2/token', [
+            'grant_type'    => 'authorization_code',
+            'client_id'     => config('services.salla.client_id'),
+            'client_secret' => config('services.salla.client_secret'),
+            'redirect_uri'  => config('services.salla.callback_url'),
+            'code'          => $code,
         ]);
 
         if (!$response->successful()) {
-            throw new \Exception('Failed to get access token: ' . $response->body());
+            throw new \Exception('Failed to exchange code for token: ' . $response->body());
         }
 
         return $response->json();
     }
 
     /**
-     * الحصول على معلومات التاجر من سلة
+     * جلب تفاصيل التاجر من API سلة
      */
     protected function getMerchantInfo(string $accessToken): array
     {
-        $response = \Http::withToken($accessToken)
-            ->get(config('salla.api_url') . '/oauth2/user/info');
+        $response = Http::withToken($accessToken)
+            ->get('https://accounts.salla.sa/oauth2/user/info');
 
         if (!$response->successful()) {
-            throw new \Exception('Failed to get merchant info: ' . $response->body());
+            throw new \Exception('Failed to fetch merchant info: ' . $response->body());
         }
 
+        // استخراج البيانات من داخل مفتاح 'data' حسب توثيق سلة
         return $response->json()['data'];
     }
 
     /**
-     * إنشاء أو تحديث التاجر
+     * حفظ بيانات التاجر في قاعدة البيانات
      */
-    protected function createOrUpdateMerchant(array $merchantData, array $tokenData): Merchant
+    protected function createOrUpdateMerchant(array $data, array $tokenData): Merchant
     {
         return Merchant::updateOrCreate(
+            ['salla_merchant_id' => $data['merchant']['id']],
             [
-                'salla_merchant_id' => $merchantData['merchant']['id'],
-            ],
-            [
-                'email' => $merchantData['merchant']['email'],
-                'store_name' => $merchantData['merchant']['name'] ?? 'متجر جديد',
-                'access_token' => $tokenData['access_token'],
-                'refresh_token' => $tokenData['refresh_token'],
+                'store_name'       => $data['merchant']['name'] ?? 'متجر سلة',
+                'email'            => $data['merchant']['email'],
+                'access_token'     => $tokenData['access_token'],
+                'refresh_token'    => $tokenData['refresh_token'],
+                // تحويل expires_in (ثواني) إلى تاريخ وقت حقيقي
                 'token_expires_at' => now()->addSeconds($tokenData['expires_in']),
-                'store_info' => $merchantData,
-                'is_active' => true,
+                'store_info'       => $data,
+                'is_active'        => true,
             ]
         );
     }
 
     /**
-     * تسجيل الخروج
+     * تسجيل الخروج وإبطال الجلسة
      */
     public function logout(Request $request)
     {
@@ -142,7 +139,6 @@ class SallaOAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')
-            ->with('success', 'تم تسجيل الخروج بنجاح');
+        return redirect()->route('login')->with('success', 'تم تسجيل الخروج بنجاح.');
     }
 }
