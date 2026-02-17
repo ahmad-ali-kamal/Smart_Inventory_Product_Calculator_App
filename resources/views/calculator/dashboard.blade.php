@@ -104,7 +104,8 @@
                     <div class="stat-sub">in your store</div>
                 </div>
             </div>
-            <div class="stat-num">8</div>
+            {{-- ✅ تم جلب الرقم من متغير stats القادم من الكنترولر --}}
+            <div class="stat-num">{{ $stats['total_products'] }}</div>
         </div>
 
         {{-- Activated Products --}}
@@ -118,7 +119,8 @@
                     <div class="stat-sub">Calculator enabled</div>
                 </div>
             </div>
-            <div class="stat-num">0</div>
+            {{-- ✅ تم جلب الرقم من متغير stats القادم من الكنترولر --}}
+            <div class="stat-num">{{ $stats['enabled_products'] }}</div>
         </div>
 
         {{-- Current Settings --}}
@@ -133,18 +135,22 @@
                 </div>
             </div>
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                {{-- ✅ عرض الإعدادات الحقيقية للتاجر --}}
                 <span style="font-size:0.78rem; font-weight:700; background:var(--mauve-soft); color:var(--mauve-deep); border:1px solid var(--mauve-border); padding:0.2rem 0.65rem; border-radius:0.5rem;">
-                    10 sqm
+                    {{ $settings->coverage_per_unit }} sqm
                 </span>
                 <span style="font-size:0.78rem; font-weight:700; background:var(--mauve-soft); color:var(--mauve-deep); border:1px solid var(--mauve-border); padding:0.2rem 0.65rem; border-radius:0.5rem;">
-                    10% waste
+                    {{ $settings->waste_percentage }}% waste
                 </span>
+                {{-- زر سريع لتعديل الإعدادات --}}
+                <a href="{{ route('calculator.settings') }}" style="font-size:0.7rem; color:var(--mauve); text-decoration:none; align-self:center; margin-left:auto;">Edit</a>
             </div>
         </div>
 
     </div>
 
-    {{-- Empty state --}}
+    {{-- Empty state (يظهر فقط إذا لم يكن هناك منتجات مفعلة) --}}
+    @if($stats['enabled_products'] == 0)
     <div class="empty-card"
          style="opacity:0; animation: fade-up 0.5s ease-out 0.7s forwards;">
 
@@ -160,13 +166,19 @@
             You haven't activated any products yet. Add your first product and let the smart calculator handle the math.
         </p>
 
-       <a href="{{ route('calculator.products') }}" class="btn-signin" style="max-width:280px; margin:0 auto; text-decoration:none;">
-    <i class="bi bi-plus-circle"></i>
-    <span>Add Product</span>
-    <i class="bi bi-arrow-right btn-arrow"></i>
-</a>
-
+        {{-- ✅ تم تصحيح الاسم إلى calculator.products.index --}}
+        <a href="{{ route('calculator.products.index') }}" class="btn-signin" style="max-width:280px; margin:0 auto; text-decoration:none;">
+            <i class="bi bi-plus-circle"></i>
+            <span>Add Product</span>
+            <i class="bi bi-arrow-right btn-arrow"></i>
+        </a>
     </div>
+    @else
+        {{-- هنا يمكنك إضافة جدول يعرض المنتجات المفعلة لاحقاً --}}
+        <div style="text-align:center; padding: 2rem;">
+             <a href="{{ route('calculator.products.index') }}" class="btn-hero-primary" style="text-decoration: none; padding: 0.8rem 2rem;">Manage Activated Products</a>
+        </div>
+    @endif
 
 </div>
 </section>
