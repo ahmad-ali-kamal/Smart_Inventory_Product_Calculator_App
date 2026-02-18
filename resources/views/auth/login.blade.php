@@ -1,60 +1,57 @@
-@extends('layouts.app')
-
-@section('title', 'تسجيل الدخول - Smart Inventory')
+@extends('layouts.guest')
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-4">
-    <div class="card w-full max-w-md bg-base-100 shadow-2xl border border-base-200">
-        <div class="card-body items-center text-center p-8">
-            <div class="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                <span class="text-4xl">📦</span>
+<div class="w-full max-w-md px-6 py-12" style="position: relative; z-index: 10;">
+    <div class="login-card p-10 md:p-12">
+
+        {{-- Logo --}}
+        <div class="flex flex-col items-center mb-10">
+            <div class="logo-icon mb-4">
+                <i class="bi bi-shop-window text-white" style="font-size: 1.25rem;"></i>
             </div>
-
-            <h2 class="card-title text-3xl font-bold text-primary mb-1">
-                Smart Inventory
-            </h2>
-            <p class="text-base-content/60 mb-8 font-medium">
-                بوابة التاجر لإدارة المنتجات والمخزون
-            </p>
-
-            @if(session('error'))
-                <div class="alert alert-error mb-6 shadow-sm py-3 text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{{ session('error') }}</span>
-                </div>
-            @endif
-
-            <div class="divider text-xs uppercase tracking-widest opacity-50">الدخول الآمن</div>
-
-            <a 
-                href="{{ route('auth.salla') }}" 
-                class="btn btn-primary btn-lg w-full gap-3 shadow-lg hover:shadow-primary/30 transition-all duration-300 group"
-            >
-                <svg class="w-6 h-6 fill-current group-hover:scale-110 transition-transform" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
-                </svg>
-                <span>تسجيل الدخول بواسطة سلة</span>
-            </a>
-
-            <div class="mt-8 space-y-4">
-                <div class="p-4 bg-base-200/50 rounded-xl flex items-start gap-3 text-right">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-primary shrink-0 w-5 h-5 mt-0.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div class="text-xs text-base-content/70 leading-relaxed">
-                        بالنقر على الزر أعلاه، سيتم توجيهك إلى مركز حسابات سلة للموافقة على صلاحيات الوصول لمتجرك بشكل آمن ومشفر.
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                    <a href="{{ route('welcome') }}" class="btn btn-ghost btn-sm text-base-content/50 hover:text-primary">
-                        العودة للرئيسية
-                    </a>
-                </div>
-            </div>
+            <h1 class="login-title font-serif text-2xl font-bold tracking-tight" style="color: var(--fg)">
+                Smart<span style="color: var(--mauve)">Inventory</span>
+            </h1>
         </div>
+
+        {{-- Info Note --}}
+            <div style="display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08));">
+                <i class="bi bi-shield-lock" style="color: var(--mauve); font-size: 0.85rem; flex-shrink: 0; margin-top: 0.1rem;"></i>
+                <p style="color: var(--muted); font-size: 0.7rem; line-height: 1.65; margin: 0; font-family: inherit;">
+                    You'll be redirected to Salla's account center to securely authorize access to your store.
+                </p>
+            </div>
+        {{-- Error Alert --}}
+        @if(session('error'))
+            <div class="input-group ig-1 mb-4" style="border-color: #e06b5b;">
+                <i class="bi bi-exclamation-circle input-icon-left" style="color: #e06b5b;"></i>
+                <p class="input-field" style="color: #e06b5b; background: transparent; border: none; cursor: default;">
+                    {{ session('error') }}
+                </p>
+            </div>
+        @endif
+
+        {{-- Divider --}}
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div style="flex: 1; height: 1px; background: var(--border, rgba(255,255,255,0.08));"></div>
+            <span style="color: var(--muted); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;">Secure Access</span>
+            <div style="flex: 1; height: 1px; background: var(--border, rgba(255,255,255,0.08));"></div>
+        </div>
+
+        {{-- Salla OAuth Button --}}
+        <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+            <a href="{{ route('auth.salla') }}" class="btn-signin" style="display: flex; align-items: center; justify-content: center; gap: 0.625rem; text-decoration: none;">
+                <i class="bi bi-bag-check" style="font-size: 1rem; flex-shrink: 0;"></i>
+                <span>Sign in with Salla</span>
+                <i class="bi bi-arrow-right btn-arrow"></i>
+            </a>
+            {{-- Back link --}}
+            <a href="{{ route('welcome') }}" style="text-align: center; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.05em; text-decoration: none; margin-top: 0.25rem; transition: color 0.2s; font-family: inherit;"
+               onmouseover="this.style.color='var(--mauve)'" onmouseout="this.style.color='var(--muted)'">
+                ← Back to Home
+            </a>
+        </div>
+
     </div>
 </div>
 @endsection

@@ -1,6 +1,28 @@
 @extends('layouts.calcapp')
 
 @section('content')
+@include('layouts._header', [
+    'headerNav' => [
+        [
+            'url'         => route('welcome'),
+            'icon'        => 'bi-house',
+            'label'       => 'Home',
+            'route_match' => 'welcome',
+        ],
+        [
+            'url'         => route('calculator.settings'),
+            'icon'        => 'bi-gear',
+            'label'       => 'Settings',
+            'route_match' => 'calculator.settings',
+        ],
+        [
+            'url'         => route('calculator.products.index'),
+            'icon'        => 'bi-box-seam',
+            'label'       => 'Products',
+            'route_match' => 'calculator.products.*',
+        ],
+    ],
+])
 
 <style>
     /* ── Stat cards ── */
@@ -78,17 +100,6 @@
 
 <section class="min-h-screen py-12 px-4" style="position: relative; z-index: 10;">
 <div class="max-w-4xl mx-auto space-y-6">
-
-    {{-- Page header --}}
-    <div style="opacity:0; animation: fade-up 0.5s ease-out 0.4s forwards;">
-        <h1 class="font-serif text-2xl font-bold" style="color:var(--fg)">
-            Merchant<span style="color:var(--mauve)">Tools</span>
-        </h1>
-        <p style="font-size:0.72rem; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; margin-top:0.2rem;">
-            Overview
-        </p>
-    </div>
-
     {{-- Stats row --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4"
          style="opacity:0; animation: fade-up 0.5s ease-out 0.55s forwards;">
@@ -174,12 +185,48 @@
         </a>
     </div>
     @else
-        {{-- هنا يمكنك إضافة جدول يعرض المنتجات المفعلة لاحقاً --}}
-        <div style="text-align:center; padding: 2rem;">
-             <a href="{{ route('calculator.products.index') }}" class="btn-hero-primary" style="text-decoration: none; padding: 0.8rem 2rem;">Manage Activated Products</a>
+        <div>
+            <p class="section-heading" style="padding: 1.5rem 1.75rem 0;">Activated Products</p>
+            <div style="background:hsla(0,0%,100%,0.5); backdrop-filter:blur(16px); border:1px solid hsla(0,0%,100%,0.65); border-radius:1.5rem; overflow:hidden; box-shadow:0 8px 32px hsla(282,45%,45%,0.07);">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:var(--mauve-soft); border-bottom:1px solid var(--mauve-border);">
+                            <th style="padding:1rem 1.75rem; font-size:0.68rem; font-weight:700; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; text-align:left;">Product</th>
+                            <th style="padding:1rem 1.75rem; font-size:0.68rem; font-weight:700; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; text-align:left;">Category</th>
+                            <th style="padding:1rem 1.75rem; font-size:0.68rem; font-weight:700; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; text-align:center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($enabledProducts as $product)
+                        <tr style="border-bottom:1px solid hsla(282,30%,70%,0.1); transition:background 0.2s;"
+                            onmouseover="this.style.background='hsla(282,45%,55%,0.04)'"
+                            onmouseout="this.style.background='transparent'">
+                            <td style="padding:0 1.75rem; height:72px; vertical-align:middle;">
+                                <div style="display:flex; align-items:center; gap:0.875rem;">
+                                    <div style="width:2.5rem; height:2.5rem; border-radius:0.75rem; background:var(--mauve-soft); border:1px solid var(--mauve-border); color:var(--mauve); display:flex; align-items:center; justify-content:center; font-size:1rem;">
+                                        <i class="bi bi-box"></i>
+                                    </div>
+                                    <span style="font-size:0.875rem; font-weight:600; color:var(--fg);">{{ $product->name }}</span>
+                                </div>
+                            </td>
+                            <td style="padding:0 1.75rem; height:72px; vertical-align:middle;">
+                                <span style="display:inline-block; padding:0.2rem 0.65rem; background:var(--mauve-soft); border:1px solid var(--mauve-border); border-radius:0.5rem; font-size:0.7rem; font-weight:700; color:var(--mauve-deep);">
+                                    {{ $product->category ?? 'General' }}
+                                </span>
+                            </td>
+                            <td style="padding:0 1.75rem; height:72px; vertical-align:middle; text-align:center;">
+                                <span style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.75rem; background:hsla(150,60%,45%,0.1); border:1px solid hsla(150,60%,45%,0.25); border-radius:2rem; font-size:0.68rem; font-weight:700; color:hsl(150,50%,28%); letter-spacing:0.05em; text-transform:uppercase;">
+                                    <span style="width:6px; height:6px; border-radius:50%; background:hsl(150,55%,42%); animation:pulse-dot 2s infinite;"></span>
+                                    Active
+                                </span>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
-
 </div>
 </section>
 

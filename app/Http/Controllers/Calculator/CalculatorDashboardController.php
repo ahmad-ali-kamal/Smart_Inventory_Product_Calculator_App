@@ -19,28 +19,23 @@ class CalculatorDashboardController extends Controller
         $merchant = Auth::user();
 
         // 2. التحقق مما إذا كان لدى التاجر إعدادات محفوظة مسبقاً
-        // نفترض أن العلاقة calculatorSettings موجودة في مودل Merchant
-        // أو نستعلم مباشرة
         $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
 
-        // ⚠️ توجيه ذكي: إذا لم تكن هناك إعدادات، اعرض صفحة التعليمات بدلاً من الداشبورد الفارغة
+        // ⚠️ توجيه ذكي: إذا لم تكن هناك إعدادات، اعرض صفحة التعليمات
         if (!$settings) {
             return view('calculator.instructions');
         }
 
-        // 3. حساب إحصائيات المنتجات (فقط إذا كانت هناك إعدادات)
+        // 3. حساب إحصائيات المنتجات
         $stats = [
-            // إجمالي المنتجات
             'total_products' => Product::where('merchant_id', $merchant->id)->count(),
-            
-            // المنتجات المفعلة في الحاسبة
+
             'enabled_products' => Product::where('merchant_id', $merchant->id)
                 ->whereHas('calculator', function ($q) {
                     $q->where('is_enabled', true);
                 })
                 ->count(),
-                
-            // المنتجات غير المفعلة
+
             'disabled_products' => Product::where('merchant_id', $merchant->id)
                 ->whereDoesntHave('calculator', function ($q) {
                     $q->where('is_enabled', true);
@@ -48,11 +43,19 @@ class CalculatorDashboardController extends Controller
                 ->count(),
         ];
 
-        // 4. عرض الداشبورد مع البيانات
+        // 4. جلب المنتجات المفعّلة
+        $enabledProducts = Product::where('merchant_id', $merchant->id)
+            ->whereHas('calculator', fn($q) => $q->where('is_enabled', true))
+            ->with(['calculator'])
+            ->orderBy('name')
+            ->get();
+
+        // 5. عرض الداشبورد مع البيانات
         return view('calculator.dashboard', [
-            'settings' => $settings,
-            'stats' => $stats,
-            'merchant' => $merchant
+            'settings'        => $settings,
+            'stats'           => $stats,
+            'merchant'        => $merchant,
+            'enabledProducts' => $enabledProducts,
         ]);
     }
 }

@@ -278,15 +278,28 @@
                 @endif
             @else
                 <div class="dropdown dropdown-end">
-                    <label tabindex="0" class="btn-nav-text cursor-pointer flex items-center gap-1">
-                        {{ Auth::user()->name }}
-                        <i class="bi bi-chevron-down text-xs"></i>
+                    <label tabindex="0" class="cursor-pointer" style="
+                        display: inline-flex; align-items: center; gap: 0.4rem;
+                        padding: 0.4rem 0.85rem;
+                        background: hsla(282,45%,55%,0.12);
+                        border: 1.5px solid hsla(282,45%,55%,0.25);
+                        border-radius: 0.65rem;
+                        font-size: 0.8rem; font-weight: 700;
+                        color: hsl(282, 50%, 40%);
+                        transition: all 0.2s;
+                    "
+                    onmouseover="this.style.background='hsl(282,45%,55%)'; this.style.color='white'; this.style.borderColor='hsl(282,45%,55%)';"
+                    onmouseout="this.style.background='hsla(282,45%,55%,0.12)'; this.style.color='hsl(282,50%,40%)'; this.style.borderColor='hsla(282,45%,55%,0.25)';">
+                        <i class="bi bi-person-circle" style="font-size:0.85rem"></i>
+                        {{ auth()->user()->store_info['name'] ?? Auth::user()->name }}
+                        <i class="bi bi-chevron-down" style="font-size:0.65rem; opacity:0.7"></i>
                     </label>
-                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-white rounded-box w-40 mt-2">
+                    <ul tabindex="0" class="dropdown-content menu p-1 shadow bg-white rounded-box mt-2" style="min-width:unset; width:auto;">
                         <li>
                             <a href="{{ route('logout') }}"
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="bi bi-box-arrow-right"></i> Logout
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                               style="font-size:0.8rem; font-weight:700; color: hsl(282,50%,40%); display:flex; align-items:center; gap:0.4rem; padding:0.4rem 0.85rem; border-radius:0.65rem; white-space:nowrap;">
+                                <i class="bi bi-box-arrow-right" style="font-size:0.8rem;"></i> Logout
                             </a>
                         </li>
                     </ul>

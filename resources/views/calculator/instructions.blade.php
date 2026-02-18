@@ -1,5 +1,4 @@
 @extends('layouts.calcapp')
-
 @section('content')
 
 <section class="min-h-screen flex items-center justify-center py-16 px-4"
