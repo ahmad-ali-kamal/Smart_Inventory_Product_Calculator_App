@@ -1,73 +1,57 @@
-@extends('layouts.app')
+@extends('layouts.guest')
 
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">{{ __('Login') }}</div>
+<div class="w-full max-w-md px-6 py-12" style="position: relative; z-index: 10;">
+    <div class="login-card p-10 md:p-12">
 
-                <div class="card-body">
-                    <form method="POST" action="{{ route('login') }}">
-                        @csrf
-
-                        <div class="form-group row">
-                            <label for="email" class="col-md-4 col-form-label text-md-right">{{ __('E-Mail Address') }}</label>
-
-                            <div class="col-md-6">
-                                <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', 'awesome@salla.dev') }}" required autocomplete="email" autofocus>
-
-                                @error('email')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <label for="password" class="col-md-4 col-form-label text-md-right">{{ __('Password') }}</label>
-
-                            <div class="col-md-6">
-                                <input id="password" type="password" class="form-control @error('password') is-invalid @enderror" name="password" value="in ksa" required autocomplete="current-password">
-
-                                @error('password')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <div class="col-md-6 offset-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-
-                                    <label class="form-check-label" for="remember">
-                                        {{ __('Remember Me') }}
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group row mb-0">
-                            <div class="col-md-8 offset-md-4">
-                                <button type="submit" class="btn btn-primary">
-                                    {{ __('Login') }}
-                                </button>
-
-                                @if (Route::has('password.request'))
-                                    <a class="btn btn-link" href="{{ route('password.request') }}">
-                                        {{ __('Forgot Your Password?') }}
-                                    </a>
-                                @endif
-                            </div>
-                        </div>
-                    </form>
-                </div>
+        {{-- Logo --}}
+        <div class="flex flex-col items-center mb-10">
+            <div class="logo-icon mb-4">
+                <i class="bi bi-shop-window text-white" style="font-size: 1.25rem;"></i>
             </div>
+            <h1 class="login-title font-serif text-2xl font-bold tracking-tight" style="color: var(--fg)">
+                Smart<span style="color: var(--mauve)">Inventory</span>
+            </h1>
         </div>
+
+        {{-- Info Note --}}
+            <div style="display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08));">
+                <i class="bi bi-shield-lock" style="color: var(--mauve); font-size: 0.85rem; flex-shrink: 0; margin-top: 0.1rem;"></i>
+                <p style="color: var(--muted); font-size: 0.7rem; line-height: 1.65; margin: 0; font-family: inherit;">
+                    You'll be redirected to Salla's account center to securely authorize access to your store.
+                </p>
+            </div>
+        {{-- Error Alert --}}
+        @if(session('error'))
+            <div class="input-group ig-1 mb-4" style="border-color: #e06b5b;">
+                <i class="bi bi-exclamation-circle input-icon-left" style="color: #e06b5b;"></i>
+                <p class="input-field" style="color: #e06b5b; background: transparent; border: none; cursor: default;">
+                    {{ session('error') }}
+                </p>
+            </div>
+        @endif
+
+        {{-- Divider --}}
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div style="flex: 1; height: 1px; background: var(--border, rgba(255,255,255,0.08));"></div>
+            <span style="color: var(--muted); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;">Secure Access</span>
+            <div style="flex: 1; height: 1px; background: var(--border, rgba(255,255,255,0.08));"></div>
+        </div>
+
+        {{-- Salla OAuth Button --}}
+        <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+            <a href="{{ route('auth.salla') }}" class="btn-signin" style="display: flex; align-items: center; justify-content: center; gap: 0.625rem; text-decoration: none;">
+                <i class="bi bi-bag-check" style="font-size: 1rem; flex-shrink: 0;"></i>
+                <span>Sign in with Salla</span>
+                <i class="bi bi-arrow-right btn-arrow"></i>
+            </a>
+            {{-- Back link --}}
+            <a href="{{ route('welcome') }}" style="text-align: center; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.05em; text-decoration: none; margin-top: 0.25rem; transition: color 0.2s; font-family: inherit;"
+               onmouseover="this.style.color='var(--mauve)'" onmouseout="this.style.color='var(--muted)'">
+                ← Back to Home
+            </a>
+        </div>
+
     </div>
 </div>
 @endsection

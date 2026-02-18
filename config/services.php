@@ -30,11 +30,17 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Salla OAuth Integration
+    |--------------------------------------------------------------------------
+    */
     'salla' => [
-        'client_id'          => env('SALLA_OAUTH_CLIENT_ID'),
-        'client_secret'      => env('SALLA_OAUTH_CLIENT_SECRET'),
-        'redirect'           => env('SALLA_OAUTH_CLIENT_REDIRECT_URI'),
-        'webhook_secret'     => env('SALLA_WEBHOOK_SECRET'),
-        'authorization_mode' => env('SALLA_AUTHORIZATION_MODE', 'easy')   // Supported: "easy", "custom"
-    ]
+        'client_id'      => env('SALLA_OAUTH_CLIENT_ID'),
+        'client_secret'  => env('SALLA_OAUTH_CLIENT_SECRET'),
+        'callback_url'   => env('SALLA_OAUTH_CALLBACK_URL'), // تأكد أن هذا الاسم يطابق استدعاءك في Controller
+        'webhook_secret' => env('SALLA_WEBHOOK_SECRET'),
+        'authorization_mode' => env('SALLA_AUTHORIZATION_MODE', 'easy'),
+    ],
+
 ];

@@ -1,69 +1,33 @@
 <?php
 
 return [
+
     /*
     |--------------------------------------------------------------------------
-    | Salla OAuth2 Configuration
+    | Salla OAuth Configuration
     |--------------------------------------------------------------------------
     */
 
     'client_id' => env('SALLA_CLIENT_ID'),
     'client_secret' => env('SALLA_CLIENT_SECRET'),
-    'redirect_uri' => env('SALLA_REDIRECT_URI', '/auth/salla/callback'),
+    'redirect_uri' => env('SALLA_REDIRECT_URI', env('APP_URL') . '/auth/salla/callback'),
 
     /*
     |--------------------------------------------------------------------------
-    | Salla API Configuration
+    | Salla OAuth URLs
     |--------------------------------------------------------------------------
     */
 
-    'api_url' => env('SALLA_API_URL', 'https://api.salla.sa/admin/v2'),
-    'oauth_url' => env('SALLA_OAUTH_URL', 'https://accounts.salla.sa/oauth2'),
+    'authorization_url' => 'https://accounts.salla.sa/oauth2/authorize',
+    'token_url' => 'https://accounts.salla.sa/oauth2/token',
+    'api_url' => 'https://api.salla.dev/admin/v2',
 
     /*
     |--------------------------------------------------------------------------
-    | Rate Limiting
+    | Salla Webhooks
     |--------------------------------------------------------------------------
     */
 
-    'rate_limit' => [
-        'max_attempts' => 60, // عدد الطلبات المسموح بها
-        'decay_minutes' => 1, // في كم دقيقة
-    ],
+    'webhook_secret' => env('SALLA_WEBHOOK_SECRET'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Product Sync Configuration
-    |--------------------------------------------------------------------------
-    */
-
-    'sync' => [
-        'batch_size' => 50, // عدد المنتجات في كل دفعة
-        'delay_between_batches' => 1000, // ميلي ثانية
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Expiry Status Thresholds (in days)
-    |--------------------------------------------------------------------------
-    */
-
-    'expiry_thresholds' => [
-        'green' => 60,  // أكثر من 60 يوم
-        'yellow' => 15, // من 15 إلى 60 يوم
-        'red' => 0,     // أقل من 15 يوم أو منتهي
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | AI Discount Configuration
-    |--------------------------------------------------------------------------
-    */
-
-    'ai_discount' => [
-        'enabled' => env('AI_DISCOUNT_ENABLED', true),
-        'default_percentage' => 20,
-        'min_percentage' => 5,
-        'max_percentage' => 50,
-    ],
 ];

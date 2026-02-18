@@ -6,135 +6,90 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductCalculator;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class ProductCalculatorController extends Controller
 {
     /**
-     * عرض صفحة إدارة المنتجات
+     * عرض قائمة المنتجات
      */
-    public function index(Request $request)
+    public function index()
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
-        if (!$merchant->hasCalculatorSettings()) {
-            return redirect()->route('calculator.settings')
-                ->with('info', 'يرجى إعداد الإعدادات العامة أولاً');
-        }
-
+        // جلب المنتجات مع حالة الحاسبة (Eager Loading)
         $products = Product::where('merchant_id', $merchant->id)
-            ->with('calculator')
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'price' => $product->price,
-                    'image_url' => $product->image_url,
-                    'calculator_enabled' => $product->calculator && $product->calculator->is_enabled,
-                ];
-            });
+            ->with(['calculator']) // تأكد أن العلاقة موجودة في مودل Product
+            ->orderBy('name')
+            ->paginate(20);
 
-        return Inertia::render('Calculator/ProductManagement', [
+        return view('calculator.products', [
             'products' => $products,
-            'settings' => [
-                'coverage_per_unit' => $merchant->calculatorSettings->coverage_per_unit,
-                'waste_percentage' => $merchant->calculatorSettings->waste_percentage,
-            ],
         ]);
     }
 
     /**
-     * تفعيل الآلة الحاسبة للمنتج
+     * تفعيل/إيقاف الآلة الحاسبة (Toggle)
      */
-    public function enable(Request $request, Product $product)
+    public function toggle(Request $request, $id)
     {
-        $this->authorize('update', $product);
+        $merchant = Auth::user();
 
-        if (!$request->user()->hasCalculatorSettings()) {
-            return back()->with('error', 'يرجى إعداد الإعدادات العامة أولاً');
-        }
+        // 1. التحقق من أن المنتج يتبع لهذا التاجر (بديل عن authorize)
+        $product = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
 
-        $calculator = ProductCalculator::firstOrCreate(
-            ['product_id' => $product->id],
-            ['is_enabled' => false]
-        );
+        // 2. البحث عن سجل الحاسبة أو إنشاؤه
+        $calculator = ProductCalculator::firstOrNew(['product_id' => $product->id]);
+        
+        // 3. عكس الحالة (إذا كان مفعلاً يوقفه، والعكس)
+        $calculator->is_enabled = !$calculator->is_enabled;
+        $calculator->save();
 
-        $calculator->enable();
-
-        return back()->with('success', 'تم تفعيل الآلة الحاسبة للمنتج');
-    }
-
-    /**
-     * إيقاف الآلة الحاسبة للمنتج
-     */
-    public function disable(Product $product)
-    {
-        $this->authorize('update', $product);
-
-        $calculator = $product->calculator;
-
-        if ($calculator) {
-            $calculator->disable();
-        }
-
-        return back()->with('success', 'تم إيقاف الآلة الحاسبة للمنتج');
-    }
-
-    /**
-     * تبديل حالة الآلة الحاسبة
-     */
-    public function toggle(Request $request, Product $product)
-    {
-        $this->authorize('update', $product);
-
-        if (!$request->user()->hasCalculatorSettings()) {
+        // 4. الرد (JSON لطلبات AJAX)
+        if ($request->ajax()) {
             return response()->json([
-                'message' => 'يرجى إعداد الإعدادات العامة أولاً',
-            ], 400);
+                'success' => true,
+                'is_enabled' => $calculator->is_enabled,
+                'message' => $calculator->is_enabled ? 'تم تفعيل الحاسبة للمنتج' : 'تم إيقاف الحاسبة للمنتج',
+            ]);
         }
 
-        $calculator = ProductCalculator::firstOrCreate(
-            ['product_id' => $product->id],
-            ['is_enabled' => false]
-        );
-
-        $calculator->toggle();
-
-        return response()->json([
-            'success' => true,
-            'is_enabled' => $calculator->is_enabled,
-        ]);
+        return back()->with('success', 'تم تحديث حالة المنتج بنجاح');
     }
 
     /**
-     * تفعيل جماعي
+     * تفعيل بالجملة (Bulk Enable)
      */
     public function bulkEnable(Request $request)
     {
+        $merchant = Auth::user();
+
+        // 1. التحقق من البيانات
         $validated = $request->validate([
-            'product_ids' => 'required|array|min:1',
+            'product_ids' => 'required|array',
             'product_ids.*' => 'exists:products,id',
         ]);
 
-        if (!$request->user()->hasCalculatorSettings()) {
-            return back()->with('error', 'يرجى إعداد الإعدادات العامة أولاً');
+        // 2. جلب المنتجات التي يملكها التاجر فقط من القائمة المرسلة
+        $products = Product::where('merchant_id', $merchant->id)
+            ->whereIn('id', $validated['product_ids'])
+            ->get();
+
+        // 3. تفعيل الحاسبة لها جميعاً
+        foreach ($products as $product) {
+            ProductCalculator::updateOrCreate(
+                ['product_id' => $product->id],
+                ['is_enabled' => true]
+            );
         }
 
-        foreach ($validated['product_ids'] as $productId) {
-            $product = Product::find($productId);
-            
-            if ($product && $product->merchant_id === $request->user()->id) {
-                $calculator = ProductCalculator::firstOrCreate(
-                    ['product_id' => $product->id],
-                    ['is_enabled' => false]
-                );
-
-                $calculator->enable();
-            }
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تفعيل ' . $products->count() . ' منتج بنجاح',
+            ]);
         }
 
-        return back()->with('success', 'تم تفعيل الآلة الحاسبة للمنتجات المحددة');
+        return back()->with('success', 'تم تفعيل المنتجات المختارة');
     }
 }
