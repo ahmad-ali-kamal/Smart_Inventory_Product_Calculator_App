@@ -19,6 +19,32 @@ use App\Http\Controllers\Settings\BatchSettingController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+/*
+|--------------------------------------------------------------------------
+| testing Routes
+|--------------------------------------------------------------------------
+*/
+// ✅ 0. راوتات لاختبار  صفحات الانفتوري (يمكن إزالتها لاحقًا)
+// routes/web.php
+//test route for settings
+Route::get('/test-expiry-settings', function () {
+    return view('inventory.settings');
+});
+//test route for dashboard
+Route::get('/test-expiry-dashboard', function () {
+       return view('inventory.dashboard');
+   });
+ //test route for instructions
+Route::get('/test-expiry-instructions', function () {
+    return view('inventory.instructions');
+});
+
+//test route for products
+Route::get('/test-expiry-products', function () {
+    return view('inventory.products');
+});
+
+//------------------------------------------------------------------------------------
 
 // ✅ 1. الصفحة الرئيسية (الترحيب للزوار / لوحة التحكم للأعضاء)
 Route::get('/', function () {

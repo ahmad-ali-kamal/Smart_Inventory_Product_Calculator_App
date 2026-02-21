@@ -1,3 +1,4 @@
+
 <style>
     .app-header {
         position: sticky; top: 0; z-index: 100;
@@ -84,7 +85,7 @@
     <div class="app-header-inner">
 
         {{-- الشعار على اليسار --}}
-        <a href="{{ route('calculator.dashboard') }}" class="app-logo">
+        <a  class="app-logo">
             <div class="app-logo-icon">
                 <i class="bi bi-calculator"></i>
             </div>
@@ -102,8 +103,8 @@
             <nav class="app-nav">
                 @if(!empty($headerNav))
                     @foreach($headerNav as $link)
-                        <a href="{{ $link['url'] }}"
-                           class="app-nav-link {{ request()->fullUrlIs($link['url']) || request()->routeIs($link['route_match'] ?? '__none__') ? 'active' : '' }}">
+                        <a 
+                            class="app-nav-link ">
                             <i class="bi {{ $link['icon'] }}"></i>
                             {{ $link['label'] }}
                         </a>
@@ -118,10 +119,9 @@
                 </a>
             @endif
 
-           <div class="app-avatar" style="width:auto; padding: 0 0.75rem; font-size:0.75rem; display:flex; align-items:center; gap:0.35rem;">
-    <i class="bi bi-person-circle" style="font-size:0.85rem;"></i>
-    {{ auth()->user()->store_info['name'] ?? 'User' }}
-</div>
+            <div class="app-avatar" title="{{ auth()->user()->name ?? 'User' }}">
+               
+            </div>
 
         </div>
 
