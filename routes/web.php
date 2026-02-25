@@ -44,6 +44,38 @@ Route::get('/test-expiry-products', function () {
     return view('inventory.products');
 });
 
+Route::get('/discount-test', function () {
+    return view('inventory.dashboard', [
+        'stats' => [
+            'green_batches'  => 3,
+            'yellow_batches' => 2,
+            'red_batches'    => 1,
+        ],
+        'products' => collect([
+            (object)[
+                'id'          => 1,
+                'name'        => 'Milk',
+                'status'      => 'yellow',
+                'expiry_date' => now()->addDays(5)->format('Y-m-d'),
+                'batches'     => null,
+            ],
+            (object)[
+                'id'          => 2,
+                'name'        => 'Yogurt',
+                'status'      => 'yellow',
+                'expiry_date' => now()->addDays(3)->format('Y-m-d'),
+                'batches'     => null,
+            ],
+            (object)[
+                'id'          => 3,
+                'name'        => 'Cheese',
+                'status'      => 'green',
+                'expiry_date' => now()->addDays(30)->format('Y-m-d'),
+                'batches'     => null,
+            ],
+        ]),
+    ]);
+})->name('discount.test');
 //------------------------------------------------------------------------------------
 
 // ✅ 1. الصفحة الرئيسية (الترحيب للزوار / لوحة التحكم للأعضاء)

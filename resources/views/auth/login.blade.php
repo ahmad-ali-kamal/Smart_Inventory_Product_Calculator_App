@@ -15,12 +15,13 @@
         </div>
 
         {{-- Info Note --}}
-            <div style="display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08));">
-                <i class="bi bi-shield-lock" style="color: var(--mauve); font-size: 0.85rem; flex-shrink: 0; margin-top: 0.1rem;"></i>
-                <p style="color: var(--muted); font-size: 0.7rem; line-height: 1.65; margin: 0; font-family: inherit;">
-                    You'll be redirected to Salla's account center to securely authorize access to your store.
-                </p>
-            </div>
+        <div style="display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08));">
+            <i class="bi bi-shield-lock" style="color: var(--mauve); font-size: 0.85rem; flex-shrink: 0; margin-top: 0.1rem;"></i>
+            <p style="color: var(--muted); font-size: 0.7rem; line-height: 1.65; margin: 0; font-family: inherit;">
+                You'll be redirected to Salla's account center to securely authorize access to your store.
+            </p>
+        </div>
+
         {{-- Error Alert --}}
         @if(session('error'))
             <div class="input-group ig-1 mb-4" style="border-color: #e06b5b;">

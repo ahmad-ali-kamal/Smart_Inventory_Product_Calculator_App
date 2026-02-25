@@ -4,8 +4,19 @@
 
 <section class="hero-section">
 
-    {{-- Floating background icons --}}
-    <div class="floating-icons" id="hero-icons"></div>
+    {{-- Floating background icons — ثابتة في HTML بدل JavaScript --}}
+    <div class="floating-icons">
+        {{-- يسار (mauve) --}}
+        <div class="floating-icon icon-mauve anim-slow"   style="left:2%;  top:15%; animation-delay:0s">  <i class="bi bi-calculator"      style="font-size:2rem"></i></div>
+        <div class="floating-icon icon-mauve anim-medium" style="left:6%;  top:35%; animation-delay:1.5s"><i class="bi bi-percent"          style="font-size:1.7rem"></i></div>
+        <div class="floating-icon icon-mauve anim-fast"   style="left:10%; top:55%; animation-delay:0.8s"><i class="bi bi-tags"             style="font-size:2.1rem"></i></div>
+        <div class="floating-icon icon-mauve anim-slow"   style="left:4%;  top:75%; animation-delay:3s">  <i class="bi bi-plus-slash-minus" style="font-size:1.8rem"></i></div>
+        {{-- يمين (apricot) --}}
+        <div class="floating-icon icon-apricot anim-medium" style="left:86%; top:15%; animation-delay:0.5s"><i class="bi bi-box-seam"       style="font-size:2rem"></i></div>
+        <div class="floating-icon icon-apricot anim-fast"   style="left:90%; top:35%; animation-delay:2s"> <i class="bi bi-bar-chart-line"  style="font-size:1.7rem"></i></div>
+        <div class="floating-icon icon-apricot anim-slow"   style="left:88%; top:55%; animation-delay:1s"> <i class="bi bi-truck"           style="font-size:2.1rem"></i></div>
+        <div class="floating-icon icon-apricot anim-medium" style="left:92%; top:75%; animation-delay:3.5s"><i class="bi bi-layers"         style="font-size:1.8rem"></i></div>
+    </div>
 
     <div class="relative text-center mx-auto" style="max-width:48rem; z-index:10;">
         <h1 class="font-serif fade-in text-5xl md:text-7xl font-bold leading-tight mb-6">
@@ -35,7 +46,6 @@
 
         <div class="grid md:grid-cols-3 gap-6">
 
-            {{-- Feature 1: precision = bullseye / crosshair --}}
             <div class="feature-card glass">
                 <div class="feature-icon fi-mauve">
                     <i class="bi bi-crosshair" style="font-size:1.5rem; color:var(--mauve)"></i>
@@ -46,7 +56,6 @@
                 </p>
             </div>
 
-            {{-- Feature 2:hourglass --}}
             <div class="feature-card glass">
                 <div class="feature-icon fi-apricot">
                     <i class="bi bi-hourglass-split" style="font-size:1.5rem; color:var(--apricot)"></i>
@@ -57,7 +66,6 @@
                 </p>
             </div>
 
-            {{-- Feature 3:  graph up --}}
             <div class="feature-card glass">
                 <div class="feature-icon fi-mauve">
                     <i class="bi bi-graph-up-arrow" style="font-size:1.5rem; color:var(--apricot-deep)"></i>
@@ -84,7 +92,6 @@
 
         <div class="grid md:grid-cols-2 gap-8">
 
-            {{-- Inventory --}}
             <div class="op-card glass inventory">
                 <div class="op-icon">
                     <i class="bi bi-boxes" style="font-size:1.75rem; color:var(--apricot)"></i>
@@ -95,13 +102,11 @@
                     Monitor time-sensitive inventory and prevent avoidable loss
                     with smart, expiry-aware action.
                 </p>
-                {{-- ✅ تم التعديل: التوجيه لداشبورد المخزون --}}
                 <a href="{{ route('inventory.dashboard') }}" class="btn-apricot">
                     Manage Inventory <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
 
-            {{-- Calculator --}}
             <div class="op-card glass calculator">
                 <div class="op-icon">
                     <i class="bi bi-calculator" style="font-size:1.75rem; color:var(--mauve)"></i>
@@ -112,7 +117,6 @@
                     Define your calculation logic once and apply it across selected products —
                     ensuring accurate quantities, every time.
                 </p>
-                {{-- ✅ تم التعديل: التوجيه لداشبورد الحاسبة --}}
                 <a href="{{ route('calculator.dashboard') }}" class="btn-mauve">
                     Open Calculator <i class="bi bi-chevron-right"></i>
                 </a>
@@ -121,33 +125,5 @@
         </div>
     </div>
 </section>
-
-<script>
-    const heroIcons = document.getElementById('hero-icons');
-
-    const calcIcons  = ['bi-calculator','bi-percent','bi-tags','bi-plus-slash-minus'];
-    const invIcons   = ['bi-box-seam','bi-bar-chart-line','bi-truck','bi-layers'];
-    const anims      = ['anim-slow','anim-medium','anim-fast'];
-
-    calcIcons.forEach((ic, i) => {
-        const div = document.createElement('div');
-        div.className = `floating-icon icon-mauve ${anims[i % 3]}`;
-        div.innerHTML = `<i class="bi ${ic}" style="font-size:${1.5 + Math.random()}rem"></i>`;
-        div.style.left = (2 + Math.random() * 13) + '%';
-        div.style.top  = (15 + i * 20 + Math.random() * 10) + '%';
-        div.style.animationDelay = (Math.random() * 5) + 's';
-        heroIcons.appendChild(div);
-    });
-
-    invIcons.forEach((ic, i) => {
-        const div = document.createElement('div');
-        div.className = `floating-icon icon-apricot ${anims[i % 3]}`;
-        div.innerHTML = `<i class="bi ${ic}" style="font-size:${1.5 + Math.random()}rem"></i>`;
-        div.style.left = (85 + Math.random() * 13) + '%';
-        div.style.top  = (15 + i * 20 + Math.random() * 10) + '%';
-        div.style.animationDelay = (Math.random() * 5) + 's';
-        heroIcons.appendChild(div);
-    });
-</script>
 
 @endsection
