@@ -10,6 +10,25 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductCalculatorController extends Controller
 {
+
+public function getSettings($product_id)
+{
+    $product = Product::where('salla_product_id', $product_id)
+        ->where('is_enabled', 1)
+        ->first();
+
+    if (!$product) {
+        return response()->json([
+            'enabled' => false
+        ]);
+    }
+
+    return response()->json([
+        'enabled' => true,
+        'coverage' => $product->coverage,
+        'waste' => $product->waste
+    ]);
+}
     /**
      * عرض قائمة المنتجات
      */

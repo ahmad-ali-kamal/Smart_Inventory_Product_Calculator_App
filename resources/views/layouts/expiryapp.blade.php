@@ -1,4 +1,4 @@
-{{-- resources/views/layouts/calcapp.blade.php --}}
+{{-- resources/views/layouts/calcApp.blade.php --}}
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'MerchantTools') }}</title>
+
+    <script src="{{ asset('js/app.js') }}" defer></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,22 +20,19 @@
 
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-    <!-- Calcapp styles (mauve theme + all page styles) -->
-    <link rel="stylesheet" href="{{ mix('css/calcapp.css') }}">
+ <link rel="stylesheet" href="{{ mix('css/expiryapp.css') }}">
 
     @stack('styles')
 </head>
 <body>
+
+    {{-- Shared background elements --}}
     <div class="grain"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
 
     @yield('content')
-
-    <!-- Shared JS -->
-    <script src="{{ mix('js/app.js') }}" defer></script>
 
     @stack('scripts')
 </body>

@@ -19,6 +19,64 @@ use App\Http\Controllers\Settings\BatchSettingController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+/*
+|--------------------------------------------------------------------------
+| testing Routes
+|--------------------------------------------------------------------------
+*/
+// ✅ 0. راوتات لاختبار  صفحات الانفتوري (يمكن إزالتها لاحقًا)
+// routes/web.php
+//test route for settings
+Route::get('/test-expiry-settings', function () {
+    return view('inventory.settings');
+});
+//test route for dashboard
+Route::get('/test-expiry-dashboard', function () {
+       return view('inventory.dashboard');
+   });
+ //test route for instructions
+Route::get('/test-expiry-instructions', function () {
+    return view('inventory.instructions');
+});
+
+//test route for products
+Route::get('/test-expiry-products', function () {
+    return view('inventory.products');
+});
+
+Route::get('/discount-test', function () {
+    return view('inventory.dashboard', [
+        'stats' => [
+            'green_batches'  => 3,
+            'yellow_batches' => 2,
+            'red_batches'    => 1,
+        ],
+        'products' => collect([
+            (object)[
+                'id'          => 1,
+                'name'        => 'Milk',
+                'status'      => 'yellow',
+                'expiry_date' => now()->addDays(5)->format('Y-m-d'),
+                'batches'     => null,
+            ],
+            (object)[
+                'id'          => 2,
+                'name'        => 'Yogurt',
+                'status'      => 'yellow',
+                'expiry_date' => now()->addDays(3)->format('Y-m-d'),
+                'batches'     => null,
+            ],
+            (object)[
+                'id'          => 3,
+                'name'        => 'Cheese',
+                'status'      => 'green',
+                'expiry_date' => now()->addDays(30)->format('Y-m-d'),
+                'batches'     => null,
+            ],
+        ]),
+    ]);
+})->name('discount.test');
+//------------------------------------------------------------------------------------
 
 // ✅ 1. الصفحة الرئيسية (الترحيب للزوار / لوحة التحكم للأعضاء)
 Route::get('/', function () {

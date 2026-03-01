@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Calculator\ProductCalculatorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/sync',     [ProductController::class, 'sync']);    // POST /api/products/sync
     });
 });
+Route::get('/product-settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
 
 // ====================================================================
 // للاختبار عبر Postman (بدون auth)
