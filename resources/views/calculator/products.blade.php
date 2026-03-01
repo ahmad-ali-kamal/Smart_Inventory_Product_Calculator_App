@@ -96,13 +96,20 @@
         vertical-align: middle;
     }
 
-    /* ── Product icon ── */
+    /* ── Product icon/image ── */
     .product-icon {
-        width: 2.5rem; height: 2.5rem;
+        width: 2.75rem; height: 2.75rem;
         border-radius: 0.75rem;
         display: flex; align-items: center; justify-content: center;
         font-size: 1rem; flex-shrink: 0;
         transition: all 0.3s;
+        overflow: hidden; /* لضمان عدم خروج الصورة عن الإطار */
+        object-fit: cover;
+    }
+    .product-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
     .product-icon.active {
         background: var(--mauve-soft);
@@ -113,6 +120,8 @@
         background: hsla(0,0%,0%,0.04);
         border: 1px solid hsla(0,0%,0%,0.07);
         color: var(--muted);
+        filter: grayscale(1); /* جعل الصورة باهتة عند التعطيل */
+        opacity: 0.6;
     }
 
     /* ── Category badge ── */
@@ -319,11 +328,16 @@
                         $isEnabled = $product->calculator?->is_enabled ?? false;
                     @endphp
                     <tr class="table-row" data-product-name="{{ strtolower($product->name) }}">
-                        {{-- Product name + icon --}}
+                        {{-- Product name + Image (using Accessor) --}}
                         <td class="td-cell">
                             <div style="display:flex; align-items:center; gap:0.875rem;">
+                                {{-- استخدام الصورة الحقيقية للمنتج --}}
                                 <div class="product-icon {{ $isEnabled ? 'active' : 'inactive' }}">
-                                    <i class="bi bi-box"></i>
+                                    @if($product->image_url)
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" loading="lazy">
+                                    @else
+                                        <i class="bi bi-box"></i>
+                                    @endif
                                 </div>
                                 <span style="font-size:0.875rem; font-weight:600; color:{{ $isEnabled ? 'var(--fg)' : 'var(--muted)' }};">
                                     {{ $product->name }}
@@ -427,14 +441,14 @@
 
     // ── Update row UI ──
     function updateRow(row, isEnabled) {
-        const icon       = row.querySelector('.product-icon');
+        const iconWrap   = row.querySelector('.product-icon');
         const nameSpan   = row.querySelector('td:first-child span');
         const catBadge   = row.querySelector('.cat-badge');
         const statusCell = row.querySelector('td:nth-child(3)');
 
-        // Icon
-        icon.classList.toggle('active',   isEnabled);
-        icon.classList.toggle('inactive', !isEnabled);
+        // Icon/Image wrap
+        iconWrap.classList.toggle('active',   isEnabled);
+        iconWrap.classList.toggle('inactive', !isEnabled);
 
         // Name color
         nameSpan.style.color = isEnabled ? 'var(--fg)' : 'var(--muted)';

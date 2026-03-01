@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
@@ -30,48 +34,66 @@ class Product extends Model
     ];
 
     // ====================================================================
-    // Relations
+    // العلاقات (Relations)
     // ====================================================================
 
-    public function merchant()
+    /**
+     * المنتج ينتمي لتاجر واحد
+     */
+    public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
-    public function images()
+    /**
+     * المنتج لديه عدة صور (مرتبة حسب sort_order)
+     */
+    public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
-    public function mainImage()
+    /**
+     * جلب الصورة الأساسية للمنتج
+     */
+    public function mainImage(): HasOne
     {
         return $this->hasOne(ProductImage::class)->where('is_main', true);
     }
 
-    public function batches()
+    /**
+     * علاقة الحاسبة الذكية (لتحديد هل المنتج مفعل في الحاسبة أم لا)
+     */
+    public function calculator(): HasOne
+    {
+        return $this->hasOne(ProductCalculator::class);
+    }
+
+    /**
+     * علاقات المخزون والباتشات (Inventory System)
+     */
+    public function batches(): BelongsToMany
     {
         return $this->belongsToMany(Batch::class, 'batch_items')
             ->withPivot('quantity', 'sold_quantity', 'unit_cost')
             ->withTimestamps();
     }
 
-    public function batchItems()
+    public function batchItems(): HasMany
     {
         return $this->hasMany(BatchItem::class);
     }
 
-    public function discounts()
+    /**
+     * الخصومات المرتبطة بهذا المنتج
+     */
+    public function discounts(): HasMany
     {
         return $this->hasMany(ProductDiscount::class);
     }
 
-    public function calculator()
-    {
-        return $this->hasOne(ProductCalculator::class);
-    }
-
     // ====================================================================
-    // Scopes
+    // نطاقات البحث (Scopes)
     // ====================================================================
 
     public function scopeForMerchant($query, int $merchantId)
@@ -85,16 +107,31 @@ class Product extends Model
     }
 
     // ====================================================================
-    // Accessors
+    // الموصلات (Accessors & Mutators)
     // ====================================================================
 
-    public function getMainImageUrlAttribute(): ?string
+    /**
+     * جلب رابط الصورة الأساسية مباشرة أو صورة افتراضية
+     * الاستخدام: $product->image_url
+     */
+    public function getImageUrlAttribute(): string
     {
-        return $this->mainImage?->image_url;
+        return $this->mainImage?->image_url ?? asset('images/placeholder-product.png');
     }
 
+    /**
+     * جلب الوصف من بيانات الـ Metadata
+     */
     public function getDescriptionAttribute(): ?string
     {
         return $this->metadata['description'] ?? null;
+    }
+
+    /**
+     * عرض السعر مع العملة بشكل منسق
+     */
+    public function getFormattedPriceAttribute(): string
+    {
+        return number_format($this->price, 2) . ' ر.س';
     }
 }
