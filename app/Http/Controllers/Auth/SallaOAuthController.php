@@ -14,9 +14,6 @@ use Illuminate\Support\Facades\Log;
 
 class SallaOAuthController extends Controller
 {
-    /**
-     * إعادة التوجيه لصفحة تسجيل الدخول في سلة
-     */
     public function redirect()
     {
         $state = Str::random(40);
@@ -33,106 +30,43 @@ class SallaOAuthController extends Controller
         return redirect('https://accounts.salla.sa/oauth2/auth?' . $query);
     }
 
-    /**
-     * معالجة الـCallback وجلب التوكن ومعلومات التاجر
-     */
     public function callback(Request $request)
     {
         if ($request->state !== session('oauth_state')) {
             return redirect()->route('login')->with('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
         }
 
-        if (!$request->has('code')) {
-            return redirect()->route('login')->with('error', 'لم يتم الحصول على رمز التفويض.');
-        }
-
         try {
             $tokenData = $this->getAccessToken($request->code);
             $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
 
-            // حفظ التاجر وتفعيل المزامنة
+            // حفظ التاجر وتحديث صلاحيات الخدمات (بدون مزامنة تلقائية)
             $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData);
 
             Auth::login($merchant);
 
             return redirect()->route('welcome')
-                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم تحديث بياناتك ومنتجاتك بنجاح!');
+                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك بنجاح!');
 
         } catch (\Exception $e) {
             Log::error('Salla OAuth Error: ' . $e->getMessage());
-            return redirect()->route('login')->with('error', 'خطأ: ' . $e->getMessage());
+            return redirect()->route('login')->with('error', 'خطأ في الربط: ' . $e->getMessage());
         }
     }
 
     /**
-     * المزامنة اليدوية (Manual Sync)
+     * تحديث بيانات التاجر وتحديد نوع التطبيق المثبت
      */
-    public function manualSync()
-    {
-        try {
-            $merchant = Auth::user();
-            if (!$merchant) return response()->json(['success' => false, 'message' => 'غير مصرح لك.'], 401);
-
-            $this->fetchProductsFromSalla($merchant);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تمت المزامنة بنجاح! تم تحديث التصنيفات والصور.'
-            ]);
-        } catch (\Exception $e) {
-            Log::error("Manual Sync Error: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'خطأ في المزامنة: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * تسجيل الخروج
-     */
-    public function logout(Request $request)
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return redirect()->route('welcome')->with('success', 'تم تسجيل الخروج بنجاح.');
-    }
-
-    // ====================================================================
-    // الدوال الخاصة (Private Methods)
-    // ====================================================================
-
-    private function getAccessToken(string $code): array
-    {
-        $response = Http::asForm()->post('https://accounts.salla.sa/oauth2/token', [
-            'grant_type'    => 'authorization_code',
-            'client_id'     => config('services.salla.client_id'),
-            'client_secret' => config('services.salla.client_secret'),
-            'redirect_uri'  => config('services.salla.callback_url'),
-            'code'          => $code,
-        ]);
-
-        if ($response->failed()) throw new \Exception('فشل الحصول على التوكن: ' . $response->body());
-        return $response->json();
-    }
-
-    private function getMerchantInfo(string $accessToken): array
-    {
-        $response = Http::withToken($accessToken)->get('https://accounts.salla.sa/oauth2/user/info');
-        if ($response->failed()) throw new \Exception('فشل جلب بيانات التاجر.');
-        return $response->json()['data'];
-    }
-
     private function saveOrUpdateMerchant(array $info, array $tokenData): Merchant
     {
         $merchantData = $info['merchant'] ?? [];
+        $currentClientId = config('services.salla.client_id');
         
-        // جلب الإيميل بدقة من الرد
-        $email = $merchantData['email'] ?? ($info['email'] ?? null);
-
         $merchant = Merchant::updateOrCreate(
             ['salla_merchant_id' => $merchantData['id']],
             [
                 'name'             => $merchantData['name'] ?? 'تاجر سلة',
-                'email'            => $email,
+                'email'            => $merchantData['email'] ?? ($info['email'] ?? null),
                 'mobile'           => $merchantData['mobile'] ?? null,
                 'access_token'     => $tokenData['access_token'],
                 'refresh_token'    => $tokenData['refresh_token'] ?? null,
@@ -141,69 +75,96 @@ class SallaOAuthController extends Controller
             ]
         );
 
-        $this->fetchProductsFromSalla($merchant);
+        // تفعيل الخدمة بناءً على الـ Client ID المستخدم حالياً
+        // افترضنا أنك وضعت الـ ID في ملف الـ .env
+        if ($currentClientId === env('SALLA_CALCULATOR_CLIENT_ID')) {
+            $merchant->update(['has_calculator' => true]);
+        } elseif ($currentClientId === env('SALLA_MANAGEMENT_CLIENT_ID')) {
+            $merchant->update(['has_management' => true]);
+        }
+
+        // ❌ تم إلغاء استدعاء fetchProductsFromSalla هنا للاعتماد على Webhooks
         return $merchant;
     }
 
     /**
-     * جلب المنتجات وصورها وتصنيفاتها
+     * جلب المنتجات بنظام الدفعات (Pagination Loop)
+     * ملاحظة: يمكنك استدعاؤها يدوياً فقط عند الحاجة (Manual Sync)
      */
     private function fetchProductsFromSalla(Merchant $merchant)
     {
+        $page = 1;
+        $hasMorePages = true;
+
         try {
-            $response = Http::withToken($merchant->access_token)
-                ->get('https://api.salla.dev/admin/v2/products');
+            while ($hasMorePages) {
+                $response = Http::withToken($merchant->access_token)
+                    ->get("https://api.salla.dev/admin/v2/products?page={$page}");
 
-            if ($response->successful()) {
-                $products = $response->json()['data'] ?? [];
-                
-                Log::info("جاري مزامنة " . count($products) . " منتج للتاجر: " . $merchant->name);
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $products = $data['data'] ?? [];
 
-                foreach ($products as $p) {
-                    // 1. استخراج التصنيف الرئيسي بدقة
-                    $categoryName = 'General';
-                    if (!empty($p['categories']) && is_array($p['categories'])) {
-                        $mainCat = collect($p['categories'])->firstWhere('main', true) ?? $p['categories'][0];
-                        $categoryName = $mainCat['name'] ?? 'General';
+                    foreach ($products as $p) {
+                        $this->syncSingleProduct($merchant, $p);
                     }
 
-                    // 2. حفظ/تحديث المنتج
-                    $product = Product::updateOrCreate(
-                        ['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']],
-                        [
-                            'name'     => $p['name'],
-                            'price'    => $p['price']['amount'] ?? 0,
-                            'sku'      => $p['sku'] ?? null,
-                            'category' => $categoryName, // تحديث التصنيف
-                            'status'   => $p['status'] ?? 'active',
-                            'quantity' => $p['quantity'] ?? 0,
-                            'synced_at' => now(),
-                        ]
-                    );
+                    // التحقق من وجود صفحات تالية
+                    $pagination = $data['pagination'] ?? [];
+                    $totalPages = $pagination['total_pages'] ?? 1;
 
-                    // 3. مسح الصور القديمة قبل إضافة الجديدة لتجنب التكرار (اختياري ولكن أفضل)
-                    // ProductImage::where('product_id', $product->id)->delete();
-
-                    // 4. معالجة الصور (تأكد أن $p['images'] مصفوفة)
-                    if (!empty($p['images']) && is_array($p['images'])) {
-                        foreach ($p['images'] as $index => $imgData) {
-                            ProductImage::updateOrCreate(
-                                [
-                                    'product_id' => $product->id,
-                                    'image_url'  => $imgData['url'], 
-                                ],
-                                [
-                                    'is_main'    => $imgData['main'] ?? ($index === 0),
-                                    'sort_order' => $imgData['sort'] ?? $index,
-                                    'alt_text'   => $imgData['alt'] ?? $p['name'],
-                                ]
-                            );
-                        }
+                    if ($page < $totalPages) {
+                        $page++;
+                    } else {
+                        $hasMorePages = false;
                     }
+                } else {
+                    $hasMorePages = false;
                 }
             }
         } catch (\Exception $e) {
-            Log::error("خطأ في مزامنة المنتجات: " . $e->getMessage());
+            Log::error("خطأ في المزامنة المتعددة: " . $e->getMessage());
         }
     }
+
+    /**
+     * دالة مساعدة لمزامنة منتج واحد (تستخدمها المزامنة اليدوية أو الويب هوكس لاحقاً)
+     */
+    private function syncSingleProduct(Merchant $merchant, array $p)
+    {
+        // استخراج التصنيف
+        $categoryName = 'General';
+        if (!empty($p['categories'])) {
+            $mainCat = collect($p['categories'])->firstWhere('main', true) ?? $p['categories'][0];
+            $categoryName = $mainCat['name'] ?? 'General';
+        }
+
+        // تحديث المنتج
+        $product = Product::updateOrCreate(
+            ['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']],
+            [
+                'name'     => $p['name'],
+                'price'    => $p['price']['amount'] ?? 0,
+                'sku'      => $p['sku'] ?? null,
+                'category' => $categoryName,
+                'status'   => $p['status'] ?? 'active',
+                'quantity' => $p['quantity'] ?? 0,
+            ]
+        );
+
+        // تحديث الصور
+        if (!empty($p['images'])) {
+            foreach ($p['images'] as $index => $imgData) {
+                ProductImage::updateOrCreate(
+                    ['product_id' => $product->id, 'image_url' => $imgData['url']],
+                    [
+                        'is_main'    => $imgData['main'] ?? false,
+                        'sort_order' => $imgData['sort'] ?? $index,
+                    ]
+                );
+            }
+        }
+    }
+
+    // الـ Methods الأخرى (logout, manualSync, getAccessToken, getMerchantInfo) تبقى كما هي
 }
