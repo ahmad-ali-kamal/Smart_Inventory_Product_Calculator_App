@@ -15,17 +15,18 @@ class Merchant extends Authenticatable
 
     /**
      * الحقول القابلة للتعبئة (Mass Assignment)
-     * مطابقة تماماً لجدول merchants في قاعدة البيانات
      */
     protected $fillable = [
         'salla_merchant_id',
-        'name',          // الاسم في قاعدة البيانات
+        'name',
         'email',
         'mobile',
         'access_token',
         'refresh_token',
         'token_expires_at',
-        'store_info',    // حقل JSON لكامل البيانات
+        'store_info',
+        'has_calculator', // الحقل الجديد للحاسبة
+        'has_management', // الحقل الجديد للإدارة
     ];
 
     /**
@@ -42,6 +43,8 @@ class Merchant extends Authenticatable
     protected $casts = [
         'token_expires_at' => 'datetime',
         'store_info' => 'array',
+        'has_calculator' => 'boolean', // ضمان قراءتها كـ true/false
+        'has_management' => 'boolean', // ضمان قراءتها كـ true/false
     ];
 
     /*
