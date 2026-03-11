@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Product extends Model
 {
@@ -23,45 +22,60 @@ class Product extends Model
         'quantity',
         'category',
         'status',
-        'synced_at',
         'metadata',
+        'synced_at',
     ];
 
     protected $casts = [
+        'price'     => 'decimal:2',
+        'quantity'  => 'integer',
+        'metadata'  => 'array',
         'synced_at' => 'datetime',
-        'metadata' => 'array',
-        'price' => 'decimal:2',
-        'quantity' => 'integer',
     ];
 
-    protected $appends = [
-        'main_image_url',
-        'overall_status',
-        'has_expiry_data',
-        'has_calculator_enabled',
-    ];
+    // ====================================================================
+    // العلاقات (Relations)
+    // ====================================================================
 
-    // Relationships
+    /**
+     * المنتج ينتمي لتاجر واحد
+     */
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
+    /**
+     * المنتج لديه عدة صور (مرتبة حسب sort_order)
+     */
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
+    /**
+     * جلب الصورة الأساسية للمنتج
+     */
     public function mainImage(): HasOne
     {
         return $this->hasOne(ProductImage::class)->where('is_main', true);
     }
 
+    /**
+     * علاقة الحاسبة الذكية (لتحديد هل المنتج مفعل في الحاسبة أم لا)
+     */
+    public function calculator(): HasOne
+    {
+        return $this->hasOne(ProductCalculator::class);
+    }
+
+    /**
+     * علاقات المخزون والباتشات (Inventory System)
+     */
     public function batches(): BelongsToMany
     {
         return $this->belongsToMany(Batch::class, 'batch_items')
-            ->using(BatchItem::class)
-            ->withPivot(['quantity', 'sold_quantity', 'unit_cost'])
+            ->withPivot('quantity', 'sold_quantity', 'unit_cost')
             ->withTimestamps();
     }
 
@@ -70,108 +84,54 @@ class Product extends Model
         return $this->hasMany(BatchItem::class);
     }
 
+    /**
+     * الخصومات المرتبطة بهذا المنتج
+     */
     public function discounts(): HasMany
     {
         return $this->hasMany(ProductDiscount::class);
     }
 
-    public function calculator(): HasOne
+    // ====================================================================
+    // نطاقات البحث (Scopes)
+    // ====================================================================
+
+    public function scopeForMerchant($query, int $merchantId)
     {
-        return $this->hasOne(ProductCalculator::class);
+        return $query->where('merchant_id', $merchantId);
     }
 
-    public function activityLogs(): MorphMany
-    {
-        return $this->morphMany(ActivityLog::class, 'loggable');
-    }
-
-    public function categoryMapping(): BelongsTo
-    {
-        return $this->belongsTo(CategoryMapping::class, 'category', 'category_name')
-            ->where('merchant_id', $this->merchant_id);
-    }
-
-    // Accessors
-    public function getMainImageUrlAttribute(): ?string
-    {
-        return $this->mainImage?->image_url ?? $this->images()->first()?->image_url;
-    }
-
-    public function getOverallStatusAttribute(): ?string
-    {
-        // Get the most urgent batch status
-        $batchItem = $this->batchItems()
-            ->whereHas('batch')
-            ->with('batch')
-            ->get()
-            ->sortBy(function ($item) {
-                $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
-                return $order[$item->batch->status] ?? 99;
-            })
-            ->first();
-
-        return $batchItem?->batch->status;
-    }
-
-    public function getHasExpiryDataAttribute(): bool
-    {
-        return $this->batchItems()->exists();
-    }
-
-    public function getHasCalculatorEnabledAttribute(): bool
-    {
-        return $this->calculator && $this->calculator->is_enabled;
-    }
-
-    // Helper Methods
-    public function canApplyDiscount(): bool
-    {
-        return $this->overall_status === 'yellow';
-    }
-
-    public function isExpired(): bool
-    {
-        return $this->overall_status === 'red';
-    }
-
-    public function getActiveDiscount(): ?ProductDiscount
-    {
-        return $this->discounts()
-            ->where('status', 'active')
-            ->where('ends_at', '>', now())
-            ->first();
-    }
-
-    public function getExpiringBatches(): HasMany
-    {
-        return $this->batchItems()
-            ->whereHas('batch', function ($q) {
-                $q->where('status', '!=', 'green');
-            });
-    }
-
-    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
     }
 
-    public function scopeWithStatus($query, string $status)
+    // ====================================================================
+    // الموصلات (Accessors & Mutators)
+    // ====================================================================
+
+    /**
+     * جلب رابط الصورة الأساسية مباشرة أو صورة افتراضية
+     * الاستخدام: $product->image_url
+     */
+    public function getImageUrlAttribute(): string
     {
-        return $query->whereHas('batchItems.batch', function ($q) use ($status) {
-            $q->where('status', $status);
-        });
+        return $this->mainImage?->image_url ?? asset('images/placeholder-product.png');
     }
 
-    public function scopeWithCalculatorEnabled($query)
+    /**
+     * جلب الوصف من بيانات الـ Metadata
+     */
+    public function getDescriptionAttribute(): ?string
     {
-        return $query->whereHas('calculator', function ($q) {
-            $q->where('is_enabled', true);
-        });
+        return $this->metadata['description'] ?? null;
     }
 
-    public function scopeInCategory($query, string $category)
+    /**
+     * عرض السعر مع العملة بشكل منسق
+     */
+    public function getFormattedPriceAttribute(): string
     {
-        return $query->where('category', $category);
+        return number_format($this->price, 2) . ' ر.س';
     }
 }

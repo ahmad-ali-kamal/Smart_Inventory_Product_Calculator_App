@@ -3,62 +3,59 @@
 namespace App\Http\Controllers\Calculator;
 
 use App\Http\Controllers\Controller;
+use App\Models\CalculatorSetting;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class CalculatorDashboardController extends Controller
 {
     /**
-     * عرض داشبورد الآلة الحاسبة
+     * عرض Dashboard الآلة الحاسبة
      */
-    public function index(Request $request)
+    public function index()
     {
-        $merchant = $request->user();
-        $hasSettings = $merchant->hasCalculatorSettings();
+        // 1. جلب التاجر الحالي
+        $merchant = Auth::user();
 
-        // إذا لم يكن لديه إعدادات، عرض الحالة الفارغة
-        if (!$hasSettings) {
-            return Inertia::render('Calculator/Dashboard', [
-                'hasSettings' => false,
-                'stats' => null,
-                'products' => [],
-            ]);
+        // 2. التحقق مما إذا كان لدى التاجر إعدادات محفوظة مسبقاً
+        $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+
+        // ⚠️ توجيه ذكي: إذا لم تكن هناك إعدادات، اعرض صفحة التعليمات
+        if (!$settings) {
+            return view('calculator.instructions');
         }
 
-        // إحصائيات
+        // 3. حساب إحصائيات المنتجات
         $stats = [
-            'total_products' => $merchant->products()->count(),
-            'enabled_products' => $merchant->products()
-                ->withCalculatorEnabled()
+            'total_products' => Product::where('merchant_id', $merchant->id)->count(),
+
+            'enabled_products' => Product::where('merchant_id', $merchant->id)
+                ->whereHas('calculator', function ($q) {
+                    $q->where('is_enabled', true);
+                })
+                ->count(),
+
+            'disabled_products' => Product::where('merchant_id', $merchant->id)
+                ->whereDoesntHave('calculator', function ($q) {
+                    $q->where('is_enabled', true);
+                })
                 ->count(),
         ];
 
-        // المنتجات المفعلة للآلة الحاسبة
-        $products = Product::where('merchant_id', $merchant->id)
-            ->withCalculatorEnabled()
-            ->with('calculator')
-            ->get()
-            ->map(function ($product) use ($merchant) {
-                $settings = $merchant->calculatorSettings;
-                
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'image_url' => $product->image_url,
-                    'price' => $product->price,
-                    'is_enabled' => true,
-                    'settings' => [
-                        'coverage' => $settings->coverage_per_unit,
-                        'waste' => $settings->waste_percentage,
-                    ],
-                ];
-            });
+        // 4. جلب المنتجات المفعّلة
+        $enabledProducts = Product::where('merchant_id', $merchant->id)
+            ->whereHas('calculator', fn($q) => $q->where('is_enabled', true))
+            ->with(['calculator'])
+            ->orderBy('name')
+            ->get();
 
-        return Inertia::render('Calculator/Dashboard', [
-            'hasSettings' => true,
-            'stats' => $stats,
-            'products' => $products,
+        // 5. عرض الداشبورد مع البيانات
+        return view('calculator.dashboard', [
+            'settings'        => $settings,
+            'stats'           => $stats,
+            'merchant'        => $merchant,
+            'enabledProducts' => $enabledProducts,
         ]);
     }
 }
