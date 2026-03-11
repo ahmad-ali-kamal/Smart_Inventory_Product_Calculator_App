@@ -60,4 +60,35 @@ class CalculatorSettingsController extends Controller
         return redirect()->route('calculator.dashboard')
             ->with('success', 'تم حفظ إعدادات الحاسبة بنجاح! يمكنك الآن تفعيل المنتجات.');
     }
+    /**
+ * API عام: يُستدعى من سنيبت سلة
+ * يتحقق إذا المنتج مفعّل عليه الحاسبة ويرجع إعداداتها
+ */
+public function  getSettingsForStore($salla_product_id)
+{
+    // 1. ابحث عن المنتج بـ salla_product_id
+    $product = Product::where('salla_product_id', $salla_product_id)->first();
+
+    if (!$product) {
+        return response()->json(['enabled' => false], 404)->header('Access-Control-Allow-Origin', '*');
+    }
+
+    // 2. تحقق إذا مفعّل في product_calculator
+    $calculator = \App\Models\ProductCalculator::where('product_id', $product->id)
+        ->where('is_enabled', 1)
+        ->first();
+
+    if (!$calculator) {
+        return response()->json(['enabled' => false], 404)->header('Access-Control-Allow-Origin', '*');
+    }
+
+    // 3. جلب إعدادات التاجر
+    $settings = CalculatorSetting::where('merchant_id', $product->merchant_id)->first();
+
+    return response()->json([
+        'enabled'  => true,
+        'coverage' => $settings ? (float) $settings->coverage_per_unit : 2.56,
+        'waste'    => $settings ? (float) $settings->waste_percentage  : 10,
+    ])->header('Access-Control-Allow-Origin', '*');
+}
 }

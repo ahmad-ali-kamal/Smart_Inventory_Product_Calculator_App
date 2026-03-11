@@ -24,6 +24,8 @@ use App\Http\Controllers\Settings\BatchSettingController;
 | testing Routes
 |--------------------------------------------------------------------------
 */
+// ✅ هذا الراوت يجب أن يكون عاماً (خارج أي Middleware)
+Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
 // ✅ 0. راوتات لاختبار  صفحات الانفتوري (يمكن إزالتها لاحقًا)
 // routes/web.php
 //test route for settings
@@ -102,6 +104,15 @@ Route::middleware(['auth'])->group(function () {
     // ── الآلة الحاسبة (Calculator) ──
     Route::prefix('calculator')->name('calculator.')->group(function () {
         Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
+        // 2. بقية الراوتات المحمية تبقى كما هي
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('calculator')->name('calculator.')->group(function () {
+        Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
+        Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
+        // ...
+    });
+    });
         
         // إعدادات الحاسبة (التغطية والهدر)
         Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
