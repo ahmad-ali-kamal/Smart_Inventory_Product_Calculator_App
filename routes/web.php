@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\SallaOAuthController;
 
 // استدعاء الكنترولرات
+use App\Http\Controllers\Auth\SallaOAuthController;
 use App\Http\Controllers\Calculator\CalculatorDashboardController;
 use App\Http\Controllers\Calculator\CalculatorSettingsController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
@@ -13,124 +13,88 @@ use App\Http\Controllers\Inventory\ProductExpiryController;
 use App\Http\Controllers\Inventory\DiscountController;
 use App\Http\Controllers\Settings\CategoryMappingController;
 use App\Http\Controllers\Settings\BatchSettingController;
+use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| 1. مسارات الاختبار (Testing Routes) - للمعاينة فقط
 |--------------------------------------------------------------------------
 */
+Route::prefix('test')->group(function () {
+    Route::get('/expiry-settings', fn() => view('inventory.settings'));
+    Route::get('/expiry-dashboard', fn() => view('inventory.dashboard'));
+    Route::get('/expiry-instructions', fn() => view('inventory.instructions'));
+    Route::get('/expiry-products', fn() => view('inventory.products'));
+    
+    Route::get('/discount-test', function () {
+        return view('inventory.dashboard', [
+            'stats' => ['green_batches' => 3, 'yellow_batches' => 2, 'red_batches' => 1],
+            'products' => collect([
+                (object)['id' => 1, 'name' => 'Milk', 'status' => 'yellow', 'expiry_date' => now()->addDays(5)->format('Y-m-d')],
+                (object)['id' => 2, 'name' => 'Yogurt', 'status' => 'yellow', 'expiry_date' => now()->addDays(3)->format('Y-m-d')],
+            ]),
+        ]);
+    })->name('discount.test');
+});
+
 /*
 |--------------------------------------------------------------------------
-| testing Routes
+| 2. المسارات العامة (Public Routes)
 |--------------------------------------------------------------------------
 */
-// ✅ هذا الراوت يجب أن يكون عاماً (خارج أي Middleware)
-Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
-// ✅ 0. راوتات لاختبار  صفحات الانفتوري (يمكن إزالتها لاحقًا)
-// routes/web.php
-//test route for settings
-Route::get('/test-expiry-settings', function () {
-    return view('inventory.settings');
-});
-//test route for dashboard
-Route::get('/test-expiry-dashboard', function () {
-       return view('inventory.dashboard');
-   });
- //test route for instructions
-Route::get('/test-expiry-instructions', function () {
-    return view('inventory.instructions');
-});
-
-//test route for products
-Route::get('/test-expiry-products', function () {
-    return view('inventory.products');
-});
-
-Route::get('/discount-test', function () {
-    return view('inventory.dashboard', [
-        'stats' => [
-            'green_batches'  => 3,
-            'yellow_batches' => 2,
-            'red_batches'    => 1,
-        ],
-        'products' => collect([
-            (object)[
-                'id'          => 1,
-                'name'        => 'Milk',
-                'status'      => 'yellow',
-                'expiry_date' => now()->addDays(5)->format('Y-m-d'),
-                'batches'     => null,
-            ],
-            (object)[
-                'id'          => 2,
-                'name'        => 'Yogurt',
-                'status'      => 'yellow',
-                'expiry_date' => now()->addDays(3)->format('Y-m-d'),
-                'batches'     => null,
-            ],
-            (object)[
-                'id'          => 3,
-                'name'        => 'Cheese',
-                'status'      => 'green',
-                'expiry_date' => now()->addDays(30)->format('Y-m-d'),
-                'batches'     => null,
-            ],
-        ]),
-    ]);
-})->name('discount.test');
-//------------------------------------------------------------------------------------
-
-// ✅ 1. الصفحة الرئيسية (الترحيب للزوار / لوحة التحكم للأعضاء)
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// ✅ 2. صفحة تسجيل الدخول (للزوار فقط)
-Route::get('/login', function () {
-    return auth()->check() ? redirect()->route('welcome') : view('auth.login');
-})->name('login')->middleware('guest');
+// خاص بحسابات سلة (يجب أن يكون عاماً للـ API)
+Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
 
-// ✅ 3. راوتات المصادقة (Salla OAuth)
-Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');
-Route::get('/auth/salla/callback', [SallaOAuthController::class, 'callback'])->name('auth.salla.callback');
+/*
+|--------------------------------------------------------------------------
+| 3. مسارات المصادقة (Salla OAuth)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    Route::get('/login', fn() => view('auth.login'))->name('login');
+    Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');
+    Route::get('/auth/salla/callback', [SallaOAuthController::class, 'callback'])->name('auth.salla.callback');
+});
+
 Route::post('/logout', [SallaOAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-// ✅ 4. الخدمات المحمية (تتطلب تسجيل دخول)
+/*
+|--------------------------------------------------------------------------
+| 4. الخدمات المحمية (Authenticated Routes)
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth'])->group(function () {
 
-    // تحويل الداشبورد التلقائي إلى الرئيسية
-    Route::get('/dashboard', fn() => redirect()->route('welcome'))->name('dashboard');
+    // تحويل تلقائي للـ Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ── الآلة الحاسبة (Calculator) ──
-    Route::prefix('calculator')->name('calculator.')->group(function () {
-        Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
-        // 2. بقية الراوتات المحمية تبقى كما هي
-Route::middleware(['auth'])->group(function () {
+    // مسار عرض تفاصيل منتج معين (الذي طلبته)
+    Route::get('/products/{product_id}', [ProductListController::class, 'show'])->name('products.show');
+
+    // ── قسم الحاسبة (Calculator) ──
     Route::prefix('calculator')->name('calculator.')->group(function () {
         Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
         Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
         Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
-        // ...
-    });
-    });
         
-        // إعدادات الحاسبة (التغطية والهدر)
-        Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
-        Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
-        
-        // إدارة المنتجات في الحاسبة
         Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
         Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
         Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
     });
 
-    // ── إدارة المخزون (Inventory) ──
+    // ── قسم المخزون (Inventory) ──
     Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/', [InventoryDashboardController::class, 'index'])->name('dashboard');
         Route::get('/products', [ProductListController::class, 'index'])->name('products.index');
+        
+        // المزامنة أصبحت عبر الـ Webhooks ولكن نترك هذا للمزامنة اليدوية الضرورية
         Route::post('/products/sync', [ProductListController::class, 'sync'])->name('products.sync');
         
-        // تواريخ الانتهاء
+        // إدارة تواريخ الانتهاء
         Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('expiry.store');
         Route::put('/products/{product}/expiry', [ProductExpiryController::class, 'update'])->name('expiry.update');
         Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('expiry.destroy');
@@ -141,7 +105,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/discounts/{discount}', [DiscountController::class, 'cancel'])->name('discount.cancel');
     });
 
-    // ── الإعدادات العامة (Settings) ──
+    // ── الإعدادات (Settings) ──
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/categories', [CategoryMappingController::class, 'index'])->name('categories.index');
         Route::post('/categories', [CategoryMappingController::class, 'store'])->name('categories.store');
