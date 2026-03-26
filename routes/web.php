@@ -17,41 +17,19 @@ use App\Http\Controllers\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
-| 1. مسارات الاختبار (Testing Routes) - للمعاينة فقط
+| 1. المسارات العامة (Public Routes)
 |--------------------------------------------------------------------------
 */
-Route::prefix('test')->group(function () {
-    Route::get('/expiry-settings', fn() => view('inventory.settings'));
-    Route::get('/expiry-dashboard', fn() => view('inventory.dashboard'));
-    Route::get('/expiry-instructions', fn() => view('inventory.instructions'));
-    Route::get('/expiry-products', fn() => view('inventory.products'));
-    
-    Route::get('/discount-test', function () {
-        return view('inventory.dashboard', [
-            'stats' => ['green_batches' => 3, 'yellow_batches' => 2, 'red_batches' => 1],
-            'products' => collect([
-                (object)['id' => 1, 'name' => 'Milk', 'status' => 'yellow', 'expiry_date' => now()->addDays(5)->format('Y-m-d')],
-                (object)['id' => 2, 'name' => 'Yogurt', 'status' => 'yellow', 'expiry_date' => now()->addDays(3)->format('Y-m-d')],
-            ]),
-        ]);
-    })->name('discount.test');
-});
 
-/*
-|--------------------------------------------------------------------------
-| 2. المسارات العامة (Public Routes)
-|--------------------------------------------------------------------------
-*/
-Route::get('/', function () {
-    return view('welcome');
-})->name('welcome');
+// ✅ تعديل: الرابط الرئيسي الآن يمر عبر الكنترولر لفحص صلاحيات التاجر وتوجيهه تلقائياً
+Route::get('/', [DashboardController::class, 'index'])->name('welcome');
 
-// خاص بحسابات سلة (يجب أن يكون عاماً للـ API)
+// خاص بحسابات سلة (يجب أن يكون عاماً للـ API الخاص بالأداة)
 Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
 
 /*
 |--------------------------------------------------------------------------
-| 3. مسارات المصادقة (Salla OAuth)
+| 2. مسارات المصادقة (Salla OAuth)
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
@@ -64,18 +42,18 @@ Route::post('/logout', [SallaOAuthController::class, 'logout'])->name('logout')-
 
 /*
 |--------------------------------------------------------------------------
-| 4. الخدمات المحمية (Authenticated Routes)
+| 3. الخدمات المحمية (Authenticated Routes)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
 
-    // تحويل تلقائي للـ Dashboard
+    // الداشبورد العام (يعيد التوجيه بناءً على التطبيق المختار أو المثبت)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // مسار عرض تفاصيل منتج معين (الذي طلبته)
+    // مسار عرض تفاصيل منتج معين
     Route::get('/products/{product_id}', [ProductListController::class, 'show'])->name('products.show');
 
-    // ── قسم الحاسبة (Calculator) ──
+    // ── تطبيق المستشار (الآلة الحاسبة) ──
     Route::prefix('calculator')->name('calculator.')->group(function () {
         Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
         Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
@@ -86,20 +64,19 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
     });
 
-    // ── قسم المخزون (Inventory) ──
+    // ── تطبيق حريص (إدارة المخزون) ──
     Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/', [InventoryDashboardController::class, 'index'])->name('dashboard');
         Route::get('/products', [ProductListController::class, 'index'])->name('products.index');
         
-        // المزامنة أصبحت عبر الـ Webhooks ولكن نترك هذا للمزامنة اليدوية الضرورية
         Route::post('/products/sync', [ProductListController::class, 'sync'])->name('products.sync');
         
-        // إدارة تواريخ الانتهاء
+        // تواريخ الانتهاء
         Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('expiry.store');
         Route::put('/products/{product}/expiry', [ProductExpiryController::class, 'update'])->name('expiry.update');
         Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('expiry.destroy');
         
-        // الخصومات الذكية
+        // الخصومات
         Route::get('/products/{product}/discount/suggest', [DiscountController::class, 'suggest'])->name('discount.suggest');
         Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('discount.apply');
         Route::delete('/discounts/{discount}', [DiscountController::class, 'cancel'])->name('discount.cancel');
@@ -112,3 +89,23 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/batch', [BatchSettingController::class, 'store'])->name('batch.store');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| 4. مسارات الاختبار (Testing Routes)
+|--------------------------------------------------------------------------
+*/
+if (app()->environment('local')) {
+    Route::prefix('test')->group(function () {
+        Route::get('/expiry-settings', fn() => view('inventory.settings'));
+        Route::get('/expiry-dashboard', fn() => view('inventory.dashboard'));
+        Route::get('/discount-test', function () {
+            return view('inventory.dashboard', [
+                'stats' => ['green_batches' => 3, 'yellow_batches' => 2, 'red_batches' => 1],
+                'products' => collect([
+                    (object)['id' => 1, 'name' => 'Milk', 'status' => 'yellow', 'expiry_date' => now()->addDays(5)->format('Y-m-d')],
+                ]),
+            ]);
+        })->name('discount.test');
+    });
+}
