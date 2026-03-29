@@ -21,9 +21,14 @@ class FetchProductsJob implements ShouldQueue
     protected $page;
 
     /**
-     * تحديث: الجووب سيحاول 3 مرات في حال الفشل
+     * عدد محاولات إعادة التشغيل في حال فشل الجووب
      */
     public $tries = 3;
+
+    /**
+     * المهلة الزمنية قبل محاولة إعادة التشغيل (بالثواني)
+     */
+    public $backoff = 60;
 
     public function __construct(Merchant $merchant, $page = 1)
     {
@@ -33,59 +38,80 @@ class FetchProductsJob implements ShouldQueue
 
     public function handle()
     {
-        Log::info("Background Thread: Fetching page {$this->page} for {$this->merchant->name}");
+        Log::info("--- [Salla Sync] Start fetching page {$this->page} for merchant: {$this->merchant->name} ---");
 
-        $response = Http::withToken($this->merchant->access_token)
-            ->get("https://api.salla.dev/admin/v2/products?page={$this->page}");
+        try {
+            $response = Http::withToken($this->merchant->access_token)
+                ->get("https://api.salla.dev/admin/v2/products?page={$this->page}");
 
-        // 1. معالجة الـ Rate Limit (إذا سلة قالت "تمهل")
-        if ($response->status() === 429) {
-            Log::warning("Rate limit hit. Holding job until the next minute...");
-            return $this->release(now()->addMinute()); // عمل هولد للدقيقة التالية
-        }
-
-        if ($response->successful()) {
-            $data = $response->json();
-            $products = $data['data'] ?? [];
-
-            foreach ($products as $p) {
-                $this->syncProduct($p);
+            // 1. معالجة الـ Rate Limit (تجاوز حد الطلبات المسموح به)
+            if ($response->status() === 429) {
+                Log::warning("Rate limit hit for {$this->merchant->name}. Holding job for 60 seconds.");
+                return $this->release(now()->addMinute());
             }
 
-            // 2. الانتقال التلقائي للصفحة التالية بإنشاء جووب جديد
-            $pagination = $data['pagination'] ?? [];
-            if ($this->page < ($pagination['total_pages'] ?? 1)) {
-                FetchProductsJob::dispatch($this->merchant, $this->page + 1)
-                    ->delay(now()->addSeconds(2)); // تأخير بسيط لعدم إرهاق الـ API
+            if ($response->successful()) {
+                $data = $response->json();
+                $products = $data['data'] ?? [];
+                
+                Log::info("Retrieved " . count($products) . " products from Salla API.");
+
+                foreach ($products as $p) {
+                    $this->syncProduct($p);
+                }
+
+                // 2. المتابعة التلقائية للصفحة التالية
+                $pagination = $data['pagination'] ?? [];
+                $totalPages = $pagination['total_pages'] ?? 1;
+
+                if ($this->page < $totalPages) {
+                    Log::info("Dispatching next page: " . ($this->page + 1));
+                    self::dispatch($this->merchant, $this->page + 1)->delay(now()->addSeconds(2));
+                } else {
+                    Log::info("--- [Salla Sync] Completed successfully for {$this->merchant->name} ---");
+                }
+
+            } else {
+                Log::error("Failed to fetch products for {$this->merchant->name}. Status: " . $response->status() . " Body: " . $response->body());
+                $this->release(now()->addMinutes(2)); // تأجيل المحاولة في حال وجود خطأ من السيرفر
             }
-        } else {
-            // في حال وجود خطأ في الصفحة (مثل 500)، يحاول مرة أخرى بعد دقيقة
-            Log::error("Error fetching page {$this->page}: " . $response->body());
-            $this->release(now()->addMinute());
+
+        } catch (\Exception $e) {
+            Log::error("Critical Error in FetchProductsJob: " . $e->getMessage());
+            throw $e; // نرفع الخطأ لكي يقوم الـ Queue بتسجيله في failed_jobs
         }
     }
 
+    /**
+     * مزامنة المنتج وتحديث بياناته أو إنشاؤه
+     */
     private function syncProduct(array $p)
     {
+        // استخراج اسم التصنيف (Category)
         $categoryName = 'General';
         if (!empty($p['categories'])) {
             $mainCat = collect($p['categories'])->firstWhere('main', true) ?? $p['categories'][0];
             $categoryName = $mainCat['name'] ?? 'General';
         }
 
+        // تحديث أو إنشاء المنتج
         $product = Product::updateOrCreate(
-            ['merchant_id' => $this->merchant->id, 'salla_product_id' => $p['id']],
+            [
+                'merchant_id' => $this->merchant->id, 
+                'salla_product_id' => $p['id']
+            ],
             [
                 'name'      => $p['name'],
                 'price'     => $p['price']['amount'] ?? 0,
                 'sku'       => $p['sku'] ?? null,
                 'category'  => $categoryName,
-                'status'   => (string) ($p['status'] ?? 'active'), // تأكد من تحويلها لنص
+                'status'    => (string) ($p['status'] ?? 'active'), // حماية ضد أخطاء Data Truncated
                 'quantity'  => $p['quantity'] ?? 0,
                 'synced_at' => now(),
             ]
         );
 
+        // تحديث الصور (مسح القديم وإضافة الجديد لضمان الدقة)
         if (!empty($p['images'])) {
             $product->images()->delete();
             foreach ($p['images'] as $index => $imgData) {
@@ -97,5 +123,7 @@ class FetchProductsJob implements ShouldQueue
                 ]);
             }
         }
+        
+        Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']}");
     }
 }
