@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Calculator;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalculatorSetting;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
