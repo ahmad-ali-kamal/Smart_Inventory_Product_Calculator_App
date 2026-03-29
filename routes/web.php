@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
+use App\Models\Merchant;
+use App\Models\Product;
 
 // استدعاء الكنترولرات
 use App\Http\Controllers\Auth\SallaOAuthController;
@@ -21,10 +24,9 @@ use App\Http\Controllers\DashboardController;
 |--------------------------------------------------------------------------
 */
 
-// ✅ تعديل: الرابط الرئيسي الآن يمر عبر الكنترولر لفحص صلاحيات التاجر وتوجيهه تلقائياً
 Route::get('/', [DashboardController::class, 'index'])->name('welcome');
 
-// خاص بحسابات سلة (يجب أن يكون عاماً للـ API الخاص بالأداة)
+// خاص بحسابات سلة (API)
 Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
 
 /*
@@ -47,7 +49,52 @@ Route::post('/logout', [SallaOAuthController::class, 'logout'])->name('logout')-
 */
 Route::middleware(['auth'])->group(function () {
 
-    // الداشبورد العام (يعيد التوجيه بناءً على التطبيق المختار أو المثبت)
+    // 🚀 مسار الحل الصارم: تشغيل المزامنة يدوياً لمعرفة الخطأ الحقيقي
+    Route::get('/force-fetch', function () {
+        $merchant = auth()->user();
+        
+        echo "<h2>Debugging Sync for: {$merchant->name}</h2>";
+        echo "Store ID: {$merchant->salla_merchant_id}<br>";
+        echo "Token Status: " . ($merchant->access_token ? "Exists" : "MISSING") . "<br><hr>";
+
+        try {
+            // طلب مباشر لسلة بدون Jobs
+            $response = Http::withToken($merchant->access_token)
+                ->get("https://api.salla.dev/admin/v2/products");
+
+            if ($response->failed()) {
+                echo "<h3 style='color:red'>API Error Found!</h3>";
+                echo "Status: " . $response->status() . "<br>";
+                echo "Response: <pre>" . json_encode($response->json(), JSON_PRETTY_PRINT) . "</pre>";
+                return;
+            }
+
+            $data = $response->json();
+            $products = $data['data'] ?? [];
+            echo "<h3 style='color:green'>Success! API returned " . count($products) . " products.</h3>";
+
+            foreach ($products as $p) {
+                Product::updateOrCreate(
+                    ['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']],
+                    [
+                        'name'     => $p['name'],
+                        'price'    => $p['price']['amount'] ?? 0,
+                        'sku'      => $p['sku'] ?? null,
+                        'status'   => $p['status'] ?? 'active',
+                        'quantity' => $p['quantity'] ?? 0,
+                    ]
+                );
+                echo "Synced Product: " . $p['name'] . "<br>";
+            }
+
+            echo "<br><hr><b>Check DBeaver now. If products are there, the issue was only in the Queue Worker!</b>";
+
+        } catch (\Exception $e) {
+            echo "<h3 style='color:red'>Critical PHP Error:</h3>" . $e->getMessage();
+        }
+    });
+
+    // الداشبورد العام
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // مسار عرض تفاصيل منتج معين
@@ -68,15 +115,12 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/', [InventoryDashboardController::class, 'index'])->name('dashboard');
         Route::get('/products', [ProductListController::class, 'index'])->name('products.index');
-        
         Route::post('/products/sync', [ProductListController::class, 'sync'])->name('products.sync');
         
-        // تواريخ الانتهاء
         Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('expiry.store');
         Route::put('/products/{product}/expiry', [ProductExpiryController::class, 'update'])->name('expiry.update');
         Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('expiry.destroy');
         
-        // الخصومات
         Route::get('/products/{product}/discount/suggest', [DiscountController::class, 'suggest'])->name('discount.suggest');
         Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('discount.apply');
         Route::delete('/discounts/{discount}', [DiscountController::class, 'cancel'])->name('discount.cancel');

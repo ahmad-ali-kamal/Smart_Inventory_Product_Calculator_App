@@ -80,7 +80,7 @@ class FetchProductsJob implements ShouldQueue
                 'price'     => $p['price']['amount'] ?? 0,
                 'sku'       => $p['sku'] ?? null,
                 'category'  => $categoryName,
-                'status'    => $p['status'] ?? 'active',
+                'status'   => (string) ($p['status'] ?? 'active'), // تأكد من تحويلها لنص
                 'quantity'  => $p['quantity'] ?? 0,
                 'synced_at' => now(),
             ]
