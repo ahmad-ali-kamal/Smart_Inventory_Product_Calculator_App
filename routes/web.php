@@ -66,18 +66,21 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Harees (Inventory & Expiry Management) ──
     Route::prefix('inventory')->name('inventory.')->group(function () {
-        Route::get('/', [InventoryDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/products', [ProductListController::class, 'index'])->name('products.index');
+        // الصفحات الأساسية
+        Route::get('/', [InventoryDashboardController::class, 'index'])->name('dashboard'); // dashboard.blade.php
+        Route::get('/products', [ProductListController::class, 'index'])->name('products.index'); // products.blade.php
+        Route::get('/settings', [InventoryDashboardController::class, 'settings'])->name('settings'); // settings.blade.php
+        Route::get('/instructions', [InventoryDashboardController::class, 'instructions'])->name('instructions'); // instructions.blade.php
         
-        // المزامنة اليدوية (تطلق الجووب في الخلفية)
+        // المزامنة اليدوية
         Route::post('/products/sync', [ProductListController::class, 'sync'])->name('products.sync');
         
-        // إدارة الأكسباير (Expiry)
+        // إدارة الأكسباير (تستخدم للنماذج dateform)
         Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('expiry.store');
         Route::put('/products/{product}/expiry', [ProductExpiryController::class, 'update'])->name('expiry.update');
         Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('expiry.destroy');
         
-        // نظام الخصومات الذكية
+        // نظام الخصومات (تستخدم للنماذج discountform)
         Route::get('/products/{product}/discount/suggest', [DiscountController::class, 'suggest'])->name('discount.suggest');
         Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('discount.apply');
         Route::delete('/discounts/{discount}', [DiscountController::class, 'cancel'])->name('discount.cancel');

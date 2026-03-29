@@ -5,39 +5,37 @@ namespace App\Http\Controllers\Inventory;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Batch;
-use App\Models\BatchItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class InventoryDashboardController extends Controller
 {
     /**
-     * عرض داشبورد إدارة المخزون
+     * عرض داشبورد إدارة المخزون (متوافق مع Blade)
      */
     public function index(Request $request)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
-        // استخدام Cache
+        // استخدام Cache لتحسين الأداء
         $cacheKey = "inventory_dashboard_{$merchant->id}";
         $cacheDuration = now()->addMinutes(5);
 
         $data = Cache::remember($cacheKey, $cacheDuration, function () use ($merchant) {
-            // إحصائيات الحالة من الدفعات
+            // 1. إحصائيات الحالة (الألوان)
             $statusCounts = [
-                'green' => Batch::forMerchant($merchant->id)->safe()->count(),
-                'yellow' => Batch::forMerchant($merchant->id)->warning()->count(),
-                'red' => Batch::forMerchant($merchant->id)->expired()->count(),
+                'green_batches'  => Batch::forMerchant($merchant->id)->safe()->count(),
+                'yellow_batches' => Batch::forMerchant($merchant->id)->warning()->count(),
+                'red_batches'    => Batch::forMerchant($merchant->id)->expired()->count(),
             ];
 
-            // المنتجات مع بياناتها
+            // 2. جلب المنتجات مع بياناتها (التي تملك دفعات فقط)
             $products = Product::where('merchant_id', $merchant->id)
                 ->with([
                     'batchItems.batch' => function ($q) {
                         $q->orderBy('days_until_expiry');
                     },
-                    'mainImage',
                     'discounts' => function ($q) {
                         $q->where('status', 'active');
                     }
@@ -45,58 +43,67 @@ class InventoryDashboardController extends Controller
                 ->whereHas('batchItems')
                 ->get()
                 ->map(function ($product) {
-                    // الحصول على أسوأ حالة (أقرب للانتهاء)
-                    $criticalBatch = $product->batchItems
+                    // تحديد الدفعة الأكثر خطورة (الأقرب للانتهاء)
+                    $criticalBatchItem = $product->batchItems
                         ->sortBy(function ($item) {
                             $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
                             return $order[$item->batch->status] ?? 99;
                         })
                         ->first();
 
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'sku' => $product->sku,
-                        'price' => $product->price,
-                        'image_url' => $product->main_image_url,
-                        'status' => $criticalBatch?->batch->status,
-                        'days_until_expiry' => $criticalBatch?->batch->days_until_expiry,
-                        'expiry_date' => $criticalBatch?->batch->expiry_date?->format('Y-m-d'),
-                        'batch_code' => $criticalBatch?->batch->batch_code,
-                        'batches_count' => $product->batchItems->count(),
-                        'total_quantity' => $product->batchItems->sum('quantity'),
-                        'total_remaining' => $product->batchItems->sum('remaining_quantity'),
-                        'can_apply_discount' => $criticalBatch?->batch->status === 'yellow',
-                        'has_active_discount' => $product->discounts->isNotEmpty(),
+                    // تحويل المنتج إلى كائن (Object) ليسهل التعامل معه في الـ Blade
+                    return (object) [
+                        'id'                 => $product->id,
+                        'name'               => $product->name,
+                        'status'             => $criticalBatchItem?->batch->status ?? 'green',
+                        'expiry_date'        => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
+                        'batches'            => $product->batchItems, // لإظهار عدد الدفعات
+                        'has_active_discount'=> $product->discounts->isNotEmpty(),
                     ];
                 })
-                ->sortBy(function ($product) {
+                ->sortBy(function ($p) {
                     $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
-                    return $order[$product['status']] ?? 99;
+                    return $order[$p->status] ?? 99;
                 })
                 ->values();
 
             return [
-                'statusCounts' => $statusCounts,
+                'stats'    => $statusCounts,
                 'products' => $products,
             ];
         });
 
-        return Inertia::render('Inventory/Dashboard', [
-            'statusCounts' => $data['statusCounts'],
-            'products' => $data['products'],
-            'hasProducts' => $data['products']->isNotEmpty(),
+        // العودة لملف الـ Blade مع تمرير البيانات
+        return view('inventory.dashboard', [
+            'stats'    => $data['stats'],
+            'products' => $data['products']
         ]);
     }
 
     /**
-     * مسح الكاش
+     * صفحة الإعدادات
      */
-    public function clearCache(Request $request)
+    public function settings()
     {
-        $merchant = $request->user();
+        return view('inventory.settings');
+    }
+
+    /**
+     * صفحة التعليمات
+     */
+    public function instructions()
+    {
+        return view('inventory.instructions');
+    }
+
+    /**
+     * مسح الكاش وتحديث البيانات
+     */
+    public function clearCache()
+    {
+        $merchant = Auth::user();
         Cache::forget("inventory_dashboard_{$merchant->id}");
 
-        return back()->with('success', 'تم تحديث البيانات');
+        return back()->with('success', 'تم تحديث البيانات بنجاح');
     }
 }

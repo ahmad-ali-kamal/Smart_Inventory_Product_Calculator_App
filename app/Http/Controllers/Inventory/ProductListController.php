@@ -4,130 +4,73 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use App\Models\ProductImage;
-use App\Services\SallaApiService;
+use App\Jobs\FetchProductsJob;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class ProductListController extends Controller
 {
     /**
-     * عرض قائمة المنتجات
+     * عرض قائمة المنتجات في تطبيق حريص
      */
     public function index(Request $request)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
+        // جلب المنتجات مع العلاقات اللازمة للعرض
         $products = Product::where('merchant_id', $merchant->id)
             ->with([
-                'mainImage',
                 'images',
                 'batchItems.batch',
                 'calculator'
             ])
             ->orderBy('name')
-            ->paginate(20)
-            ->through(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'salla_product_id' => $product->salla_product_id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'price' => $product->price,
-                    'quantity' => $product->quantity,
-                    'category' => $product->category,
-                    'main_image_url' => $product->main_image_url,
-                    'images_count' => $product->images->count(),
-                    'status' => $product->status,
-                    'has_expiry_data' => $product->has_expiry_data,
-                    'overall_status' => $product->overall_status,
-                    'batches_count' => $product->batchItems->count(),
-                    'has_calculator_enabled' => $product->has_calculator_enabled,
-                ];
-            });
+            ->paginate(15); // تقسيم الصفحات لسرعة التحميل
 
-        return Inertia::render('Inventory/ProductList', [
-            'products' => $products,
-        ]);
+        // العودة لملف الـ Blade
+        return view('inventory.products', compact('products'));
     }
 
     /**
-     * مزامنة المنتجات من سلة
+     * مزامنة المنتجات من سلة (باستخدام الجووب لضمان الاستقرار)
      */
     public function sync(Request $request)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
         try {
-            $sallaApi = SallaApiService::for($merchant);
-            $page = 1;
-            $synced = 0;
+            // تشغيل عملية المزامنة في الخلفية (Background Thread)
+            // هذا يمنع تعليق الصفحة ويضمن سحب كل المنتجات
+            FetchProductsJob::dispatch($merchant);
 
-            do {
-                $sallaProducts = $sallaApi->getProducts($page);
-                
-                foreach ($sallaProducts as $sallaProduct) {
-                    // إنشاء/تحديث المنتج
-                    $product = Product::updateOrCreate(
-                        [
-                            'merchant_id' => $merchant->id,
-                            'salla_product_id' => $sallaProduct['id'],
-                        ],
-                        [
-                            'name' => $sallaProduct['name'],
-                            'sku' => $sallaProduct['sku'] ?? null,
-                            'price' => $sallaProduct['price'] ?? 0,
-                            'quantity' => $sallaProduct['quantity'] ?? 0,
-                            'category' => $sallaProduct['category']['name'] ?? null,
-                            'status' => $sallaProduct['status'] ?? 'active',
-                            'synced_at' => now(),
-                            'metadata' => $sallaProduct,
-                        ]
-                    );
-
-                    // مزامنة الصور
-                    if (!empty($sallaProduct['images'])) {
-                        $this->syncProductImages($product, $sallaProduct['images']);
-                    }
-
-                    $synced++;
-                }
-
-                $page++;
-            } while (count($sallaProducts) > 0);
-
-            // مسح الكاش
+            // مسح الكاش لضمان ظهور البيانات الجديدة بعد انتهاء الجووب
             Cache::forget("inventory_dashboard_{$merchant->id}");
 
-            return back()->with('success', "تم مزامنة {$synced} منتج بنجاح");
+            return back()->with('success', 'بدأت عملية المزامنة في الخلفية، ستظهر المنتجات خلال دقائق.');
 
         } catch (\Exception $e) {
-            \Log::error('Product sync failed', [
+            \Log::error('Product sync dispatch failed', [
                 'merchant_id' => $merchant->id,
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'فشلت عملية المزامنة: ' . $e->getMessage());
+            return back()->with('error', 'عذراً، تعذر بدء المزامنة: ' . $e->getMessage());
         }
     }
 
     /**
-     * مزامنة صور المنتج
+     * عرض تفاصيل منتج معين
      */
-    protected function syncProductImages(Product $product, array $images): void
+    public function show($id)
     {
-        // حذف الصور القديمة
-        $product->images()->delete();
+        $merchant = Auth::user();
+        
+        $product = Product::where('id', $id)
+            ->where('merchant_id', $merchant->id)
+            ->with(['batchItems.batch', 'images'])
+            ->firstOrFail();
 
-        // إضافة الصور الجديدة
-        foreach ($images as $index => $imageData) {
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_url' => $imageData['url'] ?? $imageData,
-                'sort_order' => $index,
-                'is_main' => $index === 0, // أول صورة هي الرئيسية
-                'alt_text' => $product->name,
-            ]);
-        }
+        return view('inventory.show', compact('product'));
     }
 }
