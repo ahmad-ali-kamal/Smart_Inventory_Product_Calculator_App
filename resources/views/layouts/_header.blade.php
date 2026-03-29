@@ -28,10 +28,26 @@
                 </a>
             @endif
 
-            <div class="app-avatar" title="{{ auth()->user()->name ?? 'User' }}">
-                {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
-            </div>
-        </div>
+   
+
+
+@auth
+<div class="dropdown dropdown-end">
+    <label tabindex="0" class="app-avatar" style="cursor:pointer">
+        {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+    </label>
+    <ul tabindex="0" class="dropdown-content menu p-1 shadow bg-white rounded-box mt-2" style="min-width:unset; width:auto;">
+        <li>
+            <a href="{{ route('logout') }}"
+               onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+               style="font-size:0.8rem; font-weight:700; color:hsl(282,50%,40%); display:flex; align-items:center; gap:0.4rem; padding:0.4rem 0.85rem; border-radius:0.65rem; white-space:nowrap;">
+                <i class="bi bi-box-arrow-right" style="font-size:0.8rem;"></i> Logout
+            </a>
+        </li>
+    </ul>
+</div>
+<form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">@csrf</form>
+@endauth
 
         <button class="app-menu-btn"><i class="bi bi-list"></i></button>
     </div>
