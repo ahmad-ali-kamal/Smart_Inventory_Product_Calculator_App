@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts._header', [
     'headerNav' => [
-        ['url' => route('welcome'),              'icon' => 'bi-house',        'label' => 'Home',      'route_match' => 'welcome'],
+        ['url' => route('welcome'),               'icon' => 'bi-house',         'label' => 'Home',      'route_match' => 'welcome'],
         ['url' => route('calculator.dashboard'), 'icon' => 'bi-speedometer2', 'label' => 'Dashboard', 'route_match' => 'calculator.dashboard'],
         ['url' => route('calculator.settings'),  'icon' => 'bi-gear',         'label' => 'Settings',  'route_match' => 'calculator.settings'],
     ],
@@ -45,15 +45,15 @@
             <tbody id="productsTableBody">
                 @forelse($products as $product)
                     @php $isEnabled = $product->calculator?->is_enabled ?? false; @endphp
-                    <tr class="table-row" data-product-name="{{ strtolower($product->name) }}">
+                    <tr class="table-row" id="row-{{ $product->id }}" data-product-name="{{ strtolower($product->name) }}">
 
                         {{-- Product name --}}
                         <td class="td-cell">
                             <div style="display:flex; align-items:center; gap:0.875rem;">
-                                <div class="product-icon {{ $isEnabled ? 'active' : 'inactive' }}">
+                                <div id="icon-{{ $product->id }}" class="product-icon {{ $isEnabled ? 'active' : 'inactive' }}">
                                     <i class="bi bi-box"></i>
                                 </div>
-                                <span style="font-size:0.875rem; font-weight:600; color:{{ $isEnabled ? 'var(--fg)' : 'var(--muted)' }};">
+                                <span id="name-{{ $product->id }}" style="font-size:0.875rem; font-weight:600; color:{{ $isEnabled ? 'var(--fg)' : 'var(--muted)' }};">
                                     {{ $product->name }}
                                 </span>
                             </div>
@@ -61,13 +61,13 @@
 
                         {{-- Category --}}
                         <td class="td-cell">
-                            <span class="cat-badge {{ $isEnabled ? '' : 'inactive' }}">
+                            <span id="cat-{{ $product->id }}" class="cat-badge {{ $isEnabled ? '' : 'inactive' }}">
                                 {{ $product->category ?? 'General' }}
                             </span>
                         </td>
 
                         {{-- Status --}}
-                        <td class="td-cell" style="text-align:center;">
+                        <td class="td-cell" id="status-cell-{{ $product->id }}" style="text-align:center;">
                             @if($isEnabled)
                                 <span class="status-active">
                                     <span class="status-dot"></span> Active
@@ -127,5 +127,106 @@
 @endsection
 
 @push('scripts')
-<script src="{{ mix('js/products.js') }}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // التعامل مع عملية الـ Toggle
+    const toggles = document.querySelectorAll('.product-toggle');
+    
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const productId = this.dataset.productId;
+            const url = this.dataset.toggleUrl;
+            const isChecked = this.checked;
+
+            // إرسال طلب AJAX للكنترولر
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    is_enabled: isChecked
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // تحديث الواجهة فوراً بناءً على الحالة الجديدة
+                    updateProductUI(productId, data.is_enabled);
+                    showToast(data.message, 'success');
+                } else {
+                    // في حال الفشل، أعد الزر لحالته السابقة
+                    this.checked = !isChecked;
+                    showToast('Error updating status', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.checked = !isChecked;
+                showToast('Connection error', 'error');
+            });
+        });
+    });
+
+    // دالة لتحديث عناصر الواجهة
+    function updateProductUI(id, isEnabled) {
+        const icon = document.getElementById(`icon-${id}`);
+        const name = document.getElementById(`name-${id}`);
+        const cat = document.getElementById(`cat-${id}`);
+        const statusCell = document.getElementById(`status-cell-${id}`);
+
+        if (isEnabled) {
+            icon.classList.remove('inactive');
+            icon.classList.add('active');
+            name.style.color = 'var(--fg)';
+            cat.classList.remove('inactive');
+            statusCell.innerHTML = '<span class="status-active"><span class="status-dot"></span> Active</span>';
+        } else {
+            icon.classList.remove('active');
+            icon.classList.add('inactive');
+            name.style.color = 'var(--muted)';
+            cat.classList.add('inactive');
+            statusCell.innerHTML = '<span class="status-inactive">Inactive</span>';
+        }
+    }
+
+    // دالة بسيطة لإظهار التنبيهات
+    function showToast(message, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast-item ${type}`;
+        toast.innerHTML = `<i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'}"></i> ${message}`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
+
+    // البحث السريع
+    const searchInput = document.getElementById('searchInput');
+    const tableRows = document.querySelectorAll('.table-row');
+    const emptyState = document.getElementById('emptySearchState');
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        let hasResults = false;
+
+        tableRows.forEach(row => {
+            const name = row.dataset.productName;
+            if (name.includes(query)) {
+                row.style.display = 'table-row';
+                hasResults = true;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        emptyState.style.display = hasResults || query === '' ? 'none' : 'flex';
+    });
+});
+</script>
 @endpush
