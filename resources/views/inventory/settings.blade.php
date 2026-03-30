@@ -29,24 +29,23 @@
                 <p class="s-section-sub">Set how many days before expiry each product tier should trigger a warning.</p>
 
                 <div class="threshold-grid">
-                    @foreach([
-                        ['short_term_days',  'Short-term',  7,  30, 'Dairy, Fresh produce'],
-                        ['medium_term_days', 'Medium-term', 1,  60, 'Frozen foods, Beverages'],
-                        ['long_term_days',   'Long-term',   1,  90, 'Canned goods, Dry goods'],
-                    ] as [$name, $label, $min, $max, $hint])
-                    <div class="threshold-card">
-                        <p class="threshold-label">{{ $label }}</p>
-                        <div class="threshold-input-row">
-                            {{-- ② استخدام مسميات المتغيرات الجديدة من الموديل --}}
-                            <input class="threshold-input"
-                                   type="number" min="{{ $min }}" max="{{ $max }}"
-                                   name="{{ $name }}"
-                                   value="{{ old($name, $settings->$name ?? $min) }}" />
-                            <span class="threshold-unit">days</span>
-                        </div>
-                        <p class="threshold-hint">{{ $hint }}</p>
-                    </div>
-                    @endforeach
+                   @foreach([
+    ['short_term_days',  'Short-term',  'Dairy, Fresh produce'],
+    ['medium_term_days', 'Medium-term', 'Frozen foods, Beverages'],
+    ['long_term_days',   'Long-term',   'Canned goods, Dry goods'],
+] as [$name, $label, $hint])
+<div class="threshold-card">
+    <p class="threshold-label">{{ $label }}</p>
+    <div class="threshold-input-row">
+        <input class="threshold-input"
+               type="number"
+               name="{{ $name }}"
+               value="{{ old($name, $settings->$name ?? '') }}" />
+        <span class="threshold-unit">days</span>
+    </div>
+    <p class="threshold-hint">{{ $hint }}</p>
+</div>
+@endforeach
                 </div>
             </div>
 

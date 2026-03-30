@@ -19,9 +19,9 @@ class BatchSettingController extends Controller
 
         // 1. التحقق من الحقول الجديدة (Short, Medium, Long)
         $validated = $request->validate([
-            'short_term_days'      => 'required|integer|min:1|max:365',
-            'medium_term_days'     => 'required|integer|min:1|max:365',
-            'long_term_days'       => 'required|integer|min:1|max:365',
+           'short_term_days'  => 'required|integer',
+           'medium_term_days' => 'required|integer',
+            'long_term_days'   => 'required|integer',
             'auto_hide_expired'    => 'boolean',
             'enable_notifications' => 'boolean',
         ], [
