@@ -1,7 +1,4 @@
 {{-- تأكد أن هذا الملف موجود في layouts/expiryapp.blade.php أو غيره إلى calcapp إذا كنت تستخدم واحداً فقط --}}
-@extends('layouts.expiryapp') 
-
-@section('content')
 @include('layouts._header', [
     'headerNav' => [
         ['url' => route('welcome'),            'icon' => 'bi-house',          'label' => 'Home',          'route_match' => 'welcome'],
@@ -10,7 +7,6 @@
         ['url' => route('inventory.settings'),  'icon' => 'bi-gear-fill',      'label' => 'Settings',      'route_match' => 'inventory.settings'],
     ],
 ])
-
 <main class="max-w-7xl mx-auto px-6 py-8">
 
     {{-- Status Overview --}}

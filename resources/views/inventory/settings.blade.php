@@ -1,4 +1,5 @@
-@extends('layouts.calcapp') {{-- تم التغيير للملف الشغال عندك --}}
+@extends('layouts.expiryapp') 
+{{-- تم التغيير للملف الشغال عندك --}}
 
 @section('content')
 @include('layouts._header', [
