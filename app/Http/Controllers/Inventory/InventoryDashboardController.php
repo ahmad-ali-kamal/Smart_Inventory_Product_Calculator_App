@@ -84,9 +84,13 @@ class InventoryDashboardController extends Controller
      * صفحة الإعدادات
      */
     public function settings()
-    {
-        return view('inventory.settings');
-    }
+{
+    $merchant = Auth::user();
+    
+    $settings = \App\Models\BatchSetting::where('merchant_id', $merchant->id)->first();
+    
+    return view('inventory.settings', compact('settings'));
+}
 
     /**
      * صفحة التعليمات
