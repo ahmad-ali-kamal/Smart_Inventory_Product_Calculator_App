@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory; // تأكد من مطابقة المسار لمجلداتك
+namespace App\Http\Controllers\Settings; // ✅ صح // تأكد من مطابقة المسار لمجلداتك
 
 use App\Http\Controllers\Controller;
 use App\Models\BatchSetting;

@@ -1,4 +1,7 @@
 {{-- تأكد أن هذا الملف موجود في layouts/expiryapp.blade.php أو غيره إلى calcapp إذا كنت تستخدم واحداً فقط --}}
+@extends('layouts.expiryapp')
+@section('content')
+
 @include('layouts._header', [
     'headerNav' => [
         ['url' => route('welcome'),            'icon' => 'bi-house',          'label' => 'Home',          'route_match' => 'welcome'],

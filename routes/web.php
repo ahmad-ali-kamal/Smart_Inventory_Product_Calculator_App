@@ -40,8 +40,6 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
     // 🏆 الحل القاتل لمشكلة الإعدادات: تعريف المسار بالاسمين
     // هذا يرضي صفحة الإعدادات
     Route::get('/settings', [InventoryDashboardController::class, 'settings'])->name('inventory.settings');
-    // وهذا يرضي صفحة الداشبورد
-    Route::get('/settings', [InventoryDashboardController::class, 'settings'])->name('inventory.settings.index');
     
     // روابط الحفظ والعمليات ( inventory.settings.batch.store )
     Route::prefix('settings')->name('inventory.settings.')->group(function () {
