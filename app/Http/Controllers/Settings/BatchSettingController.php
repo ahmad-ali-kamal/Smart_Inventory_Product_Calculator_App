@@ -1,95 +1,64 @@
 <?php
 
-namespace App\Http\Controllers\Settings;
+namespace App\Http\Controllers\Inventory; // تأكد من مطابقة المسار لمجلداتك
 
 use App\Http\Controllers\Controller;
 use App\Models\BatchSetting;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class BatchSettingController extends Controller
 {
     /**
-     * عرض صفحة إعدادات الدفعات
-     */
-    public function index(Request $request)
-    {
-        $merchant = $request->user();
-        $settings = $merchant->batchSettings;
-
-        return Inertia::render('Settings/BatchSettings', [
-            'settings' => $settings ? [
-                'green_threshold_days' => $settings->green_threshold_days,
-                'yellow_threshold_days' => $settings->yellow_threshold_days,
-                'red_threshold_days' => $settings->red_threshold_days,
-                'auto_hide_expired' => $settings->auto_hide_expired,
-                'enable_notifications' => $settings->enable_notifications,
-            ] : BatchSetting::getDefaults(),
-        ]);
-    }
-
-    /**
-     * حفظ/تحديث الإعدادات
+     * حفظ أو تحديث إعدادات المدد الزمنية (Buckets)
      */
     public function store(Request $request)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
+        // 1. التحقق من الحقول الجديدة (Short, Medium, Long)
         $validated = $request->validate([
-            'green_threshold_days' => 'required|integer|min:1|max:365',
-            'yellow_threshold_days' => 'required|integer|min:0|max:365',
-            'red_threshold_days' => 'required|integer|min:0|max:365',
-            'auto_hide_expired' => 'boolean',
+            'short_term_days'      => 'required|integer|min:1|max:365',
+            'medium_term_days'     => 'required|integer|min:1|max:365',
+            'long_term_days'       => 'required|integer|min:1|max:365',
+            'auto_hide_expired'    => 'boolean',
             'enable_notifications' => 'boolean',
         ], [
-            'green_threshold_days.required' => 'حد الحالة الخضراء مطلوب',
-            'green_threshold_days.min' => 'الحد يجب أن يكون على الأقل يوم واحد',
-            'yellow_threshold_days.required' => 'حد الحالة الصفراء مطلوب',
+            'short_term_days.required'  => 'مدة المنتجات قصيرة الأمد مطلوبة',
+            'medium_term_days.required' => 'مدة المنتجات متوسطة الأمد مطلوبة',
+            'long_term_days.required'   => 'مدة المنتجات طويلة الأمد مطلوبة',
         ]);
 
-        // التحقق من المنطقية: green > yellow > red
-        if ($validated['green_threshold_days'] <= $validated['yellow_threshold_days']) {
-            return back()->withErrors([
-                'green_threshold_days' => 'حد الحالة الخضراء يجب أن يكون أكبر من حد الحالة الصفراء',
-            ]);
-        }
-
+        // 2. الحفظ باستخدام النظام الجديد
         BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
             $validated
         );
 
-        // إعادة حساب حالة جميع الدفعات
-        $this->recalculateBatchStatuses($merchant);
+        // 3. مسح الكاش لضمان ظهور الألوان الجديدة فوراً في الداشبورد والمنتجات
+        Cache::forget("inventory_dashboard_{$merchant->id}");
 
-        return back()->with('success', 'تم حفظ الإعدادات وتحديث حالة الدفعات');
-    }
+        // ملاحظة: تم حذف دالة recalculateBatchStatuses لأننا الآن نحسب الحالة 
+        // "ديناميكياً" في العرض بناءً على هذه الإعدادات، فلا داعي لتحديث كل الصفوف في الداتابيز.
 
-    /**
-     * إعادة حساب حالة جميع الدفعات
-     */
-    protected function recalculateBatchStatuses($merchant): void
-    {
-        $batches = $merchant->batches;
-
-        foreach ($batches as $batch) {
-            $batch->calculateStatus();
-            $batch->saveQuietly(); // بدون إطلاق events
-        }
+        return back()->with('success', 'تم حفظ إعدادات "حريص" بنجاح وتحديث نظام التنبيهات.');
     }
 
     /**
      * إعادة تعيين الإعدادات للقيم الافتراضية
      */
-    public function reset(Request $request)
+    public function reset()
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
         BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
             BatchSetting::getDefaults()
         );
 
-        return back()->with('success', 'تم إعادة تعيين الإعدادات للقيم الافتراضية');
+        Cache::forget("inventory_dashboard_{$merchant->id}");
+
+        return back()->with('success', 'تمت إعادة الإعدادات لقيم "حريص" القياسية.');
     }
 }
