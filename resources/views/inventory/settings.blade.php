@@ -1,10 +1,9 @@
 @extends('layouts.expiryapp') 
-{{-- تم التغيير للملف الشغال عندك --}}
 
 @section('content')
 @include('layouts._header', [
     'headerNav' => [
-        ['url' => route('welcome'),            'icon' => 'bi-house',          'label' => 'Home',          'route_match' => 'welcome'],
+        ['url' => route('welcome'),             'icon' => 'bi-house',           'label' => 'Home',           'route_match' => 'welcome'],
         ['url' => route('inventory.dashboard'), 'icon' => 'bi-grid-fill',      'label' => 'Dashboard',     'route_match' => 'inventory.dashboard'],
         ['url' => route('inventory.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'inventory.products.index'],
         ['url' => route('inventory.settings'),  'icon' => 'bi-gear-fill',      'label' => 'Settings',      'route_match' => 'inventory.settings'],
@@ -48,7 +47,28 @@
                 </div>
             </div>
 
-            {{-- ── 2. Category Mapping ── --}}
+            {{-- ── 2. Unmapped Categories (القسم الجديد المضاف) ── --}}
+            <div class="s-card">
+                <div class="s-section-title">
+                    <div class="s-section-icon"><i class="bi bi-tags-fill"></i></div>
+                    <h2>New Categories Found</h2>
+                </div>
+                <p class="s-section-sub">التصنيفات التالية تم سحبها من متجرك ولم يتم توزيعها بعد. اسحبها إلى المربعات أدناه لتفعيل التنبيهات لها.</p>
+
+                <div id="list-unmapped" class="bucket-list unmapped-list drop-zone" data-bucket="unmapped" style="min-height: 80px; border: 2px dashed var(--border); border-radius: 12px; padding: 15px; display: flex; flex-wrap: wrap; gap: 10px; background: var(--bg-soft);">
+                    @forelse($unmappedCategories as $catName)
+                        <div class="category-pill" draggable="true" data-category="{{ $catName }}" data-source="unmapped">
+                            <i class="bi bi-grip-vertical"></i>{{ $catName }}
+                        </div>
+                    @empty
+                        <div class="empty-state-msg" style="color: var(--muted); font-size: 0.9rem; width: 100%; text-align: center;">
+                             🎉 كل التصنيفات الحالية تم توزيعها بنجاح.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- ── 3. Category Mapping ── --}}
             <div class="s-card">
                 <div class="s-section-title">
                     <div class="s-section-icon"><i class="bi bi-collection-fill"></i></div>
@@ -67,8 +87,8 @@
                 <div id="hiddenInputsContainer">
                     @foreach($buckets as $bucket)
                         @if(isset($mappings) && isset($mappings[$bucket]))
-                            @foreach($mappings[$bucket] as $catId)
-                                <input type="hidden" name="category_mapping[{{ $bucket }}][]" value="{{ $catId }}" class="hid-{{ $bucket }}">
+                            @foreach($mappings[$bucket] as $catName)
+                                <input type="hidden" name="category_mapping[{{ $bucket }}][]" value="{{ $catName }}" class="hid-{{ $bucket }}">
                             @endforeach
                         @endif
                     @endforeach
@@ -105,7 +125,7 @@
                 </div>
             </div>
 
-            {{-- ── 3. Automation ── --}}
+            {{-- ── 4. Automation ── --}}
             <div class="s-card">
                 <div class="s-section-title">
                     <div class="s-section-icon"><i class="bi bi-lightning-charge-fill"></i></div>
@@ -139,7 +159,6 @@
                                 <p class="toggle-title">Auto Discounts</p>
                                 <p class="toggle-desc">Auto-apply a set discount to all Yellow-status products the moment they hit the threshold.</p>
 
-                                {{-- ✅ display:none مضافة للحالة الافتراضية --}}
                                 <div class="discount-panel" id="discount-input-wrap"
                                      style="{{ ($settings->auto_discounts ?? false) ? 'display:block' : 'display:none' }}">
                                     <p class="discount-panel-label">

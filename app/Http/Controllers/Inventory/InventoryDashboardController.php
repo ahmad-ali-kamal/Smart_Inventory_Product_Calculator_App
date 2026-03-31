@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Inventory;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Batch;
+use App\Models\BatchSetting;
+use App\Models\CategoryMapping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
@@ -73,7 +75,6 @@ class InventoryDashboardController extends Controller
             ];
         });
 
-        // العودة لملف الـ Blade مع تمرير البيانات
         return view('inventory.dashboard', [
             'stats'    => $data['stats'],
             'products' => $data['products']
@@ -81,16 +82,39 @@ class InventoryDashboardController extends Controller
     }
 
     /**
-     * صفحة الإعدادات
+     * صفحة الإعدادات وتوزيع التصنيفات
      */
     public function settings()
-{
-    $merchant = Auth::user();
-    
-    $settings = \App\Models\BatchSetting::where('merchant_id', $merchant->id)->first();
-    
-    return view('inventory.settings', compact('settings'));
-}
+    {
+        $merchant = Auth::user();
+        
+        // 1. جلب إعدادات المدد الزمنية (أو القيم الافتراضية)
+        $settings = BatchSetting::where('merchant_id', $merchant->id)->first() 
+                    ?? (object) BatchSetting::getDefaults();
+
+        // 2. جلب كل التصنيفات الفريدة الموجودة في المنتجات المسحوبة من سلة
+        $allCategories = Product::where('merchant_id', $merchant->id)
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category')
+            ->toArray();
+
+        // 3. جلب التوزيع الحالي للتصنيفات من الداتابيز
+        $existingMappings = CategoryMapping::where('merchant_id', $merchant->id)->get();
+
+        // 4. تنظيم التصنيفات الموزعة في مصفوفة حسب النوع (Bucket) ليقرأها الـ Blade
+        $mappings = [
+            'short'  => $existingMappings->where('bucket', 'short')->pluck('category_name')->toArray(),
+            'medium' => $existingMappings->where('bucket', 'medium')->pluck('category_name')->toArray(),
+            'long'   => $existingMappings->where('bucket', 'long')->pluck('category_name')->toArray(),
+        ];
+
+        // 5. استخراج التصنيفات التي لم يتم توزيعها بعد (الجديدة)
+        $mappedNames = $existingMappings->pluck('category_name')->toArray();
+        $unmappedCategories = array_diff($allCategories, $mappedNames);
+
+        return view('inventory.settings', compact('settings', 'mappings', 'unmappedCategories'));
+    }
 
     /**
      * صفحة التعليمات
