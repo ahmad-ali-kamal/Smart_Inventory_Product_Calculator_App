@@ -8,6 +8,7 @@
         ['url' => route('inventory.dashboard'), 'icon' => 'bi-speedometer2',   'label' => 'Dashboard',     'route_match' => 'inventory.dashboard'],
         ['url' => route('inventory.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'inventory.products.index'],
         ['url' => route('inventory.settings'),  'icon' => 'bi-gear-fill',      'label' => 'Settings',      'route_match' => 'inventory.settings'],
+        ['icon' => 'bi-bell-fill',                             'label' => 'Notifications'],
     ],
 ])
 <main class="max-w-7xl mx-auto px-6 py-8">

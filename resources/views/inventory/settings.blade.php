@@ -7,6 +7,7 @@
         ['url' => route('inventory.dashboard'), 'icon' => 'bi-grid-fill',      'label' => 'Dashboard',     'route_match' => 'inventory.dashboard'],
         ['url' => route('inventory.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'inventory.products.index'],
         ['url' => route('inventory.settings'),  'icon' => 'bi-gear-fill',      'label' => 'Settings',      'route_match' => 'inventory.settings'],
+        ['icon' => 'bi-bell-fill',                             'label' => 'Notifications'],
     ],
 ])
 
