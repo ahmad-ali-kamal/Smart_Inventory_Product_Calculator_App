@@ -13,14 +13,13 @@
 
 <main class="settings-main">
 
-    {{-- ① تصحيح الـ Action ليرتبط بـ BatchSettingController --}}
     <form action="{{ route('inventory.settings.batch.store') }}" method="POST" id="settingsForm">
         @csrf
         @method('PUT')
 
         <div class="settings-stack">
 
-            {{-- ── 1. Alert Thresholds (إعدادات المدد الزمنية) ── --}}
+            {{-- ── 1. Alert Thresholds ── --}}
             <div class="s-card">
                 <div class="s-section-title">
                     <div class="s-section-icon"><i class="bi bi-calendar3"></i></div>
@@ -29,27 +28,27 @@
                 <p class="s-section-sub">Set how many days before expiry each product tier should trigger a warning.</p>
 
                 <div class="threshold-grid">
-                   @foreach([
-    ['short_term_days',  'Short-term',  'Dairy, Fresh produce'],
-    ['medium_term_days', 'Medium-term', 'Frozen foods, Beverages'],
-    ['long_term_days',   'Long-term',   'Canned goods, Dry goods'],
-] as [$name, $label, $hint])
-<div class="threshold-card">
-    <p class="threshold-label">{{ $label }}</p>
-    <div class="threshold-input-row">
-        <input class="threshold-input"
-               type="number"
-               name="{{ $name }}"
-               value="{{ old($name, $settings->$name ?? '') }}" />
-        <span class="threshold-unit">days</span>
-    </div>
-    <p class="threshold-hint">{{ $hint }}</p>
-</div>
-@endforeach
+                    @foreach([
+                        ['short_term_days',  'Short-term',  'Dairy, Fresh produce'],
+                        ['medium_term_days', 'Medium-term', 'Frozen foods, Beverages'],
+                        ['long_term_days',   'Long-term',   'Canned goods, Dry goods'],
+                    ] as [$name, $label, $hint])
+                    <div class="threshold-card">
+                        <p class="threshold-label">{{ $label }}</p>
+                        <div class="threshold-input-row">
+                            <input class="threshold-input"
+                                   type="number"
+                                   name="{{ $name }}"
+                                   value="{{ old($name, $settings->$name ?? '') }}" />
+                            <span class="threshold-unit">days</span>
+                        </div>
+                        <p class="threshold-hint">{{ $hint }}</p>
+                    </div>
+                    @endforeach
                 </div>
             </div>
 
-            {{-- ── 2. Category Mapping (توزيع التصنيفات) ── --}}
+            {{-- ── 2. Category Mapping ── --}}
             <div class="s-card">
                 <div class="s-section-title">
                     <div class="s-section-icon"><i class="bi bi-collection-fill"></i></div>
@@ -61,15 +60,12 @@
                     <strong> Tip:</strong> Drag a category card from one bucket to another to change which alert threshold applies to it.
                 </div>
 
-                {{-- ③ توحيد المسميات مع الـ JS: استخدام short/medium/long بدلاً من shortTerm --}}
                 @php
                     $buckets = ['short', 'medium', 'long'];
                 @endphp
 
-                {{-- المدخلات المخفية يتم تحديثها بواسطة inventory-settings.js --}}
                 <div id="hiddenInputsContainer">
                     @foreach($buckets as $bucket)
-                        {{-- هنا نفترض أن الكنترولر يرسل $mappings مقسمة حسب الـ bucket --}}
                         @if(isset($mappings) && isset($mappings[$bucket]))
                             @foreach($mappings[$bucket] as $catId)
                                 <input type="hidden" name="category_mapping[{{ $bucket }}][]" value="{{ $catId }}" class="hid-{{ $bucket }}">
@@ -89,7 +85,6 @@
                         <div class="drop-zone-header">
                             <span class="drop-zone-dot"></span>
                             <span class="drop-zone-title">{{ $label }}</span>
-                            {{-- ④ تصحيح الـ ID الخاص بالـ Badge ليتوافق مع الـ JS --}}
                             <span class="drop-zone-badge" id="badge-{{ $bucket }}">
                                 {{ $settings->$daysKey ?? $defaultDays }}d
                             </span>
@@ -110,18 +105,19 @@
                 </div>
             </div>
 
-            {{-- ── 3. Automation (الأتمتة) ── --}}
+            {{-- ── 3. Automation ── --}}
             <div class="s-card">
                 <div class="s-section-title">
                     <div class="s-section-icon"><i class="bi bi-lightning-charge-fill"></i></div>
                     <h2>Automation</h2>
                 </div>
 
-                {{-- تصحيح أسماء الحقول لتطابق الموديل BatchSetting --}}
                 <input type="hidden" name="auto_hide_expired"    id="val-autohide"      value="{{ old('auto_hide_expired', $settings->auto_hide_expired ?? 0) }}" />
                 <input type="hidden" name="enable_notifications" id="val-notifications" value="{{ old('enable_notifications', $settings->enable_notifications ?? 0) }}" />
+                <input type="hidden" name="auto_discounts"       id="val-autodiscounts" value="{{ old('auto_discounts', $settings->auto_discounts ?? 0) }}" />
 
                 <div class="toggle-list">
+
                     {{-- Auto-Hide --}}
                     <div class="toggle-row">
                         <div class="toggle-row-left">
@@ -133,6 +129,41 @@
                         </div>
                         <button class="toggle-switch {{ ($settings->auto_hide_expired ?? false) ? 'on' : '' }}"
                                 id="toggle-autohide" data-toggle-id="autohide" type="button"></button>
+                    </div>
+
+                    {{-- Auto Discounts --}}
+                    <div class="toggle-row">
+                        <div class="toggle-row-left">
+                            <div class="toggle-icon"><i class="bi bi-tag-fill"></i></div>
+                            <div>
+                                <p class="toggle-title">Auto Discounts</p>
+                                <p class="toggle-desc">Auto-apply a set discount to all Yellow-status products the moment they hit the threshold.</p>
+
+                                {{-- ✅ display:none مضافة للحالة الافتراضية --}}
+                                <div class="discount-panel" id="discount-input-wrap"
+                                     style="{{ ($settings->auto_discounts ?? false) ? 'display:block' : 'display:none' }}">
+                                    <p class="discount-panel-label">
+                                        <i class="bi bi-tag"></i>&nbsp; Global Discount Rate &nbsp;·&nbsp; Duration
+                                    </p>
+                                    <div class="discount-panel-row">
+                                        <div class="discount-input-wrap">
+                                            <input class="discount-input" type="number"
+                                                   name="auto_discount_percent"
+                                                   value="{{ old('auto_discount_percent', $settings->auto_discount_percent ?? 20) }}" />
+                                            <span class="discount-input-suffix">%</span>
+                                        </div>
+                                        <div class="discount-panel-divider"></div>
+                                        <input class="discount-input-plain" type="number"
+                                               name="auto_discount_duration_days"
+                                               value="{{ old('auto_discount_duration_days', $settings->auto_discount_duration_days ?? 7) }}" />
+                                        <span class="threshold-unit">days</span>
+                                        <p class="discount-panel-hint">Applied instantly to every product that reaches Yellow status</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="toggle-switch {{ ($settings->auto_discounts ?? false) ? 'on' : '' }}"
+                                id="toggle-autodiscounts" data-toggle-id="autodiscounts" type="button"></button>
                     </div>
 
                     {{-- Notifications --}}
@@ -147,6 +178,7 @@
                         <button class="toggle-switch {{ ($settings->enable_notifications ?? false) ? 'on' : '' }}"
                                 id="toggle-notifications" data-toggle-id="notifications" type="button"></button>
                     </div>
+
                 </div>
             </div>
 
@@ -164,7 +196,6 @@
 </main>
 
 @push('scripts')
-{{-- الربط مع ملف الـ JS الموحد --}}
 <script src="{{ asset('js/inventory-settings.js') }}" defer></script>
 @endpush
 

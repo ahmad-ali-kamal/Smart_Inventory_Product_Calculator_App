@@ -1,10 +1,6 @@
 /**
  * inventory-settings.js
  * Settings Page — Drag & Drop, Threshold Badges, Toggle Switches
- *
- * Zero inline handlers — everything wired through DOMContentLoaded.
- * The blade uses data-bucket on drop-zones and data-category on pills;
- * no onclick / ondragstart / ondrop attributes needed anywhere.
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -14,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let draggedEl  = null;
     let dragSource = null;
 
-    // ── Attach drag listener to a single pill ──
     function _attachPillDrag(pill) {
         pill.addEventListener('dragstart', e => {
             draggedEl  = pill;
@@ -24,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── Drop-zone listeners ──
     document.querySelectorAll('.drop-zone').forEach(zone => {
         const target = zone.dataset.bucket;
 
@@ -58,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Attach drag listeners to all pills on page load
     document.querySelectorAll('.category-pill').forEach(_attachPillDrag);
 
     function _syncHiddenInputs(bucket) {
@@ -75,11 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ══════════════════════════════════════════
        THRESHOLD — Live Badge Update
+       ✅ تم التصحيح: short/medium/long بدل shortTerm/mediumTerm/longTerm
     ══════════════════════════════════════════ */
     const _bucketMap = {
-        short_term_days:  'shortTerm',
-        medium_term_days: 'mediumTerm',
-        long_term_days:   'longTerm',
+        short_term_days:  'short',
+        medium_term_days: 'medium',
+        long_term_days:   'long',
     };
 
     document.querySelectorAll('.threshold-input').forEach(input => {
@@ -91,30 +85,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ══════════════════════════════════════════
        TOGGLE SWITCHES — Automation
+       ✅ تم حذف كل مراجع aidiscounts
     ══════════════════════════════════════════ */
     function _toggleSwitch(id) {
         const btn = document.getElementById('toggle-' + id);
         if (!btn) return;
         const willBeOn = !btn.classList.contains('on');
 
-        // mutual exclusion between auto and ai discounts
-        if (willBeOn) {
-            if (id === 'autodiscounts') _turnOff('aidiscounts');
-            if (id === 'aidiscounts')   _turnOff('autodiscounts');
-        }
-
         btn.classList.toggle('on', willBeOn);
         document.getElementById('val-' + id).value = willBeOn ? 1 : 0;
 
         if (id === 'autodiscounts') _toggleDiscountPanel(willBeOn);
-    }
-
-    function _turnOff(id) {
-        const btn = document.getElementById('toggle-' + id);
-        if (!btn) return;
-        btn.classList.remove('on');
-        document.getElementById('val-' + id).value = 0;
-        if (id === 'autodiscounts') _toggleDiscountPanel(false);
     }
 
     function _toggleDiscountPanel(show) {
@@ -133,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Wire all toggle switches via data-toggle-id attribute (no onclick in blade)
     document.querySelectorAll('.toggle-switch[data-toggle-id]').forEach(btn => {
         btn.addEventListener('click', () => _toggleSwitch(btn.dataset.toggleId));
     });

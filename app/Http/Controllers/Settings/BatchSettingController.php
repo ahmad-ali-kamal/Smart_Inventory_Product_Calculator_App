@@ -24,6 +24,9 @@ class BatchSettingController extends Controller
             'long_term_days'   => 'required|integer',
             'auto_hide_expired'    => 'boolean',
             'enable_notifications' => 'boolean',
+            'auto_discounts'             => 'boolean',
+            'auto_discount_percent'      => 'nullable|integer',
+            'auto_discount_duration_days'=> 'nullable|integer',
         ], [
             'short_term_days.required'  => 'مدة المنتجات قصيرة الأمد مطلوبة',
             'medium_term_days.required' => 'مدة المنتجات متوسطة الأمد مطلوبة',

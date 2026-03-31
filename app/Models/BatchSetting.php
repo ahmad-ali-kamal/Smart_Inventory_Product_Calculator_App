@@ -12,19 +12,25 @@ class BatchSetting extends Model
 
     protected $fillable = [
         'merchant_id',
-        'short_term_days',   // المدة الزمنية للمنتجات قصيرة الأمد
-        'medium_term_days',  // المدة الزمنية للمنتجات متوسطة الأمد
-        'long_term_days',    // المدة الزمنية للمنتجات طويلة الأمد
+        'short_term_days',
+        'medium_term_days',
+        'long_term_days',
         'auto_hide_expired',
         'enable_notifications',
+        'auto_discounts',
+        'auto_discount_percent',
+        'auto_discount_duration_days',
     ];
 
     protected $casts = [
-        'short_term_days'  => 'integer',
-        'medium_term_days' => 'integer',
-        'long_term_days'   => 'integer',
-        'auto_hide_expired' => 'boolean',
-        'enable_notifications' => 'boolean',
+        'short_term_days'             => 'integer',
+        'medium_term_days'            => 'integer',
+        'long_term_days'              => 'integer',
+        'auto_hide_expired'           => 'boolean',
+        'enable_notifications'        => 'boolean',
+        'auto_discounts'              => 'boolean',
+        'auto_discount_percent'       => 'integer',
+        'auto_discount_duration_days' => 'integer',
     ];
 
     /**
@@ -32,14 +38,11 @@ class BatchSetting extends Model
      */
     public function merchant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'merchant_id'); // تأكد من اسم المودل (User أو Merchant)
+        return $this->belongsTo(User::class, 'merchant_id');
     }
 
     /**
-     * ✅ تحديد حالة المنتج بناءً على الأيام المتبقية والعتبة الزمنية الممررة
-     * * @param int $days الأيام المتبقية للانتهاء
-     * @param int $threshold أيام الإشعار (تؤخذ من إعدادات الـ Bucket الخاص بالمنتج)
-     * @return string (red, yellow, green)
+     * تحديد حالة المنتج بناءً على الأيام المتبقية والعتبة الزمنية
      */
     public static function getStatusForDays(int $days, int $threshold): string
     {
@@ -74,16 +77,19 @@ class BatchSetting extends Model
     }
 
     /**
-     * القيم الافتراضية للمدد الزمنية
+     * القيم الافتراضية
      */
     public static function getDefaults(): array
     {
         return [
-            'short_term_days'  => 7,   // إشعار قبل أسبوع
-            'medium_term_days' => 14,  // إشعار قبل أسبوعين
-            'long_term_days'   => 30,  // إشعار قبل شهر
-            'auto_hide_expired' => false,
-            'enable_notifications' => true,
+            'short_term_days'             => 7,
+            'medium_term_days'            => 14,
+            'long_term_days'              => 30,
+            'auto_hide_expired'           => false,
+            'enable_notifications'        => true,
+            'auto_discounts'              => false,
+            'auto_discount_percent'       => 20,
+            'auto_discount_duration_days' => 7,
         ];
     }
 }
