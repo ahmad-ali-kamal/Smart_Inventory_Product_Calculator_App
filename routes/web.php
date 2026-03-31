@@ -62,4 +62,8 @@ Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(fu
     Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
     Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
+    
+    Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
+    Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
+    Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
 });

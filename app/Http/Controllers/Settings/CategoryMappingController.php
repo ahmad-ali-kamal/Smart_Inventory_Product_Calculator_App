@@ -35,10 +35,18 @@ class CategoryMappingController extends Controller
             'medium' => $mappings->get('medium', collect())->pluck('category_name')->toArray(),
             'long'   => $mappings->get('long', collect())->pluck('category_name')->toArray(),
         ];
+        
+         // ✅ هذا الجزء الناقص — جلب تصنيفات المتجر من المنتجات
+    $allMappedCategories = array_merge(
+        $formattedMappings['short'],
+        $formattedMappings['medium'],
+        $formattedMappings['long']
+    );
 
         return view('inventory.settings', [
             'settings' => $settings,
             'mappings' => $formattedMappings,
+            'allMappedCategories' => $allMappedCategories,
         ]);
     }
 

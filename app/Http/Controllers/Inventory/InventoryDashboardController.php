@@ -99,17 +99,17 @@ class InventoryDashboardController extends Controller
             ->pluck('category')
             ->toArray();
 
-        // 3. جلب التوزيع الحالي للتصنيفات من الداتابيز
+        // Get current category mappings from database
         $existingMappings = CategoryMapping::where('merchant_id', $merchant->id)->get();
 
-        // 4. تنظيم التصنيفات الموزعة في مصفوفة حسب النوع (Bucket) ليقرأها الـ Blade
+        // Organize mappings by bucket for the view
         $mappings = [
             'short'  => $existingMappings->where('bucket', 'short')->pluck('category_name')->toArray(),
             'medium' => $existingMappings->where('bucket', 'medium')->pluck('category_name')->toArray(),
             'long'   => $existingMappings->where('bucket', 'long')->pluck('category_name')->toArray(),
         ];
 
-        // 5. استخراج التصنيفات التي لم يتم توزيعها بعد (الجديدة)
+        // Get unmapped categories (new categories not yet assigned to a bucket)
         $mappedNames = $existingMappings->pluck('category_name')->toArray();
         $unmappedCategories = array_diff($allCategories, $mappedNames);
 

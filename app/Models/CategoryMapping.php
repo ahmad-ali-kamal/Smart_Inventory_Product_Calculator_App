@@ -14,7 +14,7 @@ class CategoryMapping extends Model
     protected $fillable = [
         'merchant_id',
         'category_name',
-        'expiry_bucket',
+        'bucket',  // Using 'bucket' (not 'expiry_bucket') to match the database column name
         'custom_threshold_days',
         'sort_order',
     ];
