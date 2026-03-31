@@ -10,6 +10,7 @@ use App\Jobs\FetchProductsJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ProductListController extends Controller
 {
@@ -21,16 +22,21 @@ class ProductListController extends Controller
         $merchant = Auth::user();
 
         // 1. جلب إعدادات التاجر للمدد الزمنية (أو الافتراضية)
-        $settings = BatchSetting::where('merchant_id', $merchant->id)->first() 
-                    ?? (object) BatchSetting::getDefaults();
+        $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
+        
+        if (!$settings) {
+            // تحويل المصفوفة الافتراضية إلى Object لتجنب أخطاء السهم ->
+            $settings = (object) BatchSetting::getDefaults();
+        }
 
         // 2. جلب خريطة التصنيفات (اسم التصنيف => نوع الـ Bucket)
-        // هذا يسمح لنا بمعرفة هل "المخبوزات" هي short أم long
+        // تأكد أنك نفذت الميجريشن لتغيير اسم العمود إلى bucket
         $categoryMappings = CategoryMapping::where('merchant_id', $merchant->id)
                             ->pluck('bucket', 'category_name')
                             ->toArray();
 
         // 3. جلب المنتجات مع الدفعات المرتبطة
+        // أضفنا التحقق من merchant_id لضمان عرض منتجات هذا التاجر فقط
         $products = Product::where('merchant_id', $merchant->id)
             ->with(['images', 'batchItems.batch'])
             ->orderBy('name')
@@ -46,19 +52,25 @@ class ProductListController extends Controller
             $thresholdKey = $bucket . '_term_days';
             $threshold = $settings->$thresholdKey ?? 14;
 
-            // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية) بين كل الدفعات
-            $minDaysRemaining = $product->batchItems->map(function($item) {
-                return $item->batch->days_until_expiry; // تأكد أن هذه الدالة موجودة في مودل Batch
-            })->min();
+            // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية)
+            // أضفنا تحقق إذا كانت الدفعات فارغة لإعطاء قيمة افتراضية آمنة (999 يوم)
+            $minDaysRemaining = 999; 
+            
+            if ($product->batchItems->count() > 0) {
+                $minDaysRemaining = $product->batchItems->map(function($item) {
+                    // نتحقق أن الـ batch موجود فعلاً لتجنب خطأ null
+                    return $item->batch ? $item->batch->days_until_expiry : 999;
+                })->min();
+            }
 
-            // د. تحديد الحالة باستخدام الدالة الـ Static التي وضعناها في BatchSetting
-            // نرسل لها (الأيام المتبقية، عتبة الإشعار)
-            $status = BatchSetting::getStatusForDays($minDaysRemaining ?? 999, $threshold);
+            // د. تحديد الحالة باستخدام الدالة الـ Static
+            $status = BatchSetting::getStatusForDays($minDaysRemaining, $threshold);
 
-            // هـ. إضافة الخصائص للمنتج لكي يقرأها الـ Blade والـ JS
+            // هـ. إضافة الخصائص للمنتج
             $product->status = $status;
-            $product->filterClass = "status-" . $status; // تستخدم في الفلترة بصفحة المنتجات
+            $product->filterClass = "status-" . $status; 
             $product->bucket_type = $bucket;
+            $product->days_left = $minDaysRemaining; // مفيد للعرض في الجدول
 
             return $product;
         });
@@ -74,13 +86,16 @@ class ProductListController extends Controller
         $merchant = Auth::user();
 
         try {
+            // تشغيل الوظيفة في الخلفية
             FetchProductsJob::dispatch($merchant);
+            
+            // حذف الكاش الخاص بالداشبورد ليتم تحديث الأرقام
             Cache::forget("inventory_dashboard_{$merchant->id}");
 
-            return back()->with('success', 'بدأت المزامنة في الخلفية. ستحدث الألوان والبيانات فور انتهائها.');
+            return back()->with('success', 'بدأت المزامنة في الخلفية. ستظهر المنتجات هنا فور اكتمال السحب من سلة.');
         } catch (\Exception $e) {
-            \Log::error('Product sync failed: ' . $e->getMessage());
-            return back()->with('error', 'فشل بدء المزامنة.');
+            Log::error('Product sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
+            return back()->with('error', 'فشل بدء المزامنة: ' . $e->getMessage());
         }
     }
 

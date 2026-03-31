@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Services\SallaApiService;
 use Illuminate\Http\Request;
 
-class ProductController extends Controller
+class ApiProductController extends Controller
 {
     /**
      * عرض جميع المنتجات من قاعدة البيانات

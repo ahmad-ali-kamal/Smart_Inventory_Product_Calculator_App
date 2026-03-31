@@ -1,42 +1,21 @@
 @extends('layouts.expiryapp')
 
-@php
-$products = [
-    ['id'=>'1',  'name'=>'Organic Fresh Milk',   'category'=>'Dairy',     'filter'=>'short',  'status'=>'green',  'discount'=>null, 'expiry'=>'2025-03-15', 'batches'=>[]],
-    ['id'=>'2',  'name'=>'Whole Wheat Bread',     'category'=>'Bakery',    'filter'=>'short',  'status'=>'yellow', 'discount'=>20,   'expiry'=>'2025-02-10', 'batches'=>[]],
-    ['id'=>'3',  'name'=>'Greek Yogurt 500g',     'category'=>'Dairy',     'filter'=>'short',  'status'=>'red',    'discount'=>null, 'expiry'=>null,         'batches'=>[]],
-    ['id'=>'4',  'name'=>'Fresh Orange Juice',    'category'=>'Beverages', 'filter'=>'medium', 'status'=>null,     'discount'=>null, 'expiry'=>null,         'batches'=>[]],
-    ['id'=>'5',  'name'=>'Cheddar Cheese Block',  'category'=>'Dairy',     'filter'=>'short',  'status'=>'green',  'discount'=>null, 'expiry'=>null,
-        'batches'=>[
-            ['label'=>'Batch 1', 'qty'=>50, 'status'=>'green',  'expiry'=>'2025-06-01'],
-            ['label'=>'Batch 2', 'qty'=>30, 'status'=>'yellow', 'expiry'=>'2025-02-28'],
-        ]
-    ],
-    ['id'=>'6',  'name'=>'Sourdough Bread',       'category'=>'Bakery',    'filter'=>'short',  'status'=>null,     'discount'=>null, 'expiry'=>null, 'batches'=>[]],
-    ['id'=>'7',  'name'=>'Strawberry Yogurt',     'category'=>'Dairy',     'filter'=>'short',  'status'=>'yellow', 'discount'=>15,   'expiry'=>'2025-02-14', 'batches'=>[]],
-    ['id'=>'8',  'name'=>'Apple Juice 1L',        'category'=>'Beverages', 'filter'=>'medium', 'status'=>'green',  'discount'=>null, 'expiry'=>'2025-08-20', 'batches'=>[]],
-    ['id'=>'9',  'name'=>'Mozzarella Cheese',     'category'=>'Dairy',     'filter'=>'short',  'status'=>null,     'discount'=>null, 'expiry'=>null, 'batches'=>[]],
-    ['id'=>'10', 'name'=>'Croissants Pack of 6',  'category'=>'Bakery',    'filter'=>'short',  'status'=>'red',    'discount'=>null, 'expiry'=>'2025-01-30', 'batches'=>[]],
-];
-@endphp
-
 @section('content')
 @include('layouts._header', [
     'headerNav' => [
-        ['url' => route('welcome'), 'icon' => 'bi-house',  'label' => 'Home',          'route_match' => 'welcome'],
-        ['icon' => 'bi-grid-fill',                         'label' => 'Dashboard'],
-        ['icon' => 'bi-gear',                              'label' => 'Settings'],
-        ['icon' => 'bi-bell-fill',                         'label' => 'Notifications'],
+        ['url' => route('welcome'), 'icon' => 'bi-house', 'label' => 'Home', 'route_match' => 'welcome'],
+        ['url' => route('inventory.dashboard'), 'icon' => 'bi-grid-fill', 'label' => 'Dashboard', 'route_match' => 'inventory.dashboard'],
+        ['url' => route('inventory.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'inventory.products.index'],
+        ['url' => route('inventory.settings'), 'icon' => 'bi-gear-fill', 'label' => 'Settings', 'route_match' => 'inventory.settings'],
     ],
 ])
-
 
 <main class="inv-page">
 
     {{-- Info Banner --}}
     <div class="inv-banner">
         <i class="bi bi-info-circle-fill"></i>
-        <span>Click <strong>Add Expiry Date</strong> to start tracking expiry for any product.</span>
+        <span>اضغط على <strong>Add Expiry Date</strong> للبدء في تتبع تاريخ انتهاء الصلاحية لأي منتج.</span>
     </div>
 
     {{-- Card --}}
@@ -44,13 +23,20 @@ $products = [
         <div class="inv-card-head">
             <h2 class="inv-card-title"><i class="bi bi-box-seam"></i> Products</h2>
 
-            {{-- data-filter is read by inventory-products.js --}}
             <div class="inv-filter-tabs">
                 <button class="inv-filter-tab active" data-filter="all">All</button>
-                <button class="inv-filter-tab"        data-filter="short">Short-term</button>
-                <button class="inv-filter-tab"        data-filter="medium">Medium-term</button>
-                <button class="inv-filter-tab"        data-filter="long">Long-term</button>
+                <button class="inv-filter-tab" data-filter="short">Short-term</button>
+                <button class="inv-filter-tab" data-filter="medium">Medium-term</button>
+                <button class="inv-filter-tab" data-filter="long">Long-term</button>
             </div>
+            
+            {{-- زر المزامنة لاستدعاء دالة الـ Sync في الكنترولر --}}
+            <form action="{{ route('inventory.products.sync') }}" method="POST" style="margin-left: auto;">
+                @csrf
+                <button type="submit" class="btn-sync-head">
+                    <i class="bi bi-arrow-repeat"></i> Sync Products
+                </button>
+            </form>
         </div>
 
         <div class="inv-table-wrap">
@@ -65,65 +51,76 @@ $products = [
                     </tr>
                 </thead>
                 <tbody id="invBody">
-                    @foreach($products as $p)
-                    @php $hasExpiry = $p['expiry'] || count($p['batches']) > 0; @endphp
+                    @forelse($products as $product)
+                    @php 
+                        $hasBatches = $product->batchItems->count() > 0;
+                        // تحويل الدفعات لتنسيق يفهمه الـ JS
+                        $jsBatches = $product->batchItems->map(function($item) {
+                            return [
+                                'label' => $item->batch->label ?? 'Batch',
+                                'qty' => $item->quantity,
+                                'status' => $item->batch->status ?? 'green',
+                                'expiry' => $item->batch->expiry_date ?? ''
+                            ];
+                        });
+                    @endphp
 
                     {{-- Product Row --}}
-                    {{--
-                        data-id, data-filter, data-batches, data-expiry, data-expiry-type
-                        are all read by inventory-products.js — no PHP logic bleeds into JS
-                    --}}
-                    <tr data-id="{{ $p['id'] }}"
-                        data-filter="{{ $p['filter'] }}"
-                        data-batches="{{ json_encode($p['batches']) }}"
-                        data-expiry="{{ $p['expiry'] ?? '' }}"
-                        data-expiry-type="{{ count($p['batches']) > 0 ? 'batch' : ($p['expiry'] ? 'single' : '') }}">
+                    <tr data-id="{{ $product->id }}"
+                        data-filter="{{ $product->bucket_type }}"
+                        data-batches="{{ json_encode($jsBatches) }}"
+                        data-expiry="{{ $product->expiry_date ?? '' }}"
+                        data-expiry-type="{{ $hasBatches ? 'batch' : ($product->expiry_date ? 'single' : '') }}">
 
                         <td>
                             <div class="prod-cell">
                                 <div class="prod-img-placeholder" title="Product image">
-                                    <i class="bi bi-image"></i>
+                                    @if($product->images->isNotEmpty())
+                                        <img src="{{ $product->images->first()->url }}" alt="img" style="width:100%; border-radius:4px;">
+                                    @else
+                                        <i class="bi bi-image"></i>
+                                    @endif
                                 </div>
                                 <div>
-                                    <div class="prod-name">{{ $p['name'] }}</div>
-                                    <div class="prod-id">#{{ $p['id'] }}</div>
-                                    @if($p['discount'])
+                                    <div class="prod-name">{{ $product->name }}</div>
+                                    <div class="prod-id">#{{ $product->salla_id ?? $product->id }}</div>
+                                    {{-- إذا كان هناك خصم مفعل من سلة --}}
+                                    @if($product->sale_price < $product->regular_price)
                                         <div class="disc-pill">
                                             <i class="bi bi-tag-fill"></i>
-                                            {{ $p['discount'] }}% &bull; Active
+                                            On Sale &bull; Active
                                         </div>
                                     @endif
                                 </div>
                             </div>
                         </td>
 
-                        <td><span class="b-cat">{{ $p['category'] }}</span></td>
+                        <td><span class="b-cat">{{ $product->category }}</span></td>
 
                         <td class="td-status">
-                            @if($p['status'] === 'green')
+                            @if($product->status === 'green')
                                 <span class="badge b-green">Safe</span>
-                            @elseif($p['status'] === 'yellow')
+                            @elseif($product->status === 'yellow')
                                 <span class="badge b-yellow">Approaching</span>
-                            @elseif($p['status'] === 'red')
+                            @elseif($product->status === 'red')
                                 <span class="badge b-red">Expired</span>
                             @else
                                 <span class="badge b-none">No expiry set</span>
                             @endif
                         </td>
 
-                        <td id="expiry-cell-{{ $p['id'] }}">
-                            @if(count($p['batches']) > 0)
+                        <td id="expiry-cell-{{ $product->id }}">
+                            @if($hasBatches)
                                 <div class="exp-cell">
-                                    {{-- data-product-id read by JS to call toggleBatch --}}
-                                    <button class="btn-eye" data-product-id="{{ $p['id'] }}">
-                                        <i class="bi bi-eye" id="eye-{{ $p['id'] }}"></i>
+                                    <button class="btn-eye" data-product-id="{{ $product->id }}">
+                                        <i class="bi bi-eye" id="eye-{{ $product->id }}"></i>
                                     </button>
-                                    <span>{{ count($p['batches']) }} batch{{ count($p['batches']) > 1 ? 'es' : '' }}</span>
+                                    <span>{{ $product->batchItems->count() }} batch{{ $product->batchItems->count() > 1 ? 'es' : '' }}</span>
                                 </div>
-                            @elseif($p['expiry'])
+                            @elseif($product->expiry_date)
                                 <div class="exp-cell">
                                     <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                                    <span>{{ $p['expiry'] }}</span>
+                                    <span>{{ $product->expiry_date }}</span>
                                 </div>
                             @else
                                 <span style="color:var(--muted);">—</span>
@@ -131,12 +128,11 @@ $products = [
                         </td>
 
                         <td>
-                            {{-- data-product-id + data-product-name read by JS to open ExpiryForm --}}
-                            <button class="btn-expiry {{ $hasExpiry ? 'is-edit' : '' }}"
-                                    id="btn-expiry-{{ $p['id'] }}"
-                                    data-product-id="{{ $p['id'] }}"
-                                    data-product-name="{{ $p['name'] }}">
-                                @if($hasExpiry)
+                            <button class="btn-expiry {{ ($hasBatches || $product->expiry_date) ? 'is-edit' : '' }}"
+                                    id="btn-expiry-{{ $product->id }}"
+                                    data-product-id="{{ $product->id }}"
+                                    data-product-name="{{ $product->name }}">
+                                @if($hasBatches || $product->expiry_date)
                                     <i class="bi bi-pencil-square"></i> Edit Expiry Date
                                 @else
                                     <i class="bi bi-calendar-plus"></i> Add Expiry Date
@@ -145,57 +141,60 @@ $products = [
                         </td>
                     </tr>
 
-                    {{-- Batch Rows --}}
-                    @foreach($p['batches'] as $batch)
-                        <tr class="batch-row" data-parent="{{ $p['id'] }}" data-filter="{{ $p['filter'] }}">
+                    {{-- Batch Rows (عرضها في حال وجود دفعات) --}}
+                    @foreach($product->batchItems as $item)
+                        <tr class="batch-row" data-parent="{{ $product->id }}" data-filter="{{ $product->bucket_type }}" style="display:none;">
                             <td>
                                 <div class="batch-indent">
                                     <span class="batch-label-field">
                                         <i class="bi bi-layers"></i>
-                                        {{ $batch['label'] }}
+                                        {{ $item->batch->label ?? 'Default Batch' }}
                                     </span>
                                 </div>
                             </td>
-                            <td style="color:var(--muted);">{{ $batch['qty'] }} units</td>
+                            <td style="color:var(--muted);">{{ $item->quantity }} units</td>
                             <td>
-                                @if($batch['status'] === 'green')
-                                    <span class="badge b-green">Safe</span>
-                                @elseif($batch['status'] === 'yellow')
-                                    <span class="badge b-yellow">Approaching</span>
-                                @elseif($batch['status'] === 'red')
-                                    <span class="badge b-red">Expired</span>
-                                @endif
+                                @php $bStatus = $item->batch->status ?? 'green'; @endphp
+                                <span class="badge b-{{ $bStatus }}">
+                                    {{ $bStatus === 'red' ? 'Expired' : ($bStatus === 'yellow' ? 'Approaching' : 'Safe') }}
+                                </span>
                             </td>
                             <td>
                                 <div class="exp-cell">
                                     <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                                    <span style="color:var(--muted);">{{ $batch['expiry'] }}</span>
+                                    <span style="color:var(--muted);">{{ $item->batch->expiry_date ?? 'No Date' }}</span>
                                 </div>
                             </td>
-                            <td>
-                                <button class="btn-edit-batch"
-                                        data-product-id="{{ $p['id'] }}"
-                                        data-product-name="{{ $p['name'] }}">
-                                    <i class="bi bi-pencil-square"></i> Edit Expiry Date
-                                </button>
-                            </td>
+                            <td></td> {{-- مكان فارغ للأكشن في الدفعات --}}
                         </tr>
                     @endforeach
 
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--muted);">
+                            <i class="bi bi-search" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                            لم يتم العثور على منتجات. جرب الضغط على "Sync Products".
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
 
-            <div class="inv-empty" id="invEmpty">
+            <div class="inv-empty" id="invEmpty" style="display:none;">
                 <i class="bi bi-funnel"></i>
                 <p>No products match this filter.</p>
             </div>
+        </div>
+        
+        {{-- إضافة روابط الترقيم (Pagination) --}}
+        <div class="inv-pagination-wrap">
+            {{ $products->links() }}
         </div>
     </div>
 
     <p class="inv-footer" id="invFooter">
         <i class="bi bi-box-seam"></i>
-        Showing {{ count($products) }} products from your Salla store
+        Showing {{ $products->count() }} products from your Salla store
     </p>
 
 </main>
@@ -206,13 +205,13 @@ $products = [
     <span id="invToastMsg"></span>
 </div>
 
-{{-- Modals (rendered in DOM before JS runs) --}}
+{{-- Modals --}}
 @include('inventory.dateform')
 
 @push('scripts')
-<script src="{{ mix('js/inventory-products.js') }}"></script>
-    <script src="{{ mix('js/inventory-dateform.js') }}"></script>
-    
+    {{-- استخدام asset مباشرة إذا كنت لا تستخدم Laravel Mix --}}
+    <script src="{{ asset('js/inventory-products.js') }}" defer></script>
+    <script src="{{ asset('js/inventory-dateform.js') }}" defer></script>
 @endpush
 
 @endsection
