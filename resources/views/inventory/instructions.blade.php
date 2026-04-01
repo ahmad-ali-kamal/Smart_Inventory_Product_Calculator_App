@@ -51,7 +51,7 @@
                 <div class="divider"></div>
 
                 {{-- CTA --}}
-                <a  class="btn-signin" style="text-decoration:none;">
+                <a a href="{{ route('inventory.settings') }}" class="btn-signin" style="text-decoration:none;">
                     <i class="bi bi-gear-fill"></i>
                     <span>Start Setup</span>
                     <i class="bi bi-arrow-right btn-arrow"></i>

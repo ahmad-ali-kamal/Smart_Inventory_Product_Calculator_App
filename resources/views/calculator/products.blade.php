@@ -3,10 +3,11 @@
 @section('content')
 @include('layouts._header', [
     'headerNav' => [
-        ['url' => route('welcome'),                   'icon' => 'bi-house',    'label' => 'Home',     'route_match' => 'welcome'],
-        ['url' => route('calculator.dashboard'), 'icon' => 'bi-speedometer2', 'label' => 'Dashboard', 'route_match' => 'calculator.dashboard'],
-        ['url' => route('calculator.products.index'), 'icon' => 'bi-box-seam', 'label' => 'Products', 'route_match' => 'calculator.products.*'],
-        ['url' => route('calculator.settings'),       'icon' => 'bi-gear',     'label' => 'Settings', 'route_match' => 'calculator.settings'],
+        ['url' => route('welcome'),                   'icon' => 'bi-house-door-fill',    'label' => 'Home',     'route_match' => 'welcome'],
+        ['url' => route('calculator.dashboard'), 'icon' => 'bi-grid-fill', 'label' => 'Dashboard', 'route_match' => 'calculator.dashboard'],
+        ['url' => route('calculator.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'calculator.products.*'],
+        ['url' => route('calculator.settings'),       'icon' => 'bi-gear-fill',     'label' => 'Settings', 'route_match' => 'calculator.settings'],
+        ['url' => route('calculator.instructions'), 'icon' => 'bi-exclamation-circle-fill', 'label' => '', 'route_match' => 'calculator.instructions'],
     ],
 ])
 

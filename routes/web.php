@@ -66,6 +66,7 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
 Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(function () {
     Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
+    Route::get('/instructions', [CalculatorDashboardController::class, 'instructions'])->name('instructions');
     Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
     
     Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');

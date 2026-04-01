@@ -4,11 +4,12 @@
 
 @include('layouts._header', [
     'headerNav' => [
-        ['url' => route('welcome'),            'icon' => 'bi-house',          'label' => 'Home',          'route_match' => 'welcome'],
-        ['url' => route('inventory.dashboard'), 'icon' => 'bi-speedometer2',   'label' => 'Dashboard',     'route_match' => 'inventory.dashboard'],
+        ['url' => route('welcome'),            'icon' => 'bi-house-door-fill',          'label' => 'Home',          'route_match' => 'welcome'],
+        ['url' => route('inventory.dashboard'), 'icon' => 'bi-grid-fill',   'label' => 'Dashboard',     'route_match' => 'inventory.dashboard'],
         ['url' => route('inventory.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'inventory.products.index'],
         ['url' => route('inventory.settings'),  'icon' => 'bi-gear-fill',      'label' => 'Settings',      'route_match' => 'inventory.settings'],
-        ['icon' => 'bi-bell-fill',                             'label' => 'Notifications'],
+        ['icon' => 'bi-bell-fill',                             'label' => ''],
+        ['url' => route('inventory.instructions'), 'icon' => 'bi-exclamation-circle-fill', 'label' => '', 'route_match' => 'inventory.instructions'],
     ],
 ])
 <main class="max-w-7xl mx-auto px-6 py-8">

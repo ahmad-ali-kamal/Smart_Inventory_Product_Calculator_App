@@ -18,7 +18,17 @@ class InventoryDashboardController extends Controller
      */
     public function index(Request $request)
     {
+        // 1. جلب التاجر الحالي
         $merchant = Auth::user();
+        // 2. التحقق مما إذا كان لدى التاجر إعدادات محفوظة مسبقاً
+        $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
+        // 3.توجيه ذكي: إذا لم تكن هناك إعدادات، اعرض صفحة التعليمات
+        
+        if (!$settings) {
+         return view('inventory.instructions');
+     }
+
+
 
         // استخدام Cache لتحسين الأداء
         $cacheKey = "inventory_dashboard_{$merchant->id}";

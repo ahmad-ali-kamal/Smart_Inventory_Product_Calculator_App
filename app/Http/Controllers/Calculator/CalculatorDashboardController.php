@@ -58,4 +58,8 @@ class CalculatorDashboardController extends Controller
             'enabledProducts' => $enabledProducts,
         ]);
     }
+    public function instructions()
+{
+    return view('calculator.instructions');
+}
 }
