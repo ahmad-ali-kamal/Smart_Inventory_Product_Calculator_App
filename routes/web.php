@@ -24,24 +24,28 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');
     Route::get('/auth/salla/callback', [SallaOAuthController::class, 'callback'])->name('auth.salla.callback');
 });
+
 Route::post('/logout', [SallaOAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-/* --- 2. تطبيق حريص (المخزون) - الحل الجذري --- */
+/* --- 2. تطبيق حريص (المخزون) --- */
 Route::middleware(['auth'])->prefix('inventory')->group(function () {
     
     // الداشبورد
     Route::get('/', [InventoryDashboardController::class, 'index'])->name('inventory.dashboard');
 
-    // المنتجات (تعريف المسار ليدعم inventory.products.index)
+    // المنتجات
     Route::get('/products', [ProductListController::class, 'index'])->name('inventory.products.index');
     Route::get('/products/{product_id}', [ProductListController::class, 'show'])->name('inventory.products.show');
     Route::post('/products/sync', [ProductListController::class, 'sync'])->name('inventory.products.sync');
 
-    // 🏆 الحل القاتل لمشكلة الإعدادات: تعريف المسار بالاسمين
-    // هذا يرضي صفحة الإعدادات
+    // الإعدادات
     Route::get('/settings', [InventoryDashboardController::class, 'settings'])->name('inventory.settings');
     
-    // روابط الحفظ والعمليات ( inventory.settings.batch.store )
+    // 🏆 الحل النهائي لخطأ الـ 404: تعريف الرابط الذي يطلبه الـ JavaScript
+    // هذا الرابط سيستقبل طلبات الحفظ (تاريخ واحد أو دفعات متعددة)
+    Route::post('/expiry/batch', [ProductExpiryController::class, 'store'])->name('inventory.expiry.batch');
+
+    // روابط إعدادات التصنيفات والمدد
     Route::prefix('settings')->name('inventory.settings.')->group(function () {
         Route::match(['POST', 'PUT'], '/batch', [BatchSettingController::class, 'store'])->name('batch.store');
         Route::post('/batch/reset', [BatchSettingController::class, 'reset'])->name('batch.reset');
@@ -50,10 +54,12 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
         Route::post('/categories/move', [CategoryMappingController::class, 'move'])->name('categories.move');
     });
 
-    // روابط إضافية
+    // روابط إضافية (تعليمات، خصومات)
     Route::get('/instructions', [InventoryDashboardController::class, 'instructions'])->name('inventory.instructions');
-    Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('inventory.expiry.store');
     Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('inventory.discount.apply');
+    
+    // مسار احتياطي في حال كان الـ JS يرسل المعرف في الرابط
+    Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('inventory.expiry.store');
 });
 
 /* --- 3. تطبيق المستشار (الآلة الحاسبة) --- */
@@ -61,7 +67,6 @@ Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(fu
     Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
-    Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
     
     Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
     Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
