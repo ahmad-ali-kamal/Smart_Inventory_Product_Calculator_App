@@ -32,14 +32,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Salla OAuth Integration
+    | Salla OAuth Integration (Multi-App Support)
     |--------------------------------------------------------------------------
     */
+
+    // 1. تطبيق المستشار (Calculator App)
+    'salla_calculator' => [
+        'client_id'      => env('SALLA_CALCULATOR_CLIENT_ID'),
+        'client_secret'  => env('SALLA_CALCULATOR_CLIENT_SECRET'),
+        'webhook_secret' => env('SALLA_CALCULATOR_WEBHOOK_SECRET'),
+        'redirect'       => env('SALLA_OAUTH_CALLBACK_URL'),
+    ],
+
+    // 2. تطبيق حريص (Management / Inventory App)
+    'salla_management' => [
+        'client_id'      => env('SALLA_MANAGEMENT_CLIENT_ID'),
+        'client_secret'  => env('SALLA_MANAGEMENT_CLIENT_SECRET'),
+        'webhook_secret' => env('SALLA_MANAGEMENT_WEBHOOK_SECRET'),
+        'redirect'       => env('SALLA_OAUTH_CALLBACK_URL'),
+    ],
+
+    // الإعداد الافتراضي (للتوافق مع الأكواد القديمة إن وجدت)
     'salla' => [
-        'client_id'      => env('SALLA_OAUTH_CLIENT_ID'),
-        'client_secret'  => env('SALLA_OAUTH_CLIENT_SECRET'),
-        'callback_url'   => env('SALLA_OAUTH_CALLBACK_URL'), // تأكد أن هذا الاسم يطابق استدعاءك في Controller
-        'webhook_secret' => env('SALLA_WEBHOOK_SECRET'),
+        'client_id'          => env('SALLA_OAUTH_CLIENT_ID'),
+        'client_secret'      => env('SALLA_OAUTH_CLIENT_SECRET'),
+        'callback_url'       => env('SALLA_OAUTH_CALLBACK_URL'),
+        'webhook_secret'     => env('SALLA_WEBHOOK_SECRET'),
         'authorization_mode' => env('SALLA_AUTHORIZATION_MODE', 'easy'),
     ],
 
