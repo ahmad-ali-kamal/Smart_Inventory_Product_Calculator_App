@@ -114,7 +114,7 @@ class Batch extends Model
     // Methods
 
     /**
-     * تصحيح عملية الحساب: تاريخ الانتهاء ناقص تاريخ اليوم
+     * حساب الأيام المتبقية: (تاريخ الانتهاء - تاريخ اليوم)
      */
     public function calculateDaysUntilExpiry(): void
     {
@@ -122,60 +122,70 @@ class Batch extends Model
             $expiry = Carbon::parse($this->expiry_date)->startOfDay();
             $today = Carbon::now()->startOfDay();
             
-            // نستخدم diffInDays مع جعل القيمة سالبة إذا كان التاريخ قديماً
+            // النتيجة موجبة للمستقبل وسالبة للماضي
             $this->days_until_expiry = $today->diffInDays($expiry, false);
         }
     }
 
     /**
-     * تصحيح منطق توزيع الألوان (Status)
+     * تطبيق القانون الذكي لتوزيع الألوان (Status)
+     * $daysLeft = expiry_date - today
+     * $threshold = CategoryMapping Threshold
      */
     public function calculateStatus(): void
     {
-        // 1. جلب إعدادات التاجر أو استخدام القيم الافتراضية
-        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
-        
-        // العتبة الافتراضية للتنبيه (مثلاً 14 يوم) إذا لم يحدد التاجر إعدادات
-        $warningThreshold = $settings->medium_term_days ?? 14; 
+        $daysLeft = $this->days_until_expiry;
 
-        $days = $this->days_until_expiry;
-
-        if ($days < 0) {
-            // منتهي الصلاحية فعلياً
+        // 1. إذا كان التاريخ بالماضي (سالب) فاللون أحمر فوراً
+        if ($daysLeft < 0) {
             $this->status = 'red';
-        } elseif ($days <= $warningThreshold) {
-            // في فترة التحذير (أصفر)
+            return;
+        }
+
+        // 2. جلب الحد الأدنى (Threshold) من المنتج المرتبط بناءً على تصنيفه
+        $product = $this->products()->first();
+        $threshold = null;
+
+        if ($product && method_exists($product, 'getCategoryThreshold')) {
+            // استدعاء دالة جلب الـ threshold بناءً على الـ Category Mapping
+            $threshold = $product->getCategoryThreshold();
+        }
+
+        // 3. خيار بديل (Fallback) في حال عدم وجود تصنيف مخصص
+        if (is_null($threshold)) {
+            $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+            $threshold = $settings->medium_term_days ?? 14; 
+        }
+
+        // 4. تطبيق المنطق:
+        // إذا كان الأيام المتبقية أقل من أو تساوي الـ threshold فالحالة صفراء (تحذير)
+        if ($daysLeft <= $threshold) {
             $this->status = 'yellow';
         } else {
-            // آمن (أخضر)
             $this->status = 'green';
         }
     }
 
     public function needsDiscount(): bool
     {
-        // يحتاج خصم إذا كان في منطقة التحذير (أصفر) ولم ينتهِ بعد
         return $this->status === 'yellow' && $this->days_until_expiry >= 0;
     }
 
-    // Scopes لسهولة الفلترة في الكود
+    // Scopes
     public function scopeExpired($query)
     {
         return $query->where('status', 'red');
     }
 
-    public function scopeWarning($query)
-    {
+    public function scopeWarning($query) {
         return $query->where('status', 'yellow');
     }
 
-    public function scopeSafe($query)
-    {
+    public function scopeSafe($query) {
         return $query->where('status', 'green');
     }
 
-    public function scopeForMerchant($query, int $merchantId)
-    {
+    public function scopeForMerchant($query, int $merchantId) {
         return $query->where('merchant_id', $merchantId);
     }
 }

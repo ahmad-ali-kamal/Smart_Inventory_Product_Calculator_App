@@ -37,41 +37,26 @@ class Product extends Model
     // العلاقات (Relations)
     // ====================================================================
 
-    /**
-     * المنتج ينتمي لتاجر واحد
-     */
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
-    /**
-     * المنتج لديه عدة صور (مرتبة حسب sort_order)
-     */
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
-    /**
-     * جلب الصورة الأساسية للمنتج
-     */
     public function mainImage(): HasOne
     {
         return $this->hasOne(ProductImage::class)->where('is_main', true);
     }
 
-    /**
-     * علاقة الحاسبة الذكية (لتحديد هل المنتج مفعل في الحاسبة أم لا)
-     */
     public function calculator(): HasOne
     {
         return $this->hasOne(ProductCalculator::class);
     }
 
-    /**
-     * علاقات المخزون والباتشات (Inventory System)
-     */
     public function batches(): BelongsToMany
     {
         return $this->belongsToMany(Batch::class, 'batch_items')
@@ -84,12 +69,45 @@ class Product extends Model
         return $this->hasMany(BatchItem::class);
     }
 
-    /**
-     * الخصومات المرتبطة بهذا المنتج
-     */
     public function discounts(): HasMany
     {
         return $this->hasMany(ProductDiscount::class);
+    }
+
+    // ====================================================================
+    // القانون الذكي (The Logic)
+    // ====================================================================
+
+    /**
+     * جلب الحد الأدنى للتنبيه (Threshold) بناءً على نوع التصنيف
+     * القانون: Category -> CategoryMapping -> TermType -> BatchSettings
+     */
+    public function getCategoryThreshold(): int
+    {
+        // 1. البحث عن خريطة التصنيف لهذا المنتج وللبائع الحالي
+        // نفترض أن العمود 'category' في المنتج يطابق 'category_name' في الخريطة
+        $mapping = CategoryMapping::where('merchant_id', $this->merchant_id)
+            ->where('category_name', $this->category)
+            ->first();
+
+        // 2. جلب إعدادات المدد العامة للبائع
+        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+
+        // 3. إذا لم توجد خريطة أو إعدادات، نرجع القيمة الافتراضية (مثلاً 14 يوم)
+        if (!$mapping || !$settings) {
+            return $settings->medium_term_days ?? 14;
+        }
+
+        // 4. تحديد الأيام بناءً على النوع المربوط (Short, Medium, Long)
+        switch ($mapping->term_type) {
+            case 'short':
+                return $settings->short_term_days;
+            case 'long':
+                return $settings->long_term_days;
+            case 'medium':
+            default:
+                return $settings->medium_term_days;
+        }
     }
 
     // ====================================================================
@@ -110,26 +128,16 @@ class Product extends Model
     // الموصلات (Accessors & Mutators)
     // ====================================================================
 
-    /**
-     * جلب رابط الصورة الأساسية مباشرة أو صورة افتراضية
-     * الاستخدام: $product->image_url
-     */
     public function getImageUrlAttribute(): string
     {
         return $this->mainImage?->image_url ?? asset('images/placeholder-product.png');
     }
 
-    /**
-     * جلب الوصف من بيانات الـ Metadata
-     */
     public function getDescriptionAttribute(): ?string
     {
         return $this->metadata['description'] ?? null;
     }
 
-    /**
-     * عرض السعر مع العملة بشكل منسق
-     */
     public function getFormattedPriceAttribute(): string
     {
         return number_format($this->price, 2) . ' ر.س';
