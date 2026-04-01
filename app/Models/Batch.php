@@ -42,7 +42,7 @@ class Batch extends Model
     // Relationships
     public function merchant(): BelongsTo
     {
-        return $this->belongsTo(Merchant::class);
+        return $this->belongsTo(User::class, 'merchant_id');
     }
 
     public function items(): HasMany
@@ -53,14 +53,8 @@ class Batch extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'batch_items')
-            ->using(BatchItem::class)
-            ->withPivot(['quantity', 'sold_quantity', 'unit_cost'])
+            ->withPivot(['quantity', 'sold_quantity'])
             ->withTimestamps();
-    }
-
-    public function discounts(): HasMany
-    {
-        return $this->hasMany(ProductDiscount::class);
     }
 
     public function activityLogs(): MorphMany
@@ -73,6 +67,7 @@ class Batch extends Model
     {
         parent::boot();
 
+        // تحديث الأيام والحالة تلقائياً قبل الحفظ في الداتابيز
         static::saving(function ($batch) {
             $batch->calculateDaysUntilExpiry();
             $batch->calculateStatus();
@@ -82,23 +77,22 @@ class Batch extends Model
     // Accessors
     public function getIsExpiredAttribute(): bool
     {
-        return $this->expiry_date < now()->startOfDay();
+        if (!$this->expiry_date) return false;
+        return $this->expiry_date->isPast() && !$this->expiry_date->isToday();
     }
 
     public function getExpiryLabelAttribute(): string
     {
-        if ($this->is_expired) {
-            return 'منتهي الصلاحية';
-        }
-
         $days = $this->days_until_expiry;
 
-        if ($days > 60) {
-            return "باقي {$days} يوم";
-        } elseif ($days > 15) {
-            return "تحذير: باقي {$days} يوم";
+        if ($days < 0) {
+            return 'منتهي الصلاحية';
+        } elseif ($days == 0) {
+            return 'ينتهي اليوم!';
+        } elseif ($days <= 7) {
+            return "خطر: باقي {$days} أيام فقط!";
         } else {
-            return "خطر: باقي {$days} يوم فقط!";
+            return "باقي {$days} يوم";
         }
     }
 
@@ -118,57 +112,53 @@ class Batch extends Model
     }
 
     // Methods
+
+    /**
+     * تصحيح عملية الحساب: تاريخ الانتهاء ناقص تاريخ اليوم
+     */
     public function calculateDaysUntilExpiry(): void
     {
-        $this->days_until_expiry = Carbon::parse($this->expiry_date)
-            ->diffInDays(now()->startOfDay(), false);
+        if ($this->expiry_date) {
+            $expiry = Carbon::parse($this->expiry_date)->startOfDay();
+            $today = Carbon::now()->startOfDay();
+            
+            // نستخدم diffInDays مع جعل القيمة سالبة إذا كان التاريخ قديماً
+            $this->days_until_expiry = $today->diffInDays($expiry, false);
+        }
     }
 
+    /**
+     * تصحيح منطق توزيع الألوان (Status)
+     */
     public function calculateStatus(): void
     {
-        // Get merchant's batch settings
-        $settings = $this->merchant->batchSettings;
-
-        if (!$settings) {
-            // Default thresholds
-            $greenThreshold = 60;
-            $yellowThreshold = 15;
-        } else {
-            $greenThreshold = $settings->green_threshold_days;
-            $yellowThreshold = $settings->yellow_threshold_days;
-        }
+        // 1. جلب إعدادات التاجر أو استخدام القيم الافتراضية
+        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+        
+        // العتبة الافتراضية للتنبيه (مثلاً 14 يوم) إذا لم يحدد التاجر إعدادات
+        $warningThreshold = $settings->medium_term_days ?? 14; 
 
         $days = $this->days_until_expiry;
 
-        if ($days < 0 || $this->is_expired) {
+        if ($days < 0) {
+            // منتهي الصلاحية فعلياً
             $this->status = 'red';
-        } elseif ($days <= $yellowThreshold) {
-            $this->status = 'red';
-        } elseif ($days <= $greenThreshold) {
+        } elseif ($days <= $warningThreshold) {
+            // في فترة التحذير (أصفر)
             $this->status = 'yellow';
         } else {
+            // آمن (أخضر)
             $this->status = 'green';
         }
     }
 
-    public function canApplyDiscount(): bool
-    {
-        return $this->status === 'yellow';
-    }
-
     public function needsDiscount(): bool
     {
-        return $this->status === 'yellow' && 
-               !$this->discounts()->where('status', 'active')->exists();
+        // يحتاج خصم إذا كان في منطقة التحذير (أصفر) ولم ينتهِ بعد
+        return $this->status === 'yellow' && $this->days_until_expiry >= 0;
     }
 
-    // Scopes
-    public function scopeExpiring($query, int $days = 60)
-    {
-        return $query->where('days_until_expiry', '<=', $days)
-            ->where('days_until_expiry', '>', 0);
-    }
-
+    // Scopes لسهولة الفلترة في الكود
     public function scopeExpired($query)
     {
         return $query->where('status', 'red');
