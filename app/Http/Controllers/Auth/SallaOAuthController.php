@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
-use App\Jobs\FetchProductsJob; // استيراد الجووب الجديد
+use App\Jobs\FetchProductsJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -14,16 +14,32 @@ use Illuminate\Support\Facades\Log;
 class SallaOAuthController extends Controller
 {
     /**
-     * إعادة التوجيه لصفحة تسجيل الدخول في سلة
+     * تحديد أي تطبيق يتم استخدامه حالياً بناءً على الجلسة أو المعاملات
      */
-    public function redirect()
+    private function getAppConfig()
     {
+        // نتحقق من التطبيق المختار في الجلسة، والافتراضي هو حريص (management)
+        $appType = session('salla_app_type', 'management'); 
+        return config("services.salla_{$appType}");
+    }
+
+    /**
+     * إعادة التوجيه لصفحة تسجيل الدخول في سلة
+     * يمكن استدعاؤه كـ /auth/salla?app=calculator أو /auth/salla?app=management
+     */
+    public function redirect(Request $request)
+    {
+        // تحديد نوع التطبيق وحفظه في الجلسة ليعرفه الـ Callback لاحقاً
+        $appType = $request->get('app', 'management'); 
+        session(['salla_app_type' => $appType]);
+
+        $config = config("services.salla_{$appType}");
         $state = Str::random(40);
         session(['oauth_state' => $state]);
 
         $query = http_build_query([
-            'client_id'     => config('services.salla.client_id'),
-            'redirect_uri'  => config('services.salla.callback_url'),
+            'client_id'     => $config['client_id'],
+            'redirect_uri'  => $config['redirect'],
             'response_type' => 'code',
             'scope'         => 'offline_access', 
             'state'         => $state,
@@ -46,16 +62,19 @@ class SallaOAuthController extends Controller
         }
 
         try {
-            $tokenData = $this->getAccessToken($request->code);
+            // جلب الإعدادات بناءً على التطبيق الذي بدأ الطلب
+            $config = $this->getAppConfig();
+
+            $tokenData = $this->getAccessToken($request->code, $config);
             $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
 
-            // حفظ التاجر وتفعيل الجووب للمزامنة في الخلفية
-            $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData);
+            // حفظ التاجر وتفعيل الجووب للمزامنة
+            $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData, $config);
 
             Auth::login($merchant);
 
             return redirect()->route('welcome')
-                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك وجاري تحديث بياناتك في الخلفية!');
+                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك وجاري تحديث بياناتك!');
 
         } catch (\Exception $e) {
             Log::error('Salla OAuth Error: ' . $e->getMessage());
@@ -64,12 +83,11 @@ class SallaOAuthController extends Controller
     }
 
     /**
-     * تحديث بيانات التاجر وتحديد نوع الخدمة وتفعيل المزامنة
+     * تحديث بيانات التاجر وتفعيل الخدمة المناسبة
      */
-    private function saveOrUpdateMerchant(array $info, array $tokenData): Merchant
+    private function saveOrUpdateMerchant(array $info, array $tokenData, array $config): Merchant
     {
         $merchantData = $info['merchant'] ?? [];
-        $currentClientId = config('services.salla.client_id');
         
         $merchant = Merchant::updateOrCreate(
             ['salla_merchant_id' => $merchantData['id']],
@@ -84,15 +102,14 @@ class SallaOAuthController extends Controller
             ]
         );
 
-        // 1. تفعيل الخدمة بناءً على الـ Client ID
-        if ($currentClientId === env('SALLA_CALCULATOR_CLIENT_ID')) {
+        // تفعيل الخدمة بناءً على الـ Client ID المستخدم في عملية الدخول حالياً
+        if ($config['client_id'] === env('SALLA_CALCULATOR_CLIENT_ID')) {
             $merchant->update(['has_calculator' => true]);
-        } elseif ($currentClientId === env('SALLA_MANAGEMENT_CLIENT_ID')) {
+        } elseif ($config['client_id'] === env('SALLA_MANAGEMENT_CLIENT_ID')) {
             $merchant->update(['has_management' => true]);
         }
 
-        // 2. 🔥 إطلاق الجووب في الخلفية (Background Thread)
-        // يبدأ من الصفحة رقم 1، وإذا تعثر سيعيد المحاولة تلقائياً (Hold)
+        // إطلاق الجووب للمزامنة
         FetchProductsJob::dispatch($merchant, 1);
 
         return $merchant;
@@ -110,16 +127,16 @@ class SallaOAuthController extends Controller
     }
 
     // ====================================================================
-    // الدوال الخاصة بجلب التوكن والبيانات
+    // الدوال المحدثة لتقبل الإعدادات (Config)
     // ====================================================================
 
-    private function getAccessToken(string $code): array
+    private function getAccessToken(string $code, array $config): array
     {
         $response = Http::asForm()->post('https://accounts.salla.sa/oauth2/token', [
             'grant_type'    => 'authorization_code',
-            'client_id'     => config('services.salla.client_id'),
-            'client_secret' => config('services.salla.client_secret'),
-            'redirect_uri'  => config('services.salla.callback_url'),
+            'client_id'     => $config['client_id'],
+            'client_secret' => $config['client_secret'],
+            'redirect_uri'  => $config['redirect'],
             'code'          => $code,
         ]);
 
