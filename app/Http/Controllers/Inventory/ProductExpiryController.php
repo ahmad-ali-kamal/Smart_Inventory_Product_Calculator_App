@@ -95,6 +95,7 @@ class ProductExpiryController extends Controller
     {
         $batch = Batch::create([
             'merchant_id' => $merchant->id,
+            'name'        => $product->name,
             'batch_code' => $data['batch_code'] ?? 'B-'.Str::upper(Str::random(6)),
             'expiry_date' => $data['expiry_date'],
             'manufactured_date' => $data['manufactured_date'] ?? null,
@@ -116,6 +117,7 @@ class ProductExpiryController extends Controller
         foreach ($batches as $data) {
             $batch = Batch::create([
                 'merchant_id' => $merchant->id,
+                'name'        => $product->name,
                 'batch_code' => $data['batch_code'] ?? 'B-'.Str::upper(Str::random(6)),
                 'expiry_date' => $data['expiry_date'],
                 'manufactured_date' => $data['manufactured_date'] ?? null,
