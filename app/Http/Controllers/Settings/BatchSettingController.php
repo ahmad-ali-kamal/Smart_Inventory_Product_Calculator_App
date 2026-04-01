@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\BatchSetting;
-use App\Models\CategoryMapping;        // ✅ أضفنا هذا
+use App\Models\CategoryMapping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;     // ✅ أضفنا هذا
+use Illuminate\Support\Facades\DB;
 
 class BatchSettingController extends Controller
 {
@@ -19,28 +19,23 @@ class BatchSettingController extends Controller
     {
         $merchant = Auth::user();
 
-        // 1. التحقق من الحقول — أضفنا category_mapping كـ optional
+        // 1. Validate أولاً
         $validated = $request->validate([
             'short_term_days'             => 'required|integer',
             'medium_term_days'            => 'required|integer',
             'long_term_days'              => 'required|integer',
-            'auto_hide_expired'           => 'boolean',
-            'enable_notifications'        => 'boolean',
-            'auto_discounts'              => 'boolean',
+            'auto_hide_expired'           => 'nullable|boolean',
+            'enable_notifications'        => 'nullable|boolean',
+            'auto_discounts'              => 'nullable|boolean',
             'auto_discount_percent'       => 'nullable|integer',
             'auto_discount_duration_days' => 'nullable|integer',
-            // ✅ التصنيفات — اختيارية (nullable) لأن المستخدم قد لا يغيرها
             'category_mapping'            => 'nullable|array',
             'category_mapping.short'      => 'nullable|array',
             'category_mapping.medium'     => 'nullable|array',
             'category_mapping.long'       => 'nullable|array',
-        ], [
-            'short_term_days.required'  => 'مدة المنتجات قصيرة الأمد مطلوبة',
-            'medium_term_days.required' => 'مدة المنتجات متوسطة الأمد مطلوبة',
-            'long_term_days.required'   => 'مدة المنتجات طويلة الأمد مطلوبة',
         ]);
 
-        // Process settings and category mappings in a single database transaction
+        // 2. Transaction بعد الـ validate
         DB::transaction(function () use ($request, $merchant, $validated) {
 
             // 3. حفظ إعدادات الـ BatchSetting (بدون category_mapping — هي ليست عمود في الجدول)
@@ -67,13 +62,11 @@ class BatchSettingController extends Controller
                     }
                 }
             }
-
         });
 
-        // Clear cache to ensure fresh data is loaded
         Cache::forget("inventory_dashboard_{$merchant->id}");
 
-        return back()->with('success', 'تم حفظ الإعدادات وتوزيع التصنيفات بنجاح.');
+        return back()->with('success', 'تم حفظ الإعدادات بنجاح.');
     }
 
     /**
@@ -90,6 +83,6 @@ class BatchSettingController extends Controller
 
         Cache::forget("inventory_dashboard_{$merchant->id}");
 
-        return back()->with('success', 'تمت إعادة الإعدادات لقيم "حريص" القياسية.');
+        return back()->with('success', 'تمت إعادة الإعدادات للقيم الافتراضية.');
     }
 }

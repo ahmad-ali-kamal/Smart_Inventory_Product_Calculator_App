@@ -15,40 +15,46 @@ class CategoryMappingController extends Controller
     /**
      * عرض صفحة الإعدادات وتوزيع التصنيفات
      */
-    public function index(Request $request)
-    {
-        $merchant = Auth::user();
+ public function index(Request $request)
+{
+    $merchant = Auth::user();
 
-        // 1. جلب إعدادات المدد الزمنية (أو الافتراضية)
-        $settings = BatchSetting::where('merchant_id', $merchant->id)->first() 
-                    ?? (object) BatchSetting::getDefaults();
+    $settings = BatchSetting::where('merchant_id', $merchant->id)->first() 
+                ?? (object) BatchSetting::getDefaults();
 
-        // 2. جلب التوزيع الحالي للتصنيفات
-        $mappings = CategoryMapping::where('merchant_id', $merchant->id)
-            ->orderBy('sort_order')
-            ->get()
-            ->groupBy('bucket'); // التجميع حسب: short, medium, long
+    $mappings = CategoryMapping::where('merchant_id', $merchant->id)
+        ->orderBy('sort_order')
+        ->get()
+        ->groupBy('bucket');
 
-        // 3. تأكد من إرسال مصفوفة منظمة حتى لو كانت فارغة
-        $formattedMappings = [
-            'short'  => $mappings->get('short', collect())->pluck('category_name')->toArray(),
-            'medium' => $mappings->get('medium', collect())->pluck('category_name')->toArray(),
-            'long'   => $mappings->get('long', collect())->pluck('category_name')->toArray(),
-        ];
-        
-         // ✅ هذا الجزء الناقص — جلب تصنيفات المتجر من المنتجات
+    $formattedMappings = [
+        'short'  => $mappings->get('short',  collect())->pluck('category_name')->toArray(),
+        'medium' => $mappings->get('medium', collect())->pluck('category_name')->toArray(),
+        'long'   => $mappings->get('long',   collect())->pluck('category_name')->toArray(),
+    ];
+
     $allMappedCategories = array_merge(
         $formattedMappings['short'],
         $formattedMappings['medium'],
         $formattedMappings['long']
     );
 
-        return view('inventory.settings', [
-            'settings' => $settings,
-            'mappings' => $formattedMappings,
-            'allMappedCategories' => $allMappedCategories,
-        ]);
-    }
+    // ✅ هنا كان الخطأ — بناء $unmappedCategories فعلياً
+    $unmappedCategories = Product::where('merchant_id', $merchant->id)
+        ->whereNotNull('category')
+        ->distinct()
+        ->pluck('category')
+        ->filter(fn($cat) => !in_array($cat, $allMappedCategories))
+        ->values()
+        ->toArray();
+
+    return view('inventory.settings', [
+        'settings'            => $settings,
+        'mappings'            => $formattedMappings,
+        'allMappedCategories' => $allMappedCategories,
+        'unmappedCategories'  => $unmappedCategories, // ✅ الآن معرّف صح
+    ]);
+}
 
     /**
      * 🚀 دالة الربط مع الـ JS: تحديث التصنيفات بالجملة بعد السحب والإفلات
