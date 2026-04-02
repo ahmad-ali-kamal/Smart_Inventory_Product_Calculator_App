@@ -67,6 +67,7 @@ class InventoryDashboardController extends Controller
                     return (object) [
                         'id'                 => $product->id,
                         'name'               => $product->name,
+                         'image_url'          => $product->image_url, // ✅ أضف هذا
                         'status'             => $criticalBatchItem?->batch->status ?? 'green',
                         'expiry_date'        => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
                         'batches'            => $product->batchItems, // لإظهار عدد الدفعات

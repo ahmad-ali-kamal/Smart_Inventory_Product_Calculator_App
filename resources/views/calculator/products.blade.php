@@ -52,9 +52,11 @@
                         {{-- Product name --}}
                         <td class="td-cell">
                             <div style="display:flex; align-items:center; gap:0.875rem;">
-                                <div id="icon-{{ $product->id }}" class="product-icon {{ $isEnabled ? 'active' : 'inactive' }}">
-                                    <i class="bi bi-box"></i>
-                                </div>
+                               <div id="icon-{{ $product->id }}" class="product-icon {{ $isEnabled ? 'active' : 'inactive' }}">
+    <img src="{{ $product->image_url }}" 
+         alt="{{ $product->name }}" 
+         style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+</div>
                                 <span id="name-{{ $product->id }}" style="font-size:0.875rem; font-weight:600; color:{{ $isEnabled ? 'var(--fg)' : 'var(--muted)' }};">
                                     {{ $product->name }}
                                 </span>

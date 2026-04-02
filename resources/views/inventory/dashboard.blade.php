@@ -93,7 +93,11 @@
 
                         <td style="padding:1rem 1.5rem;">
                             <div class="flex items-center gap-3" style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div class="product-icon" style="background: #f3f4f6; padding: 0.5rem; border-radius: 8px;"><i class="bi bi-box"></i></div>
+                               <div class="product-icon" style="width:36px; height:36px; border-radius:8px; overflow:hidden; flex-shrink:0;">
+    <img src="{{ $product->image_url }}" 
+         alt="{{ $product->name }}" 
+         style="width:100%; height:100%; object-fit:cover;">
+</div>
                                 <span class="font-semibold" style="font-size: 0.875rem;">{{ $product->name }}</span>
                             </div>
                         </td>

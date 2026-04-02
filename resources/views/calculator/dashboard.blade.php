@@ -92,7 +92,11 @@
                             <tr class="table-row">
                                 <td class="td-cell">
                                     <div style="display:flex; align-items:center; gap:0.875rem;">
-                                        <div class="product-icon active"><i class="bi bi-box"></i></div>
+                                     <div class="product-icon active">
+    <img src="{{ $product->image_url }}" 
+         alt="{{ $product->name }}" 
+         style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
+</div>
                                         <span style="font-size:0.875rem; font-weight:600; color:var(--fg);">
                                             {{ $product->name }}
                                         </span>
