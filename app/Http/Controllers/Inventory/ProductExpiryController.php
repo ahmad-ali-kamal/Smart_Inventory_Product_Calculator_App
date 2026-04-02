@@ -106,6 +106,7 @@ class ProductExpiryController extends Controller
             'batch_id' => $batch->id,
             'product_id' => $product->id,
             'quantity' => $product->quantity ?? 0,
+            'unit_cost'  => $product->price ?? 0,
         ]);
     }
 
@@ -128,6 +129,7 @@ class ProductExpiryController extends Controller
                 'batch_id' => $batch->id,
                 'product_id' => $product->id,
                 'quantity' => $data['quantity'],
+                'unit_cost'  => $product->price ?? 0,
             ]);
         }
     }
