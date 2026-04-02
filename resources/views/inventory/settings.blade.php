@@ -30,10 +30,10 @@
 
                 <div class="threshold-grid">
                     @foreach([
-                        ['short_term_days',  'Short-term',  'Dairy, Fresh produce'],
-                        ['medium_term_days', 'Medium-term', 'Frozen foods, Beverages'],
-                        ['long_term_days',   'Long-term',   'Canned goods, Dry goods'],
-                    ] as [$name, $label, $hint])
+                        ['short_term_days',  'Short-term'],
+                        ['medium_term_days', 'Medium-term'],
+                        ['long_term_days',   'Long-term'],
+                    ] as [$name, $label])
                     <div class="threshold-card">
                         <p class="threshold-label">{{ $label }}</p>
                         <div class="threshold-input-row">
@@ -43,7 +43,7 @@
                                    value="{{ old($name, $settings->$name ?? '') }}" />
                             <span class="threshold-unit">days</span>
                         </div>
-                        <p class="threshold-hint">{{ $hint }}</p>
+                    
                     </div>
                     @endforeach
                 </div>
@@ -53,9 +53,9 @@
             <div class="s-card">
                 <div class="s-section-title">
                     <div class="s-section-icon"><i class="bi bi-tags-fill"></i></div>
-                    <h2>New Categories Found</h2>
+                    <h2>Store Categories </h2>
                 </div>
-                <p class="s-section-sub">التصنيفات التالية تم سحبها من متجرك ولم يتم توزيعها بعد. اسحبها إلى المربعات أدناه لتفعيل التنبيهات لها.</p>
+                <p class="s-section-sub">Drag categories below to activate alerts.</p>
 
                 <div id="list-unmapped" class="bucket-list unmapped-list drop-zone" data-bucket="unmapped" style="min-height: 80px; border: 2px dashed var(--border); border-radius: 12px; padding: 15px; display: flex; flex-wrap: wrap; gap: 10px; background: var(--bg-soft);">
                     @forelse($unmappedCategories as $catName)
@@ -64,7 +64,7 @@
                         </div>
                     @empty
                         <div class="empty-state-msg" style="color: var(--muted); font-size: 0.9rem; width: 100%; text-align: center;">
-                             🎉 كل التصنيفات الحالية تم توزيعها بنجاح.
+                            All categories have been successfully distributed!
                         </div>
                     @endforelse
                 </div>

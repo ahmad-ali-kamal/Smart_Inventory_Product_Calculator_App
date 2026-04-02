@@ -40,7 +40,7 @@
         <li>
             <a href="{{ route('logout') }}"
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-               style="font-size:0.8rem; font-weight:700; color:hsl(282,50%,40%); display:flex; align-items:center; gap:0.4rem; padding:0.4rem 0.85rem; border-radius:0.65rem; white-space:nowrap;">
+               style="font-size:0.8rem; font-weight:700; color:hsl(210, 11%, 71%); hover:hsl(210, 16%, 93%); display:flex; align-items:center; gap:0.4rem; padding:0.4rem 0.85rem; border-radius:0.65rem; white-space:nowrap;">
                 <i class="bi bi-box-arrow-right" style="font-size:0.8rem;"></i> Logout
             </a>
         </li>
