@@ -112,13 +112,21 @@ class FetchProductsJob implements ShouldQueue
         );
 
         // تحديث الصور (مسح القديم وإضافة الجديد لضمان الدقة)
-        if (!empty($p['images'])) {
-            $product->images()->delete();
-            foreach ($p['images'] as $index => $imgData) {
+     
+        Log::debug("Product images data", [
+    'product_id' => $p['id'],
+    'images'     => $p['images'] ?? 'EMPTY',
+    'thumbnail'  => $p['thumbnail'] ?? 'EMPTY',
+    'image'      => $p['image'] ?? 'EMPTY',
+]);
+
+if (!empty($p['images'])) {
+    $product->images()->delete();
+    foreach ($p['images'] as $index => $imgData) {
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image_url'  => $imgData['url'],
-                    'is_main'    => $imgData['main'] ?? false,
+                    'is_main' => $index === 0,
                     'sort_order' => $imgData['sort'] ?? $index,
                 ]);
             }
@@ -127,3 +135,4 @@ class FetchProductsJob implements ShouldQueue
         Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']}");
     }
 }
+       

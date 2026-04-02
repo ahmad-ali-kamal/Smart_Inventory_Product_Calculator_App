@@ -77,11 +77,7 @@
                         <td>
                             <div class="prod-cell">
                                 <div class="prod-img-placeholder" title="Product image">
-                                    @if($product->images->isNotEmpty())
-                                        <img src="{{ $product->images->first()->url }}" alt="img" style="width:100%; border-radius:4px;">
-                                    @else
-                                        <i class="bi bi-image"></i>
-                                    @endif
+                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" style="width:100%; border-radius:4px;">
                                 </div>
                                 <div>
                                     <div class="prod-name">{{ $product->name }}</div>
