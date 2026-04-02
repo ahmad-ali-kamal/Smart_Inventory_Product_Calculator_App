@@ -2,243 +2,203 @@
  * inventory-settings.js
  * Settings Page — Drag & Drop, Threshold Badges, Toggle Switches
  */
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('📄 Initializing Inventory Settings...');
+document.addEventListener('DOMContentLoaded', function () {
 
-    /* ══════════════════════════════════════════
-       PAGE INIT — Verify pills are in correct buckets
-    ══════════════════════════════════════════ */
-    ['short', 'medium', 'long'].forEach(bucket => {
-        const list = document.getElementById('list-' + bucket);
-        if (list) {
-            const count = list.querySelectorAll('.category-pill').length;
-            console.log(`  Bucket "${bucket}": ${count} pills`);
+  /* ══════════════════════════════════════════
+     DRAG & DROP — Category Mapping
+  ══════════════════════════════════════════ */
+  var draggedEl  = null;
+  var dragSource = null;
+
+  function _attachPillDrag(pill) {
+    pill.addEventListener('dragstart', function (e) {
+      var _pill$closest$dataset, _pill$closest;
+      draggedEl  = pill;
+      dragSource = (_pill$closest$dataset = (_pill$closest = pill.closest('.drop-zone')) === null || _pill$closest === void 0 ? void 0 : _pill$closest.dataset.bucket) !== null && _pill$closest$dataset !== void 0 ? _pill$closest$dataset : null;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function () { return pill.style.opacity = '0.4'; }, 0);
+    });
+  }
+
+  document.querySelectorAll('.drop-zone').forEach(function (zone) {
+    var target = zone.dataset.bucket;
+
+    zone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+
+    zone.addEventListener('dragleave', function () {
+      zone.classList.remove('drag-over');
+    });
+
+    zone.addEventListener('drop', function (e) {
+      var _document$getElementB;
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+
+      if (!draggedEl || dragSource === target) {
+        if (draggedEl) draggedEl.style.opacity = '';
+        draggedEl = dragSource = null;
+        return;
+      }
+
+      var prevSource = dragSource;
+      draggedEl.style.opacity = '';
+      (_document$getElementB = document.getElementById('list-' + target)) === null || _document$getElementB === void 0 ? void 0 : _document$getElementB.appendChild(draggedEl);
+      _syncHiddenInputs(prevSource);
+      _syncHiddenInputs(target);
+      draggedEl = dragSource = null;
+    });
+  });
+
+  document.querySelectorAll('.category-pill').forEach(_attachPillDrag);
+
+  function _syncHiddenInputs(bucket) {
+    document.querySelectorAll('.hid-' + bucket).forEach(function (el) { return el.remove(); });
+    document.querySelectorAll('#list-' + bucket + ' .category-pill').forEach(function (pill) {
+      var inp   = document.createElement('input');
+      inp.type  = 'hidden';
+      inp.name  = 'category_mapping[' + bucket + '][]';
+      inp.value = pill.dataset.category;
+      inp.classList.add('hid-' + bucket);
+      document.getElementById('settingsForm').appendChild(inp);
+    });
+  }
+
+  /* ══════════════════════════════════════════
+     THRESHOLD — Live Badge Update
+  ══════════════════════════════════════════ */
+  var _bucketMap = {
+    short_term_days:  'short',
+    medium_term_days: 'medium',
+    long_term_days:   'long',
+  };
+
+  document.querySelectorAll('.threshold-input').forEach(function (input) {
+    input.addEventListener('input', function () {
+      var key = _bucketMap[input.name];
+      if (key) document.getElementById('badge-' + key).textContent = (input.value || '?') + 'd';
+    });
+  });
+
+  /* ══════════════════════════════════════════
+     TOGGLE SWITCHES — Automation
+  ══════════════════════════════════════════ */
+  function _toggleSwitch(id) {
+    var btn = document.getElementById('toggle-' + id);
+    if (!btn) return;
+    var willBeOn = !btn.classList.contains('on');
+
+    if (willBeOn) {
+      if (id === 'autodiscounts') _turnOff('aidiscounts');
+      if (id === 'aidiscounts')   _turnOff('autodiscounts');
+    }
+
+    btn.classList.toggle('on', willBeOn);
+    document.getElementById('val-' + id).value = willBeOn ? 1 : 0;
+    if (id === 'autodiscounts') _toggleDiscountPanel(willBeOn);
+  }
+
+  function _turnOff(id) {
+    var btn = document.getElementById('toggle-' + id);
+    if (!btn) return;
+    btn.classList.remove('on');
+    document.getElementById('val-' + id).value = 0;
+    if (id === 'autodiscounts') _toggleDiscountPanel(false);
+  }
+
+  function _toggleDiscountPanel(show) {
+    var panel = document.getElementById('discount-input-wrap');
+    if (!panel) return;
+    if (show) {
+      panel.style.opacity   = '0';
+      panel.style.transform = 'translateY(-6px)';
+      panel.style.display   = 'block';
+      requestAnimationFrame(function () {
+        panel.style.opacity   = '1';
+        panel.style.transform = 'translateY(0)';
+      });
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  document.querySelectorAll('.toggle-switch[data-toggle-id]').forEach(function (btn) {
+    btn.addEventListener('click', function () { return _toggleSwitch(btn.dataset.toggleId); });
+  });
+
+  /* ══════════════════════════════════════════
+     FORM SUBMIT — Validation + Category Sync
+  ══════════════════════════════════════════ */
+  var settingsForm = document.getElementById('settingsForm');
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', function (e) {
+
+      // ── 1. Validate numeric inputs ──
+      var discountPanel  = document.getElementById('discount-input-wrap');
+      var discountHidden = discountPanel && discountPanel.style.display === 'none';
+      var errors         = [];
+
+      settingsForm.querySelectorAll('.threshold-input, .discount-input, .discount-input-plain').forEach(function (input) {
+        if (discountHidden && input.closest('#discount-input-wrap')) return;
+
+        var val = Number(input.value);
+        input.classList.remove('input-error');
+        _removeInlineError(input);
+
+        if (input.value === '' || isNaN(val) || val < 0) {
+          input.classList.add('input-error');
+          _addInlineError(input, 'Must be a positive number.');
+          errors.push(input);
         }
+      });
+
+      if (errors.length > 0) {
+        e.preventDefault();
+        errors[0].focus();
+        return;
+      }
+
+      // ── 2. Rebuild category_mapping hidden inputs ──
+      document.querySelectorAll('input[name^="category_mapping"]').forEach(function (inp) { inp.remove(); });
+
+      ['short', 'medium', 'long'].forEach(function (bucket) {
+        var list = document.getElementById('list-' + bucket);
+        if (!list) return;
+        list.querySelectorAll('.category-pill').forEach(function (pill) {
+          var inp   = document.createElement('input');
+          inp.type  = 'hidden';
+          inp.name  = 'category_mapping[' + bucket + '][]';
+          inp.value = pill.dataset.category;
+          settingsForm.appendChild(inp);
+        });
+      });
     });
+  }
 
-    const mappingInputs = document.querySelectorAll('input[name^="category_mapping"]');
-    console.log(`  Pre-loaded hidden inputs: ${mappingInputs.length}`);
+  /* ══════════════════════════════════════════
+     HELPERS
+  ══════════════════════════════════════════ */
+  function _addInlineError(input, msg) {
+    // ── climb up to find the card container so the error sits below the full row ──
+    var container = input.closest('.threshold-card') || input.closest('.discount-input-wrap') || input.parentNode;
 
-    /* ══════════════════════════════════════════
-       DRAG & DROP — Category Mapping
-    ══════════════════════════════════════════ */
-    let draggedEl  = null;
-    let dragSource = null;
+    var err         = document.createElement('span');
+    err.className   = 'field-error';
+    err.textContent = msg;
+    container.appendChild(err);
 
-    function _attachPillDrag(pill) {
-        // ✅ تجنب إضافة listener مكرر
-        if (pill.dataset.dragAttached) return;
-        pill.dataset.dragAttached = '1';
+    input.addEventListener('input', function () {
+      input.classList.remove('input-error');
+      _removeInlineError(input);
+    }, { once: true });
+  }
 
-        pill.addEventListener('dragstart', e => {
-            draggedEl  = pill;
-            // ✅ نحدد المصدر من أقرب drop-zone أو unmapped list
-            dragSource = pill.closest('[data-bucket]')?.dataset.bucket ?? null;
-            e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => pill.style.opacity = '0.4', 0);
-        });
-
-        // ✅ dragend لإعادة الـ opacity في حال انتهى الدراج خارج zone
-        pill.addEventListener('dragend', () => {
-            pill.style.opacity = '';
-        });
-    }
-
-    document.querySelectorAll('.drop-zone').forEach(zone => {
-        const target = zone.dataset.bucket;
-
-        zone.addEventListener('dragover', e => {
-            e.preventDefault();
-            zone.classList.add('drag-over');
-        });
-
-        zone.addEventListener('dragleave', e => {
-            // ✅ تجنب الـ flicker عند المرور على child elements
-            if (!zone.contains(e.relatedTarget)) {
-                zone.classList.remove('drag-over');
-            }
-        });
-
-        zone.addEventListener('drop', e => {
-            e.preventDefault();
-            zone.classList.remove('drag-over');
-
-            if (!draggedEl) return;
-
-            // ✅ السماح بالنقل من unmapped إلى أي bucket والعكس
-            if (dragSource === target) {
-                draggedEl.style.opacity = '';
-                draggedEl = dragSource = null;
-                return;
-            }
-
-            const prevSource = dragSource;
-            draggedEl.style.opacity = '';
-
-            // ✅ نضيف الـ pill للقائمة الصحيحة داخل الـ zone
-            const targetList = document.getElementById('list-' + target) ?? zone;
-            targetList.appendChild(draggedEl);
-
-            // ✅ نعيد تفعيل الدراج على الـ pill بعد نقله (مهم!)
-            _attachPillDrag(draggedEl);
-
-            // ✅ نزامن الـ hidden inputs للمصدر والهدف
-            if (prevSource && prevSource !== 'unmapped') _syncHiddenInputs(prevSource);
-            if (target !== 'unmapped') _syncHiddenInputs(target);
-
-            // ✅ إخفاء رسالة "كل التصنيفات تم توزيعها" إذا عاد pill للـ unmapped
-            _syncUnmappedEmptyState();
-
-            draggedEl = dragSource = null;
-        });
-    });
-
-    // ✅ تفعيل الدراج على كل الـ pills الموجودة عند التحميل
-    document.querySelectorAll('.category-pill').forEach(_attachPillDrag);
-
-    function _syncHiddenInputs(bucket) {
-        // ✅ Only sync known mapping buckets to avoid sending 'unmapped' or unexpected buckets
-        const allowed = ['short', 'medium', 'long'];
-        if (allowed.indexOf(bucket) === -1) return;
-
-        // ✅ حذف الـ inputs القديمة لهذا الـ bucket
-        document.querySelectorAll('.hid-' + bucket).forEach(el => el.remove());
-
-        // ✅ إضافة input لكل pill موجود في الـ list
-        document.querySelectorAll(`#list-${bucket} .category-pill`).forEach(pill => {
-            const inp = document.createElement('input');
-            inp.type  = 'hidden';
-            inp.name  = `category_mapping[${bucket}][]`;
-            inp.value = pill.dataset.category;
-            inp.classList.add('hid-' + bucket);
-            document.getElementById('hiddenInputsContainer').appendChild(inp);
-        });
-    }
-
-    function _syncUnmappedEmptyState() {
-        const unmappedList = document.getElementById('list-unmapped');
-        if (!unmappedList) return;
-
-        const pills = unmappedList.querySelectorAll('.category-pill');
-        let emptyMsg = unmappedList.querySelector('.empty-state-msg');
-
-        if (pills.length === 0) {
-            if (!emptyMsg) {
-                emptyMsg = document.createElement('div');
-                emptyMsg.className = 'empty-state-msg';
-                emptyMsg.style.cssText = 'color: var(--muted); font-size: 0.9rem; width: 100%; text-align: center;';
-                emptyMsg.textContent = '🎉 كل التصنيفات الحالية تم توزيعها بنجاح.';
-                unmappedList.appendChild(emptyMsg);
-            }
-        } else {
-            emptyMsg?.remove();
-        }
-    }
-
-    /* ══════════════════════════════════════════
-       THRESHOLD — Live Badge Update
-    ══════════════════════════════════════════ */
-    const _bucketMap = {
-        short_term_days:  'short',
-        medium_term_days: 'medium',
-        long_term_days:   'long',
-    };
-
-    document.querySelectorAll('.threshold-input').forEach(input => {
-        input.addEventListener('input', () => {
-            const key = _bucketMap[input.name];
-            if (key) document.getElementById('badge-' + key).textContent = (input.value || '?') + 'd';
-        });
-    });
-
-    /* ══════════════════════════════════════════
-       TOGGLE SWITCHES — Automation
-    ══════════════════════════════════════════ */
-    function _toggleSwitch(id) {
-        const btn = document.getElementById('toggle-' + id);
-        if (!btn) return;
-        const willBeOn = !btn.classList.contains('on');
-
-        btn.classList.toggle('on', willBeOn);
-        document.getElementById('val-' + id).value = willBeOn ? 1 : 0;
-
-        if (id === 'autodiscounts') _toggleDiscountPanel(willBeOn);
-    }
-
-    function _toggleDiscountPanel(show) {
-        const panel = document.getElementById('discount-input-wrap');
-        if (!panel) return;
-        if (show) {
-            panel.style.opacity   = '0';
-            panel.style.transform = 'translateY(-6px)';
-            panel.style.display   = 'block';
-            requestAnimationFrame(() => {
-                panel.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-                panel.style.opacity   = '1';
-                panel.style.transform = 'translateY(0)';
-            });
-        } else {
-            panel.style.display = 'none';
-        }
-    }
-
-    document.querySelectorAll('.toggle-switch[data-toggle-id]').forEach(btn => {
-        btn.addEventListener('click', () => _toggleSwitch(btn.dataset.toggleId));
-    });
-
-    /* ══════════════════════════════════════════
-       FORM SUBMIT — Sync all hidden inputs
-    ══════════════════════════════════════════ */
-    const settingsForm = document.getElementById('settingsForm');
-    if (settingsForm) {
-        settingsForm.addEventListener('submit', function (e) {
-            console.log('📤 Form submission detected — preparing category mappings...');
-            
-            // ✅ CRITICAL: Remove ALL old hidden mapping inputs first
-            // This prevents stale data from the Blade template interfering
-            document.querySelectorAll('input[name^="category_mapping"]').forEach(inp => {
-                inp.remove();
-            });
-            console.log('  🗑️ Cleared all old category_mapping inputs');
-            
-            // ✅ Now recreate fresh hidden inputs from current DOM state
-            ['short', 'medium', 'long'].forEach(bucket => {
-                const list = document.getElementById('list-' + bucket);
-                if (!list) {
-                    console.warn(`  ⚠️ List not found for bucket: ${bucket}`);
-                    return;
-                }
-                
-                const pills = list.querySelectorAll('.category-pill');
-                console.log(`  📝 Creating inputs for "${bucket}" with ${pills.length} categories`);
-                
-                pills.forEach((pill, index) => {
-                    const inp = document.createElement('input');
-                    inp.type = 'hidden';
-                    inp.name = `category_mapping[${bucket}][]`;
-                    inp.value = pill.dataset.category;
-                    settingsForm.appendChild(inp);
-                    console.log(`    ✓ Added: ${pill.dataset.category} → ${bucket}`);
-                });
-            });
-            
-            // ✅ Final verification before submit
-            setTimeout(() => {
-                const mappingInputs = document.querySelectorAll('input[name^="category_mapping"]');
-                console.log(`✅ Total inputs ready to send: ${mappingInputs.length}`);
-                
-                const byBucket = { short: 0, medium: 0, long: 0 };
-                mappingInputs.forEach(inp => {
-                    const match = inp.name.match(/category_mapping\[(short|medium|long)\]/);
-                    if (match) {
-                        byBucket[match[1]]++;
-                        console.log(`  - ${inp.name}: "${inp.value}"`);
-                    }
-                });
-                
-                console.log(`📊 Final breakdown - Short: ${byBucket.short}, Medium: ${byBucket.medium}, Long: ${byBucket.long}`);
-            }, 10);
-        });
-    }
+  function _removeInlineError(input) {
+    var container = input.closest('.threshold-card') || input.closest('.discount-input-wrap') || input.parentNode;
+    var existing  = container.querySelector('.field-error');
+    if (existing) existing.remove();
+  }
 
 });
