@@ -73,3 +73,11 @@ Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(fu
     Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
     Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
 });
+
+// إشعارات
+Route::middleware(['auth'])->prefix('inventory')->group(function () {
+    // ... الروابط الموجودة ...
+    Route::get('/notifications', [App\Http\Controllers\Inventory\NotificationController::class, 'index'])->name('inventory.notifications');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Inventory\NotificationController::class, 'markAsRead'])->name('inventory.notifications.read');
+    Route::post('/notifications/read-all', [App\Http\Controllers\Inventory\NotificationController::class, 'markAllAsRead'])->name('inventory.notifications.readAll');
+});

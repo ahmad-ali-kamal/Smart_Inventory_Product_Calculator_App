@@ -35,5 +35,6 @@
     @yield('content')
 
     @stack('scripts')
+    <script src="{{ asset('js/notifications.js') }}" defer></script>
 </body>
 </html>

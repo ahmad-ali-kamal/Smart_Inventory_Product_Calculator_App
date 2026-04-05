@@ -42,7 +42,7 @@ class Batch extends Model
     // Relationships
     public function merchant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'merchant_id');
+        return $this->belongsTo(Merchant::class, 'merchant_id');
     }
 
     public function items(): HasMany
@@ -64,16 +64,31 @@ class Batch extends Model
 
     // Boot
     protected static function boot()
-    {
-        parent::boot();
+{
+    parent::boot();
 
-        // تحديث الأيام والحالة تلقائياً قبل الحفظ في الداتابيز
-        static::saving(function ($batch) {
-            $batch->calculateDaysUntilExpiry();
-            $batch->calculateStatus();
-        });
-    }
+    static::saving(function ($batch) {
+        $batch->calculateDaysUntilExpiry();
+        $batch->calculateStatus();
+    });
 
+    static::saved(function ($batch) {
+        $oldStatus = $batch->getOriginal('status');
+        $newStatus = $batch->status;
+
+        if ($oldStatus === $newStatus) return;
+        if (!in_array($newStatus, ['yellow', 'red'])) return;
+
+        $merchant = $batch->merchant;
+        if (!$merchant) return;
+
+        $merchant->notify(
+            new \App\Notifications\BatchExpiryNotification($batch, $newStatus)
+        );
+    });
+}
+        
+    
     // Accessors
     public function getIsExpiredAttribute(): bool
     {
