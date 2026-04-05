@@ -17,7 +17,7 @@
     {{-- Info Banner --}}
     <div class="inv-banner">
         <i class="bi bi-info-circle-fill"></i>
-        <span>اضغط على <strong>Add Expiry Date</strong> للبدء في تتبع تاريخ انتهاء الصلاحية لأي منتج.</span>
+        <span>Click<strong> “Add Expiry Date”</strong> to start tracking your product expiry dates</span>
     </div>
 
     {{-- Card --}}
@@ -25,20 +25,31 @@
         <div class="inv-card-head">
             <h2 class="inv-card-title"><i class="bi bi-box-seam"></i> Products</h2>
 
-            <div class="inv-filter-tabs">
-                <button class="inv-filter-tab active" data-filter="all">All</button>
-                <button class="inv-filter-tab" data-filter="short">Short-term</button>
-                <button class="inv-filter-tab" data-filter="medium">Medium-term</button>
-                <button class="inv-filter-tab" data-filter="long">Long-term</button>
-            </div>
-            
-            {{-- زر المزامنة لاستدعاء دالة الـ Sync في الكنترولر --}}
-            <form action="{{ route('inventory.products.sync') }}" method="POST" style="margin-left: auto;">
-                @csrf
-                <button type="submit" class="btn-sync-head">
-                    <i class="bi bi-arrow-repeat"></i> Sync Products
-                </button>
-            </form>
+            {{-- جديد - حطه --}}
+<div class="inv-head-actions">
+
+    <div class="inv-filter-dropdown" id="filterDropdown">
+        <button class="inv-action-btn" id="filterToggle" onclick="toggleFilterMenu()">
+            <i class="bi bi-funnel"></i>
+            <span id="filterLabel">Filter</span>
+            <i class="bi bi-chevron-down inv-chevron" id="filterChevron"></i>
+        </button>
+        <div class="inv-filter-menu" id="filterMenu">
+            <button class="inv-filter-option active" data-filter="all"    onclick="selectFilter(this)">All</button>
+            <button class="inv-filter-option"        data-filter="short"  onclick="selectFilter(this)">Short</button>
+            <button class="inv-filter-option"        data-filter="medium" onclick="selectFilter(this)">Medium</button>
+            <button class="inv-filter-option"        data-filter="long"   onclick="selectFilter(this)">Long</button>
+        </div>
+    </div>
+
+    <form action="{{ route('inventory.products.sync') }}" method="POST">
+        @csrf
+        <button type="submit" class="inv-action-btn">
+            <i class="bi bi-arrow-repeat"></i>
+        </button>
+    </form>
+
+</div>
         </div>
 
         <div class="inv-table-wrap">
@@ -57,23 +68,28 @@
                     @php 
                         $hasBatches = $product->batchItems->count() > 0;
                         // تحويل الدفعات لتنسيق يفهمه الـ JS
-                        $jsBatches = $product->batchItems->map(function($item) {
-                            return [
-                                'label' => $item->batch->label ?? 'Batch',
-                                'qty' => $item->quantity,
-                                'status' => $item->batch->status ?? 'green',
-                                'expiry' => $item->batch->expiry_date ?? ''
-                            ];
-                        });
+                       $jsBatches = $product->batchItems->map(function($item) {
+    return [
+        'label'      => $item->batch->batch_code ?? 'Batch',
+        'qty'        => $item->quantity,
+        'status'     => $item->batch->status ?? 'green',
+        'expiry'     => $item->batch->expiry_date ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d') : '',
+        'batch_code' => $item->batch->batch_code ?? null,
+    ];
+});
                     @endphp
 
                     {{-- Product Row --}}
-                    <tr data-id="{{ $product->id }}"
-                        data-filter="{{ $product->bucket_type }}"
-                        data-batches="{{ json_encode($jsBatches) }}"
-                        data-expiry="{{ $product->expiry_date ?? '' }}"
-                        data-expiry-type="{{ $hasBatches ? 'batch' : ($product->expiry_date ? 'single' : '') }}">
-
+                    @php
+    $firstBatch = $product->batchItems->first()?->batch;
+    $isSingle = $product->batchItems->count() === 1;
+@endphp
+<tr data-id="{{ $product->id }}"
+    data-filter="{{ $product->bucket_type }}"
+    data-batches="{{ json_encode($jsBatches) }}"
+    data-expiry="{{ $firstBatch && $isSingle ? \Carbon\Carbon::parse($firstBatch->expiry_date)->format('Y-m-d') : '' }}"
+    data-batch-code="{{ $firstBatch?->batch_code ?? '' }}"
+    data-expiry-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                         <td>
                             <div class="prod-cell">
                                 <div class="prod-img-placeholder" title="Product image">
@@ -141,12 +157,13 @@
 
                     {{-- Batch Rows (عرضها في حال وجود دفعات) --}}
                     @foreach($product->batchItems as $item)
-                        <tr class="batch-row" data-parent="{{ $product->id }}" data-filter="{{ $product->bucket_type }}" style="display:none;">
+                        {{-- جديد --}}
+<tr class="batch-row" data-parent="{{ $product->id }}" data-filter="{{ $product->bucket_type }}">
                             <td>
                                 <div class="batch-indent">
                                     <span class="batch-label-field">
                                         <i class="bi bi-layers"></i>
-                                        {{ $item->batch->label ?? 'Default Batch' }}
+                                        {{ $item->batch->batch_code ?? 'Default Batch' }}
                                     </span>
                                 </div>
                             </td>

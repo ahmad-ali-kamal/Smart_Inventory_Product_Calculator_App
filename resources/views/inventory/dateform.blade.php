@@ -1,28 +1,3 @@
-{{--
-    Partial : inventory/dateform.blade.php
-    Include : @include('inventory.dateform')
-
-    ── API Endpoints ──────────────────────────────────────
-    ADD  single  POST  /api/inventory/expiry/single
-                 Body  { product_id, expiry_date, status }
-
-    ADD  batch   POST  /api/inventory/expiry/batch
-                 Body  { product_id, batches: [{label, qty, expiry_date, status}] }
-
-    EDIT         PUT   /api/inventory/expiry/{product_id}
-                 Body  { product_id, type, expiry_date?, batches? }
-
-    ── Success response ───────────────────────────────────
-    { success: true, type: 'single'|'batch', expiry_date?, batches? }
-
-    ── After success ──────────────────────────────────────
-    Calls Inventory.onSaveSuccess(productId, data, wasEdit)
-    defined in inventory-products.js
-
-    ── JS wiring ─────────────────────────────────────────
-    All buttons use id="" only — no onclick.
-    inventory-dateform.js attaches all listeners on DOMContentLoaded.
---}}
 
 <div class="ef-backdrop" id="efBackdrop">
     <div class="ef-card" id="efCard">
@@ -60,6 +35,7 @@
             <p class="ef-panel-title"><i class="bi bi-calendar3"></i> Single Expiry Date</p>
             <label class="ef-label" for="efSingleDate">Expiry Date</label>
             <input type="date" class="ef-input" id="efSingleDate">
+            <input type="hidden" id="efSingleBatchCode" value="">
         </div>
 
         <div class="ef-panel ef-panel-no" id="panelNo">

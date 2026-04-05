@@ -1,21 +1,6 @@
 /**
  * inventory-dateform.js
  * Expiry Date Modal — Add / Edit (single date or batch-level)
- *
- * exposes window.ExpiryForm because the blade partial renders the modal HTML
- * statically and products.js calls ExpiryForm.open*() to open it.
- *
- * API Endpoints:
- *   ADD  single  POST  /api/inventory/expiry/single   { product_id, expiry_date, status }
- *   ADD  batch   POST  /api/inventory/expiry/batch    { product_id, batches:[{label,qty,expiry_date,status}] }
- *   EDIT         PUT   /api/inventory/expiry/{id}     { product_id, type, expiry_date?, batches? }
- *
- * Success callback: Inventory.onSaveSuccess(productId, data, wasEdit)
- *
- * Fixes:
- *   1. close() now fully resets state so re-opening always works
- *   2. pageshow listener handles bfcache (back-forward cache) restore
- *   3. toggleBatch eye-icon state is preserved correctly
  */
 window.ExpiryForm = (() => {
 
@@ -79,6 +64,7 @@ window.ExpiryForm = (() => {
         $('panelYes').classList.remove('show');
         $('panelNo').classList.remove('show');
         $('efSingleDate').value        = '';
+        $('efSingleBatchCode').value = '';
         $('efBatchList').innerHTML     = '';
         $('efSaveBtn').disabled        = true;
 
@@ -101,29 +87,29 @@ window.ExpiryForm = (() => {
         const badgeHtml = status
             ? _statusBadgeHtml(status, idx)
             : `<span class="ef-status-badge" id="bStatus-${idx}"></span>`;
-
-        item.innerHTML = `
-            <div class="ef-batch-head">
-                <span class="ef-batch-lbl" id="bLbl-${idx}">
-                    <i class="bi bi-layers" style="font-size:0.78rem;color:var(--mauve)"></i>
-                    Batch ${idx} ${badgeHtml}
-                </span>
-                <button class="ef-batch-remove" data-idx="${idx}" title="Remove">
-                    <i class="bi bi-trash3"></i>
-                </button>
-            </div>
-            <div class="ef-batch-grid">
-                <div>
-                    <label class="ef-label">Quantity</label>
-                    <input type="number" class="ef-input" id="bQty-${idx}" min="1"
-                           value="${prefill.qty ?? ''}" placeholder="0">
-                </div>
-                <div>
-                    <label class="ef-label">Expiry Date</label>
-                    <input type="date" class="ef-input" id="bDate-${idx}"
-                           value="${prefill.expiry ?? ''}">
-                </div>
-            </div>`;
+item.innerHTML = `
+    <div class="ef-batch-head">
+        <span class="ef-batch-lbl" id="bLbl-${idx}">
+            <i class="bi bi-layers" style="font-size:0.78rem;color:var(--mauve)"></i>
+            Batch ${idx} ${badgeHtml}
+        </span>
+        <button class="ef-batch-remove" data-idx="${idx}" title="Remove">
+            <i class="bi bi-trash3"></i>
+        </button>
+    </div>
+    <div class="ef-batch-grid">
+        <div>
+            <label class="ef-label">Quantity</label>
+            <input type="number" class="ef-input" id="bQty-${idx}" min="1"
+                   value="${prefill.qty ?? ''}" placeholder="0">
+        </div>
+        <div>
+            <label class="ef-label">Expiry Date</label>
+            <input type="date" class="ef-input" id="bDate-${idx}"
+                   value="${prefill.expiry ?? ''}">
+        </div>
+    </div>
+    <input type="hidden" id="bCode-${idx}" value="${prefill.batch_code ?? ''}">`;
 
         item.querySelector('.ef-batch-remove')
             .addEventListener('click', () => removeBatch(idx));
@@ -154,7 +140,12 @@ window.ExpiryForm = (() => {
             const qty = parseInt($(`bQty-${id}`)?.value) || 0;
             const dt  = $(`bDate-${id}`)?.value;
             if (qty > 0 && dt) {
-                batches.push({ label: `Batch ${i + 1}`, qty, expiry_date: dt, status: _calcStatus(dt) });
+              batches.push({ 
+    qty, 
+    expiry_date: dt, 
+    batch_code: $(`bCode-${id}`)?.value || null,
+    status: _calcStatus(dt) 
+});
             }
         });
         return batches;
@@ -208,26 +199,27 @@ window.ExpiryForm = (() => {
         _show();
     }
 
-    function openSingle(pid, productName, dateValue) {
-        productId = pid;
-        isEdit    = true;
-        mode      = true;
-        _reset(productName);
-        $('efTitle').textContent    = 'Edit Expiry Date';
-        $('efIcon').className       = 'bi bi-pencil-square';
-        $('efEditBanner').classList.add('show');
-        $('btnYes').className       = 'ef-toggle-btn active-yes';
-        $('panelYes').classList.add('show');
-        $('efSingleDate').value     = dateValue ?? '';
-        validate();
-        _show();
-    }
+    function openSingle(pid, productName, dateValue, batchCode) {
+    productId = pid;
+    isEdit    = true;
+    _reset(productName); // reset first, then set mode
+    mode      = true;    // set mode after reset so it doesn't get cleared
+    $('efTitle').textContent    = 'Edit Expiry Date';
+    $('efIcon').className       = 'bi bi-pencil-square';
+    $('efEditBanner').classList.add('show');
+    $('btnYes').className       = 'ef-toggle-btn active-yes';
+    $('panelYes').classList.add('show');
+    $('efSingleDate').value       = dateValue ?? '';
+    $('efSingleBatchCode').value  = batchCode ?? '';
+    validate();
+    _show();
+}
 
     function openBatch(pid, productName, prefillBatches = []) {
         productId = pid;
         isEdit    = prefillBatches.length > 0;
-        mode      = false;
         _reset(productName);
+        mode = false;
         $('efTitle').textContent = isEdit ? 'Edit Expiry Date' : 'Add Expiry Date';
         $('efIcon').className    = isEdit ? 'bi bi-pencil-square' : 'bi bi-calendar-plus';
         isEdit
@@ -291,23 +283,30 @@ window.ExpiryForm = (() => {
         const btn = $('efSaveBtn');
         btn.disabled  = true;
         btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:ef-spin 0.7s linear infinite"></i> Saving...';
-
+        const collectedBatches = mode === false ? _collectBatches() : [];
         let endpoint, method, payload;
 
         if (mode === true) {
             const date = $('efSingleDate').value;
-            endpoint   = isEdit ? `/api/inventory/expiry/${productId}` : '/api/inventory/expiry/single';
-            method     = isEdit ? 'PUT' : 'POST';
-            payload    = { product_id: productId, type: 'single', expiry_date: date, status: _calcStatus(date) };
+            endpoint   = `/inventory/products/${productId}/expiry`;
+            payload    =  {
+            product_id:   productId, 
+            same_expiry:  true, 
+            single_batch: { expiry_date: date, batch_code:  $('efSingleBatchCode')?.value || null }
+};
         } else {
-            endpoint   = isEdit ? `/api/inventory/expiry/${productId}` : '/api/inventory/expiry/batch';
-            method     = isEdit ? 'PUT' : 'POST';
-            payload    = { product_id: productId, type: 'batch', batches: _collectBatches() };
+            endpoint = `/inventory/products/${productId}/expiry`;
+            payload  = {product_id:  productId,  same_expiry: false,  batches: collectedBatches.map(b => ({
+            expiry_date: b.expiry_date,
+            quantity:    b.qty,
+            batch_code: b.batch_code || null
+        }))
+    };
         }
 
         try {
             const res  = await fetch(endpoint, {
-                method,
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -318,8 +317,11 @@ window.ExpiryForm = (() => {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                Inventory.onSaveSuccess(productId, data, isEdit);
-                close();
+               const successPayload = mode === true
+    ? { type: 'single', expiry_date: payload.single_batch.expiry_date, batch_code: payload.single_batch.batch_code }
+    : { type: 'batch',  batches: data.batches };
+               Inventory.onSaveSuccess(productId, successPayload, isEdit);
+               close();
             } else {
                 _showError(data.message ?? 'Something went wrong. Please try again.');
             }

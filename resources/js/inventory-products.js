@@ -1,14 +1,6 @@
 /**
  * inventory-products.js
  * Products Page — Filter, Batch Toggle, Form Bridge, Toast
- *
- * exposes window.Inventory because dateform.js and discountform.js
- * need to call back into this module after a successful save.
- *
- * Fixes:
- *   1. toggleBatch — eye icon state syncs correctly on every toggle
- *   2. bfcache fix via pageshow — filter re-applies on back navigation
- *   3. _applyFilter called on DOMContentLoaded to set correct initial count
  */
 window.Inventory = (() => {
 
@@ -40,38 +32,38 @@ window.Inventory = (() => {
        eye icon: closed = bi-eye | open = bi-eye-slash
     ══════════════════════════════════════════ */
     function toggleBatch(productId) {
-        const rows   = document.querySelectorAll(`.batch-row[data-parent="${productId}"]`);
-        const eye    = document.getElementById(`eye-${productId}`);
-        if (!rows.length) return;
+    const rows = document.querySelectorAll(`.batch-row[data-parent="${productId}"]`);
+    const eye  = document.getElementById(`eye-${productId}`);
+    if (!rows.length) return;
 
-        const isOpen = rows[0].classList.contains('open');
+    const isOpen = rows[0].classList.contains('open');
 
-        rows.forEach(r => {
-            r.classList.toggle('open', !isOpen);
-            // show/hide the row — batch rows start as display:none
-            r.style.display = !isOpen ? '' : 'none';
-        });
+    rows.forEach(r => {
+    r.classList.toggle('open', !isOpen);
+    r.style.display = !isOpen ? 'table-row' : 'none';
+});
 
-        // icon: eye = "rows hidden", eye-slash = "rows visible"
-        if (eye) eye.className = !isOpen ? 'bi bi-eye-slash' : 'bi bi-eye';
-    }
+    if (eye) eye.className = !isOpen ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
 
     /* ══════════════════════════════════════════
        OPEN EXPIRY FORM
     ══════════════════════════════════════════ */
     function openForm(productId, productName) {
-        const row = document.querySelector(`#invBody tr[data-id="${productId}"]`);
-        if (!row) return;
+    const row = document.querySelector(`#invBody tr[data-id="${productId}"]`);
+    if (!row) return;
 
-        let batches = [];
-        try { batches = JSON.parse(row.dataset.batches || '[]'); } catch (e) {}
+    let batches = [];
+    try { batches = JSON.parse(row.dataset.batches || '[]'); } catch (e) {}
 
-        if (row.dataset.expiryType === 'single' || (batches.length === 0 && row.dataset.expiry)) {
-            ExpiryForm.openSingle(productId, productName, row.dataset.expiry);
-        } else {
-            ExpiryForm.openBatch(productId, productName, batches);
-        }
+    if (row.dataset.expiryType === 'single' || (batches.length === 0 && row.dataset.expiry)) {
+        ExpiryForm.openSingle(productId, productName, row.dataset.expiry, row.dataset.batchCode);
+    } else if (row.dataset.expiryType === 'batch' || batches.length > 0) {
+        ExpiryForm.openBatch(productId, productName, batches);
+    } else {
+        ExpiryForm.open(productId, productName);
     }
+}
 
     /* ══════════════════════════════════════════
        CALLED BY ExpiryForm AFTER SUCCESSFUL SAVE
@@ -83,9 +75,10 @@ window.Inventory = (() => {
         if (!row) return;
 
         if (payload.type === 'single') {
-            row.dataset.expiry     = payload.expiry_date;
-            row.dataset.expiryType = 'single';
-            row.dataset.batches    = '[]';
+    row.dataset.expiry     = payload.expiry_date;
+    row.dataset.expiryType = 'single';
+    row.dataset.batches    = '[]';
+    if (payload.batch_code) row.dataset.batchCode = payload.batch_code;
             expiryCell.innerHTML   = `
                 <div class="exp-cell">
                     <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
@@ -93,10 +86,16 @@ window.Inventory = (() => {
                 </div>`;
 
         } else if (payload.type === 'batch' && payload.batches?.length) {
+            // ❗ احذف أي batch rows قديمة
+document.querySelectorAll(`.batch-row[data-parent="${productId}"]`)
+    .forEach(r => r.remove());
             const normalized = payload.batches.map(b => ({
-                label: b.label, qty: b.qty, status: b.status,
-                expiry: b.expiry_date ?? b.expiry,
-            }));
+    label:      b.label,
+    qty:        b.qty,
+    status:     b.status,
+    expiry: (b.expiry_date ?? b.expiry ?? '').substring(0, 10),
+    batch_code: b.batch_code ?? null,
+}));
             row.dataset.batches    = JSON.stringify(normalized);
             row.dataset.expiryType = 'batch';
             row.dataset.expiry     = '';
@@ -108,9 +107,54 @@ window.Inventory = (() => {
                     </button>
                     <span>${count} batch${count > 1 ? 'es' : ''}</span>
                 </div>`;
+       let lastRow = row;
 
-            expiryCell.querySelector('.btn-eye')
-                .addEventListener('click', () => toggleBatch(productId));
+normalized.forEach((b) => {
+    const tr = document.createElement('tr');
+    tr.className = 'batch-row';
+    tr.dataset.parent = productId;
+
+    const statusClass = b.status || 'green';
+    const statusText =
+        statusClass === 'red' ? 'Expired' :
+        statusClass === 'yellow' ? 'Approaching' : 'Safe';
+
+    tr.innerHTML = `
+        <td>
+            <div class="batch-indent">
+                <span class="batch-label-field">
+                    <i class="bi bi-layers"></i>
+                   ${b.batch_code || 'N/A'}
+                </span>
+            </div>
+        </td>
+
+        <td style="color:var(--muted);">
+            ${b.qty} units
+        </td>
+
+        <td>
+            <span class="badge b-${statusClass}">
+                ${statusText}
+            </span>
+        </td>
+
+        <td>
+            <div class="exp-cell">
+                <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
+                <span style="color:var(--muted);">
+                   ${b.expiry || 'No Date'}
+                </span>
+            </div>
+        </td>
+
+        <td></td>
+    `;
+
+    // 👇 هذا يخلي الصفوف تطلع تحت بعض بشكل مرتب
+    lastRow.insertAdjacentElement('afterend', tr);
+    lastRow = tr;
+});
         }
 
         if (actionBtn) {
@@ -148,87 +192,123 @@ window.Inventory = (() => {
     }
 
     /* ══════════════════════════════════════════
-       FILTER TABS
+       FILTER — DROPDOWN (الجديد)
     ══════════════════════════════════════════ */
-    function filter(btn) {
-        currentFilter = btn.dataset.filter;
-        document.querySelectorAll('.inv-filter-tab').forEach(t => t.classList.remove('active'));
+    function _applyFilter() {
+    let count = 0;
+
+    document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').forEach(row => {
+        const visible = currentFilter === 'all' || row.dataset.filter === currentFilter;
+        row.style.display = visible ? '' : 'none';
+        if (visible) count++;
+
+        // ← البحث عن product id من data-id مباشرة
+        const pid = row.dataset.id;
+        if (pid) {
+            document.querySelectorAll(`.batch-row[data-parent="${pid}"]`).forEach(r => {
+                if (!visible) {
+                    r.classList.remove('open');
+                    r.style.display = 'none';
+                } else {
+                    // جديد
+if (r.classList.contains('open')) {
+    r.style.display = 'table-row';
+} else {
+    r.style.removeProperty('display');
+}
+                }
+            });
+        }
+    });
+
+    const footer = document.getElementById('invFooter');
+    const empty  = document.getElementById('invEmpty');
+    if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
+    if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+}
+    function toggleFilterMenu() {
+        const menu    = document.getElementById('filterMenu');
+        const chevron = document.getElementById('filterChevron');
+        if (!menu) return;
+        const isOpen = menu.classList.contains('open');
+        menu.classList.toggle('open', !isOpen);
+        chevron?.classList.toggle('open', !isOpen);
+    }
+
+    function selectFilter(btn) {
+        // تحديث active state في القائمة
+        document.querySelectorAll('.inv-filter-option').forEach(o => o.classList.remove('active'));
         btn.classList.add('active');
+
+        // تحديث نص الزر
+        document.getElementById('filterLabel').textContent = btn.textContent.trim();
+
+        // إغلاق القائمة
+        document.getElementById('filterMenu').classList.remove('open');
+        document.getElementById('filterChevron')?.classList.remove('open');
+
+        // ← الحل: تحديث currentFilter مباشرة ثم تطبيق الفلتر
+        currentFilter = btn.dataset.filter;
         _applyFilter();
     }
 
-    function _applyFilter() {
-        let count = 0;
-
-        document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').forEach(row => {
-            const visible = currentFilter === 'all' || row.dataset.filter === currentFilter;
-            row.style.display = visible ? '' : 'none';
-            if (visible) count++;
-
-            // keep batch rows in sync with parent visibility
-            const eyeEl = row.querySelector('[id^="eye-"]');
-            if (eyeEl) {
-                const pid = eyeEl.id.replace('eye-', '');
-                document.querySelectorAll(`.batch-row[data-parent="${pid}"]`).forEach(r => {
-                    if (!visible) {
-                        r.classList.remove('open');
-                        r.style.display = 'none';
-                    } else {
-                        // keep their current open/closed state
-                        r.style.display = r.classList.contains('open') ? '' : 'none';
-                    }
-                });
-            }
-        });
-
-        const footer = document.getElementById('invFooter');
-        const empty  = document.getElementById('invEmpty');
-        if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
-        if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
-    }
 
     /* ══════════════════════════════════════════
        EVENT DELEGATION
     ══════════════════════════════════════════ */
     function _initListeners() {
-        // Filter tabs
-        document.querySelectorAll('.inv-filter-tab').forEach(tab => {
-            tab.addEventListener('click', () => filter(tab));
-        });
+    // Expiry + batch-edit + eye buttons — single delegated listener on tbody
+    document.getElementById('invBody')?.addEventListener('click', e => {
+        const expiryBtn = e.target.closest('.btn-expiry, .btn-edit-batch');
+        if (expiryBtn) {
+            openForm(expiryBtn.dataset.productId, expiryBtn.dataset.productName);
+            return;
+        }
+        const eyeBtn = e.target.closest('.btn-eye');
+        if (eyeBtn && eyeBtn.dataset.productId) {
+            toggleBatch(eyeBtn.dataset.productId);
+        }
+    });
 
-        // Expiry + batch-edit + eye buttons — single delegated listener on tbody
-        document.getElementById('invBody')?.addEventListener('click', e => {
-            const expiryBtn = e.target.closest('.btn-expiry, .btn-edit-batch');
-            if (expiryBtn) {
-                openForm(expiryBtn.dataset.productId, expiryBtn.dataset.productName);
-                return;
-            }
-            const eyeBtn = e.target.closest('.btn-eye');
-            if (eyeBtn && eyeBtn.dataset.productId) {
-                toggleBatch(eyeBtn.dataset.productId);
-            }
-        });
+    // إغلاق القائمة عند الضغط خارجها
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#filterDropdown')) {
+            document.getElementById('filterMenu')?.classList.remove('open');
+            document.getElementById('filterChevron')?.classList.remove('open');
+        }
+    });
 
-        // apply filter on load to set correct footer count
-        _applyFilter();
-    }
+    // apply filter on load
+   // count on load only
+const count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
+const footer = document.getElementById('invFooter');
+const empty  = document.getElementById('invEmpty');
+if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
+if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+}
 
     document.addEventListener('DOMContentLoaded', _initListeners);
 
     // ── bfcache fix: re-apply filter state after back navigation ──
-    window.addEventListener('pageshow', e => {
-        if (e.persisted) {
-            // restore active filter tab UI
-            const activeTab = document.querySelector(`.inv-filter-tab[data-filter="${currentFilter}"]`);
-            if (activeTab) {
-                document.querySelectorAll('.inv-filter-tab').forEach(t => t.classList.remove('active'));
-                activeTab.classList.add('active');
-            }
-            _applyFilter();
-        }
-    });
+  window.addEventListener('pageshow', e => {
+    if (e.persisted) {
+        const count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
+        const footer = document.getElementById('invFooter');
+        const empty  = document.getElementById('invEmpty');
+        if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
+        if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+    }
+});
+    /* ── كشف الدوال للـ window ── */
+    window.toggleFilterMenu = toggleFilterMenu;
+    window.selectFilter     = selectFilter;
 
     /* ── Public API ── */
-    return { toggleBatch, openForm, onSaveSuccess, onDiscountSuccess, filter };
+    return {
+        toggleBatch,
+        openForm,
+        onSaveSuccess,
+        onDiscountSuccess,
+    };
 
 })();

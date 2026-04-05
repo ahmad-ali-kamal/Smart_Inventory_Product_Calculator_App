@@ -35,14 +35,14 @@ class ProductExpiryController extends Controller
             
             // في حال تاريخ واحد
             'single_batch' => 'required_if:same_expiry,true|array',
-            'single_batch.expiry_date' => 'required_if:same_expiry,true|date|after:today',
+            'single_batch.expiry_date' => 'required_if:same_expiry,true|date|after:yesterday',
             'single_batch.batch_code' => 'nullable|string',
             'single_batch.manufactured_date' => 'nullable|date|before:single_batch.expiry_date',
             
             // في حال دفعات متعددة
             'batches' => 'required_if:same_expiry,false|array|min:1',
             'batches.*.quantity' => 'required_with:batches|integer|min:1',
-            'batches.*.expiry_date' => 'required_with:batches|date|after:today',
+            'batches.*.expiry_date' => 'required_with:batches|date|after:yesterday',
             'batches.*.batch_code' => 'nullable|string',
         ]);
 
@@ -51,35 +51,58 @@ class ProductExpiryController extends Controller
         try {
             $merchant = auth()->user();
 
-            // 4. حذف الدفعات القديمة المرتبطة بهذا المنتج فقط (لتجنب التكرار عند التعديل)
-            $product->batchItems()->delete();
+//4. save old batch codes before deleting
+$oldBatchCodes = $product->batchItems()
+    ->with('batch')
+    ->get()
+    ->map(fn($item) => $item->batch?->batch_code)
+    ->filter()
+    ->values()
+    ->toArray();
 
-            if ($request->same_expiry) {
-                // حالة الدفعة الواحدة
-                $this->createSingleBatch($merchant, $product, $request->single_batch);
-            } else {
-                // حالة الدفعات المتعددة
-                $this->createMultipleBatches($merchant, $product, $request->batches);
-            }
+$oldSingleCode = $oldBatchCodes[0] ?? null;
 
-            DB::commit();
+$batchIds = $product->batchItems()->pluck('batch_id');
+$product->batchItems()->delete();
+Batch::whereIn('id', $batchIds)->delete();
 
-            // 5. مسح الكاش لتحديث الداشبورد
-            Cache::forget("inventory_dashboard_{$merchant->id}");
+if ($request->same_expiry) {
+    $data = $request->single_batch;
+    $data['batch_code'] = $oldSingleCode ?? $data['batch_code'] ?? 'B-'.Str::upper(Str::random(6));
+    $this->createSingleBatch($merchant, $product, $data);
+    $savedBatchCode = $data['batch_code'];
+} else {
+    $batches = $request->batches;
+    foreach ($batches as $i => $b) {
+        $batches[$i]['batch_code'] = $oldBatchCodes[$i] ?? $b['batch_code'] ?? null;
+    }
+    $this->createMultipleBatches($merchant, $product, $batches);
+    $savedBatchCode = null;
+}
 
-            // 6. تسجيل النشاط
-            ActivityLog::log(
-                $merchant->id,
-                'expiry_added',
-                "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}",
-                $product
-            );
+DB::commit();
 
-            return $this->respondWithSuccess('تم حفظ تواريخ الانتهاء بنجاح', [
-                'type' => $request->same_expiry ? 'single' : 'batch',
-                'expiry_date' => $request->same_expiry ? $request->single_batch['expiry_date'] : null,
-                'batches' => !$request->same_expiry ? $request->batches : []
-            ]);
+Cache::forget("inventory_dashboard_{$merchant->id}");
+
+ActivityLog::log(
+    $merchant->id,
+    'expiry_added',
+    "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}",
+    $product
+);
+
+return $this->respondWithSuccess('تم حفظ تواريخ الانتهاء بنجاح', [
+    'type'        => $request->same_expiry ? 'single' : 'batch',
+    'expiry_date' => $request->same_expiry ? $request->single_batch['expiry_date'] : null,
+    'batch_code'  => $savedBatchCode,
+    'batches' => !$request->same_expiry ? $product->fresh()->batchItems()->with('batch')->get()->map(fn($item) => [
+    'batch_code' => $item->batch?->batch_code,
+    'qty'        => $item->quantity,
+    'expiry'     => $item->batch?->expiry_date?->format('Y-m-d'),
+    'status'     => $item->batch?->status,
+    'label'      => $item->batch?->batch_code,
+])->toArray() : []
+]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -164,7 +187,9 @@ class ProductExpiryController extends Controller
             return abort(403);
         }
 
-        $product->batchItems()->delete();
+       $batchIds = $product->batchItems()->pluck('batch_id');
+$product->batchItems()->delete();
+Batch::whereIn('id', $batchIds)->delete();
         Cache::forget("inventory_dashboard_" . auth()->id());
 
         return $this->respondWithSuccess('تم حذف تواريخ الانتهاء بنجاح');
