@@ -40,8 +40,7 @@ class FetchProductsJob implements ShouldQueue
     {
         Log::info("--- [Salla Sync] Start fetching page {$this->page} for merchant: {$this->merchant->name} ---");
 
-        // 🏆 التعديل: جلب التوكن من جدول salla_apps بدلاً من جدول التجار
-        // نفضل استخدام توكن تطبيق الإدارة (management) للمزامنة، أو أول توكن متاح
+        // جلب التوكن من جدول salla_apps
         $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first() 
                     ?? $this->merchant->sallaApps()->first();
 
@@ -104,7 +103,7 @@ class FetchProductsJob implements ShouldQueue
             $categoryName = $mainCat['name'] ?? 'General';
         }
 
-        // تحديث أو إنشاء المنتج
+        // تحديث أو إنشاء المنتج (هنا نمنع التكرار بناءً على salla_product_id)
         $product = Product::updateOrCreate(
             [
                 'merchant_id' => $this->merchant->id, 
@@ -121,12 +120,11 @@ class FetchProductsJob implements ShouldQueue
             ]
         );
 
-        // تحديث الصور
+        // تحديث الصور (نمسح القديم ونضيف الجديد للمنتج المحدث)
         if (!empty($p['images'])) {
             $product->images()->delete();
             foreach ($p['images'] as $index => $imgData) {
-                ProductImage::create([
-                    'product_id' => $product->id,
+                $product->images()->create([
                     'image_url'  => $imgData['url'],
                     'is_main'    => $index === 0,
                     'sort_order' => $imgData['sort'] ?? $index,
