@@ -32,7 +32,7 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
     
     // الداشبورد
     Route::get('/', [InventoryDashboardController::class, 'index'])->name('inventory.dashboard');
-
+    
     // المنتجات
     Route::get('/products', [ProductListController::class, 'index'])->name('inventory.products.index');
     Route::get('/products/{product_id}', [ProductListController::class, 'show'])->name('inventory.products.show');

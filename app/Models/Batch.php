@@ -85,8 +85,64 @@ class Batch extends Model
         $merchant->notify(
             new \App\Notifications\BatchExpiryNotification($batch, $newStatus)
         );
+<<<<<<< HEAD
     });
 }
+=======
+        // 2. تطبيق الخصم التلقائي إذا كانت الحالة صفراء فقط
+        if ($newStatus === 'yellow') {
+            $setting = \App\Models\BatchSetting::where('merchant_id', $merchant->id)->first();
+
+            if (!$setting || !$setting->auto_discounts) return;
+
+            foreach ($batch->items as $batchItem) {
+                $product = $batchItem->product;
+                if (!$product) continue;
+
+                // تجنب خصم مكرر
+                $alreadyDiscounted = \App\Models\ProductDiscount::where('product_id', $product->id)
+                    ->where('status', 'active')
+                    ->exists();
+
+                if ($alreadyDiscounted) continue;
+
+                try {
+                    $discountPercent = $setting->auto_discount_percent;
+                    $durationDays    = $setting->auto_discount_duration_days ?? 7;
+                    $discountedPrice = $product->price * (1 - ($discountPercent / 100));
+                    $endsAt          = now()->addDays($durationDays);
+
+            
+$sallaApi = \App\Services\SallaApiService::for($merchant);
+$sallaApi->applySpecialPrice(
+    $product->salla_product_id,
+    $discountedPrice,
+    now()->toIso8601String(),
+    $endsAt->toIso8601String(),
+    $discountPercent
+);
+                    \App\Models\ProductDiscount::create([
+                        'product_id'          => $product->id,
+                        'batch_id'            => $batch->id,
+                        'discount_percentage' => $discountPercent,
+                        'starts_at'           => now(),
+                        'ends_at'             => $endsAt,
+                        'status'              => 'active',
+                        'is_ai_suggested'     => false,
+                        'applied_to_salla'    => true,
+                    ]);
+
+                    \Illuminate\Support\Facades\Log::info("[AutoDiscount] تم تطبيق خصم {$discountPercent}% على: {$product->name}");
+
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("[AutoDiscount] فشل: " . $e->getMessage());
+                }
+            }
+        }
+    });
+}
+    
+>>>>>>> 55543eaf3c27a09c5727dc27260fb1d83727508a
         
     
     // Accessors
