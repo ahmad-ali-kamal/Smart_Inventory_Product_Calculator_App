@@ -16,21 +16,6 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 /**
  * inventory-dateform.js
  * Expiry Date Modal — Add / Edit (single date or batch-level)
- *
- * exposes window.ExpiryForm because the blade partial renders the modal HTML
- * statically and products.js calls ExpiryForm.open*() to open it.
- *
- * API Endpoints:
- *   ADD  single  POST  /api/inventory/expiry/single   { product_id, expiry_date, status }
- *   ADD  batch   POST  /api/inventory/expiry/batch    { product_id, batches:[{label,qty,expiry_date,status}] }
- *   EDIT         PUT   /api/inventory/expiry/{id}     { product_id, type, expiry_date?, batches? }
- *
- * Success callback: Inventory.onSaveSuccess(productId, data, wasEdit)
- *
- * Fixes:
- *   1. close() now fully resets state so re-opening always works
- *   2. pageshow listener handles bfcache (back-forward cache) restore
- *   3. toggleBatch eye-icon state is preserved correctly
  */
 window.ExpiryForm = function () {
   /* ── State ── */
@@ -95,6 +80,7 @@ window.ExpiryForm = function () {
     $('panelYes').classList.remove('show');
     $('panelNo').classList.remove('show');
     $('efSingleDate').value = '';
+    $('efSingleBatchCode').value = '';
     $('efBatchList').innerHTML = '';
     $('efSaveBtn').disabled = true;
 
@@ -107,7 +93,7 @@ window.ExpiryForm = function () {
      BATCH ITEM BUILDER
   ══════════════════════════════════════════ */
   function _buildBatchItem() {
-    var _prefill$qty, _prefill$expiry;
+    var _prefill$qty, _prefill$expiry, _prefill$batch_code;
     var prefill = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     batchCount++;
     var idx = batchCount;
@@ -116,7 +102,7 @@ window.ExpiryForm = function () {
     item.id = "efBatch-".concat(idx);
     var status = prefill.expiry ? _calcStatus(prefill.expiry) : null;
     var badgeHtml = status ? _statusBadgeHtml(status, idx) : "<span class=\"ef-status-badge\" id=\"bStatus-".concat(idx, "\"></span>");
-    item.innerHTML = "\n            <div class=\"ef-batch-head\">\n                <span class=\"ef-batch-lbl\" id=\"bLbl-".concat(idx, "\">\n                    <i class=\"bi bi-layers\" style=\"font-size:0.78rem;color:var(--mauve)\"></i>\n                    Batch ").concat(idx, " ").concat(badgeHtml, "\n                </span>\n                <button class=\"ef-batch-remove\" data-idx=\"").concat(idx, "\" title=\"Remove\">\n                    <i class=\"bi bi-trash3\"></i>\n                </button>\n            </div>\n            <div class=\"ef-batch-grid\">\n                <div>\n                    <label class=\"ef-label\">Quantity</label>\n                    <input type=\"number\" class=\"ef-input\" id=\"bQty-").concat(idx, "\" min=\"1\"\n                           value=\"").concat((_prefill$qty = prefill.qty) !== null && _prefill$qty !== void 0 ? _prefill$qty : '', "\" placeholder=\"0\">\n                </div>\n                <div>\n                    <label class=\"ef-label\">Expiry Date</label>\n                    <input type=\"date\" class=\"ef-input\" id=\"bDate-").concat(idx, "\"\n                           value=\"").concat((_prefill$expiry = prefill.expiry) !== null && _prefill$expiry !== void 0 ? _prefill$expiry : '', "\">\n                </div>\n            </div>");
+    item.innerHTML = "\n    <div class=\"ef-batch-head\">\n        <span class=\"ef-batch-lbl\" id=\"bLbl-".concat(idx, "\">\n            <i class=\"bi bi-layers\" style=\"font-size:0.78rem;color:var(--mauve)\"></i>\n            Batch ").concat(idx, " ").concat(badgeHtml, "\n        </span>\n        <button class=\"ef-batch-remove\" data-idx=\"").concat(idx, "\" title=\"Remove\">\n            <i class=\"bi bi-trash3\"></i>\n        </button>\n    </div>\n    <div class=\"ef-batch-grid\">\n        <div>\n            <label class=\"ef-label\">Quantity</label>\n            <input type=\"number\" class=\"ef-input\" id=\"bQty-").concat(idx, "\" min=\"1\"\n                   value=\"").concat((_prefill$qty = prefill.qty) !== null && _prefill$qty !== void 0 ? _prefill$qty : '', "\" placeholder=\"0\">\n        </div>\n        <div>\n            <label class=\"ef-label\">Expiry Date</label>\n            <input type=\"date\" class=\"ef-input\" id=\"bDate-").concat(idx, "\"\n                   value=\"").concat((_prefill$expiry = prefill.expiry) !== null && _prefill$expiry !== void 0 ? _prefill$expiry : '', "\">\n        </div>\n    </div>\n    <input type=\"hidden\" id=\"bCode-").concat(idx, "\" value=\"").concat((_prefill$batch_code = prefill.batch_code) !== null && _prefill$batch_code !== void 0 ? _prefill$batch_code : '', "\">");
     item.querySelector('.ef-batch-remove').addEventListener('click', function () {
       return removeBatch(idx);
     });
@@ -148,10 +134,11 @@ window.ExpiryForm = function () {
       var qty = parseInt((_$ = $("bQty-".concat(id))) === null || _$ === void 0 ? void 0 : _$.value) || 0;
       var dt = (_$2 = $("bDate-".concat(id))) === null || _$2 === void 0 ? void 0 : _$2.value;
       if (qty > 0 && dt) {
+        var _$3;
         batches.push({
-          label: "Batch ".concat(i + 1),
           qty: qty,
           expiry_date: dt,
+          batch_code: ((_$3 = $("bCode-".concat(id))) === null || _$3 === void 0 ? void 0 : _$3.value) || null,
           status: _calcStatus(dt)
         });
       }
@@ -205,17 +192,18 @@ window.ExpiryForm = function () {
     $('efEditBanner').classList.remove('show');
     _show();
   }
-  function openSingle(pid, productName, dateValue) {
+  function openSingle(pid, productName, dateValue, batchCode) {
     productId = pid;
     isEdit = true;
-    mode = true;
-    _reset(productName);
+    _reset(productName); // reset first, then set mode
+    mode = true; // set mode after reset so it doesn't get cleared
     $('efTitle').textContent = 'Edit Expiry Date';
     $('efIcon').className = 'bi bi-pencil-square';
     $('efEditBanner').classList.add('show');
     $('btnYes').className = 'ef-toggle-btn active-yes';
     $('panelYes').classList.add('show');
     $('efSingleDate').value = dateValue !== null && dateValue !== void 0 ? dateValue : '';
+    $('efSingleBatchCode').value = batchCode !== null && batchCode !== void 0 ? batchCode : '';
     validate();
     _show();
   }
@@ -223,8 +211,8 @@ window.ExpiryForm = function () {
     var prefillBatches = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
     productId = pid;
     isEdit = prefillBatches.length > 0;
-    mode = false;
     _reset(productName);
+    mode = false;
     $('efTitle').textContent = isEdit ? 'Edit Expiry Date' : 'Add Expiry Date';
     $('efIcon').className = isEdit ? 'bi bi-pencil-square' : 'bi bi-calendar-plus';
     isEdit ? $('efEditBanner').classList.add('show') : $('efEditBanner').classList.remove('show');
@@ -262,8 +250,8 @@ window.ExpiryForm = function () {
     validate();
   }
   function removeBatch(idx) {
-    var _$3;
-    (_$3 = $("efBatch-".concat(idx))) === null || _$3 === void 0 ? void 0 : _$3.remove();
+    var _$4;
+    (_$4 = $("efBatch-".concat(idx))) === null || _$4 === void 0 ? void 0 : _$4.remove();
     _reNumber();
     validate();
   }
@@ -295,36 +283,43 @@ window.ExpiryForm = function () {
   ══════════════════════════════════════════ */
   function _save() {
     _save = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-      var btn, endpoint, method, payload, date, res, data, _data$message;
+      var btn, collectedBatches, endpoint, method, payload, _$12, date, res, data, successPayload, _data$message;
       return _regeneratorRuntime().wrap(function _callee$(_context) {
         while (1) switch (_context.prev = _context.next) {
           case 0:
             btn = $('efSaveBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:ef-spin 0.7s linear infinite"></i> Saving...';
+            collectedBatches = mode === false ? _collectBatches() : [];
             if (mode === true) {
               date = $('efSingleDate').value;
-              endpoint = isEdit ? "/api/inventory/expiry/".concat(productId) : '/api/inventory/expiry/single';
-              method = isEdit ? 'PUT' : 'POST';
+              endpoint = "/inventory/products/".concat(productId, "/expiry");
               payload = {
                 product_id: productId,
-                type: 'single',
-                expiry_date: date,
-                status: _calcStatus(date)
+                same_expiry: true,
+                single_batch: {
+                  expiry_date: date,
+                  batch_code: ((_$12 = $('efSingleBatchCode')) === null || _$12 === void 0 ? void 0 : _$12.value) || null
+                }
               };
             } else {
-              endpoint = isEdit ? "/api/inventory/expiry/".concat(productId) : '/api/inventory/expiry/batch';
-              method = isEdit ? 'PUT' : 'POST';
+              endpoint = "/inventory/products/".concat(productId, "/expiry");
               payload = {
                 product_id: productId,
-                type: 'batch',
-                batches: _collectBatches()
+                same_expiry: false,
+                batches: collectedBatches.map(function (b) {
+                  return {
+                    expiry_date: b.expiry_date,
+                    quantity: b.qty,
+                    batch_code: b.batch_code || null
+                  };
+                })
               };
             }
-            _context.prev = 4;
-            _context.next = 7;
+            _context.prev = 5;
+            _context.next = 8;
             return fetch(endpoint, {
-              method: method,
+              method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -332,35 +327,43 @@ window.ExpiryForm = function () {
               },
               body: JSON.stringify(payload)
             });
-          case 7:
+          case 8:
             res = _context.sent;
-            _context.next = 10;
+            _context.next = 11;
             return res.json();
-          case 10:
+          case 11:
             data = _context.sent;
             if (res.ok && data.success) {
-              Inventory.onSaveSuccess(productId, data, isEdit);
+              successPayload = mode === true ? {
+                type: 'single',
+                expiry_date: payload.single_batch.expiry_date,
+                batch_code: payload.single_batch.batch_code
+              } : {
+                type: 'batch',
+                batches: data.batches
+              };
+              Inventory.onSaveSuccess(productId, successPayload, isEdit);
               close();
             } else {
               _showError((_data$message = data.message) !== null && _data$message !== void 0 ? _data$message : 'Something went wrong. Please try again.');
             }
-            _context.next = 17;
+            _context.next = 18;
             break;
-          case 14:
-            _context.prev = 14;
-            _context.t0 = _context["catch"](4);
+          case 15:
+            _context.prev = 15;
+            _context.t0 = _context["catch"](5);
             _showError('Network error. Please check your connection and try again.');
-          case 17:
-            _context.prev = 17;
+          case 18:
+            _context.prev = 18;
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-floppy"></i> Save Expiry Information';
             validate();
-            return _context.finish(17);
-          case 22:
+            return _context.finish(18);
+          case 23:
           case "end":
             return _context.stop();
         }
-      }, _callee, null, [[4, 14, 17, 22]]);
+      }, _callee, null, [[5, 15, 18, 23]]);
     }));
     return _save.apply(this, arguments);
   }
@@ -386,20 +389,20 @@ window.ExpiryForm = function () {
        be called again after bfcache restore
   ══════════════════════════════════════════ */
   function _initListeners() {
-    var _$4, _$5, _$6, _$7, _$8, _$9, _$10;
-    (_$4 = $('efBackdrop')) === null || _$4 === void 0 ? void 0 : _$4.addEventListener('click', function (e) {
+    var _$5, _$6, _$7, _$8, _$9, _$10, _$11;
+    (_$5 = $('efBackdrop')) === null || _$5 === void 0 ? void 0 : _$5.addEventListener('click', function (e) {
       if (e.target === $('efBackdrop')) close();
     });
-    (_$5 = $('efCloseBtn')) === null || _$5 === void 0 ? void 0 : _$5.addEventListener('click', close);
-    (_$6 = $('btnYes')) === null || _$6 === void 0 ? void 0 : _$6.addEventListener('click', function () {
+    (_$6 = $('efCloseBtn')) === null || _$6 === void 0 ? void 0 : _$6.addEventListener('click', close);
+    (_$7 = $('btnYes')) === null || _$7 === void 0 ? void 0 : _$7.addEventListener('click', function () {
       return selectMode(true);
     });
-    (_$7 = $('btnNo')) === null || _$7 === void 0 ? void 0 : _$7.addEventListener('click', function () {
+    (_$8 = $('btnNo')) === null || _$8 === void 0 ? void 0 : _$8.addEventListener('click', function () {
       return selectMode(false);
     });
-    (_$8 = $('efSingleDate')) === null || _$8 === void 0 ? void 0 : _$8.addEventListener('input', validate);
-    (_$9 = $('efAddBatchBtn')) === null || _$9 === void 0 ? void 0 : _$9.addEventListener('click', addBatch);
-    (_$10 = $('efSaveBtn')) === null || _$10 === void 0 ? void 0 : _$10.addEventListener('click', save);
+    (_$9 = $('efSingleDate')) === null || _$9 === void 0 ? void 0 : _$9.addEventListener('input', validate);
+    (_$10 = $('efAddBatchBtn')) === null || _$10 === void 0 ? void 0 : _$10.addEventListener('click', addBatch);
+    (_$11 = $('efSaveBtn')) === null || _$11 === void 0 ? void 0 : _$11.addEventListener('click', save);
   }
   document.addEventListener('DOMContentLoaded', _initListeners);
   document.addEventListener('keydown', function (e) {

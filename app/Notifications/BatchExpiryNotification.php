@@ -46,8 +46,8 @@ class BatchExpiryNotification extends Notification
             'type'        => $this->type,
             'message'     => $this->getProductName() .
                 ($this->type === 'yellow'
-                    ? ' يقترب من انتهاء الصلاحية'
-                    : ' منتهي الصلاحية'),
+                    ? ' Is nearing its expiary date'
+                    : ' Is expired'),
             'expiry_date' => $this->batch->expiry_date->format('Y-m-d'),
         ];
     }
@@ -56,6 +56,6 @@ class BatchExpiryNotification extends Notification
     {
         return $this->batch->items->first()?->product?->name
             ?? $this->batch->name
-            ?? 'منتج غير معروف';
+            ?? 'Unknown product';
     }
 }
