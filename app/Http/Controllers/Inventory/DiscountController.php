@@ -110,13 +110,15 @@ class DiscountController extends Controller
             $discountedPrice = $product->price * (1 - ($validated['discount_percentage'] / 100));
 
             // تطبيق الخصم في سلة
-            $sallaApi = SallaApiService::for($request->user());
-            $sallaApi->applySpecialPrice(
-                $product->salla_product_id,
-                $discountedPrice,
-                now()->toIso8601String(),
-                $validated['ends_at'] ?? now()->addMonth()->toIso8601String()
-            );
+            // بعد ✅
+$sallaApi = SallaApiService::for($product->merchant);
+$sallaApi->applySpecialPrice(
+    $product->salla_product_id,
+    $discountedPrice,
+    now()->toIso8601String(),
+    $validated['ends_at'] ?? now()->addMonth()->toIso8601String(),
+    (int) $validated['discount_percentage']
+);
 
             // حفظ الخصم في قاعدة البيانات
             $discount = ProductDiscount::create([
@@ -146,7 +148,8 @@ class DiscountController extends Controller
                 ]
             );
 
-            return back()->with('success', 'تم تطبيق الخصم بنجاح');
+           return response()->json(['success' => true, 'message' => 'تم تطبيق الخصم بنجاح']);
+
 
         } catch (\Exception $e) {
             \Log::error('Failed to apply discount', [
@@ -155,7 +158,7 @@ class DiscountController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'فشل تطبيق الخصم: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'فشل تطبيق الخصم: ' . $e->getMessage()]);
         }
     }
 
@@ -169,7 +172,7 @@ class DiscountController extends Controller
         try {
             // إزالة الخصم من سلة
             if ($discount->applied_to_salla) {
-                $sallaApi = SallaApiService::for(auth()->user());
+               $sallaApi = SallaApiService::for($discount->product->merchant);
                 $sallaApi->removeSpecialPrice($discount->product->salla_product_id);
             }
 
@@ -201,7 +204,7 @@ class DiscountController extends Controller
         }
 
         try {
-            $sallaApi = SallaApiService::for(auth()->user());
+           $sallaApi = SallaApiService::for($product->merchant);
             $sallaApi->hideProduct($product->salla_product_id);
 
             $product->update(['status' => 'hidden']);
