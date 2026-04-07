@@ -49,19 +49,23 @@ window.Inventory = (() => {
     /* ══════════════════════════════════════════
        OPEN EXPIRY FORM
     ══════════════════════════════════════════ */
-    function openForm(productId, productName) {
+    // بعد — أضف قراءة threshold وابعثه مع كل open
+function openForm(productId, productName) {
     const row = document.querySelector(`#invBody tr[data-id="${productId}"]`);
     if (!row) return;
 
     let batches = [];
     try { batches = JSON.parse(row.dataset.batches || '[]'); } catch (e) {}
 
-    if (row.dataset.expiryType === 'single' || (batches.length === 0 && row.dataset.expiry)) {
-        ExpiryForm.openSingle(productId, productName, row.dataset.expiry, row.dataset.batchCode);
+    const threshold = parseInt(row.dataset.threshold) || 14;  // ← جديد
+
+    if (row.dataset.originalType === 'single' || row.dataset.expiryType === 'single' || (batches.length === 0 && row.dataset.expiry)) {
+       const b = batches[0];
+ExpiryForm.openSingle(productId, productName, b?.expiry ?? row.dataset.expiry, b?.batch_code ?? row.dataset.batchCode, threshold);
     } else if (row.dataset.expiryType === 'batch' || batches.length > 0) {
-        ExpiryForm.openBatch(productId, productName, batches);
+        ExpiryForm.openBatch(productId, productName, batches, threshold);
     } else {
-        ExpiryForm.open(productId, productName);
+        ExpiryForm.open(productId, productName, threshold);
     }
 }
 
@@ -73,19 +77,49 @@ window.Inventory = (() => {
         const expiryCell = document.getElementById(`expiry-cell-${productId}`);
         const actionBtn  = document.getElementById(`btn-expiry-${productId}`);
         if (!row) return;
-
-        if (payload.type === 'single') {
-    row.dataset.expiry     = payload.expiry_date;
-    row.dataset.expiryType = 'single';
-    row.dataset.batches    = '[]';
-    if (payload.batch_code) row.dataset.batchCode = payload.batch_code;
-            expiryCell.innerHTML   = `
-                <div class="exp-cell">
-                    <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                    <span style="color:var(--muted);">${payload.expiry_date}</span>
-                </div>`;
-
-        } else if (payload.type === 'batch' && payload.batches?.length) {
+        row.dataset.originalType = payload.type;
+        const statusCell = row.querySelector('td:nth-child(3)');
+if (statusCell && payload.status) {
+    const statusMap = {
+        green:  ['b-green',  'Safe'],
+        yellow: ['b-yellow', 'Approaching'],
+        red:    ['b-red',    'Expired'],
+    };
+    const [cls, label] = statusMap[payload.status] ?? ['b-none', 'No expiry set'];
+    statusCell.innerHTML = `<span class="badge ${cls}">${label}</span>`;
+}
+if (payload.type === 'single') {
+    document.querySelectorAll(`.batch-row[data-parent="${productId}"]`).forEach(r => r.remove());
+    const singleBatch = [{
+        batch_code: payload.batch_code,
+        qty:        payload.quantity,
+        status:     payload.status,
+        expiry:     payload.expiry_date,
+    }];
+    row.dataset.batches    = JSON.stringify(singleBatch);
+    row.dataset.expiryType = 'batch';
+    row.dataset.expiry     = '';
+    expiryCell.innerHTML = `
+        <div class="exp-cell">
+            <button class="btn-eye" data-product-id="${productId}">
+                <i class="bi bi-eye" id="eye-${productId}"></i>
+            </button>
+            <span>Single</span>
+        </div>`;
+    const statusClass = payload.status || 'green';
+    const statusText  = statusClass === 'red' ? 'Expired' : statusClass === 'yellow' ? 'Approaching' : 'Safe';
+    const tr = document.createElement('tr');
+    tr.className      = 'batch-row';
+    tr.dataset.parent = productId;
+    tr.innerHTML = `
+        <td><div class="batch-indent"><span class="batch-label-field"><i class="bi bi-layers"></i> ${payload.batch_code || 'N/A'}</span></div></td>
+        <td style="color:var(--muted);">${payload.quantity} units</td>
+        <td><span class="badge b-${statusClass}">${statusText}</span></td>
+        <td><div class="exp-cell"><i class="bi bi-calendar3" style="font-size:0.78rem;"></i><span style="color:var(--muted);">${payload.expiry_date}</span></div></td>
+        <td></td>`;
+    row.insertAdjacentElement('afterend', tr);
+      
+       }else if (payload.type === 'batch' && payload.batches?.length) {
             // ❗ احذف أي batch rows قديمة
 document.querySelectorAll(`.batch-row[data-parent="${productId}"]`)
     .forEach(r => r.remove());
@@ -214,7 +248,7 @@ normalized.forEach((b) => {
 if (r.classList.contains('open')) {
     r.style.display = 'table-row';
 } else {
-    r.style.removeProperty('display');
+    r.style.display = 'none';
 }
                 }
             });

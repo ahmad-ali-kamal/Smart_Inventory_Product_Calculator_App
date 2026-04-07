@@ -99,15 +99,12 @@ class Product extends Model
         }
 
         // 4. تحديد الأيام بناءً على النوع المربوط (Short, Medium, Long)
-        switch ($mapping->term_type) {
-            case 'short':
-                return $settings->short_term_days;
-            case 'long':
-                return $settings->long_term_days;
-            case 'medium':
-            default:
-                return $settings->medium_term_days;
-        }
+        switch ($mapping->bucket) {
+    case 'short':  return $settings->short_term_days;
+    case 'long':   return $settings->long_term_days;
+    case 'medium':
+    default:       return $settings->medium_term_days;
+}
     }
 
     // ====================================================================
