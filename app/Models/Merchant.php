@@ -7,7 +7,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\Crypt;
 
 class Merchant extends Authenticatable
 {
@@ -15,87 +14,33 @@ class Merchant extends Authenticatable
 
     /**
      * الحقول القابلة للتعبئة (Mass Assignment)
+     * تم حذف حقول التوكنات لأنها انتقلت لجدول salla_apps
      */
     protected $fillable = [
         'salla_merchant_id',
         'name',
         'email',
         'mobile',
-        'access_token',
-        'refresh_token',
-        'token_expires_at',
         'store_info',
-        'has_calculator', // الحقل الجديد للحاسبة
-        'has_management', // الحقل الجديد للإدارة
+        'has_calculator', 
+        'has_management', 
     ];
 
     /**
      * الحقول المخفية عند تحويل المودل إلى Array/JSON
      */
     protected $hidden = [
-        'access_token',
-        'refresh_token',
+        'remember_token',
     ];
 
     /**
      * تحويل أنواع البيانات تلقائياً
      */
     protected $casts = [
-        'token_expires_at' => 'datetime',
         'store_info' => 'array',
-        'has_calculator' => 'boolean', // ضمان قراءتها كـ true/false
-        'has_management' => 'boolean', // ضمان قراءتها كـ true/false
+        'has_calculator' => 'boolean',
+        'has_management' => 'boolean',
     ];
-
-    /*
-    |--------------------------------------------------------------------------
-    | التشفير والحماية (Encryption)
-    |--------------------------------------------------------------------------
-    */
-
-    public function setAccessTokenAttribute($value)
-    {
-        $this->attributes['access_token'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    public function getAccessTokenAttribute($value)
-    {
-        try {
-            return $value ? Crypt::decryptString($value) : null;
-        } catch (\Exception $e) {
-            return $value;
-        }
-    }
-
-    public function setRefreshTokenAttribute($value)
-    {
-        $this->attributes['refresh_token'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    public function getRefreshTokenAttribute($value)
-    {
-        try {
-            return $value ? Crypt::decryptString($value) : null;
-        } catch (\Exception $e) {
-            return $value;
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | دوال مساعدة (Helper Methods)
-    |--------------------------------------------------------------------------
-    */
-
-    public function isTokenExpired(): bool
-    {
-        return $this->token_expires_at && $this->token_expires_at->isPast();
-    }
-
-    public function hasValidToken(): bool
-    {
-        return !empty($this->access_token) && !$this->isTokenExpired();
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -103,31 +48,57 @@ class Merchant extends Authenticatable
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * علاقة التاجر مع تطبيقاته (حريص، المستشار، إلخ)
+     */
+    public function sallaApps(): HasMany
+    {
+        return $this->hasMany(SallaApp::class);
+    }
+
+    /**
+     * الوصول للمنتجات التابعة للتاجر
+     */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
     }
 
+    /**
+     * الوصول للباتشات التابعة للتاجر
+     */
     public function batches(): HasMany
     {
         return $this->hasMany(Batch::class);
     }
 
+    /**
+     * إعدادات التصنيفات
+     */
     public function categoryMappings(): HasMany
     {
         return $this->hasMany(CategoryMapping::class);
     }
 
+    /**
+     * إعدادات الباتشات العامة
+     */
     public function batchSettings(): HasOne
     {
         return $this->hasOne(BatchSetting::class);
     }
 
+    /**
+     * إعدادات الحاسبة
+     */
     public function calculatorSettings(): HasOne
     {
         return $this->hasOne(CalculatorSetting::class);
     }
 
+    /**
+     * سجل النشاطات
+     */
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);

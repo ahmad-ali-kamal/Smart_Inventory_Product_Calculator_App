@@ -83,29 +83,39 @@ class SallaOAuthController extends Controller
     }
 
     /**
-     * تحديث بيانات التاجر وتفعيل الخدمة المناسبة
+     * تحديث بيانات التاجر وحفظ التوكنات في جدول salla_apps
      */
     private function saveOrUpdateMerchant(array $info, array $tokenData, array $config): Merchant
     {
         $merchantData = $info['merchant'] ?? [];
+        $appType = session('salla_app_type', 'management');
         
+        // 1. تحديث بيانات التاجر الأساسية (بدون توكنات)
         $merchant = Merchant::updateOrCreate(
             ['salla_merchant_id' => $merchantData['id']],
             [
-                'name'             => $merchantData['name'] ?? 'تاجر سلة',
-                'email'            => $merchantData['email'] ?? ($info['email'] ?? null),
-                'mobile'           => $merchantData['mobile'] ?? null,
-                'access_token'     => $tokenData['access_token'],
-                'refresh_token'    => $tokenData['refresh_token'] ?? null,
-                'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 3600),
-                'store_info'       => $info,
+                'name'       => $merchantData['name'] ?? 'تاجر سلة',
+                'email'      => $merchantData['email'] ?? ($info['email'] ?? null),
+                'mobile'     => $merchantData['mobile'] ?? null,
+                'store_info' => $info,
             ]
         );
 
-        // تفعيل الخدمة بناءً على الـ Client ID المستخدم في عملية الدخول حالياً
-        if ($config['client_id'] === env('SALLA_CALCULATOR_CLIENT_ID')) {
+        // 2. 🏆 حفظ أو تحديث بيانات التطبيق والتوكنات في جدول salla_apps
+        $merchant->sallaApps()->updateOrCreate(
+            ['app_name' => $appType], // لضمان وجود سجل واحد لكل تطبيق للتاجر
+            [
+                'client_id'        => $config['client_id'],
+                'access_token'     => $tokenData['access_token'],
+                'refresh_token'    => $tokenData['refresh_token'] ?? null,
+                'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 3600),
+            ]
+        );
+
+        // 3. تفعيل الأعلام في جدول التاجر
+        if ($appType === 'calculator') {
             $merchant->update(['has_calculator' => true]);
-        } elseif ($config['client_id'] === env('SALLA_MANAGEMENT_CLIENT_ID')) {
+        } else {
             $merchant->update(['has_management' => true]);
         }
 
