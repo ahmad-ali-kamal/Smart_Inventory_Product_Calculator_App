@@ -18,18 +18,15 @@ class SallaOAuthController extends Controller
      */
     private function getAppConfig()
     {
-        // نتحقق من التطبيق المختار في الجلسة، والافتراضي هو حريص (management)
         $appType = session('salla_app_type', 'management'); 
         return config("services.salla_{$appType}");
     }
 
     /**
      * إعادة التوجيه لصفحة تسجيل الدخول في سلة
-     * يمكن استدعاؤه كـ /auth/salla?app=calculator أو /auth/salla?app=management
      */
     public function redirect(Request $request)
     {
-        // تحديد نوع التطبيق وحفظه في الجلسة ليعرفه الـ Callback لاحقاً
         $appType = $request->get('app', 'management'); 
         session(['salla_app_type' => $appType]);
 
@@ -62,19 +59,17 @@ class SallaOAuthController extends Controller
         }
 
         try {
-            // جلب الإعدادات بناءً على التطبيق الذي بدأ الطلب
             $config = $this->getAppConfig();
 
             $tokenData = $this->getAccessToken($request->code, $config);
             $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
 
-            // حفظ التاجر وتفعيل الجووب للمزامنة
             $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData, $config);
 
             Auth::login($merchant);
 
             return redirect()->route('welcome')
-                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك وجاري تحديث بياناتك!');
+                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك!');
 
         } catch (\Exception $e) {
             Log::error('Salla OAuth Error: ' . $e->getMessage());
@@ -83,14 +78,14 @@ class SallaOAuthController extends Controller
     }
 
     /**
-     * تحديث بيانات التاجر وحفظ التوكنات في جدول salla_apps
+     * تحديث بيانات التاجر وحفظ التوكنات
      */
     private function saveOrUpdateMerchant(array $info, array $tokenData, array $config): Merchant
     {
         $merchantData = $info['merchant'] ?? [];
         $appType = session('salla_app_type', 'management');
         
-        // 1. تحديث بيانات التاجر الأساسية (بدون توكنات)
+        // 1. تحديث بيانات التاجر الأساسية
         $merchant = Merchant::updateOrCreate(
             ['salla_merchant_id' => $merchantData['id']],
             [
@@ -101,9 +96,12 @@ class SallaOAuthController extends Controller
             ]
         );
 
-        // 2. 🏆 حفظ أو تحديث بيانات التطبيق والتوكنات في جدول salla_apps
+        // 2. تحديث بيانات التطبيق والتوكنات (التعامل مع العلاقة بشكل صحيح)
+        // سيقوم بتحديث السجل إذا وجد نفس الـ app_name لهذا التاجر، أو إنشاء سجل جديد
         $merchant->sallaApps()->updateOrCreate(
-            ['app_name' => $appType], // لضمان وجود سجل واحد لكل تطبيق للتاجر
+            [
+                'app_name' => $appType, 
+            ],
             [
                 'client_id'        => $config['client_id'],
                 'access_token'     => $tokenData['access_token'],
@@ -112,33 +110,25 @@ class SallaOAuthController extends Controller
             ]
         );
 
-        // 3. تفعيل الأعلام في جدول التاجر
+        // 3. تحديث الأعلام (Flags)
         if ($appType === 'calculator') {
             $merchant->update(['has_calculator' => true]);
         } else {
             $merchant->update(['has_management' => true]);
         }
 
-        // إطلاق الجووب للمزامنة
         FetchProductsJob::dispatch($merchant, 1);
 
         return $merchant;
     }
 
-    /**
-     * تسجيل الخروج
-     */
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('welcome')->with('success', 'تم تسجيل الخروج بنجاح.');
+        return redirect()->route('welcome')->with('success', 'تم تسجيل الخروج.');
     }
-
-    // ====================================================================
-    // الدوال المحدثة لتقبل الإعدادات (Config)
-    // ====================================================================
 
     private function getAccessToken(string $code, array $config): array
     {
