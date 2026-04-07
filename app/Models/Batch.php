@@ -27,7 +27,7 @@ class Batch extends Model
 
     protected $casts = [
         'manufactured_date' => 'date',
-        'expiry_date' => 'date',
+        'expiry_date'       => 'date:Y-m-d',
         'days_until_expiry' => 'integer',
     ];
 
@@ -68,7 +68,7 @@ class Batch extends Model
     parent::boot();
 
     static::saving(function ($batch) {
-        $batch->calculateDaysUntilExpiry();
+        
         $batch->calculateStatus();
     });
 
@@ -144,7 +144,7 @@ $sallaApi->applySpecialPrice(
     public function getIsExpiredAttribute(): bool
     {
         if (!$this->expiry_date) return false;
-        return $this->expiry_date->isPast() && !$this->expiry_date->isToday();
+        return $this->expiry_date->isPast() || $this->expiry_date->isToday();
     }
 
     public function getExpiryLabelAttribute(): string
@@ -200,37 +200,39 @@ $sallaApi->applySpecialPrice(
      */
     public function calculateStatus(): void
     {
-        $daysLeft = $this->days_until_expiry;
+        if (!$this->expiry_date) return;
+        
+        $expiry   = Carbon::parse($this->expiry_date)->startOfDay();
+        $today    = Carbon::now()->startOfDay();
+        $daysLeft = $today->diffInDays($expiry, false);
+         $this->days_until_expiry = $daysLeft;
+
 
         // 1. إذا كان التاريخ بالماضي (سالب) فاللون أحمر فوراً
-        if ($daysLeft < 0) {
+         if ($daysLeft <= 0) {
             $this->status = 'red';
             return;
         }
 
-        // 2. جلب الحد الأدنى (Threshold) من المنتج المرتبط بناءً على تصنيفه
+        $threshold = $this->getThreshold();
+        $this->status = $daysLeft <= $threshold ? 'yellow' : 'green';
+        
+    }
+    public function getThreshold(): int
+    {
         $product = $this->products()->first();
-        $threshold = null;
 
         if ($product && method_exists($product, 'getCategoryThreshold')) {
-            // استدعاء دالة جلب الـ threshold بناءً على الـ Category Mapping
             $threshold = $product->getCategoryThreshold();
+            if (!is_null($threshold)) {
+                return (int) $threshold;
+            }
         }
 
-        // 3. خيار بديل (Fallback) في حال عدم وجود تصنيف مخصص
-        if (is_null($threshold)) {
-            $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
-            $threshold = $settings->medium_term_days ?? 14; 
-        }
-
-        // 4. تطبيق المنطق:
-        // إذا كان الأيام المتبقية أقل من أو تساوي الـ threshold فالحالة صفراء (تحذير)
-        if ($daysLeft <= $threshold) {
-            $this->status = 'yellow';
-        } else {
-            $this->status = 'green';
-        }
+        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+        return (int) ($settings->medium_term_days ?? 14);
     }
+
 
     public function needsDiscount(): bool
     {

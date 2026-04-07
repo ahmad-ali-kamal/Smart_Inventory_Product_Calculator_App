@@ -903,6 +903,7 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
     display:inline-flex; align-items:center; gap:0.25rem;
     padding:0.15rem 0.55rem; border-radius:2rem;
     font-size:0.68rem; font-weight:700;
+    text-transform: none;
 }
 .ef-s-green  { background: var(--clr-green-bg);  color: var(--clr-green-text); }
 .ef-s-yellow { background: var(--clr-yellow-bg); color: var(--clr-yellow-text); }

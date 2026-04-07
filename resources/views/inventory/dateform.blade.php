@@ -33,8 +33,10 @@
 
         <div class="ef-panel ef-panel-yes" id="panelYes">
             <p class="ef-panel-title"><i class="bi bi-calendar3"></i> Single Expiry Date</p>
-            <label class="ef-label" for="efSingleDate">Expiry Date</label>
+            <label class="ef-label" for="efSingleDate">Expiry Date <span class="ef-status-badge" id="efSingleStatus"></span></label>
+            
             <input type="date" class="ef-input" id="efSingleDate">
+         
             <input type="hidden" id="efSingleBatchCode" value="">
         </div>
 

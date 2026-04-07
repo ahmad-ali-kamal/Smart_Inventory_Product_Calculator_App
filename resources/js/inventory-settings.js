@@ -90,10 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!btn) return;
     var willBeOn = !btn.classList.contains('on');
 
-    if (willBeOn) {
-      if (id === 'autodiscounts') _turnOff('aidiscounts');
-      if (id === 'aidiscounts')   _turnOff('autodiscounts');
-    }
 
     btn.classList.toggle('on', willBeOn);
     document.getElementById('val-' + id).value = willBeOn ? 1 : 0;

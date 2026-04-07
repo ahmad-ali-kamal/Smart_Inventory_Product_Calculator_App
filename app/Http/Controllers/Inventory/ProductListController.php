@@ -54,14 +54,17 @@ class ProductListController extends Controller
 
             // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية)
             // أضفنا تحقق إذا كانت الدفعات فارغة لإعطاء قيمة افتراضية آمنة (999 يوم)
-            $minDaysRemaining = 999; 
-            
-            if ($product->batchItems->count() > 0) {
-                $minDaysRemaining = $product->batchItems->map(function($item) {
-                    // نتحقق أن الـ batch موجود فعلاً لتجنب خطأ null
-                    return $item->batch ? $item->batch->days_until_expiry : 999;
-                })->min();
-            }
+         // ✅ الصحيح
+$minDaysRemaining = 999;
+
+if ($product->batchItems->count() > 0) {
+    $minDaysRemaining = $product->batchItems->map(function($item) {
+        if (!$item->batch || !$item->batch->expiry_date) return 999;
+        $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
+        $today  = \Carbon\Carbon::now()->startOfDay();
+        return (int) $today->diffInDays($expiry, false);
+    })->min() ?? 999;  // ← ?? 999 يحمي من null
+}
 
             // د. تحديد الحالة باستخدام الدالة الـ Static
             $status = BatchSetting::getStatusForDays($minDaysRemaining, $threshold);
@@ -71,6 +74,25 @@ class ProductListController extends Controller
             $product->filterClass = "status-" . $status; 
             $product->bucket_type = $bucket;
             $product->days_left = $minDaysRemaining; // مفيد للعرض في الجدول
+            
+            
+           
+            $product->batchItems->each(function ($item) use ($threshold) {
+    if (!$item->batch || !$item->batch->expiry_date) return;
+
+    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
+    $today  = \Carbon\Carbon::now()->startOfDay();
+    $days   = $today->diffInDays($expiry, false);
+
+    
+// بعد ✅
+$item->batch->status = match(true) {
+    $days <= 0          => 'red',   // شامل اليوم نفسه
+    $days <= $threshold => 'yellow',
+    default             => 'green',
+};
+});
+
 
             return $product;
         });
