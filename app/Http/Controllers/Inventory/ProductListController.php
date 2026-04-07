@@ -30,20 +30,18 @@ class ProductListController extends Controller
         }
 
         // 2. جلب خريطة التصنيفات (اسم التصنيف => نوع الـ Bucket)
-        // تأكد أنك نفذت الميجريشن لتغيير اسم العمود إلى bucket
         $categoryMappings = CategoryMapping::where('merchant_id', $merchant->id)
                             ->pluck('bucket', 'category_name')
                             ->toArray();
 
         // 3. جلب المنتجات مع الدفعات المرتبطة
-        // أضفنا التحقق من merchant_id لضمان عرض منتجات هذا التاجر فقط
         $products = Product::where('merchant_id', $merchant->id)
             ->with(['images', 'batchItems.batch'])
             ->orderBy('name')
             ->paginate(15);
 
         // 4. معالجة كل منتج لتحديد حالته (Status) وكلاس الفلتر
-        $products->getCollection()->transform(function ($product) use ($settings, $categoryMappings) {
+        $products->getCollection()->transform(function ($product) use ($merchant, $settings, $categoryMappings) {
             
             // أ. تحديد نوع الـ Bucket للمنتج (الافتراضي medium إذا لم يصنف بعد)
             $bucket = $categoryMappings[$product->category] ?? 'medium';
@@ -53,24 +51,25 @@ class ProductListController extends Controller
             $threshold = $settings->$thresholdKey ?? 14;
 
             // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية)
-            // أضفنا تحقق إذا كانت الدفعات فارغة لإعطاء قيمة افتراضية آمنة (999 يوم)
             $minDaysRemaining = 999; 
             
-            if ($product->batchItems->count() > 0) {
+            if ($product->batchItems && $product->batchItems->count() > 0) {
                 $minDaysRemaining = $product->batchItems->map(function($item) {
-                    // نتحقق أن الـ batch موجود فعلاً لتجنب خطأ null
-                    return $item->batch ? $item->batch->days_until_expiry : 999;
+                    // نتحقق أن الـ batch موجود فعلاً وله قيمة
+                    return ($item->batch && isset($item->batch->days_until_expiry)) 
+                           ? (int) $item->batch->days_until_expiry 
+                           : 999;
                 })->min();
             }
 
-            // د. تحديد الحالة باستخدام الدالة الـ Static
-            $status = BatchSetting::getStatusForDays($minDaysRemaining, $threshold);
+            // د. تحديد الحالة باستخدام الدالة الـ Static (تم إصلاح المتغير هنا)
+            $status = BatchSetting::getStatusForDays($minDaysRemaining, $merchant->id);
 
-            // هـ. إضافة الخصائص للمنتج
+            // هـ. إضافة الخصائص للمنتج لتظهر في واجهة الـ React/Blade
             $product->status = $status;
             $product->filterClass = "status-" . $status; 
             $product->bucket_type = $bucket;
-            $product->days_left = $minDaysRemaining; // مفيد للعرض في الجدول
+            $product->days_left = $minDaysRemaining; 
 
             return $product;
         });

@@ -53,7 +53,7 @@ class FetchProductsJob implements ShouldQueue
             $response = Http::withToken($sallaApp->access_token)
                 ->get("https://api.salla.dev/admin/v2/products?page={$this->page}");
 
-            // 1. معالجة الـ Rate Limit
+            // 1. معالجة الـ Rate Limit (إذا سلة عطتك بلوك مؤقت)
             if ($response->status() === 429) {
                 Log::warning("Rate limit hit for {$this->merchant->name}. Holding job for 60 seconds.");
                 return $this->release(now()->addMinute());
@@ -69,7 +69,7 @@ class FetchProductsJob implements ShouldQueue
                     $this->syncProduct($p);
                 }
 
-                // 2. المتابعة التلقائية للصفحة التالية
+                // 2. المتابعة التلقائية للصفحة التالية (Pagination)
                 $pagination = $data['pagination'] ?? [];
                 $totalPages = $pagination['total_pages'] ?? 1;
 
@@ -103,7 +103,7 @@ class FetchProductsJob implements ShouldQueue
             $categoryName = $mainCat['name'] ?? 'General';
         }
 
-        // تحديث أو إنشاء المنتج (هنا نمنع التكرار بناءً على salla_product_id)
+        // 🏆 تحديث أو إنشاء المنتج مع ضمان تحديث الكمية (Quantity)
         $product = Product::updateOrCreate(
             [
                 'merchant_id' => $this->merchant->id, 
@@ -115,12 +115,12 @@ class FetchProductsJob implements ShouldQueue
                 'sku'       => $p['sku'] ?? null,
                 'category'  => $categoryName,
                 'status'    => (string) ($p['status'] ?? 'active'),
-                'quantity'  => $p['quantity'] ?? 0,
+                'quantity'  => $p['quantity'] ?? 0, // هنا يتم سحب العدد من سلة
                 'synced_at' => now(),
             ]
         );
 
-        // تحديث الصور (نمسح القديم ونضيف الجديد للمنتج المحدث)
+        // تحديث الصور
         if (!empty($p['images'])) {
             $product->images()->delete();
             foreach ($p['images'] as $index => $imgData) {
@@ -132,6 +132,6 @@ class FetchProductsJob implements ShouldQueue
             }
         }
         
-        Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']}");
+        Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']} - Qty: {$p['quantity']}");
     }
 }
