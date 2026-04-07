@@ -20,14 +20,14 @@ class Batch extends Model
         'name',
         'manufactured_date',
         'expiry_date',
-        'status',
-        'days_until_expiry',
+        'status',            // تم تفعيله ليقبل التخزين من المجدول
+        'days_until_expiry', // تم تفعيله ليقبل التخزين من المجدول
         'notes',
     ];
 
     protected $casts = [
         'manufactured_date' => 'date',
-        'expiry_date' => 'date',
+        'expiry_date'       => 'date',
         'days_until_expiry' => 'integer',
     ];
 
@@ -35,11 +35,61 @@ class Batch extends Model
         'is_expired',
         'expiry_label',
         'total_quantity',
-        'total_sold',
         'total_remaining',
     ];
 
-    // Relationships
+    // ====================================================================
+    // 1. السكوبس (Scopes) - سريعة جداً لأنها تبحث في أعمدة حقيقية
+    // ====================================================================
+
+    public function scopeSafe($query)
+    {
+        return $query->where('status', 'green');
+    }
+
+    public function scopeWarning($query)
+    {
+        return $query->where('status', 'yellow');
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('status', 'red');
+    }
+
+    public function scopeForMerchant($query, int $merchantId)
+    {
+        return $query->where('merchant_id', $merchantId);
+    }
+
+    // ====================================================================
+    // 2. الأكسيسورز المساعدة (UI Helpers)
+    // ====================================================================
+
+    /**
+     * هل المنتج منتهي؟ (تعتمد على القيمة المخزنة)
+     */
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->status === 'red' || $this->days_until_expiry < 0;
+    }
+
+    /**
+     * ملصق تاريخ الانتهاء للعرض في الواجهة
+     */
+    public function getExpiryLabelAttribute(): string
+    {
+        $days = $this->days_until_expiry;
+
+        if ($days < 0) return 'منتهي الصلاحية';
+        if ($days == 0) return 'ينتهي اليوم!';
+        return $days <= 7 ? "خطر: باقي {$days} أيام!" : "باقي {$days} يوم";
+    }
+
+    // ====================================================================
+    // 3. العلاقات (Relationships)
+    // ====================================================================
+
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class, 'merchant_id');
@@ -57,150 +107,18 @@ class Batch extends Model
             ->withTimestamps();
     }
 
-    public function activityLogs(): MorphMany
-    {
-        return $this->morphMany(ActivityLog::class, 'loggable');
-    }
-
-    // Boot
-    protected static function boot()
-{
-    parent::boot();
-
-    static::saving(function ($batch) {
-        $batch->calculateDaysUntilExpiry();
-        $batch->calculateStatus();
-    });
-
-    static::saved(function ($batch) {
-        $oldStatus = $batch->getOriginal('status');
-        $newStatus = $batch->status;
-
-        if ($oldStatus === $newStatus) return;
-        if (!in_array($newStatus, ['yellow', 'red'])) return;
-
-        $merchant = $batch->merchant;
-        if (!$merchant) return;
-
-        $merchant->notify(
-            new \App\Notifications\BatchExpiryNotification($batch, $newStatus)
-        );
-    });
-}
-        
-    
-    // Accessors
-    public function getIsExpiredAttribute(): bool
-    {
-        if (!$this->expiry_date) return false;
-        return $this->expiry_date->isPast() && !$this->expiry_date->isToday();
-    }
-
-    public function getExpiryLabelAttribute(): string
-    {
-        $days = $this->days_until_expiry;
-
-        if ($days < 0) {
-            return 'منتهي الصلاحية';
-        } elseif ($days == 0) {
-            return 'ينتهي اليوم!';
-        } elseif ($days <= 7) {
-            return "خطر: باقي {$days} أيام فقط!";
-        } else {
-            return "باقي {$days} يوم";
-        }
-    }
+    // ====================================================================
+    // 4. حساب الكميات (Calculations)
+    // ====================================================================
 
     public function getTotalQuantityAttribute(): int
     {
-        return $this->items()->sum('quantity');
-    }
-
-    public function getTotalSoldAttribute(): int
-    {
-        return $this->items()->sum('sold_quantity');
+        return (int) $this->items()->sum('quantity');
     }
 
     public function getTotalRemainingAttribute(): int
     {
-        return $this->total_quantity - $this->total_sold;
-    }
-
-    // Methods
-
-    /**
-     * حساب الأيام المتبقية: (تاريخ الانتهاء - تاريخ اليوم)
-     */
-    public function calculateDaysUntilExpiry(): void
-    {
-        if ($this->expiry_date) {
-            $expiry = Carbon::parse($this->expiry_date)->startOfDay();
-            $today = Carbon::now()->startOfDay();
-            
-            // النتيجة موجبة للمستقبل وسالبة للماضي
-            $this->days_until_expiry = $today->diffInDays($expiry, false);
-        }
-    }
-
-    /**
-     * تطبيق القانون الذكي لتوزيع الألوان (Status)
-     * $daysLeft = expiry_date - today
-     * $threshold = CategoryMapping Threshold
-     */
-    public function calculateStatus(): void
-    {
-        $daysLeft = $this->days_until_expiry;
-
-        // 1. إذا كان التاريخ بالماضي (سالب) فاللون أحمر فوراً
-        if ($daysLeft < 0) {
-            $this->status = 'red';
-            return;
-        }
-
-        // 2. جلب الحد الأدنى (Threshold) من المنتج المرتبط بناءً على تصنيفه
-        $product = $this->products()->first();
-        $threshold = null;
-
-        if ($product && method_exists($product, 'getCategoryThreshold')) {
-            // استدعاء دالة جلب الـ threshold بناءً على الـ Category Mapping
-            $threshold = $product->getCategoryThreshold();
-        }
-
-        // 3. خيار بديل (Fallback) في حال عدم وجود تصنيف مخصص
-        if (is_null($threshold)) {
-            $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
-            $threshold = $settings->medium_term_days ?? 14; 
-        }
-
-        // 4. تطبيق المنطق:
-        // إذا كان الأيام المتبقية أقل من أو تساوي الـ threshold فالحالة صفراء (تحذير)
-        if ($daysLeft <= $threshold) {
-            $this->status = 'yellow';
-        } else {
-            $this->status = 'green';
-        }
-    }
-
-    public function needsDiscount(): bool
-    {
-        return $this->status === 'yellow' && $this->days_until_expiry >= 0;
-    }
-
-    // Scopes
-    public function scopeExpired($query)
-    {
-        return $query->where('status', 'red');
-    }
-
-    public function scopeWarning($query) {
-        return $query->where('status', 'yellow');
-    }
-
-    public function scopeSafe($query) {
-        return $query->where('status', 'green');
-    }
-
-    public function scopeForMerchant($query, int $merchantId) {
-        return $query->where('merchant_id', $merchantId);
+        $sold = (int) $this->items()->sum('sold_quantity');
+        return $this->getTotalQuantityAttribute() - $sold;
     }
 }

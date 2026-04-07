@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule; // استيراد الـ Schedule ضروري جداً
 
 /*
 |--------------------------------------------------------------------------
@@ -14,6 +15,13 @@ use Illuminate\Support\Facades\Artisan;
 |
 */
 
+// أمر الإلهام الافتراضي في لارافل
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+/**
+ * جدولة تحديث حالات الباتشات والأيام المتبقية (Quantix Scheduler)
+ * سيتم تنفيذ هذا الأمر تلقائياً كل يوم الساعة 12:00 ليلاً
+ */
+Schedule::command('batch:update-status')->daily();
