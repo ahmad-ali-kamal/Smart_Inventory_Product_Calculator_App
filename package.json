@@ -1,37 +1,42 @@
 {
     "private": true,
     "scripts": {
-        "dev": "npm run development",
-        "development": "mix",
-        "watch": "mix watch",
-        "watch-poll": "mix watch -- --watch-options-poll=1000",
-        "hot": "mix watch --hot",
-        "prod": "npm run production",
-        "production": "mix --production"
+        "dev": "vite",
+        "build": "vite build"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^1.0",
         "@tailwindcss/forms": "^0.5",
+        "@vitejs/plugin-react": "^6.0.1",
         "@vue/compiler-sfc": "^3.4",
         "alpinejs": "^3.13",
-        "autoprefixer": "^10.4",
+        "autoprefixer": "^10.4.27",
         "axios": "^1.6",
         "bootstrap": "^5.3",
         "jquery": "^3.7",
         "laravel-mix": "^6.0",
+        "laravel-vite-plugin": "^3.0.1",
         "lodash": "^4.17",
         "popper.js": "^1.16",
-        "postcss": "^8.4",
+        "postcss": "^8.5.8",
         "postcss-import": "^16.1.1",
         "resolve-url-loader": "^5.0",
         "sass": "^1.76",
         "sass-loader": "^14.2",
-        "tailwindcss": "^3.4",
+        "tailwindcss": "^3.4.19",
+        "vite": "^8.0.4",
         "vue": "^3.4",
         "vue-loader": "^17.4",
         "vue-template-compiler": "^2.7"
     },
     "dependencies": {
-        "daisyui": "^4.10"
+        "@inertiajs/react": "^3.0.2",
+        "daisyui": "^4.10",
+        "i18next": "^26.0.3",
+        "i18next-browser-languagedetector": "^8.2.1",
+        "lucide-react": "^1.7.0",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "react-i18next": "^17.0.2"
     }
 }

@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Session;
 
 // استدعاء الكنترولرات
 use App\Http\Controllers\Auth\SallaOAuthController;
@@ -15,11 +18,39 @@ use App\Http\Controllers\Settings\CategoryMappingController;
 use App\Http\Controllers\Settings\BatchSettingController;
 use App\Http\Controllers\DashboardController;
 
-/* --- 1. الروابط العامة --- */
-Route::get('/', [DashboardController::class, 'index'])->name('welcome');
+/*
+|--------------------------------------------------------------------------
+| Quantix Web Routes
+|--------------------------------------------------------------------------
+*/
+
+/* --- 1. الروابط العامة والواجهة الرئيسية (React/Inertia) --- */
+
+// الصفحة الرئيسية للمشروع (تأكد من تمرير البيانات الأساسية لضمان عدم حدوث Null)
+Route::get('/', function () {
+    return Inertia::render('Home', [
+        'locale' => session('locale', App::getLocale()),
+        'auth' => [
+            'user' => auth()->user() ? auth()->user()->only('id', 'name', 'email') : null,
+        ],
+    ]);
+})->name('welcome');
+
+// مسار تبديل اللغة (عربي/إنجليزي)
+Route::get('language/{locale}', function ($locale) {
+    if (in_array($locale, ['ar', 'en'])) {
+        Session::put('locale', $locale);
+        App::setLocale($locale);
+    }
+    return redirect()->back();
+})->name('language.switch');
+
+// رابط جلب إعدادات الحاسبة
 Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
 
+/* --- 2. روابط المصادقة (Salla OAuth) --- */
 Route::middleware('guest')->group(function () {
+    // صفحة اللوجن التقليدية (Blade)
     Route::get('/login', fn() => view('auth.login'))->name('login');
     Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');
     Route::get('/auth/salla/callback', [SallaOAuthController::class, 'callback'])->name('auth.salla.callback');
@@ -27,7 +58,7 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [SallaOAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-/* --- 2. تطبيق حريص (المخزون) --- */
+/* --- 3. تطبيق حريص (إدارة المخزون) --- */
 Route::middleware(['auth'])->prefix('inventory')->group(function () {
     
     // الداشبورد
@@ -41,8 +72,7 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
     // الإعدادات
     Route::get('/settings', [InventoryDashboardController::class, 'settings'])->name('inventory.settings');
     
-    // 🏆 الحل النهائي لخطأ الـ 404: تعريف الرابط الذي يطلبه الـ JavaScript
-    // هذا الرابط سيستقبل طلبات الحفظ (تاريخ واحد أو دفعات متعددة)
+    // حفظ الباتشات وتواريخ الانتهاء
     Route::post('/expiry/batch', [ProductExpiryController::class, 'store'])->name('inventory.expiry.batch');
 
     // روابط إعدادات التصنيفات والمدد
@@ -58,11 +88,16 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
     Route::get('/instructions', [InventoryDashboardController::class, 'instructions'])->name('inventory.instructions');
     Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('inventory.discount.apply');
     
-    // مسار احتياطي في حال كان الـ JS يرسل المعرف في الرابط
+    // مسار احتياطي لتاريخ الانتهاء
     Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('inventory.expiry.store');
+
+    // الإشعارات
+    Route::get('/notifications', [App\Http\Controllers\Inventory\NotificationController::class, 'index'])->name('inventory.notifications');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Inventory\NotificationController::class, 'markAsRead'])->name('inventory.notifications.read');
+    Route::post('/notifications/read-all', [App\Http\Controllers\Inventory\NotificationController::class, 'markAllAsRead'])->name('inventory.notifications.readAll');
 });
 
-/* --- 3. تطبيق المستشار (الآلة الحاسبة) --- */
+/* --- 4. تطبيق المستشار (الآلة الحاسبة) --- */
 Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(function () {
     Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
@@ -72,12 +107,4 @@ Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(fu
     Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
     Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
     Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
-});
-
-// إشعارات
-Route::middleware(['auth'])->prefix('inventory')->group(function () {
-    // ... الروابط الموجودة ...
-    Route::get('/notifications', [App\Http\Controllers\Inventory\NotificationController::class, 'index'])->name('inventory.notifications');
-    Route::post('/notifications/{id}/read', [App\Http\Controllers\Inventory\NotificationController::class, 'markAsRead'])->name('inventory.notifications.read');
-    Route::post('/notifications/read-all', [App\Http\Controllers\Inventory\NotificationController::class, 'markAllAsRead'])->name('inventory.notifications.readAll');
 });

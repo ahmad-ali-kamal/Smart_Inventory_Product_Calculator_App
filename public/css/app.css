@@ -50,9 +50,7 @@
   --tw-contain-layout:  ;
   --tw-contain-paint:  ;
   --tw-contain-style:  ;
-}
-
-::backdrop {
+} ::backdrop {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
   --tw-translate-x: 0;
@@ -104,28 +102,22 @@
   --tw-contain-layout:  ;
   --tw-contain-paint:  ;
   --tw-contain-style:  ;
-}/*
+} /*
 ! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com
-*//*
+*/ /*
 1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
 2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
-*/
-
-*,
+*/ *,
 ::before,
 ::after {
   box-sizing: border-box; /* 1 */
   border-width: 0; /* 2 */
   border-style: solid; /* 2 */
   border-color: #e5e7eb; /* 2 */
-}
-
-::before,
+} ::before,
 ::after {
   --tw-content: '';
-}
-
-/*
+} /*
 1. Use a consistent sensible line-height in all browsers.
 2. Prevent adjustments of font size after orientation changes in iOS.
 3. Use a more readable tab size.
@@ -133,57 +125,39 @@
 5. Use the user's configured `sans` font-feature-settings by default.
 6. Use the user's configured `sans` font-variation-settings by default.
 7. Disable tap highlights on iOS
-*/
-
-html,
+*/ html,
 :host {
   line-height: 1.5; /* 1 */
   -webkit-text-size-adjust: 100%; /* 2 */
   -moz-tab-size: 4; /* 3 */
   -o-tab-size: 4;
      tab-size: 4; /* 3 */
-  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 4 */
+  font-family: Cairo, Inter, sans-serif; /* 4 */
   font-feature-settings: normal; /* 5 */
   font-variation-settings: normal; /* 6 */
   -webkit-tap-highlight-color: transparent; /* 7 */
-}
-
-/*
+} /*
 1. Remove the margin in all browsers.
 2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
-*/
-
-body {
+*/ body {
   margin: 0; /* 1 */
   line-height: inherit; /* 2 */
-}
-
-/*
+} /*
 1. Add the correct height in Firefox.
 2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
 3. Ensure horizontal rules are visible by default.
-*/
-
-hr {
+*/ hr {
   height: 0; /* 1 */
   color: inherit; /* 2 */
   border-top-width: 1px; /* 3 */
-}
-
-/*
+} /*
 Add the correct text decoration in Chrome, Edge, and Safari.
-*/
-
-abbr:where([title]) {
+*/ abbr:where([title]) {
   -webkit-text-decoration: underline dotted;
           text-decoration: underline dotted;
-}
-
-/*
+} /*
 Remove the default font size and weight for headings.
-*/
-
-h1,
+*/ h1,
 h2,
 h3,
 h4,
@@ -191,34 +165,22 @@ h5,
 h6 {
   font-size: inherit;
   font-weight: inherit;
-}
-
-/*
+} /*
 Reset links to optimize for opt-in styling instead of opt-out.
-*/
-
-a {
+*/ a {
   color: inherit;
   text-decoration: inherit;
-}
-
-/*
+} /*
 Add the correct font weight in Edge and Safari.
-*/
-
-b,
+*/ b,
 strong {
   font-weight: bolder;
-}
-
-/*
+} /*
 1. Use the user's configured `mono` font-family by default.
 2. Use the user's configured `mono` font-feature-settings by default.
 3. Use the user's configured `mono` font-variation-settings by default.
 4. Correct the odd `em` font sizing in all browsers.
-*/
-
-code,
+*/ code,
 kbd,
 samp,
 pre {
@@ -226,55 +188,35 @@ pre {
   font-feature-settings: normal; /* 2 */
   font-variation-settings: normal; /* 3 */
   font-size: 1em; /* 4 */
-}
-
-/*
+} /*
 Add the correct font size in all browsers.
-*/
-
-small {
+*/ small {
   font-size: 80%;
-}
-
-/*
+} /*
 Prevent `sub` and `sup` elements from affecting the line height in all browsers.
-*/
-
-sub,
+*/ sub,
 sup {
   font-size: 75%;
   line-height: 0;
   position: relative;
   vertical-align: baseline;
-}
-
-sub {
+} sub {
   bottom: -0.25em;
-}
-
-sup {
+} sup {
   top: -0.5em;
-}
-
-/*
+} /*
 1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
 2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
 3. Remove gaps between table borders by default.
-*/
-
-table {
+*/ table {
   text-indent: 0; /* 1 */
   border-color: inherit; /* 2 */
   border-collapse: collapse; /* 3 */
-}
-
-/*
+} /*
 1. Change the font styles in all browsers.
 2. Remove the margin in Firefox and Safari.
 3. Remove default padding in all browsers.
-*/
-
-button,
+*/ button,
 input,
 optgroup,
 select,
@@ -289,105 +231,61 @@ textarea {
   color: inherit; /* 1 */
   margin: 0; /* 2 */
   padding: 0; /* 3 */
-}
-
-/*
+} /*
 Remove the inheritance of text transform in Edge and Firefox.
-*/
-
-button,
+*/ button,
 select {
   text-transform: none;
-}
-
-/*
+} /*
 1. Correct the inability to style clickable types in iOS and Safari.
 2. Remove default button styles.
-*/
-
-button,
+*/ button,
 input:where([type='button']),
 input:where([type='reset']),
 input:where([type='submit']) {
   -webkit-appearance: button; /* 1 */
   background-color: transparent; /* 2 */
   background-image: none; /* 2 */
-}
-
-/*
+} /*
 Use the modern Firefox focus style for all focusable elements.
-*/
-
-:-moz-focusring {
+*/ :-moz-focusring {
   outline: auto;
-}
-
-/*
+} /*
 Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
-*/
-
-:-moz-ui-invalid {
+*/ :-moz-ui-invalid {
   box-shadow: none;
-}
-
-/*
+} /*
 Add the correct vertical alignment in Chrome and Firefox.
-*/
-
-progress {
+*/ progress {
   vertical-align: baseline;
-}
-
-/*
+} /*
 Correct the cursor style of increment and decrement buttons in Safari.
-*/
-
-::-webkit-inner-spin-button,
+*/ ::-webkit-inner-spin-button,
 ::-webkit-outer-spin-button {
   height: auto;
-}
-
-/*
+} /*
 1. Correct the odd appearance in Chrome and Safari.
 2. Correct the outline style in Safari.
-*/
-
-[type='search'] {
+*/ [type='search'] {
   -webkit-appearance: textfield; /* 1 */
   outline-offset: -2px; /* 2 */
-}
-
-/*
+} /*
 Remove the inner padding in Chrome and Safari on macOS.
-*/
-
-::-webkit-search-decoration {
+*/ ::-webkit-search-decoration {
   -webkit-appearance: none;
-}
-
-/*
+} /*
 1. Correct the inability to style clickable types in iOS and Safari.
 2. Change font properties to `inherit` in Safari.
-*/
-
-::-webkit-file-upload-button {
+*/ ::-webkit-file-upload-button {
   -webkit-appearance: button; /* 1 */
   font: inherit; /* 2 */
-}
-
-/*
+} /*
 Add the correct display in Chrome and Safari.
-*/
-
-summary {
+*/ summary {
   display: list-item;
-}
-
-/*
+} /*
 Removes the default spacing and border for appropriate elements.
-*/
-
-blockquote,
+*/ blockquote,
 dl,
 dd,
 h1,
@@ -401,79 +299,49 @@ figure,
 p,
 pre {
   margin: 0;
-}
-
-fieldset {
+} fieldset {
   margin: 0;
   padding: 0;
-}
-
-legend {
+} legend {
   padding: 0;
-}
-
-ol,
+} ol,
 ul,
 menu {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-/*
+} /*
 Reset default styling for dialogs.
-*/
-dialog {
+*/ dialog {
   padding: 0;
-}
-
-/*
+} /*
 Prevent resizing textareas horizontally by default.
-*/
-
-textarea {
+*/ textarea {
   resize: vertical;
-}
-
-/*
+} /*
 1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
 2. Set the default placeholder color to the user's configured gray 400 color.
-*/
-
-input::-moz-placeholder, textarea::-moz-placeholder {
+*/ input::-moz-placeholder, textarea::-moz-placeholder {
   opacity: 1; /* 1 */
   color: #9ca3af; /* 2 */
-}
-
-input::placeholder,
+} input::placeholder,
 textarea::placeholder {
   opacity: 1; /* 1 */
   color: #9ca3af; /* 2 */
-}
-
-/*
+} /*
 Set the default cursor for buttons.
-*/
-
-button,
+*/ button,
 [role="button"] {
   cursor: pointer;
-}
-
-/*
+} /*
 Make sure disabled buttons don't get the pointer cursor.
-*/
-:disabled {
+*/ :disabled {
   cursor: default;
-}
-
-/*
+} /*
 1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
 2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
    This can trigger a poorly considered lint error in some tools but is included by design.
-*/
-
-img,
+*/ img,
 svg,
 video,
 canvas,
@@ -483,366 +351,253 @@ embed,
 object {
   display: block; /* 1 */
   vertical-align: middle; /* 2 */
-}
-
-/*
+} /*
 Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
-*/
-
-img,
+*/ img,
 video {
   max-width: 100%;
   height: auto;
-}
-
-/* Make elements with the HTML hidden attribute stay hidden by default */
-[hidden]:where(:not([hidden="until-found"])) {
+} /* Make elements with the HTML hidden attribute stay hidden by default */ [hidden]:where(:not([hidden="until-found"])) {
   display: none;
-}
-/* ==============================================
-   SHARED — CSS Variables, Base Styles & UI Components
-   Used by: app.css, guest.css, calcapp.css, expiryapp.css
-   ============================================== */
-/* ─── CSS Variables ─── */
-:root {
-    --mauve:         hsl(282, 45%, 55%);
-    --mauve-light:   hsl(282, 60%, 85%);
-    --mauve-deep:    hsl(282, 50%, 40%);
-    --apricot:       hsl(25, 85%, 60%);
-    --apricot-light: hsl(25, 90%, 85%);
-    --apricot-deep:  hsl(25, 70%, 45%);
-    --fg:            hsl(280, 20%, 18%);
-    --muted:         hsl(280, 10%, 40%);
-}
-/* ─── Reset ─── */
-*, *::before, *::after { box-sizing: border-box; }
-/* ─── Body Base ─── */
-body {
-    font-family: 'DM Sans', sans-serif;
-    color: var(--fg);
-    background: linear-gradient(135deg,
-        hsl(290,40%,92%) 0%,
-        hsl(300,30%,90%) 25%,
-        hsl(20,60%,90%)  50%,
-        hsl(25,70%,88%)  75%,
-        hsl(290,35%,90%) 100%);
-    background-attachment: fixed;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-}
-/* ─── Typography ─── */
-.font-serif { font-family: 'Playfair Display', serif; }
-/* ─── Glass Utilities ─── */
-.glass {
-    background: hsla(0,0%,100%,0.15);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsla(0,0%,100%,0.3);
-    box-shadow: 0 8px 32px hsla(282,45%,55%,0.1);
-}
-.glass-strong {
-    background: hsla(0,0%,100%,0.3) !important;
-    backdrop-filter: blur(30px) !important;
-    -webkit-backdrop-filter: blur(30px) !important;
-    border: 1px solid hsla(0,0%,100%,0.4) !important;
-}
-/* ─── Gradient Text ─── */
-.gradient-text {
-    background: linear-gradient(to right, var(--mauve), var(--apricot));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-/* ─── Keyframes ─── */
-@keyframes fade-up {
-    0%   { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-    0%   { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes orb-enter {
-    0%   { opacity: 0; transform: scale(0.8); }
-    100% { opacity: 1; transform: scale(1); }
-}
-@keyframes card-enter {
-    0%   { opacity: 0; transform: translateY(24px) scale(0.98); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes logo-drop {
-    0%   { opacity: 0; transform: translateY(-12px) scale(0.8); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes header-slide-in {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-/* ─── Animation Helpers ─── */
-.fade-in { animation: fade-in 0.6s ease-out forwards; }
-.delay-1 { animation-delay: 0.2s; opacity: 0; }
-.delay-2 { animation-delay: 0.4s; opacity: 0; }
-/* ==============================================
-   GRAIN
-   ============================================== */
-.grain {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-    background-size: 200px 200px;
-}
-/* ==============================================
-   ORBS
-   ============================================== */
-.orb {
-    position: fixed; border-radius: 50%;
-    filter: blur(80px); opacity: 0; pointer-events: none;
-    animation: orb-enter 1.2s ease-out forwards;
-}
-.orb-1 { animation-delay: 0s; }
-.orb-2 { animation-delay: 0.2s; }
-.orb-3 { animation-delay: 0.4s; }
-/* ==============================================
-   LOGIN CARD
-   ============================================== */
-.login-card {
-    background: hsla(0,0%,100%,0.5);
-    backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
-    border: 1px solid hsla(0,0%,100%,0.65);
-    box-shadow:
-        0 32px 64px -12px hsla(282,45%,45%,0.12),
-        0 0 0 1px hsla(0,0%,100%,0.1) inset,
-        0 2px 0 hsla(0,0%,100%,0.7) inset;
-    border-radius: 2.5rem;
-    opacity: 0; transform: translateY(24px) scale(0.98);
-    animation: card-enter 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
-}
-/* ==============================================
-   LOGO ICON
-   ============================================== */
-.logo-icon {
-    width: 3.5rem; height: 3.5rem;
-    background: linear-gradient(135deg, var(--mauve), var(--mauve-deep));
-    border-radius: 1.25rem;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px hsla(282,45%,55%,0.35), 0 2px 0 hsla(0,0%,100%,0.3) inset;
-    opacity: 0; position: relative;
-    animation: logo-drop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
-}
-.logo-icon::after {
-    content: ''; position: absolute; inset: 0; border-radius: inherit;
-    background: linear-gradient(135deg, hsla(0,0%,100%,0.22), transparent);
-}
-/* ==============================================
-   INPUTS
-   ============================================== */
-.input-group       { position: relative; opacity: 0; }
-.input-group.ig-1  { animation: fade-up 0.5s ease-out 0.95s forwards; }
-.input-group.ig-2  { animation: fade-up 0.5s ease-out 1.05s forwards; }
-.input-field {
-    width: 100%;
-    padding: 1rem 3rem 1rem 3rem;
-    background: hsla(0,0%,100%,0.5);
-    border: 1.5px solid hsla(0,0%,100%,0.6);
-    border-radius: 1rem;
-    font-size: 0.875rem; font-family: 'DM Sans', sans-serif;
-    color: var(--fg); outline: none;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-}
-.input-field::-moz-placeholder { color: var(--muted); }
-.input-field::placeholder { color: var(--muted); }
-.input-field:focus {
-    background: hsla(0,0%,100%,0.85);
-    border-color: var(--mauve);
-    box-shadow: 0 0 0 4px hsla(282,45%,55%,0.12), 0 4px 12px hsla(282,45%,55%,0.1);
-    transform: translateY(-1px);
-}
-.input-icon-left {
-    position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
-    color: var(--muted); font-size: 1rem; pointer-events: none; transition: color 0.2s;
-}
-.input-group:focus-within .input-icon-left { color: var(--mauve); }
-.eye-toggle {
-    position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
-    color: var(--muted); font-size: 1rem; cursor: pointer;
-    background: none; border: none; padding: 0; line-height: 1; transition: color 0.2s;
-}
-.eye-toggle:hover { color: var(--mauve); }
-/* ==============================================
-   FIELD CARDS
-   ============================================== */
-.field-card {
-    background: hsla(0,0%,100%,0.52);
-    border: 1.5px solid hsla(0,0%,100%,0.65);
-    border-radius: 1.25rem; padding: 1rem 1.25rem; opacity: 0;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-}
-.field-card.fc-1 { animation: fade-up 0.5s ease-out 0.95s forwards; }
-.field-card.fc-2 { animation: fade-up 0.5s ease-out 1.05s forwards; }
-.field-card:focus-within {
-    border-color: var(--mauve);
-    box-shadow: 0 0 0 4px hsla(282,45%,55%,0.1);
-    background: hsla(0,0%,100%,0.8);
-}
-.field-label {
-    font-size: 0.68rem; font-weight: 700; color: var(--muted);
-    letter-spacing: 0.07em; text-transform: uppercase; display: block; margin-bottom: 0.5rem;
-}
-.input-row       { display: flex; align-items: center; gap: 0.5rem; }
-.input-row input { flex: 1; border: none; outline: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700; color: var(--fg); }
-.input-row input::-moz-placeholder { color: var(--muted); font-weight: 400; font-size: 0.875rem; }
-.input-row input::placeholder { color: var(--muted); font-weight: 400; font-size: 0.875rem; }
-.input-unit      { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; background: var(--mauve-soft); color: var(--mauve-deep); padding: 0.18rem 0.55rem; border-radius: 0.45rem; }
-/* ==============================================
-   PANELS
-   ============================================== */
-.panel-info {
-    background: var(--mauve-soft); border: 1px solid var(--mauve-border);
-    border-radius: 1.1rem; padding: 1rem 1.25rem;
-    opacity: 0; animation: fade-up 0.5s ease-out 0.85s forwards;
-}
-.panel-info h4 { font-size: 0.78rem; font-weight: 700; color: var(--mauve-deep); margin: 0 0 0.3rem; }
-.panel-info p  { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.55; }
-.panel-live {
-    background: hsla(0,0%,100%,0.4); border: 1px solid hsla(0,0%,100%,0.6);
-    border-radius: 1.1rem; padding: 1.1rem 1.25rem;
-    opacity: 0; animation: fade-up 0.5s ease-out 1.1s forwards;
-}
-.panel-live-label { font-size: 0.68rem; font-weight: 700; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 0.75rem; }
-/* ==============================================
-   STEP CARDS
-   ============================================== */
-.step-card {
-    background: hsla(0,0%,100%,0.52); border: 1px solid hsla(0,0%,100%,0.65);
-    border-radius: 1.1rem; padding: 1rem 1.25rem;
-    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
-}
-.step-card:hover { transform: translateY(-3px); border-color: var(--mauve); box-shadow: 0 8px 24px hsla(282,45%,55%,0.1); }
-.step-num  { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--mauve); text-transform: uppercase; margin-bottom: 0.3rem; }
-.step-text { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
-/* ==============================================
-   SIGN IN BUTTON
-   ============================================== */
-.btn-signin {
-    width: 100%; padding: 1rem;
-    background: linear-gradient(135deg, var(--fg), hsl(280,25%,24%));
-    color: #fff; border: none; border-radius: 1rem;
-    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 16px hsla(280,25%,18%,0.35);
-    opacity: 0; animation: fade-up 0.5s ease-out 1.15s forwards;
-    margin-top: 0.25rem; text-decoration: none;
-}
-.btn-signin:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px hsla(282,45%,55%,0.25); }
-.btn-signin:active { transform: translateY(0px) scale(0.98); }
-.btn-arrow         { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.btn-signin:hover .btn-arrow { transform: translateX(2px); }
-/* ==============================================
-   ALERTS
-   ============================================== */
-.alert-success {
-    background: hsla(150,60%,40%,0.1); border: 1px solid hsla(150,60%,40%,0.25);
-    border-radius: 1rem; padding: 0.875rem 1rem; margin-bottom: 1rem; font-size: 0.82rem;
-    color: hsl(150,45%,22%); display: flex; align-items: center; gap: 0.5rem;
-    opacity: 0; animation: fade-up 0.5s ease-out 0.9s forwards;
-}
-/* ==============================================
-   TYPOGRAPHY HELPERS
-   ============================================== */
-.login-title   { opacity: 0; animation: fade-up 0.5s ease-out 0.8s  forwards; }
-.page-title    { opacity: 0; animation: fade-up 0.5s ease-out 0.75s forwards; }
-.divider-line  { opacity: 0; animation: fade-up 0.5s ease-out 1.25s forwards; }
-.register-link { opacity: 0; animation: fade-up 0.5s ease-out 1.3s  forwards; }
-.register-link a { color: var(--mauve); font-weight: 600; text-decoration: none; position: relative; }
-.register-link a::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 0%; height: 1.5px; background: var(--mauve); transition: width 0.25s ease; }
-.register-link a:hover::after { width: 100%; }
-.verify-msg { opacity: 0; animation: fade-up 0.5s ease-out 0.95s forwards; font-size: 0.875rem; color: var(--muted); line-height: 1.65; text-align: center; margin-bottom: 1.5rem; }
-.back-link  { opacity: 0; animation: fade-up 0.5s ease-out 1.15s forwards; }
-.back-link a { color: var(--muted); font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; transition: color 0.2s; }
-.back-link a:hover { color: var(--mauve); }
-/* ==============================================
-   DIVIDER
-   ============================================== */
-.divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--mauve-border), transparent);
-    opacity: 0; animation: fade-up 0.5s ease-out 1.1s forwards;
-}
-/* ==============================================
-   APP HEADER (Shared — calcapp & expiryapp)
-   ============================================== */
-.app-header {
-    position: sticky; top: 0; z-index: 100;
-    padding: 0.75rem 1.75rem;
-    background: hsla(0,0%,100%,0.55);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border-bottom: 1px solid var(--mauve-border);
-    box-shadow: 0 1px 0 hsla(0,0%,100%,0.7) inset, 0 4px 24px hsla(0,0%,0%,0.04);
-    animation: header-slide-in 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
-}
-.app-header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 1rem; }
-.app-logo        { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; flex-shrink: 0; }
-.app-logo-icon   { width: 2.2rem; height: 2.2rem; background: linear-gradient(135deg, var(--mauve), var(--mauve-deep)); border-radius: 0.7rem; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; box-shadow: 0 4px 12px hsla(0,0%,0%,0.15); position: relative; flex-shrink: 0; }
-.app-logo-icon::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(135deg, hsla(0,0%,100%,0.25), transparent); }
-.app-logo-name   { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--fg); line-height: 1; }
-.app-logo-name span { color: var(--mauve); }
-.app-spacer      { flex: 1; }
-.app-nav      { display: flex; align-items: center; gap: 0.15rem; }
-.app-nav-link { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; border-radius: 0.75rem; font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: background 0.2s, color 0.2s; white-space: nowrap; }
-.app-nav-link i { font-size: 0.85rem; transition: transform 0.2s; }
-.app-nav-link:hover   { background: var(--mauve-soft); color: var(--mauve-deep); }
-.app-nav-link:hover i { transform: scale(1.15); }
-.app-nav-link.active  { background: var(--mauve-soft); color: var(--mauve-deep); position: relative; }
-.app-nav-link.active::after { content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 18px; height: 2px; background: var(--mauve); border-radius: 2px; }
-.app-actions  { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
-.app-btn-cta  { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--mauve), var(--mauve-deep)); color: white !important; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 700; text-decoration: none; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 14px hsla(0,0%,0%,0.15); }
-.app-btn-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 18px hsla(0,0%,0%,0.2); }
-.app-avatar { width: 2rem; height: 2rem; background: var(--mauve-soft); border: 1.5px solid var(--mauve-border); border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; color: var(--mauve-deep); font-size: 0.7rem; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-.app-avatar:hover { background: var(--mauve); color: white; border-color: var(--mauve); transform: scale(1.05); }
-.app-header-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--mauve-border), transparent); }
-.app-menu-btn { display: none; background: var(--mauve-soft); border: 1px solid var(--mauve-border); border-radius: 0.65rem; padding: 0.45rem 0.6rem; cursor: pointer; color: var(--mauve-deep); font-size: 1.05rem; }
-@media (max-width: 768px) {
-    .app-nav { display: none; }
-    .app-menu-btn { display: flex; align-items: center; }
-    .app-btn-cta .btn-label { display: none; }
-    .app-btn-cta { padding: 0.5rem 0.65rem; }
-}
-/* ── Notifications ── */
-.notif-wrap { position: relative; }
-.notif-btn { position: relative; background: none; border: none; cursor: pointer; }
-.notif-badge {
-    position: absolute; top: -4px; right: -4px;
-    background: #ef4444; color: #fff;
-    font-size: 0.6rem; font-weight: 700;
-    width: 16px; height: 16px;
-    border-radius: 50%; display: flex;
-    align-items: center; justify-content: center;
-}
-.notif-dropdown {
-    position: absolute; right: 0; top: calc(100% + 8px);
-    width: 320px; background: #fff;
-    border: 1px solid #eee; border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-    z-index: 9999;
-}
-.notif-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6;
-    font-size: 0.85rem; font-weight: 700;
-}
-.notif-read-all { font-size: 0.75rem; color: #6b7280; background: none; border: none; cursor: pointer; }
-.notif-list { max-height: 320px; overflow-y: auto; }
-.notif-item { padding: 0.75rem 1rem; border-bottom: 1px solid #f9fafb; font-size: 0.8rem; cursor: pointer; }
-.notif-item.unread { background: #fffbeb; }
-.notif-item-msg { color: #111827; margin-bottom: 0.2rem; }
-.notif-item-time { color: #9ca3af; font-size: 0.72rem; }
-.notif-empty { padding: 2rem; text-align: center; color: #9ca3af; font-size: 0.8rem; }
-.notif-loading { padding: 1rem; text-align: center; color: #9ca3af; font-size: 0.8rem; }
-/* ==============================================
+} .container {
+  width: 100%;
+} @media (min-width: 640px) { .container {
+    max-width: 640px;
+  }
+} @media (min-width: 768px) { .container {
+    max-width: 768px;
+  }
+} @media (min-width: 1024px) { .container {
+    max-width: 1024px;
+  }
+} @media (min-width: 1280px) { .container {
+    max-width: 1280px;
+  }
+} @media (min-width: 1536px) { .container {
+    max-width: 1536px;
+  }
+} .pointer-events-none {
+  pointer-events: none;
+} .fixed {
+  position: fixed;
+} .absolute {
+  position: absolute;
+} .relative {
+  position: relative;
+} .left-1\/2 {
+  left: 50%;
+} .right-0 {
+  right: 0px;
+} .top-0 {
+  top: 0px;
+} .-z-10 {
+  z-index: -10;
+} .mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+} .mb-0 {
+  margin-bottom: 0px;
+} .mb-10 {
+  margin-bottom: 2.5rem;
+} .mb-2 {
+  margin-bottom: 0.5rem;
+} .mb-4 {
+  margin-bottom: 1rem;
+} .mb-6 {
+  margin-bottom: 1.5rem;
+} .mt-24 {
+  margin-top: 6rem;
+} .flex {
+  display: flex;
+} .inline-flex {
+  display: inline-flex;
+} .grid {
+  display: grid;
+} .hidden {
+  display: none;
+} .h-\[600px\] {
+  height: 600px;
+} .min-h-screen {
+  min-height: 100vh;
+} .w-\[600px\] {
+  width: 600px;
+} .w-full {
+  width: 100%;
+} .max-w-2xl {
+  max-width: 42rem;
+} .max-w-7xl {
+  max-width: 80rem;
+} .max-w-md {
+  max-width: 28rem;
+} .flex-shrink {
+  flex-shrink: 1;
+} .-translate-x-1\/2 {
+  --tw-translate-x: -50%;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+} .rotate-180 {
+  --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+} .transform {
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+} .cursor-pointer {
+  cursor: pointer;
+} .flex-col {
+  flex-direction: column;
+} .flex-wrap {
+  flex-wrap: wrap;
+} .items-center {
+  align-items: center;
+} .justify-center {
+  justify-content: center;
+} .justify-between {
+  justify-content: space-between;
+} .gap-2 {
+  gap: 0.5rem;
+} .gap-4 {
+  gap: 1rem;
+} .gap-8 {
+  gap: 2rem;
+} .overflow-hidden {
+  overflow: hidden;
+} .rounded-3xl {
+  border-radius: 1.5rem;
+} .rounded-full {
+  border-radius: 9999px;
+} .rounded-xl {
+  border-radius: 0.75rem;
+} .border {
+  border-width: 1px;
+} .border-purple-500\/20 {
+  border-color: rgb(168 85 247 / 0.2);
+} .border-white\/10 {
+  border-color: rgb(255 255 255 / 0.1);
+} .bg-\[\#0A0A0A\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
+} .bg-purple-500\/10 {
+  background-color: rgb(168 85 247 / 0.1);
+} .bg-purple-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(147 51 234 / var(--tw-bg-opacity, 1));
+} .bg-purple-600\/20 {
+  background-color: rgb(147 51 234 / 0.2);
+} .bg-white\/5 {
+  background-color: rgb(255 255 255 / 0.05);
+} .bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+} .from-white {
+  --tw-gradient-from: #fff var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+} .to-white\/40 {
+  --tw-gradient-to: rgb(255 255 255 / 0.4) var(--tw-gradient-to-position);
+} .bg-clip-text {
+  -webkit-background-clip: text;
+          background-clip: text;
+} .p-10 {
+  padding: 2.5rem;
+} .p-8 {
+  padding: 2rem;
+} .px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+} .px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+} .px-6 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+} .px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+} .py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+} .py-12 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+} .py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+} .py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+} .py-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+} .pb-32 {
+  padding-bottom: 8rem;
+} .pt-20 {
+  padding-top: 5rem;
+} .text-center {
+  text-align: center;
+} .font-sans {
+  font-family: Cairo, Inter, sans-serif;
+} .font-serif {
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+} .text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+} .text-5xl {
+  font-size: 3rem;
+  line-height: 1;
+} .text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+} .text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+} .text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+} .font-bold {
+  font-weight: 700;
+} .font-medium {
+  font-weight: 500;
+} .uppercase {
+  text-transform: uppercase;
+} .leading-relaxed {
+  line-height: 1.625;
+} .tracking-tight {
+  letter-spacing: -0.025em;
+} .tracking-tighter {
+  letter-spacing: -0.05em;
+} .tracking-widest {
+  letter-spacing: 0.1em;
+} .text-purple-400 {
+  --tw-text-opacity: 1;
+  color: rgb(192 132 252 / var(--tw-text-opacity, 1));
+} .text-purple-500 {
+  --tw-text-opacity: 1;
+  color: rgb(168 85 247 / var(--tw-text-opacity, 1));
+} .text-transparent {
+  color: transparent;
+} .text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+} .text-white\/40 {
+  color: rgb(255 255 255 / 0.4);
+} .text-white\/50 {
+  color: rgb(255 255 255 / 0.5);
+} .antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+} .opacity-5 {
+  opacity: 0.05;
+} .blur-\[120px\] {
+  --tw-blur: blur(120px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+} .transition {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+} .transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+} /* ==============================================
    APP LAYOUT — Navbar
-   ============================================== */
-#site-navbar {
+   ============================================== */ #site-navbar {
     position: fixed;
     top: 1rem; left: 50%;
     transform: translateX(-50%);
@@ -851,101 +606,88 @@ body {
     border-radius: 1rem;
     padding: 0.75rem 1.5rem;
     transition: all 0.5s;
-}
-.brand-icon {
+} .brand-icon {
     width: 2rem; height: 2rem;
     border-radius: 0.5rem;
     background: var(--mauve);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-}
-.btn-nav-text {
+} .btn-nav-text {
     font-size: 0.875rem; font-weight: 500;
     color: var(--muted); background: none; border: none; cursor: pointer;
     padding: 0.5rem 1rem; transition: color 0.2s; text-decoration: none;
-}
-.btn-nav-text:hover { color: var(--fg); }
-.btn-nav-primary {
+} .btn-nav-text:hover { color: var(--fg); } .btn-nav-primary {
     font-size: 0.875rem; font-weight: 500;
     background: var(--mauve); color: #fff !important;
     border: none; cursor: pointer;
     padding: 0.5rem 1.25rem; border-radius: 0.75rem;
     transition: all 0.2s; text-decoration: none;
-}
-.btn-nav-primary:hover { opacity: 0.9; transform: scale(1.05); }
-/* ==============================================
+} .btn-nav-primary:hover { opacity: 0.9; transform: scale(1.05); } /* ==============================================
    APP LAYOUT — Hero Section
-   ============================================== */
-.hero-section {
+   ============================================== */ .hero-section {
     position: relative; min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden; padding: 6rem 1.5rem 4rem;
-}
-.floating-icons { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.floating-icon  { position: absolute; opacity: 0.15; }
-.icon-mauve   { color: var(--mauve-deep); }
-.icon-apricot { color: var(--apricot-deep); }
-@keyframes float-slow   { 0%,100% { transform: translateY(0px) rotate(0deg); } 33% { transform: translateY(-15px) rotate(3deg); } 66% { transform: translateY(8px) rotate(-2deg); } }
-@keyframes float-medium { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(-5deg); } }
-@keyframes float-fast   { 0%,100% { transform: translateY(0px) translateX(0px); } 25% { transform: translateY(-10px) translateX(5px); } 75% { transform: translateY(5px) translateX(-5px); } }
-.anim-slow   { animation: float-slow   8s ease-in-out infinite; }
-.anim-medium { animation: float-medium 6s ease-in-out infinite; }
-.anim-fast   { animation: float-fast   4s ease-in-out infinite; }
-.btn-hero-primary {
+} .floating-icons { position: absolute; inset: 0; pointer-events: none; z-index: 0; } .floating-icon  { position: absolute; opacity: 0.15; } .icon-mauve   { color: var(--mauve-deep); } .icon-apricot { color: var(--apricot-deep); } @keyframes float-slow   { 0%,100% { transform: translateY(0px) rotate(0deg); } 33% { transform: translateY(-15px) rotate(3deg); } 66% { transform: translateY(8px) rotate(-2deg); } } @keyframes float-medium { 0%,100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(-5deg); } } @keyframes float-fast   { 0%,100% { transform: translateY(0px) translateX(0px); } 25% { transform: translateY(-10px) translateX(5px); } 75% { transform: translateY(5px) translateX(-5px); } } .anim-slow   { animation: float-slow   8s ease-in-out infinite; } .anim-medium { animation: float-medium 6s ease-in-out infinite; } .anim-fast   { animation: float-fast   4s ease-in-out infinite; } .btn-hero-primary {
     font-size: 1rem; font-weight: 600; background: var(--mauve);
     color: #fff; border: none; cursor: pointer;
     padding: 0.875rem 2rem; border-radius: 1rem;
     box-shadow: 0 4px 20px hsla(282,45%,55%,0.3);
     transition: all 0.2s; text-decoration: none;
-}
-.btn-hero-primary:hover { opacity: 0.9; transform: scale(1.05); }
-.btn-hero-glass {
+} .btn-hero-primary:hover { opacity: 0.9; transform: scale(1.05); } .btn-hero-glass {
     font-size: 1rem; font-weight: 600; color: var(--fg);
     border: none; cursor: pointer;
     padding: 0.875rem 2rem; border-radius: 1rem; transition: all 0.2s;
-}
-.btn-hero-glass:hover { transform: scale(1.05); }
-/* ==============================================
+} .btn-hero-glass:hover { transform: scale(1.05); } /* ==============================================
    APP LAYOUT — Feature Cards
-   ============================================== */
-.feature-card { border-radius: 1rem; padding: 1.75rem; transition: all 0.3s; }
-.feature-card:hover { transform: scale(1.03); box-shadow: 0 20px 40px hsla(282,45%,55%,0.15); }
-.feature-icon { width: 3.5rem; height: 3.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
-.fi-mauve   { background: var(--mauve-light); }
-.fi-apricot { background: var(--apricot-light); }
-/* ==============================================
+   ============================================== */ .feature-card { border-radius: 1rem; padding: 1.75rem; transition: all 0.3s; } .feature-card:hover { transform: scale(1.03); box-shadow: 0 20px 40px hsla(282,45%,55%,0.15); } .feature-icon { width: 3.5rem; height: 3.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; } .fi-mauve   { background: var(--mauve-light); } .fi-apricot { background: var(--apricot-light); } /* ==============================================
    APP LAYOUT — Operational Cards
-   ============================================== */
-.op-card { border-radius: 1.5rem; padding: 2rem; transition: all 0.5s; cursor: pointer; }
-.op-card:hover { transform: scale(1.02); }
-.op-card.inventory:hover  { box-shadow: 0 0 30px hsla(25,85%,60%,0.3),  0 0 60px hsla(25,85%,60%,0.1); }
-.op-card.calculator:hover { box-shadow: 0 0 30px hsla(282,45%,55%,0.3), 0 0 60px hsla(282,45%,55%,0.1); }
-.op-icon { width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; transition: background 0.3s; }
-.op-card.inventory  .op-icon       { background: hsla(25,85%,60%,0.1); }
-.op-card.inventory:hover  .op-icon { background: hsla(25,85%,60%,0.2); }
-.op-card.calculator .op-icon       { background: hsla(282,45%,55%,0.1); }
-.op-card.calculator:hover .op-icon { background: hsla(282,45%,55%,0.2); }
-/* ==============================================
+   ============================================== */ .op-card { border-radius: 1.5rem; padding: 2rem; transition: all 0.5s; cursor: pointer; } .op-card:hover { transform: scale(1.02); } .op-card.inventory:hover  { box-shadow: 0 0 30px hsla(25,85%,60%,0.3),  0 0 60px hsla(25,85%,60%,0.1); } .op-card.calculator:hover { box-shadow: 0 0 30px hsla(282,45%,55%,0.3), 0 0 60px hsla(282,45%,55%,0.1); } .op-icon { width: 4rem; height: 4rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; transition: background 0.3s; } .op-card.inventory  .op-icon       { background: hsla(25,85%,60%,0.1); } .op-card.inventory:hover  .op-icon { background: hsla(25,85%,60%,0.2); } .op-card.calculator .op-icon       { background: hsla(282,45%,55%,0.1); } .op-card.calculator:hover .op-icon { background: hsla(282,45%,55%,0.2); } /* ==============================================
    APP LAYOUT — Buttons
-   ============================================== */
-.btn-apricot {
+   ============================================== */ .btn-apricot {
     display: inline-flex; align-items: center; gap: 0.5rem;
     font-size: 1rem; font-weight: 600; background: var(--apricot);
     color: #fff; border: none; cursor: pointer;
     padding: 0.75rem 1.5rem; border-radius: 0.75rem;
     text-decoration: none; transition: all 0.2s;
-}
-.btn-apricot:hover { opacity: 0.9; transform: scale(1.05); }
-.btn-mauve {
+} .btn-apricot:hover { opacity: 0.9; transform: scale(1.05); } .btn-mauve {
     display: inline-flex; align-items: center; gap: 0.5rem;
     font-size: 1rem; font-weight: 600; background: var(--mauve);
     color: #fff; border: none; cursor: pointer;
     padding: 0.75rem 1.5rem; border-radius: 0.75rem;
     text-decoration: none; transition: all 0.2s;
-}
-.btn-mauve:hover { opacity: 0.9; transform: scale(1.05); }
-/* ==============================================
+} .btn-mauve:hover { opacity: 0.9; transform: scale(1.05); } /* ==============================================
    APP LAYOUT — Footer
-   ============================================== */
-.site-footer { padding: 3rem 1.5rem; }
-.footer-inner { max-width: 64rem; margin: 0 auto; border-radius: 1.5rem; padding: 2rem; }
+   ============================================== */ .site-footer { padding: 3rem 1.5rem; } .footer-inner { max-width: 64rem; margin: 0 auto; border-radius: 1.5rem; padding: 2rem; } .selection\:bg-purple-500\/30 *::-moz-selection {
+  background-color: rgb(168 85 247 / 0.3);
+} .selection\:bg-purple-500\/30 *::selection {
+  background-color: rgb(168 85 247 / 0.3);
+} .selection\:bg-purple-500\/30::-moz-selection {
+  background-color: rgb(168 85 247 / 0.3);
+} .selection\:bg-purple-500\/30::selection {
+  background-color: rgb(168 85 247 / 0.3);
+} .hover\:scale-105:hover {
+  --tw-scale-x: 1.05;
+  --tw-scale-y: 1.05;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+} .hover\:border-purple-500\/50:hover {
+  border-color: rgb(168 85 247 / 0.5);
+} .hover\:bg-purple-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(126 34 206 / var(--tw-bg-opacity, 1));
+} .hover\:bg-white\/10:hover {
+  background-color: rgb(255 255 255 / 0.1);
+} .group:hover .group-hover\:opacity-10 {
+  opacity: 0.1;
+} @media (min-width: 768px) { .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  } .md\:p-12 {
+    padding: 3rem;
+  } .md\:text-7xl {
+    font-size: 4.5rem;
+    line-height: 1;
+  } .md\:text-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+}
