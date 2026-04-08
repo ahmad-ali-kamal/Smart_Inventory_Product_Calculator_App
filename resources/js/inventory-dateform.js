@@ -4,12 +4,12 @@
  */
 window.ExpiryForm = (() => {
 
-    /* ── State ── */
-    let productId  = null;
-    let mode       = null;   // true = single | false = batch | null = not chosen
-    let isEdit     = false;
-    let batchCount = 0;
-    let _isOpen    = false;  // track modal visibility
+let productId  = null;
+let mode       = null;
+let isEdit     = false;
+let batchCount = 0;
+let _isOpen    = false;
+let _threshold = 14;   // fallback افتراضي، يُحدَّث عند كل open
 
     /* ── DOM helper ── */
     const $ = id => document.getElementById(id);
@@ -20,8 +20,8 @@ window.ExpiryForm = (() => {
     function _calcStatus(dateStr) {
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const days  = Math.floor((new Date(dateStr) - today) / 86400000);
-        if (days < 0)  return 'red';
-        if (days <= 7) return 'yellow';
+       if (days <= 0) return 'red';
+        if (days <= _threshold) return 'yellow';
         return 'green';
     }
 
@@ -48,27 +48,44 @@ window.ExpiryForm = (() => {
             ? _statusBadgeHtml(_calcStatus(dateEl.value), idx)
             : `<span class="ef-status-badge" id="bStatus-${idx}"></span>`;
     }
+function _updateSingleStatus() {
+    const dateEl   = $('efSingleDate');
+    const statusEl = $('efSingleStatus');
+    if (!statusEl) return;
 
+    if (!dateEl?.value) {
+        statusEl.className = 'ef-status-badge';
+        statusEl.innerHTML = '';
+        return;
+    }
+
+    const s = _calcStatus(dateEl.value);
+    const map = {
+        green:  ['ef-s-green',  'Safe'],
+        yellow: ['ef-s-yellow', 'Approaching'],
+        red:    ['ef-s-red',    'Expired'],
+    };
+    const [cls, label] = map[s];
+    statusEl.className = `ef-status-badge ${cls}`;
+    statusEl.innerHTML = `<i class="bi bi-circle-fill" style="font-size:0.4rem"></i> ${label}`;
+}
     /* ══════════════════════════════════════════
        RESET — clears DOM + state completely
     ══════════════════════════════════════════ */
     function _reset(productName) {
-        // state
         mode       = null;
         batchCount = 0;
 
-        // DOM
         $('efProductName').textContent = productName ?? '';
         $('btnYes').className          = 'ef-toggle-btn';
         $('btnNo').className           = 'ef-toggle-btn';
         $('panelYes').classList.remove('show');
         $('panelNo').classList.remove('show');
         $('efSingleDate').value        = '';
-        $('efSingleBatchCode').value = '';
+        $('efSingleBatchCode').value   = '';
         $('efBatchList').innerHTML     = '';
         $('efSaveBtn').disabled        = true;
 
-        // clear any lingering error message
         const err = $('efErrorMsg');
         if (err) err.style.display = 'none';
     }
@@ -78,16 +95,22 @@ window.ExpiryForm = (() => {
     ══════════════════════════════════════════ */
     function _buildBatchItem(prefill = {}) {
         batchCount++;
-        const idx  = batchCount;
+        const idx = batchCount;
+
+        // ✅ استخدم status الجاهز من الـ server إن وُجد
+        // وإلا احسبه محلياً بـ _threshold الحالي
+        const status = prefill.status
+            ?? (prefill.expiry ? _calcStatus(prefill.expiry) : null);
+
         const item = document.createElement('div');
         item.className = 'ef-batch-item';
         item.id        = `efBatch-${idx}`;
 
-        const status    = prefill.expiry ? _calcStatus(prefill.expiry) : null;
         const badgeHtml = status
             ? _statusBadgeHtml(status, idx)
             : `<span class="ef-status-badge" id="bStatus-${idx}"></span>`;
-item.innerHTML = `
+
+        item.innerHTML = `
     <div class="ef-batch-head">
         <span class="ef-batch-lbl" id="bLbl-${idx}">
             <i class="bi bi-layers" style="font-size:0.78rem;color:var(--mauve)"></i>
@@ -135,17 +158,17 @@ item.innerHTML = `
     /* ── Collect batch payload ── */
     function _collectBatches() {
         const batches = [];
-        document.querySelectorAll('#efBatchList .ef-batch-item').forEach((item, i) => {
+        document.querySelectorAll('#efBatchList .ef-batch-item').forEach((item) => {
             const id  = item.id.replace('efBatch-', '');
             const qty = parseInt($(`bQty-${id}`)?.value) || 0;
             const dt  = $(`bDate-${id}`)?.value;
             if (qty > 0 && dt) {
-              batches.push({ 
-    qty, 
-    expiry_date: dt, 
-    batch_code: $(`bCode-${id}`)?.value || null,
-    status: _calcStatus(dt) 
-});
+                batches.push({
+                    qty,
+                    expiry_date: dt,
+                    batch_code:  $(`bCode-${id}`)?.value || null,
+                    status:      _calcStatus(dt),
+                });
             }
         });
         return batches;
@@ -167,13 +190,12 @@ item.innerHTML = `
         document.body.classList.remove('ef-open');
         document.body.style.overflow = '';
 
-        // ── Full state reset so next open() starts clean ──
         productId  = null;
         mode       = null;
         isEdit     = false;
         batchCount = 0;
+        _threshold = 14;
 
-        // ── DOM reset ──
         $('btnYes').className = 'ef-toggle-btn';
         $('btnNo').className  = 'ef-toggle-btn';
         $('panelYes').classList.remove('show');
@@ -182,6 +204,7 @@ item.innerHTML = `
         $('efBatchList').innerHTML = '';
         $('efSaveBtn').disabled    = true;
         $('efEditBanner').classList.remove('show');
+
         const err = $('efErrorMsg');
         if (err) err.style.display = 'none';
     }
@@ -189,9 +212,10 @@ item.innerHTML = `
     /* ══════════════════════════════════════════
        OPEN VARIANTS
     ══════════════════════════════════════════ */
-    function open(pid, productName) {
-        productId = pid;
-        isEdit    = false;
+    function open(pid, productName, threshold = 14) {
+        productId  = pid;
+        isEdit     = false;
+        _threshold = threshold;
         _reset(productName);
         $('efTitle').textContent = 'Add Expiry Date';
         $('efIcon').className    = 'bi bi-calendar-plus';
@@ -199,25 +223,29 @@ item.innerHTML = `
         _show();
     }
 
-    function openSingle(pid, productName, dateValue, batchCode) {
-    productId = pid;
-    isEdit    = true;
-    _reset(productName); // reset first, then set mode
-    mode      = true;    // set mode after reset so it doesn't get cleared
-    $('efTitle').textContent    = 'Edit Expiry Date';
-    $('efIcon').className       = 'bi bi-pencil-square';
-    $('efEditBanner').classList.add('show');
-    $('btnYes').className       = 'ef-toggle-btn active-yes';
-    $('panelYes').classList.add('show');
-    $('efSingleDate').value       = dateValue ?? '';
-    $('efSingleBatchCode').value  = batchCode ?? '';
-    validate();
-    _show();
-}
+    function openSingle(pid, productName, dateValue, batchCode, threshold = 14) {
+        productId  = pid;
+        isEdit     = true;
+        _threshold = threshold;
+        _reset(productName);
+        mode = true; // بعد _reset حتى لا يُمسح
+        $('efTitle').textContent   = 'Edit Expiry Date';
+        $('efIcon').className      = 'bi bi-pencil-square';
+        $('efEditBanner').classList.add('show');
+        $('btnYes').className      = 'ef-toggle-btn active-yes';
+        $('panelYes').classList.add('show');
+        $('efSingleDate').value      = dateValue ?? '';
+        
+        $('efSingleBatchCode').value = batchCode ?? '';
+        validate();
+       _updateSingleStatus();
+        _show();
+    }
 
-    function openBatch(pid, productName, prefillBatches = []) {
-        productId = pid;
-        isEdit    = prefillBatches.length > 0;
+    function openBatch(pid, productName, prefillBatches = [], threshold = 14) {
+        productId  = pid;
+        isEdit     = prefillBatches.length > 0;
+        _threshold = threshold; // ✅ يجب أن يُسبق _buildBatchItem
         _reset(productName);
         mode = false;
         $('efTitle').textContent = isEdit ? 'Edit Expiry Date' : 'Add Expiry Date';
@@ -283,25 +311,32 @@ item.innerHTML = `
         const btn = $('efSaveBtn');
         btn.disabled  = true;
         btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:ef-spin 0.7s linear infinite"></i> Saving...';
+
         const collectedBatches = mode === false ? _collectBatches() : [];
-        let endpoint, method, payload;
+        let endpoint, payload;
 
         if (mode === true) {
             const date = $('efSingleDate').value;
             endpoint   = `/inventory/products/${productId}/expiry`;
-            payload    =  {
-            product_id:   productId, 
-            same_expiry:  true, 
-            single_batch: { expiry_date: date, batch_code:  $('efSingleBatchCode')?.value || null }
-};
+            payload    = {
+                product_id:   productId,
+                same_expiry:  true,
+                single_batch: {
+                    expiry_date: date,
+                    batch_code:  $('efSingleBatchCode')?.value || null,
+                },
+            };
         } else {
             endpoint = `/inventory/products/${productId}/expiry`;
-            payload  = {product_id:  productId,  same_expiry: false,  batches: collectedBatches.map(b => ({
-            expiry_date: b.expiry_date,
-            quantity:    b.qty,
-            batch_code: b.batch_code || null
-        }))
-    };
+            payload  = {
+                product_id:  productId,
+                same_expiry: false,
+                batches:     collectedBatches.map(b => ({
+                    expiry_date: b.expiry_date,
+                    quantity:    b.qty,
+                    batch_code:  b.batch_code || null,
+                })),
+            };
         }
 
         try {
@@ -317,11 +352,21 @@ item.innerHTML = `
             const data = await res.json();
 
             if (res.ok && data.success) {
-               const successPayload = mode === true
-    ? { type: 'single', expiry_date: payload.single_batch.expiry_date, batch_code: payload.single_batch.batch_code }
-    : { type: 'batch',  batches: data.batches };
-               Inventory.onSaveSuccess(productId, successPayload, isEdit);
-               close();
+              const successPayload = mode === true
+    ? {
+        type:        'single',
+        expiry_date: payload.single_batch.expiry_date,
+        batch_code:  data.batch_code,
+        status:      data.status,
+        quantity:    data.quantity,
+      }
+    : {
+        type:    'batch',
+        batches: data.batches,
+        status:  data.status,           // ← جديد
+      };
+                Inventory.onSaveSuccess(productId, successPayload, isEdit);
+                close();
             } else {
                 _showError(data.message ?? 'Something went wrong. Please try again.');
             }
@@ -350,18 +395,20 @@ item.innerHTML = `
         el.style.display = 'flex';
         setTimeout(() => { if (el) el.style.display = 'none'; }, 5000);
     }
+    
 
     /* ══════════════════════════════════════════
-       EVENT LISTENERS SETUP
-       — extracted to a named function so it can
-         be called again after bfcache restore
+       EVENT LISTENERS
     ══════════════════════════════════════════ */
     function _initListeners() {
         $('efBackdrop')?.addEventListener('click', e => { if (e.target === $('efBackdrop')) close(); });
         $('efCloseBtn')?.addEventListener('click', close);
         $('btnYes')?.addEventListener('click', () => selectMode(true));
         $('btnNo')?.addEventListener('click',  () => selectMode(false));
-        $('efSingleDate')?.addEventListener('input', validate);
+      $('efSingleDate')?.addEventListener('input', () => {
+    _updateSingleStatus();
+    validate();
+});
         $('efAddBatchBtn')?.addEventListener('click', addBatch);
         $('efSaveBtn')?.addEventListener('click', save);
     }
@@ -369,14 +416,8 @@ item.innerHTML = `
     document.addEventListener('DOMContentLoaded', _initListeners);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && _isOpen) close(); });
 
-    // ── bfcache fix: إذا رجع المستخدم بزر الرجوع في المتصفح ──
-    // المتصفح يستعيد الصفحة من الـ cache بدون إعادة تشغيل JS
-    // pageshow يُطلق في هذه الحالة مع persisted = true
     window.addEventListener('pageshow', e => {
-        if (e.persisted) {
-            // أغلق الـ modal لو كان مفتوحاً وقت المغادرة
-            if (_isOpen) close();
-        }
+        if (e.persisted && _isOpen) close();
     });
 
     /* ── Public API ── */

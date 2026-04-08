@@ -35,14 +35,14 @@ class ProductExpiryController extends Controller
             
             // في حال تاريخ واحد
             'single_batch' => 'required_if:same_expiry,true|array',
-            'single_batch.expiry_date' => 'required_if:same_expiry,true|date|after:yesterday',
+            'single_batch.expiry_date' => 'required_if:same_expiry,true|date|after_or_equal:today',
             'single_batch.batch_code' => 'nullable|string',
             'single_batch.manufactured_date' => 'nullable|date|before:single_batch.expiry_date',
             
             // في حال دفعات متعددة
             'batches' => 'required_if:same_expiry,false|array|min:1',
             'batches.*.quantity' => 'required_with:batches|integer|min:1',
-            'batches.*.expiry_date' => 'required_with:batches|date|after:yesterday',
+            'batches.*.expiry_date'    => 'required_with:batches|date|after_or_equal:today',
             'batches.*.batch_code' => 'nullable|string',
         ]);
 
@@ -82,6 +82,17 @@ if ($request->same_expiry) {
 
 DB::commit();
 
+
+// احسب worstStatus من الباتشات بعد الحفظ — بدون ما نحفظه في DB
+$freshProduct = $product->fresh()->load('batchItems.batch');
+
+$worstStatus = 'green';
+foreach ($freshProduct->batchItems as $item) {
+    $s = $item->batch?->status;
+    if ($s === 'red')    { $worstStatus = 'red'; break; }
+    if ($s === 'yellow') { $worstStatus = 'yellow'; }
+}
+
 Cache::forget("inventory_dashboard_{$merchant->id}");
 
 ActivityLog::log(
@@ -91,17 +102,20 @@ ActivityLog::log(
     $product
 );
 
+
 return $this->respondWithSuccess('تم حفظ تواريخ الانتهاء بنجاح', [
     'type'        => $request->same_expiry ? 'single' : 'batch',
     'expiry_date' => $request->same_expiry ? $request->single_batch['expiry_date'] : null,
     'batch_code'  => $savedBatchCode,
-    'batches' => !$request->same_expiry ? $product->fresh()->batchItems()->with('batch')->get()->map(fn($item) => [
-    'batch_code' => $item->batch?->batch_code,
-    'qty'        => $item->quantity,
-    'expiry'     => $item->batch?->expiry_date?->format('Y-m-d'),
-    'status'     => $item->batch?->status,
-    'label'      => $item->batch?->batch_code,
-])->toArray() : []
+    'status'      => $worstStatus,   // ← يُرجع للـ JS بس ما يتحفظ في DB
+    'quantity' => $product->quantity ?? 0,
+    'batches' => !$request->same_expiry ? $freshProduct->batchItems()->with('batch')->get()->map(fn($item) => [
+        'batch_code' => $item->batch?->batch_code,
+        'qty'        => $item->quantity,
+        'expiry'     => $item->batch?->expiry_date?->format('Y-m-d'),
+        'status'     => $item->batch?->status,
+        'label'      => $item->batch?->batch_code,
+    ])->toArray() : []
 ]);
 
         } catch (\Exception $e) {

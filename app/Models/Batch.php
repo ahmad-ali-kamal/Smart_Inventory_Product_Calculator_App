@@ -20,14 +20,14 @@ class Batch extends Model
         'name',
         'manufactured_date',
         'expiry_date',
-        'status',            // تم تفعيله ليقبل التخزين من المجدول
-        'days_until_expiry', // تم تفعيله ليقبل التخزين من المجدول
+        'status',           
+        'days_until_expiry', 
         'notes',
     ];
 
     protected $casts = [
         'manufactured_date' => 'date',
-        'expiry_date'       => 'date',
+        'expiry_date'       => 'date:Y-m-d',
         'days_until_expiry' => 'integer',
     ];
 
@@ -36,54 +36,124 @@ class Batch extends Model
         'expiry_label',
         'total_quantity',
         'total_remaining',
+        'total_sold',
     ];
 
     // ====================================================================
-    // 1. السكوبس (Scopes) - سريعة جداً لأنها تبحث في أعمدة حقيقية
+    // 1. البوت (Boot) - معالجة المنطق التلقائي عند الحفظ
+    // ====================================================================
+    protected static function boot()
+    {
+        parent::boot();
+
+        // قبل الحفظ: تحديث الحالة والأيام المتبقية
+        static::saving(function ($batch) {
+            $batch->calculateStatus();
+        });
+
+        // بعد الحفظ: إرسال الإشعارات وتطبيق الخصم التلقائي
+        static::saved(function ($batch) {
+            $oldStatus = $batch->getOriginal('status');
+            $newStatus = $batch->status;
+
+            if ($oldStatus === $newStatus) return;
+            if (!in_array($newStatus, ['yellow', 'red'])) return;
+
+            $merchant = $batch->merchant;
+            if (!$merchant) return;
+
+            // 1. إرسال إشعار للنظام
+            $merchant->notify(
+                new \App\Notifications\BatchExpiryNotification($batch, $newStatus)
+            );
+
+            // 2. تطبيق الخصم التلقائي إذا تحولت الحالة إلى "صفراء"
+            if ($newStatus === 'yellow') {
+                $setting = \App\Models\BatchSetting::where('merchant_id', $merchant->id)->first();
+
+                if (!$setting || !$setting->auto_discounts) return;
+
+                foreach ($batch->items as $batchItem) {
+                    $product = $batchItem->product;
+                    if (!$product) continue;
+
+                    // تجنب خصم مكرر
+                    $alreadyDiscounted = \App\Models\ProductDiscount::where('product_id', $product->id)
+                        ->where('status', 'active')
+                        ->exists();
+
+                    if ($alreadyDiscounted) continue;
+
+                    try {
+                        $discountPercent = $setting->auto_discount_percent;
+                        $durationDays    = $setting->auto_discount_duration_days ?? 7;
+                        $discountedPrice = $product->price * (1 - ($discountPercent / 100));
+                        $endsAt          = now()->addDays($durationDays);
+
+                        // الربط مع API سلة لتعديل السعر في المتجر
+                        $sallaApi = \App\Services\SallaApiService::for($merchant);
+                        $sallaApi->applySpecialPrice(
+                            $product->salla_product_id,
+                            $discountedPrice,
+                            now()->toIso8601String(),
+                            $endsAt->toIso8601String(),
+                            $discountPercent
+                        );
+
+                        // توثيق الخصم في قاعدة البيانات
+                        \App\Models\ProductDiscount::create([
+                            'product_id'          => $product->id,
+                            'batch_id'            => $batch->id,
+                            'discount_percentage' => $discountPercent,
+                            'starts_at'           => now(),
+                            'ends_at'             => $endsAt,
+                            'status'              => 'active',
+                            'is_ai_suggested'     => false,
+                            'applied_to_salla'    => true,
+                        ]);
+
+                        \Illuminate\Support\Facades\Log::info("[AutoDiscount] تم تطبيق خصم {$discountPercent}% على: {$product->name}");
+
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("[AutoDiscount] فشل: " . $e->getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    // ====================================================================
+    // 2. الأكسيسورز (Accessors)
     // ====================================================================
 
-    public function scopeSafe($query)
-    {
-        return $query->where('status', 'green');
-    }
-
-    public function scopeWarning($query)
-    {
-        return $query->where('status', 'yellow');
-    }
-
-    public function scopeExpired($query)
-    {
-        return $query->where('status', 'red');
-    }
-
-    public function scopeForMerchant($query, int $merchantId)
-    {
-        return $query->where('merchant_id', $merchantId);
-    }
-
-    // ====================================================================
-    // 2. الأكسيسورز المساعدة (UI Helpers)
-    // ====================================================================
-
-    /**
-     * هل المنتج منتهي؟ (تعتمد على القيمة المخزنة)
-     */
     public function getIsExpiredAttribute(): bool
     {
-        return $this->status === 'red' || $this->days_until_expiry < 0;
+        if (!$this->expiry_date) return false;
+        return $this->expiry_date->isPast() || $this->expiry_date->isToday();
     }
 
-    /**
-     * ملصق تاريخ الانتهاء للعرض في الواجهة
-     */
     public function getExpiryLabelAttribute(): string
     {
         $days = $this->days_until_expiry;
 
         if ($days < 0) return 'منتهي الصلاحية';
         if ($days == 0) return 'ينتهي اليوم!';
-        return $days <= 7 ? "خطر: باقي {$days} أيام!" : "باقي {$days} يوم";
+        return $days <= 7 ? "خطر: باقي {$days} أيام فقط!" : "باقي {$days} يوم";
+    }
+
+    public function getTotalQuantityAttribute(): int
+    {
+        return (int) $this->items()->sum('quantity');
+    }
+
+    public function getTotalSoldAttribute(): int
+    {
+        return (int) $this->items()->sum('sold_quantity');
+    }
+
+    public function getTotalRemainingAttribute(): int
+    {
+        return $this->total_quantity - $this->total_sold;
     }
 
     // ====================================================================
@@ -107,18 +177,58 @@ class Batch extends Model
             ->withTimestamps();
     }
 
-    // ====================================================================
-    // 4. حساب الكميات (Calculations)
-    // ====================================================================
-
-    public function getTotalQuantityAttribute(): int
+    public function activityLogs(): MorphMany
     {
-        return (int) $this->items()->sum('quantity');
+        return $this->morphMany(ActivityLog::class, 'loggable');
     }
 
-    public function getTotalRemainingAttribute(): int
+    // ====================================================================
+    // 4. الدوال الأساسية (Methods)
+    // ====================================================================
+
+    public function calculateStatus(): void
     {
-        $sold = (int) $this->items()->sum('sold_quantity');
-        return $this->getTotalQuantityAttribute() - $sold;
+        if (!$this->expiry_date) return;
+        
+        $expiry   = Carbon::parse($this->expiry_date)->startOfDay();
+        $today    = Carbon::now()->startOfDay();
+        $daysLeft = (int) $today->diffInDays($expiry, false);
+
+        $this->days_until_expiry = $daysLeft;
+
+        if ($daysLeft <= 0) {
+            $this->status = 'red';
+            return;
+        }
+
+        $threshold = $this->getThreshold();
+        $this->status = ($daysLeft <= $threshold) ? 'yellow' : 'green';
     }
+
+    public function getThreshold(): int
+    {
+        $product = $this->products()->first();
+
+        if ($product && method_exists($product, 'getCategoryThreshold')) {
+            $threshold = $product->getCategoryThreshold();
+            if (!is_null($threshold)) return (int) $threshold;
+        }
+
+        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+        return (int) ($settings->medium_term_days ?? 14);
+    }
+
+    public function needsDiscount(): bool
+    {
+        return $this->status === 'yellow' && $this->days_until_expiry >= 0;
+    }
+
+    // ====================================================================
+    // 5. السكوبس (Scopes)
+    // ====================================================================
+
+    public function scopeExpired($query) { return $query->where('status', 'red'); }
+    public function scopeWarning($query) { return $query->where('status', 'yellow'); }
+    public function scopeSafe($query)    { return $query->where('status', 'green'); }
+    public function scopeForMerchant($query, int $merchantId) { return $query->where('merchant_id', $merchantId); }
 }

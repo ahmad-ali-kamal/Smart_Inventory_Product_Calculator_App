@@ -68,15 +68,17 @@
                     @php 
                         $hasBatches = $product->batchItems->count() > 0;
                         // تحويل الدفعات لتنسيق يفهمه الـ JS
-                       $jsBatches = $product->batchItems->map(function($item) {
+$jsBatches = $product->batchItems->map(function($item) use ($product, $settings) {
     return [
         'label'      => $item->batch->batch_code ?? 'Batch',
         'qty'        => $item->quantity,
         'status'     => $item->batch->status ?? 'green',
         'expiry'     => $item->batch->expiry_date ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d') : '',
         'batch_code' => $item->batch->batch_code ?? null,
+        'threshold'  => $product->getCategoryThreshold() ?? $settings->medium_term_days ?? 14,
     ];
 });
+
                     @endphp
 
                     {{-- Product Row --}}
@@ -89,7 +91,9 @@
     data-batches="{{ json_encode($jsBatches) }}"
     data-expiry="{{ $firstBatch && $isSingle ? \Carbon\Carbon::parse($firstBatch->expiry_date)->format('Y-m-d') : '' }}"
     data-batch-code="{{ $firstBatch?->batch_code ?? '' }}"
-    data-expiry-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
+   data-expiry-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}"
+data-threshold="{{ $product->getCategoryThreshold() ?? $settings->medium_term_days ?? 14 }}"
+data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                         <td>
                             <div class="prod-cell">
                                 <div class="prod-img-placeholder" title="Product image">
@@ -129,7 +133,7 @@
                                     <button class="btn-eye" data-product-id="{{ $product->id }}">
                                         <i class="bi bi-eye" id="eye-{{ $product->id }}"></i>
                                     </button>
-                                    <span>{{ $product->batchItems->count() }} batch{{ $product->batchItems->count() > 1 ? 'es' : '' }}</span>
+                                    <span>{{ $isSingle ? 'Single' : $product->batchItems->count() . ' batches' }}</span>
                                 </div>
                             @elseif($product->expiry_date)
                                 <div class="exp-cell">
@@ -177,7 +181,7 @@
                             <td>
                                 <div class="exp-cell">
                                     <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                                    <span style="color:var(--muted);">{{ $item->batch->expiry_date ?? 'No Date' }}</span>
+                                    <span style="color:var(--muted);">{{ $item->batch->expiry_date ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d') : 'No Date' }}</span>
                                 </div>
                             </td>
                             <td></td> {{-- مكان فارغ للأكشن في الدفعات --}}

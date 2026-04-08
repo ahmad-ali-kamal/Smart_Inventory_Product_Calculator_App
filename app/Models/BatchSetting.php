@@ -44,21 +44,12 @@ class BatchSetting extends Model
     /**
      * تحديد حالة المنتج بناءً على الأيام المتبقية والعتبة الزمنية
      */
-    public static function getStatusForDays(int $days, int $threshold): string
-    {
-        // 1. إذا انتهى المنتج أو كان في اليوم الأخير
-        if ($days <= 0) {
-            return 'red';
-        }
-
-        // 2. إذا دخل في فترة التحذير (أقل من أو يساوي أيام الإشعار المحددة)
-        if ($days <= $threshold) {
-            return 'yellow';
-        }
-
-        // 3. المنتج آمن
-        return 'green';
-    }
+    public static function getStatusForDays(?int $days, int $threshold): string
+{
+    if (is_null($days) || $days <= 0) return 'red';
+    if ($days <= $threshold)          return 'yellow';
+    return 'green';
+}
 
     /**
      * التحقق من خيار الإخفاء التلقائي

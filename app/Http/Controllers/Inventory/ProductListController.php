@@ -25,7 +25,6 @@ class ProductListController extends Controller
         $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
         
         if (!$settings) {
-            // تحويل المصفوفة الافتراضية إلى Object لتجنب أخطاء السهم ->
             $settings = (object) BatchSetting::getDefaults();
         }
 
@@ -50,22 +49,39 @@ class ProductListController extends Controller
             $thresholdKey = $bucket . '_term_days';
             $threshold = $settings->$thresholdKey ?? 14;
 
-            // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية)
+            // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية) للمنتج ككل
             $minDaysRemaining = 999; 
             
             if ($product->batchItems && $product->batchItems->count() > 0) {
                 $minDaysRemaining = $product->batchItems->map(function($item) {
-                    // نتحقق أن الـ batch موجود فعلاً وله قيمة
-                    return ($item->batch && isset($item->batch->days_until_expiry)) 
-                           ? (int) $item->batch->days_until_expiry 
-                           : 999;
-                })->min();
+                    // نتحقق أن الـ batch موجود فعلاً وله قيمة تاريخ انتهاء
+                    if (!$item->batch || !$item->batch->expiry_date) return 999;
+                    
+                    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
+                    $today  = \Carbon\Carbon::now()->startOfDay();
+                    return (int) $today->diffInDays($expiry, false);
+                })->min() ?? 999;
+
+                // د. تحديد حالة كل "دفعة" (Batch) بشكل منفصل لعرضها في تفاصيل المنتج
+                $product->batchItems->each(function ($item) use ($threshold) {
+                    if (!$item->batch || !$item->batch->expiry_date) return;
+
+                    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
+                    $today  = \Carbon\Carbon::now()->startOfDay();
+                    $days   = (int) $today->diffInDays($expiry, false);
+
+                    $item->batch->status = match(true) {
+                        $days <= 0           => 'red',    // منتهي
+                        $days <= $threshold  => 'yellow', // قريب الانتهاء
+                        default              => 'green',  // آمن
+                    };
+                });
             }
 
-            // د. تحديد الحالة باستخدام الدالة الـ Static (تم إصلاح المتغير هنا)
+            // هـ. تحديد الحالة العامة للمنتج بناءً على أقرب دفعة
             $status = BatchSetting::getStatusForDays($minDaysRemaining, $merchant->id);
 
-            // هـ. إضافة الخصائص للمنتج لتظهر في واجهة الـ React/Blade
+            // و. إضافة الخصائص للمنتج لتظهر في واجهة العرض
             $product->status = $status;
             $product->filterClass = "status-" . $status; 
             $product->bucket_type = $bucket;
@@ -85,12 +101,8 @@ class ProductListController extends Controller
         $merchant = Auth::user();
 
         try {
-            // تشغيل الوظيفة في الخلفية
             FetchProductsJob::dispatch($merchant);
-            
-            // حذف الكاش الخاص بالداشبورد ليتم تحديث الأرقام
             Cache::forget("inventory_dashboard_{$merchant->id}");
-
             return back()->with('success', 'بدأت المزامنة في الخلفية. ستظهر المنتجات هنا فور اكتمال السحب من سلة.');
         } catch (\Exception $e) {
             Log::error('Product sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
