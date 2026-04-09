@@ -70,7 +70,7 @@ class InventoryDashboardController extends Controller
                          'image_url'          => $product->image_url, // ✅ أضف هذا
                         'status'             => $criticalBatchItem?->batch->status ?? 'green',
                         'expiry_date'        => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
-                        'batches' => $product->batchItems->map(fn($item) => $item->batch),// لإظهار عدد الدفعات
+                        'batches'            => $product->batchItems, // لإظهار عدد الدفعات
                         'has_active_discount'=> $product->discounts->isNotEmpty(),
                     ];
                 })
@@ -88,8 +88,7 @@ class InventoryDashboardController extends Controller
 
         return view('inventory.dashboard', [
             'stats'    => $data['stats'],
-            'products' => $data['products'],
-            'settings' => $settings,
+            'products' => $data['products']
         ]);
     }
 

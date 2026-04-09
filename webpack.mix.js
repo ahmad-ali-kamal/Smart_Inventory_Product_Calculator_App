@@ -41,6 +41,7 @@ mix
        .js('resources/js/inventory-products.js', 'public/js')
        .js('resources/js/inventory-discountform.js', 'public/js')
        .js('resources/js/inventory-dateform.js', 'public/js')
+       .js('resources/js/notifications.js', 'public/js')
 
     // ── CSS ──
     .postCss('resources/css/app.css',       'public/css', postCssPlugins)

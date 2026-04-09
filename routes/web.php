@@ -32,7 +32,7 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
     
     // الداشبورد
     Route::get('/', [InventoryDashboardController::class, 'index'])->name('inventory.dashboard');
-    
+
     // المنتجات
     Route::get('/products', [ProductListController::class, 'index'])->name('inventory.products.index');
     Route::get('/products/{product_id}', [ProductListController::class, 'show'])->name('inventory.products.show');
@@ -72,4 +72,12 @@ Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(fu
     Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
     Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
     Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
+});
+
+// إشعارات
+Route::middleware(['auth'])->prefix('inventory')->group(function () {
+    // ... الروابط الموجودة ...
+    Route::get('/notifications', [App\Http\Controllers\Inventory\NotificationController::class, 'index'])->name('inventory.notifications');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Inventory\NotificationController::class, 'markAsRead'])->name('inventory.notifications.read');
+    Route::post('/notifications/read-all', [App\Http\Controllers\Inventory\NotificationController::class, 'markAllAsRead'])->name('inventory.notifications.readAll');
 });

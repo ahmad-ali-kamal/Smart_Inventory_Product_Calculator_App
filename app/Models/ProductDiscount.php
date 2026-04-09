@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Batch;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductDiscount extends Model
@@ -45,9 +44,9 @@ class ProductDiscount extends Model
     }
 
     public function batch(): BelongsTo
-{
-    return $this->belongsTo(Batch::class, 'batch_id');
-}
+    {
+        return $this->belongsTo(ProductBatch::class, 'batch_id');
+    }
 
     // Boot
     protected static function boot()

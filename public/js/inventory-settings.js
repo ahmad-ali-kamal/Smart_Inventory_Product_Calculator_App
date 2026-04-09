@@ -6,10 +6,6 @@ var __webpack_exports__ = {};
 /**
  * inventory-settings.js
  * Settings Page — Drag & Drop, Threshold Badges, Toggle Switches
- *
- * Zero inline handlers — everything wired through DOMContentLoaded.
- * The blade uses data-bucket on drop-zones and data-category on pills;
- * no onclick / ondragstart / ondrop attributes needed anywhere.
  */
 document.addEventListener('DOMContentLoaded', function () {
   /* ══════════════════════════════════════════
@@ -17,8 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
   ══════════════════════════════════════════ */
   var draggedEl = null;
   var dragSource = null;
-
-  // ── Attach drag listener to a single pill ──
   function _attachPillDrag(pill) {
     pill.addEventListener('dragstart', function (e) {
       var _pill$closest$dataset, _pill$closest;
@@ -30,8 +24,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 0);
     });
   }
-
-  // ── Drop-zone listeners ──
   document.querySelectorAll('.drop-zone').forEach(function (zone) {
     var target = zone.dataset.bucket;
     zone.addEventListener('dragover', function (e) {
@@ -58,17 +50,15 @@ document.addEventListener('DOMContentLoaded', function () {
       draggedEl = dragSource = null;
     });
   });
-
-  // Attach drag listeners to all pills on page load
   document.querySelectorAll('.category-pill').forEach(_attachPillDrag);
   function _syncHiddenInputs(bucket) {
     document.querySelectorAll('.hid-' + bucket).forEach(function (el) {
       return el.remove();
     });
-    document.querySelectorAll("#list-".concat(bucket, " .category-pill")).forEach(function (pill) {
+    document.querySelectorAll('#list-' + bucket + ' .category-pill').forEach(function (pill) {
       var inp = document.createElement('input');
       inp.type = 'hidden';
-      inp.name = "category_mapping[".concat(bucket, "][]");
+      inp.name = 'category_mapping[' + bucket + '][]';
       inp.value = pill.dataset.category;
       inp.classList.add('hid-' + bucket);
       document.getElementById('settingsForm').appendChild(inp);
@@ -79,9 +69,9 @@ document.addEventListener('DOMContentLoaded', function () {
      THRESHOLD — Live Badge Update
   ══════════════════════════════════════════ */
   var _bucketMap = {
-    short_term_days: 'shortTerm',
-    medium_term_days: 'mediumTerm',
-    long_term_days: 'longTerm'
+    short_term_days: 'short',
+    medium_term_days: 'medium',
+    long_term_days: 'long'
   };
   document.querySelectorAll('.threshold-input').forEach(function (input) {
     input.addEventListener('input', function () {
@@ -97,8 +87,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('toggle-' + id);
     if (!btn) return;
     var willBeOn = !btn.classList.contains('on');
-
-    // mutual exclusion between auto and ai discounts
     if (willBeOn) {
       if (id === 'autodiscounts') _turnOff('aidiscounts');
       if (id === 'aidiscounts') _turnOff('autodiscounts');
@@ -129,13 +117,79 @@ document.addEventListener('DOMContentLoaded', function () {
       panel.style.display = 'none';
     }
   }
-
-  // Wire all toggle switches via data-toggle-id attribute (no onclick in blade)
   document.querySelectorAll('.toggle-switch[data-toggle-id]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       return _toggleSwitch(btn.dataset.toggleId);
     });
   });
+
+  /* ══════════════════════════════════════════
+     FORM SUBMIT — Validation + Category Sync
+  ══════════════════════════════════════════ */
+  var settingsForm = document.getElementById('settingsForm');
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', function (e) {
+      // ── 1. Validate numeric inputs ──
+      var discountPanel = document.getElementById('discount-input-wrap');
+      var discountHidden = discountPanel && discountPanel.style.display === 'none';
+      var errors = [];
+      settingsForm.querySelectorAll('.threshold-input, .discount-input, .discount-input-plain').forEach(function (input) {
+        if (discountHidden && input.closest('#discount-input-wrap')) return;
+        var val = Number(input.value);
+        input.classList.remove('input-error');
+        _removeInlineError(input);
+        if (input.value === '' || isNaN(val) || val < 0) {
+          input.classList.add('input-error');
+          _addInlineError(input, 'Must be a positive number.');
+          errors.push(input);
+        }
+      });
+      if (errors.length > 0) {
+        e.preventDefault();
+        errors[0].focus();
+        return;
+      }
+
+      // ── 2. Rebuild category_mapping hidden inputs ──
+      document.querySelectorAll('input[name^="category_mapping"]').forEach(function (inp) {
+        inp.remove();
+      });
+      ['short', 'medium', 'long'].forEach(function (bucket) {
+        var list = document.getElementById('list-' + bucket);
+        if (!list) return;
+        list.querySelectorAll('.category-pill').forEach(function (pill) {
+          var inp = document.createElement('input');
+          inp.type = 'hidden';
+          inp.name = 'category_mapping[' + bucket + '][]';
+          inp.value = pill.dataset.category;
+          settingsForm.appendChild(inp);
+        });
+      });
+    });
+  }
+
+  /* ══════════════════════════════════════════
+     HELPERS
+  ══════════════════════════════════════════ */
+  function _addInlineError(input, msg) {
+    // ── climb up to find the card container so the error sits below the full row ──
+    var container = input.closest('.threshold-card') || input.closest('.discount-input-wrap') || input.parentNode;
+    var err = document.createElement('span');
+    err.className = 'field-error';
+    err.textContent = msg;
+    container.appendChild(err);
+    input.addEventListener('input', function () {
+      input.classList.remove('input-error');
+      _removeInlineError(input);
+    }, {
+      once: true
+    });
+  }
+  function _removeInlineError(input) {
+    var container = input.closest('.threshold-card') || input.closest('.discount-input-wrap') || input.parentNode;
+    var existing = container.querySelector('.field-error');
+    if (existing) existing.remove();
+  }
 });
 /******/ })()
 ;

@@ -424,6 +424,51 @@ body {
     .app-btn-cta { padding: 0.5rem 0.65rem; }
 }
 
+/* ── Notifications ── */
+
+.notif-wrap { position: relative; }
+
+.notif-btn { position: relative; background: none; border: none; cursor: pointer; }
+
+.notif-badge {
+    position: absolute; top: -4px; right: -4px;
+    background: #ef4444; color: #fff;
+    font-size: 0.6rem; font-weight: 700;
+    width: 16px; height: 16px;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+}
+
+.notif-dropdown {
+    position: absolute; right: 0; top: calc(100% + 8px);
+    width: 320px; background: #fff;
+    border: 1px solid #eee; border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    z-index: 9999;
+}
+
+.notif-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6;
+    font-size: 0.85rem; font-weight: 700;
+}
+
+.notif-read-all { font-size: 0.75rem; color: #6b7280; background: none; border: none; cursor: pointer; }
+
+.notif-list { max-height: 320px; overflow-y: auto; }
+
+.notif-item { padding: 0.75rem 1rem; border-bottom: 1px solid #f9fafb; font-size: 0.8rem; cursor: pointer; }
+
+.notif-item.unread { background: #fffbeb; }
+
+.notif-item-msg { color: #111827; margin-bottom: 0.2rem; }
+
+.notif-item-time { color: #9ca3af; font-size: 0.72rem; }
+
+.notif-empty { padding: 2rem; text-align: center; color: #9ca3af; font-size: 0.8rem; }
+
+.notif-loading { padding: 1rem; text-align: center; color: #9ca3af; font-size: 0.8rem; }
+
 /* =============================================
    EXPIRYAPP — CSS Variables (Apricot Theme)
 ============================================= */
@@ -839,28 +884,119 @@ body {
 
 /* ── Filter Tabs (Inventory) ── */
 
-.inv-filter-tabs {
-    display: flex; gap: 0.4rem; align-items: center;
-    background: hsla(0,0%,0%,0.04); padding: 0.3rem;
-    border-radius: 999px; border: 1px solid hsla(0,0%,0%,0.07);
+/* ── Head Actions Row ── */
+
+.inv-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 1rem;
 }
 
-.inv-filter-tab {
-    padding: 0.35rem 1rem; border-radius: 999px;
-    font-size: 0.78rem; font-weight: 600; cursor: pointer;
-    border: 1.5px solid transparent; background: transparent;
-    color: var(--muted); white-space: nowrap;
-    font-family: 'DM Sans', sans-serif; transition: all 0.18s ease;
+/* ── Shared Button Style ── */
+
+.inv-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    height: 2.25rem;
+    background: #ffffff;
+    color: hsl(28, 70%, 42%);
+    border: 1.5px solid hsla(28, 85%, 55%, 0.45);
+    border-radius: 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 4px hsla(28, 60%, 50%, 0.1);
 }
 
-.inv-filter-tab:active { transform: scale(0.95); }
+.inv-action-btn:hover {
+    background: hsla(28, 85%, 55%, 0.06);
+    border-color: hsla(28, 85%, 55%, 0.7);
+    box-shadow: 0 2px 8px hsla(28, 60%, 50%, 0.15);
+}
 
-.inv-filter-tab:hover:not(.active) { background: hsla(0,0%,0%,0.07); color: var(--fg); }
+.inv-action-btn:active {
+    transform: scale(0.97);
+}
 
-.inv-filter-tab.active {
-    background: hsla(0,0%,100%,0.85); color: var(--fg);
-    border-color: hsla(0,0%,0%,0.1); box-shadow: 0 1px 6px hsla(0,0%,0%,0.08);
+/* ── Chevron Animation ── */
+
+.inv-chevron {
+    font-size: 0.65rem;
+    transition: transform 0.2s ease;
+}
+
+.inv-chevron.open {
+    transform: rotate(180deg);
+}
+
+/* ── Dropdown Wrapper ── */
+
+.inv-filter-dropdown {
+    position: relative;
+}
+
+/* ── Filter Menu ── */
+
+.inv-filter-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    min-width: 10rem;
+    background: #ffffff;
+    border: 1.5px solid hsla(28, 85%, 55%, 0.3);
+    border-radius: 0.85rem;
+    box-shadow: 0 8px 24px hsla(28, 40%, 40%, 0.12);
+    z-index: 50;
+    overflow: hidden;
+    animation: inv-menu-in 0.18s ease-out forwards;
+}
+
+.inv-filter-menu.open {
+    display: block;
+}
+
+@keyframes inv-menu-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Menu Options ── */
+
+.inv-filter-option {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    text-align: right;
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    color: hsl(25, 30%, 28%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.inv-filter-option:hover {
+    background: hsla(28, 85%, 55%, 0.07);
+    color: hsl(28, 70%, 30%);
+}
+
+.inv-filter-option.active {
+    background: hsla(28, 85%, 55%, 0.12);
+    color: hsl(28, 70%, 30%);
+    font-weight: 700;
+}
+
+.inv-filter-option + .inv-filter-option {
+    border-top: 1px solid hsla(28, 50%, 80%, 0.25);
 }
 
 /* ── Table ── */
@@ -955,9 +1091,11 @@ body {
 
 /* ── Batch Rows ── */
 
-.batch-row { display: none; }
+/* جديد */
 
-.batch-row.open { display: table-row; }
+.inv-table tbody tr.batch-row { display: none; }
+
+.inv-table tbody tr.batch-row.open { display: table-row; }
 
 .batch-row td {
     padding: 0.5rem 1.5rem;
@@ -1589,4 +1727,19 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 .df-input-suffix {
     position:absolute; right:0.85rem; top:50%; transform:translateY(-50%);
     font-size:0.82rem; font-weight:700; color:hsl(28,65%,50%); pointer-events:none;
+}
+
+/* Validation */
+
+.input-error {
+    outline: 2px solid #f0a0a0 !important;
+    outline-offset: 2px;
+    background: #fff8f8 !important;
+}
+
+.field-error {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #c0392b;
 }

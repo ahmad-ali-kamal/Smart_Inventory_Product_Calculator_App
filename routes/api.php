@@ -2,20 +2,24 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\ApiProductController; // تم تعديل الاسم ليتطابق مع ملفك
+use App\Http\Controllers\Api\ApiProductController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
-use App\Http\Controllers\Api\SallaWebhookController; // سننشئه لاحقاً للويب هوكس
+use App\Http\Controllers\SallaWebhookController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
+| المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
 
 // ====================================================================
 // 1. مسارات الويب هوكس (عامة - لا تحتاج Auth)
 // ====================================================================
-// سلة ترسل البيانات هنا تلقائياً عند إضافة أو تعديل منتج
+/**
+ * رابط استقبال بيانات سلة (المنتجات، المبيعات، إلخ)
+ * الرابط في مركز الشركاء: https://yourdomain.com/api/webhooks/salla
+ */
 Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle']);
 
 
@@ -24,7 +28,7 @@ Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle']);
 // ====================================================================
 Route::middleware('auth:sanctum')->group(function () {
 
-    // معلومات المتجر الحالي
+    // جلب معلومات المتجر الحالي (Quantix API User)
     Route::get('/user', function (Request $request) {
         return response()->json([
             'id'             => $request->user()->id,
@@ -35,15 +39,13 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // إدارة المنتجات
+    // إدارة المنتجات عبر الـ API
     Route::prefix('products')->group(function () {
-        Route::get('/',             [ApiProductController::class, 'index']);   // عرض الكل
+        Route::get('/',             [ApiProductController::class, 'index']);   // عرض كل المنتجات
         Route::get('/{product_id}', [ApiProductController::class, 'show']);    // عرض منتج محدد
-        
-        // ملاحظة: ألغينا مسار الـ Sync هنا لأننا سنعتمد على الويب هوكس
     });
 
-    // إعدادات الحاسبة الذكية
+    // إعدادات الحاسبة الذكية (المستشار)
     Route::prefix('calculator')->group(function () {
         Route::get('/settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
         Route::post('/settings/update',      [ProductCalculatorController::class, 'updateSettings']);
@@ -58,9 +60,15 @@ if (app()->environment('local')) {
     Route::get('/test-db-connection', function () {
         try {
             \DB::connection()->getPdo();
-            return response()->json(['message' => 'تم الاتصال بقاعدة البيانات بنجاح! ✅']);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'تم الاتصال بقاعدة البيانات بنجاح! ✅'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'فشل الاتصال: ' . $e->getMessage()], 500);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'فشل الاتصال: ' . $e->getMessage()
+            ], 500);
         }
     });
 }

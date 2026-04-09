@@ -40,11 +40,20 @@ class FetchProductsJob implements ShouldQueue
     {
         Log::info("--- [Salla Sync] Start fetching page {$this->page} for merchant: {$this->merchant->name} ---");
 
+        // جلب التوكن من جدول salla_apps
+        $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first() 
+                    ?? $this->merchant->sallaApps()->first();
+
+        if (!$sallaApp || empty($sallaApp->access_token)) {
+            Log::error("Salla Access Token missing for merchant: {$this->merchant->name}. Sync aborted.");
+            return;
+        }
+
         try {
-            $response = Http::withToken($this->merchant->access_token)
+            $response = Http::withToken($sallaApp->access_token)
                 ->get("https://api.salla.dev/admin/v2/products?page={$this->page}");
 
-            // 1. معالجة الـ Rate Limit (تجاوز حد الطلبات المسموح به)
+            // 1. معالجة الـ Rate Limit (إذا سلة عطتك بلوك مؤقت)
             if ($response->status() === 429) {
                 Log::warning("Rate limit hit for {$this->merchant->name}. Holding job for 60 seconds.");
                 return $this->release(now()->addMinute());
@@ -60,7 +69,7 @@ class FetchProductsJob implements ShouldQueue
                     $this->syncProduct($p);
                 }
 
-                // 2. المتابعة التلقائية للصفحة التالية
+                // 2. المتابعة التلقائية للصفحة التالية (Pagination)
                 $pagination = $data['pagination'] ?? [];
                 $totalPages = $pagination['total_pages'] ?? 1;
 
@@ -73,12 +82,12 @@ class FetchProductsJob implements ShouldQueue
 
             } else {
                 Log::error("Failed to fetch products for {$this->merchant->name}. Status: " . $response->status() . " Body: " . $response->body());
-                $this->release(now()->addMinutes(2)); // تأجيل المحاولة في حال وجود خطأ من السيرفر
+                $this->release(now()->addMinutes(2));
             }
 
         } catch (\Exception $e) {
             Log::error("Critical Error in FetchProductsJob: " . $e->getMessage());
-            throw $e; // نرفع الخطأ لكي يقوم الـ Queue بتسجيله في failed_jobs
+            throw $e;
         }
     }
 
@@ -94,7 +103,7 @@ class FetchProductsJob implements ShouldQueue
             $categoryName = $mainCat['name'] ?? 'General';
         }
 
-        // تحديث أو إنشاء المنتج
+        // 🏆 تحديث أو إنشاء المنتج مع ضمان تحديث الكمية (Quantity)
         $product = Product::updateOrCreate(
             [
                 'merchant_id' => $this->merchant->id, 
@@ -105,34 +114,24 @@ class FetchProductsJob implements ShouldQueue
                 'price'     => $p['price']['amount'] ?? 0,
                 'sku'       => $p['sku'] ?? null,
                 'category'  => $categoryName,
-                'status'    => (string) ($p['status'] ?? 'active'), // حماية ضد أخطاء Data Truncated
-                'quantity'  => $p['quantity'] ?? 0,
+                'status'    => (string) ($p['status'] ?? 'active'),
+                'quantity'  => $p['quantity'] ?? 0, // هنا يتم سحب العدد من سلة
                 'synced_at' => now(),
             ]
         );
 
-        // تحديث الصور (مسح القديم وإضافة الجديد لضمان الدقة)
-     
-        Log::debug("Product images data", [
-    'product_id' => $p['id'],
-    'images'     => $p['images'] ?? 'EMPTY',
-    'thumbnail'  => $p['thumbnail'] ?? 'EMPTY',
-    'image'      => $p['image'] ?? 'EMPTY',
-]);
-
-if (!empty($p['images'])) {
-    $product->images()->delete();
-    foreach ($p['images'] as $index => $imgData) {
-                ProductImage::create([
-                    'product_id' => $product->id,
+        // تحديث الصور
+        if (!empty($p['images'])) {
+            $product->images()->delete();
+            foreach ($p['images'] as $index => $imgData) {
+                $product->images()->create([
                     'image_url'  => $imgData['url'],
-                    'is_main' => $index === 0,
+                    'is_main'    => $index === 0,
                     'sort_order' => $imgData['sort'] ?? $index,
                 ]);
             }
         }
         
-        Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']}");
+        Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']} - Qty: {$p['quantity']}");
     }
 }
-       
