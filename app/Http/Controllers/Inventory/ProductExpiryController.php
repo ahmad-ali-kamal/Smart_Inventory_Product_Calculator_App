@@ -28,7 +28,16 @@ class ProductExpiryController extends Controller
         if ($product->merchant_id !== auth()->id()) {
             return $this->respondWithError('غير مصرح لك بتعديل هذا المنتج', 403);
         }
-
+// التحقق من أن مجموع الكميات لا يتجاوز كمية المنتج في سلة
+if (!$request->same_expiry) {
+    $totalRequested = collect($request->batches)->sum('quantity');
+    if ($totalRequested > $product->quantity) {
+        return $this->respondWithError(
+            "Total batch quantity ({$totalRequested}) exceeds product quantity ({$product->quantity})",
+            422
+        );
+    }
+}
         // 3. التحقق من البيانات المرسلة
         $validated = $request->validate([
             'same_expiry' => 'required|boolean',

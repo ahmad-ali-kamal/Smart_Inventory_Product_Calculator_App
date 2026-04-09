@@ -30,7 +30,16 @@
                 <i class="bi bi-layers"></i> No — multiple batches
             </button>
         </div>
-
+<div class="ef-qty-tracker" id="efQtyTracker">
+    <span>
+        <i class="bi bi-box-seam" style="font-size:0.78rem;"></i>
+        Available: <strong id="efQtyAvail">—</strong> units
+    </span>
+    <span class="ef-qty-warn" id="efQtyWarn" style="display:none;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span id="efQtyWarnMsg"></span>
+    </span>
+</div>
         <div class="ef-panel ef-panel-yes" id="panelYes">
             <p class="ef-panel-title"><i class="bi bi-calendar3"></i> Single Expiry Date</p>
             <label class="ef-label" for="efSingleDate">Expiry Date <span class="ef-status-badge" id="efSingleStatus"></span></label>

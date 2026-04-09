@@ -17,7 +17,7 @@
     {{-- Info Banner --}}
     <div class="inv-banner">
         <i class="bi bi-info-circle-fill"></i>
-        <span>Click<strong> “Add Expiry Date”</strong> to start tracking your product expiry dates</span>
+        <span>Click<strong> "Add Expiry Date"</strong> to start tracking your product expiry dates</span>
     </div>
 
     {{-- Card --}}
@@ -25,31 +25,30 @@
         <div class="inv-card-head">
             <h2 class="inv-card-title"><i class="bi bi-box-seam"></i> Products</h2>
 
-            {{-- جديد - حطه --}}
-<div class="inv-head-actions">
+            <div class="inv-head-actions">
 
-    <div class="inv-filter-dropdown" id="filterDropdown">
-        <button class="inv-action-btn" id="filterToggle" onclick="toggleFilterMenu()">
-            <i class="bi bi-funnel"></i>
-            <span id="filterLabel">Filter</span>
-            <i class="bi bi-chevron-down inv-chevron" id="filterChevron"></i>
-        </button>
-        <div class="inv-filter-menu" id="filterMenu">
-            <button class="inv-filter-option active" data-filter="all"    onclick="selectFilter(this)">All</button>
-            <button class="inv-filter-option"        data-filter="short"  onclick="selectFilter(this)">Short</button>
-            <button class="inv-filter-option"        data-filter="medium" onclick="selectFilter(this)">Medium</button>
-            <button class="inv-filter-option"        data-filter="long"   onclick="selectFilter(this)">Long</button>
-        </div>
-    </div>
+                <div class="inv-filter-dropdown" id="filterDropdown">
+                    <button class="inv-action-btn" id="filterToggle" onclick="toggleFilterMenu()">
+                        <i class="bi bi-funnel"></i>
+                        <span id="filterLabel">Filter</span>
+                        <i class="bi bi-chevron-down inv-chevron" id="filterChevron"></i>
+                    </button>
+                    <div class="inv-filter-menu" id="filterMenu">
+                        <button class="inv-filter-option active" data-filter="all"    onclick="selectFilter(this)">All</button>
+                        <button class="inv-filter-option"        data-filter="short"  onclick="selectFilter(this)">Short</button>
+                        <button class="inv-filter-option"        data-filter="medium" onclick="selectFilter(this)">Medium</button>
+                        <button class="inv-filter-option"        data-filter="long"   onclick="selectFilter(this)">Long</button>
+                    </div>
+                </div>
 
-    <form action="{{ route('inventory.products.sync') }}" method="POST">
-        @csrf
-        <button type="submit" class="inv-action-btn">
-            <i class="bi bi-arrow-repeat"></i>
-        </button>
-    </form>
+                <form action="{{ route('inventory.products.sync') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="inv-action-btn">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                </form>
 
-</div>
+            </div>
         </div>
 
         <div class="inv-table-wrap">
@@ -59,41 +58,45 @@
                         <th>Product</th>
                         <th>Category</th>
                         <th class="th-status">Status</th>
+                        <th>Qty</th>
                         <th>Expiry Info</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="invBody">
                     @forelse($products as $product)
-                    @php 
+                    @php
                         $hasBatches = $product->batchItems->count() > 0;
-                        // تحويل الدفعات لتنسيق يفهمه الـ JS
-$jsBatches = $product->batchItems->map(function($item) use ($product, $settings) {
-    return [
-        'label'      => $item->batch->batch_code ?? 'Batch',
-        'qty'        => $item->quantity,
-        'status'     => $item->batch->status ?? 'green',
-        'expiry'     => $item->batch->expiry_date ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d') : '',
-        'batch_code' => $item->batch->batch_code ?? null,
-        'threshold'  => $product->getCategoryThreshold() ?? $settings->medium_term_days ?? 14,
-    ];
-});
-
+                        $jsBatches = $product->batchItems->map(function($item) use ($product, $settings) {
+                            return [
+                                'label'      => $item->batch->batch_code ?? 'Batch',
+                                'qty'        => $item->quantity,
+                                'status'     => $item->batch->status ?? 'green',
+                                'expiry'     => $item->batch->expiry_date ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d') : '',
+                                'batch_code' => $item->batch->batch_code ?? null,
+                                'threshold'  => $product->getCategoryThreshold() ?? $settings->medium_term_days ?? 14,
+                            ];
+                        });
+                        $firstBatch = $product->batchItems->first()?->batch;
+                        $isSingle   = $product->batchItems->count() === 1;
+                        $usedQty    = $product->batchItems->sum('quantity');
+                        $remaining  = $product->quantity - $usedQty;
+                        $qtyClass   = $remaining === 0 ? 'qty-full' : ($remaining <= 3 ? 'qty-low' : 'qty-ok');
                     @endphp
 
-                    {{-- Product Row --}}
-                    @php
-    $firstBatch = $product->batchItems->first()?->batch;
-    $isSingle = $product->batchItems->count() === 1;
-@endphp
-<tr data-id="{{ $product->id }}"
-    data-filter="{{ $product->bucket_type }}"
-    data-batches="{{ json_encode($jsBatches) }}"
-    data-expiry="{{ $firstBatch && $isSingle ? \Carbon\Carbon::parse($firstBatch->expiry_date)->format('Y-m-d') : '' }}"
-    data-batch-code="{{ $firstBatch?->batch_code ?? '' }}"
-   data-expiry-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}"
-data-threshold="{{ $product->getCategoryThreshold() ?? $settings->medium_term_days ?? 14 }}"
-data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
+                    {{-- ══════════════════ Product Row ══════════════════ --}}
+                    <tr data-id="{{ $product->id }}"
+                        data-filter="{{ $product->bucket_type }}"
+                        data-batches="{{ json_encode($jsBatches) }}"
+                        data-expiry="{{ $firstBatch && $isSingle ? \Carbon\Carbon::parse($firstBatch->expiry_date)->format('Y-m-d') : '' }}"
+                        data-batch-code="{{ $firstBatch?->batch_code ?? '' }}"
+                        data-expiry-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}"
+                        data-threshold="{{ $product->getCategoryThreshold() ?? $settings->medium_term_days ?? 14 }}"
+                        data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}"
+                        data-salla-qty="{{ $product->quantity }}"
+                        data-used-qty="{{ $usedQty }}">
+
+                        {{-- 1. Product --}}
                         <td>
                             <div class="prod-cell">
                                 <div class="prod-img-placeholder" title="Product image">
@@ -102,7 +105,6 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                                 <div>
                                     <div class="prod-name">{{ $product->name }}</div>
                                     <div class="prod-id">#{{ $product->salla_id ?? $product->id }}</div>
-                                    {{-- إذا كان هناك خصم مفعل من سلة --}}
                                     @if($product->sale_price < $product->regular_price)
                                         <div class="disc-pill">
                                             <i class="bi bi-tag-fill"></i>
@@ -113,8 +115,10 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                             </div>
                         </td>
 
+                        {{-- 2. Category --}}
                         <td><span class="b-cat">{{ $product->category }}</span></td>
 
+                        {{-- 3. Status --}}
                         <td class="td-status">
                             @if($product->status === 'green')
                                 <span class="badge b-green">Safe</span>
@@ -127,13 +131,25 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                             @endif
                         </td>
 
+                        {{-- 4. Qty --}}
+                        <td>
+                            @if($product->quantity > 0)
+                                <span class="qty-pill">
+                                    {{ $usedQty }} / {{ $product->quantity }}
+                                </span>
+                            @else
+                                <span style="color:var(--muted)">—</span>
+                            @endif
+                        </td>
+
+                        {{-- 5. Expiry Info --}}
                         <td id="expiry-cell-{{ $product->id }}">
                             @if($hasBatches)
                                 <div class="exp-cell">
                                     <button class="btn-eye" data-product-id="{{ $product->id }}">
                                         <i class="bi bi-eye" id="eye-{{ $product->id }}"></i>
                                     </button>
-                                    <span>{{ $isSingle ? 'Single' : $product->batchItems->count() . ' batches' }}</span>
+                                    <span>{{ $product->batchItems->count() }} batch</span>
                                 </div>
                             @elseif($product->expiry_date)
                                 <div class="exp-cell">
@@ -145,6 +161,7 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                             @endif
                         </td>
 
+                        {{-- 6. Action --}}
                         <td>
                             <button class="btn-expiry {{ ($hasBatches || $product->expiry_date) ? 'is-edit' : '' }}"
                                     id="btn-expiry-{{ $product->id }}"
@@ -159,40 +176,56 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                         </td>
                     </tr>
 
-                    {{-- Batch Rows (عرضها في حال وجود دفعات) --}}
+                    {{-- ══════════════════ Batch Rows ══════════════════ --}}
                     @foreach($product->batchItems as $item)
-                        {{-- جديد --}}
-<tr class="batch-row" data-parent="{{ $product->id }}" data-filter="{{ $product->bucket_type }}">
-                            <td>
-                                <div class="batch-indent">
-                                    <span class="batch-label-field">
-                                        <i class="bi bi-layers"></i>
-                                        {{ $item->batch->batch_code ?? 'Default Batch' }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td style="color:var(--muted);">{{ $item->quantity }} units</td>
-                            <td>
-                                @php $bStatus = $item->batch->status ?? 'green'; @endphp
-                                <span class="badge b-{{ $bStatus }}">
-                                    {{ $bStatus === 'red' ? 'Expired' : ($bStatus === 'yellow' ? 'Approaching' : 'Safe') }}
+                    @php $bStatus = $item->batch->status ?? 'green'; @endphp
+                    <tr class="batch-row" data-parent="{{ $product->id }}" data-filter="{{ $product->bucket_type }}" style="display:none;">
+
+                        {{-- 1. Batch code (under Product column) --}}
+                        <td>
+                            <div class="batch-indent">
+                                <span class="batch-label-field">
+                                    <i class="bi bi-layers"></i>
+                                    {{ $item->batch->batch_code ?? 'Default Batch' }}
                                 </span>
-                            </td>
-                            <td>
-                                <div class="exp-cell">
-                                    <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                                    <span style="color:var(--muted);">{{ $item->batch->expiry_date ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d') : 'No Date' }}</span>
-                                </div>
-                            </td>
-                            <td></td> {{-- مكان فارغ للأكشن في الدفعات --}}
-                        </tr>
+                            </div>
+                        </td>
+
+                        {{-- 2. Empty (Category column) --}}
+                        <td></td>
+
+                        {{-- 3. Status (under Status column) --}}
+                        <td>
+                            <span class="badge b-{{ $bStatus }}">
+                                {{ $bStatus === 'red' ? 'Expired' : ($bStatus === 'yellow' ? 'Approaching' : 'Safe') }}
+                            </span>
+                        </td>
+
+                        {{-- 4. Qty (under Qty column) --}}
+                        <td style="color:var(--muted);">{{ $item->quantity }} units</td>
+
+                        {{-- 5. Expiry date (under Expiry Info column) --}}
+                        <td>
+                            <div class="exp-cell">
+                                <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
+                                <span style="color:var(--muted);">
+                                    {{ $item->batch->expiry_date
+                                        ? \Carbon\Carbon::parse($item->batch->expiry_date)->format('Y-m-d')
+                                        : 'No Date' }}
+                                </span>
+                            </div>
+                        </td>
+
+                        {{-- 6. Empty (Action column) --}}
+                        <td></td>
+                    </tr>
                     @endforeach
 
                     @empty
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 40px; color: var(--muted);">
+                        <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted);">
                             <i class="bi bi-search" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
-                            لم يتم العثور على منتجات. جرب الضغط على "Sync Products".
+                            No products found. Try clicking "Sync Products".
                         </td>
                     </tr>
                     @endforelse
@@ -204,8 +237,7 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
                 <p>No products match this filter.</p>
             </div>
         </div>
-        
-        {{-- إضافة روابط الترقيم (Pagination) --}}
+
         <div class="inv-pagination-wrap">
             {{ $products->links() }}
         </div>
@@ -228,7 +260,6 @@ data-original-type="{{ $hasBatches ? ($isSingle ? 'single' : 'batch') : '' }}">
 @include('inventory.dateform')
 
 @push('scripts')
-    {{-- استخدام asset مباشرة إذا كنت لا تستخدم Laravel Mix --}}
     <script src="{{ asset('js/inventory-products.js') }}" defer></script>
     <script src="{{ asset('js/inventory-dateform.js') }}" defer></script>
 @endpush

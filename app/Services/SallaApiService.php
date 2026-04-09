@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Merchant;
+use Carbon\Carbon;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Support\Facades\Http;
@@ -231,4 +232,36 @@ class SallaApiService
 
         Log::info('تم تجديد التوكن بنجاح', ['merchant_id' => $this->merchant->id]);
     }
+    public function applySpecialPrice(
+    string $sallaProductId,
+    float $discountedPrice,
+    string $startsAt,
+    string $endsAt,
+    int $discountPercent = 20
+): void {
+    $result = $this->post('/specialoffers', [
+        'name'            => 'Expiry Discount ' . $sallaProductId . ' ' . now()->timestamp,
+        'offer_type'      => 'percentage',
+        'applied_to'      => 'product',
+        'applied_channel' => 'browser_and_application',
+        'start_date'  => Carbon::parse($startsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
+'expiry_date' => Carbon::parse($endsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
+        'buy' => [
+            'type'     => 'product',
+            'products' => [(int) $sallaProductId],
+            'quantity' => 1,
+        ],
+        'get' => [
+            'type'            => 'product',
+            'discount_type'   => 'percentage',
+            'discount_amount' => $discountPercent,
+            'quantity'        => 1,
+            'products'        => [(int) $sallaProductId],
+        ],
+    ]);
+
+    if (!$result || !($result['success'] ?? false)) {
+        throw new \Exception("فشل تطبيق العرض الخاص: {$sallaProductId}");
+    }
+}
 }
