@@ -3,6 +3,12 @@ var __webpack_exports__ = {};
 /*!********************************************!*\
   !*** ./resources/js/inventory-products.js ***!
   \********************************************/
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
+function _iterableToArrayLimit(arr, i) { var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"]; if (null != _i) { var _s, _e, _x, _r, _arr = [], _n = !0, _d = !1; try { if (_x = (_i = _i.call(arr)).next, 0 === i) { if (Object(_i) !== _i) return; _n = !1; } else for (; !(_n = (_s = _x.call(_i)).done) && (_arr.push(_s.value), _arr.length !== i); _n = !0); } catch (err) { _d = !0, _e = err; } finally { try { if (!_n && null != _i["return"] && (_r = _i["return"](), Object(_r) !== _r)) return; } finally { if (_d) throw _e; } } return _arr; } }
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 /**
  * inventory-products.js
  * Products Page — Filter, Batch Toggle, Form Bridge, Toast
@@ -50,6 +56,7 @@ window.Inventory = function () {
   /* ══════════════════════════════════════════
      OPEN EXPIRY FORM
   ══════════════════════════════════════════ */
+  // بعد — أضف قراءة threshold وابعثه مع كل open
   function openForm(productId, productName) {
     var row = document.querySelector("#invBody tr[data-id=\"".concat(productId, "\"]"));
     if (!row) return;
@@ -57,12 +64,16 @@ window.Inventory = function () {
     try {
       batches = JSON.parse(row.dataset.batches || '[]');
     } catch (e) {}
-    if (row.dataset.expiryType === 'single' || batches.length === 0 && row.dataset.expiry) {
-      ExpiryForm.openSingle(productId, productName, row.dataset.expiry, row.dataset.batchCode);
+    var threshold = parseInt(row.dataset.threshold) || 14; // ← جديد
+
+    if (row.dataset.originalType === 'single' || row.dataset.expiryType === 'single' || batches.length === 0 && row.dataset.expiry) {
+      var _b$expiry, _b$batch_code;
+      var b = batches[0];
+      ExpiryForm.openSingle(productId, productName, (_b$expiry = b === null || b === void 0 ? void 0 : b.expiry) !== null && _b$expiry !== void 0 ? _b$expiry : row.dataset.expiry, (_b$batch_code = b === null || b === void 0 ? void 0 : b.batch_code) !== null && _b$batch_code !== void 0 ? _b$batch_code : row.dataset.batchCode, threshold);
     } else if (row.dataset.expiryType === 'batch' || batches.length > 0) {
-      ExpiryForm.openBatch(productId, productName, batches);
+      ExpiryForm.openBatch(productId, productName, batches, threshold);
     } else {
-      ExpiryForm.open(productId, productName);
+      ExpiryForm.open(productId, productName, threshold);
     }
   }
 
@@ -75,25 +86,55 @@ window.Inventory = function () {
     var expiryCell = document.getElementById("expiry-cell-".concat(productId));
     var actionBtn = document.getElementById("btn-expiry-".concat(productId));
     if (!row) return;
+    row.dataset.originalType = payload.type;
+    var statusCell = row.querySelector('td:nth-child(3)');
+    if (statusCell && payload.status) {
+      var _statusMap$payload$st;
+      var statusMap = {
+        green: ['b-green', 'Safe'],
+        yellow: ['b-yellow', 'Approaching'],
+        red: ['b-red', 'Expired']
+      };
+      var _ref = (_statusMap$payload$st = statusMap[payload.status]) !== null && _statusMap$payload$st !== void 0 ? _statusMap$payload$st : ['b-none', 'No expiry set'],
+        _ref2 = _slicedToArray(_ref, 2),
+        cls = _ref2[0],
+        label = _ref2[1];
+      statusCell.innerHTML = "<span class=\"badge ".concat(cls, "\">").concat(label, "</span>");
+    }
     if (payload.type === 'single') {
-      row.dataset.expiry = payload.expiry_date;
-      row.dataset.expiryType = 'single';
-      row.dataset.batches = '[]';
-      if (payload.batch_code) row.dataset.batchCode = payload.batch_code;
-      expiryCell.innerHTML = "\n                <div class=\"exp-cell\">\n                    <i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i>\n                    <span style=\"color:var(--muted);\">".concat(payload.expiry_date, "</span>\n                </div>");
+      document.querySelectorAll(".batch-row[data-parent=\"".concat(productId, "\"]")).forEach(function (r) {
+        return r.remove();
+      });
+      var singleBatch = [{
+        batch_code: payload.batch_code,
+        qty: payload.quantity,
+        status: payload.status,
+        expiry: payload.expiry_date
+      }];
+      row.dataset.batches = JSON.stringify(singleBatch);
+      row.dataset.expiryType = 'batch';
+      row.dataset.expiry = '';
+      expiryCell.innerHTML = "\n        <div class=\"exp-cell\">\n            <button class=\"btn-eye\" data-product-id=\"".concat(productId, "\">\n                <i class=\"bi bi-eye\" id=\"eye-").concat(productId, "\"></i>\n            </button>\n            <span>Single</span>\n        </div>");
+      var statusClass = payload.status || 'green';
+      var statusText = statusClass === 'red' ? 'Expired' : statusClass === 'yellow' ? 'Approaching' : 'Safe';
+      var tr = document.createElement('tr');
+      tr.className = 'batch-row';
+      tr.dataset.parent = productId;
+      tr.innerHTML = "\n        <td><div class=\"batch-indent\"><span class=\"batch-label-field\"><i class=\"bi bi-layers\"></i> ".concat(payload.batch_code || 'N/A', "</span></div></td>\n        <td style=\"color:var(--muted);\">").concat(payload.quantity, " units</td>\n        <td><span class=\"badge b-").concat(statusClass, "\">").concat(statusText, "</span></td>\n        <td><div class=\"exp-cell\"><i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i><span style=\"color:var(--muted);\">").concat(payload.expiry_date, "</span></div></td>\n        <td></td>");
+      row.insertAdjacentElement('afterend', tr);
     } else if (payload.type === 'batch' && (_payload$batches = payload.batches) !== null && _payload$batches !== void 0 && _payload$batches.length) {
       // ❗ احذف أي batch rows قديمة
       document.querySelectorAll(".batch-row[data-parent=\"".concat(productId, "\"]")).forEach(function (r) {
         return r.remove();
       });
       var normalized = payload.batches.map(function (b) {
-        var _ref, _b$expiry_date, _b$batch_code;
+        var _ref3, _b$expiry_date, _b$batch_code2;
         return {
           label: b.label,
           qty: b.qty,
           status: b.status,
-          expiry: ((_ref = (_b$expiry_date = b.expiry_date) !== null && _b$expiry_date !== void 0 ? _b$expiry_date : b.expiry) !== null && _ref !== void 0 ? _ref : '').substring(0, 10),
-          batch_code: (_b$batch_code = b.batch_code) !== null && _b$batch_code !== void 0 ? _b$batch_code : null
+          expiry: ((_ref3 = (_b$expiry_date = b.expiry_date) !== null && _b$expiry_date !== void 0 ? _b$expiry_date : b.expiry) !== null && _ref3 !== void 0 ? _ref3 : '').substring(0, 10),
+          batch_code: (_b$batch_code2 = b.batch_code) !== null && _b$batch_code2 !== void 0 ? _b$batch_code2 : null
         };
       });
       row.dataset.batches = JSON.stringify(normalized);
@@ -167,7 +208,7 @@ window.Inventory = function () {
             if (r.classList.contains('open')) {
               r.style.display = 'table-row';
             } else {
-              r.style.removeProperty('display');
+              r.style.display = 'none';
             }
           }
         });
