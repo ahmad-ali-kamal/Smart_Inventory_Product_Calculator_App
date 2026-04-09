@@ -3,25 +3,27 @@
 namespace App\Services;
 
 use App\Models\Merchant;
-use Carbon\Carbon;
+use App\Models\SallaApp;
 use App\Models\Product;
 use App\Models\ProductImage;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SallaApiService
 {
     private Merchant $merchant;
+    private ?SallaApp $sallaApp = null;
     private string $baseUrl = 'https://api.salla.dev/admin/v2';
 
     public function __construct(Merchant $merchant)
     {
         $this->merchant = $merchant;
+        $this->sallaApp = SallaApp::where('merchant_id', $merchant->id)
+            ->where('app_name', 'management')
+            ->first();
     }
 
-    /**
-     * Static helper - إنشاء instance بسهولة
-     */
     public static function for(Merchant $merchant): self
     {
         return new self($merchant);
@@ -31,9 +33,6 @@ class SallaApiService
     // Products
     // ====================================================================
 
-    /**
-     * مزامنة جميع المنتجات من سلة وحفظها في قاعدة البيانات
-     */
     public function syncProducts(): array
     {
         $synced = 0;
@@ -44,10 +43,9 @@ class SallaApiService
 
         do {
             $response = $this->get('/products', ['page' => $page, 'per_page' => 50]);
-
             if (!$response) break;
 
-            $products = $response['data'] ?? [];
+            $products   = $response['data'] ?? [];
             $pagination = $response['pagination'] ?? null;
 
             foreach ($products as $productData) {
@@ -65,11 +63,7 @@ class SallaApiService
 
             $page++;
 
-        } while (
-            !empty($products) &&
-            $pagination &&
-            $page <= ($pagination['totalPages'] ?? 1)
-        );
+        } while (!empty($products) && $pagination && $page <= ($pagination['totalPages'] ?? 1));
 
         Log::info('انتهت مزامنة المنتجات', [
             'merchant_id' => $this->merchant->id,
@@ -77,54 +71,41 @@ class SallaApiService
             'errors'      => $errors,
         ]);
 
-        // تحديث وقت آخر مزامنة
         $this->merchant->update(['synced_at' => now()]);
 
         return ['synced' => $synced, 'errors' => $errors];
     }
 
-    /**
-     * حفظ منتج واحد في قاعدة البيانات
-     */
     private function saveProduct(array $data): Product
     {
         $product = Product::updateOrCreate(
+            ['salla_product_id' => (string) $data['id']],
             [
-                'salla_product_id' => (string) $data['id'],
-            ],
-            [
-                'merchant_id'   => $this->merchant->id,
-                'name'          => $data['name'],
-                'sku'           => $data['sku'] ?? null,
-                'price'         => $data['price']['amount'] ?? 0,
-                'quantity'      => $data['quantity'] ?? 0,
-                'category'      => $data['category']['name'] ?? null,
-                'status'        => $data['status'] ?? 'active',
-                'metadata'      => [
-                    'description'  => $data['description'] ?? null,
-                    'url'          => $data['url'] ?? null,
-                    'type'         => $data['type'] ?? null,
-                    'sale_price'   => $data['sale_price']['amount'] ?? null,
+                'merchant_id' => $this->merchant->id,
+                'name'        => $data['name'],
+                'sku'         => $data['sku'] ?? null,
+                'price'       => $data['price']['amount'] ?? 0,
+                'quantity'    => $data['quantity'] ?? 0,
+                'category'    => $data['category']['name'] ?? null,
+                'status'      => $data['status'] ?? 'active',
+                'metadata'    => [
+                    'description' => $data['description'] ?? null,
+                    'url'         => $data['url'] ?? null,
+                    'type'        => $data['type'] ?? null,
+                    'sale_price'  => $data['sale_price']['amount'] ?? null,
                 ],
-                'synced_at'     => now(),
+                'synced_at' => now(),
             ]
         );
 
-        // حفظ الصور
         $this->syncProductImages($product, $data);
-
         return $product;
     }
 
-    /**
-     * حفظ صور المنتج
-     */
     private function syncProductImages(Product $product, array $data): void
     {
-        // حذف الصور القديمة
         $product->images()->delete();
 
-        // حفظ الصورة الرئيسية
         if (!empty($data['main_image'])) {
             ProductImage::create([
                 'product_id' => $product->id,
@@ -134,7 +115,6 @@ class SallaApiService
             ]);
         }
 
-        // حفظ صور إضافية
         if (!empty($data['images'])) {
             foreach ($data['images'] as $index => $image) {
                 ProductImage::create([
@@ -148,20 +128,59 @@ class SallaApiService
     }
 
     // ====================================================================
+    // Special Offers
+    // ====================================================================
+
+    public function applySpecialPrice(
+        string $sallaProductId,
+        float $discountedPrice,
+        string $startsAt,
+        string $endsAt,
+        int $discountPercent = 20
+    ): void {
+        $result = $this->post('/specialoffers', [
+            'name'            => 'Expiry Discount ' . $sallaProductId . ' ' . now()->timestamp,
+            'offer_type'      => 'percentage',
+            'applied_to'      => 'product',
+            'applied_channel' => 'browser_and_application',
+            'start_date'      => Carbon::parse($startsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
+            'expiry_date'     => Carbon::parse($endsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
+            'buy' => [
+                'type'     => 'product',
+                'products' => [(int) $sallaProductId],
+                'quantity' => 1,
+            ],
+            'get' => [
+                'type'            => 'product',
+                'discount_type'   => 'percentage',
+                'discount_amount' => $discountPercent,
+                'quantity'        => 1,
+                'products'        => [(int) $sallaProductId],
+            ],
+        ]);
+
+        if (!$result || !($result['success'] ?? false)) {
+            Log::error('Salla specialoffers response', ['result' => $result]);
+            throw new \Exception("فشل تطبيق العرض الخاص: {$sallaProductId}");
+        }
+    }
+
+    // ====================================================================
     // Helper Methods
     // ====================================================================
 
-    /**
-     * إرسال GET request لـSalla API
-     */
     public function get(string $endpoint, array $params = []): ?array
     {
-        // تجديد التوكن إذا انتهت صلاحيته
-        if ($this->merchant->isTokenExpired()) {
+        if (!$this->sallaApp) {
+            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
+            return null;
+        }
+
+        if ($this->sallaApp->isTokenExpired()) {
             $this->refreshToken();
         }
 
-        $response = Http::withToken($this->merchant->access_token)
+        $response = Http::withToken($this->sallaApp->access_token)
             ->get($this->baseUrl . $endpoint, $params);
 
         if (!$response->successful()) {
@@ -177,16 +196,18 @@ class SallaApiService
         return $response->json();
     }
 
-    /**
-     * إرسال POST request لـSalla API
-     */
     public function post(string $endpoint, array $data = []): ?array
     {
-        if ($this->merchant->isTokenExpired()) {
+        if (!$this->sallaApp) {
+            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
+            return null;
+        }
+
+        if ($this->sallaApp->isTokenExpired()) {
             $this->refreshToken();
         }
 
-        $response = Http::withToken($this->merchant->access_token)
+        $response = Http::withToken($this->sallaApp->access_token)
             ->post($this->baseUrl . $endpoint, $data);
 
         if (!$response->successful()) {
@@ -202,12 +223,9 @@ class SallaApiService
         return $response->json();
     }
 
-    /**
-     * تجديد الـAccess Token
-     */
     private function refreshToken(): void
     {
-        if (!$this->merchant->refresh_token) {
+        if (!$this->sallaApp->refresh_token) {
             throw new \Exception('لا يوجد Refresh Token');
         }
 
@@ -215,7 +233,7 @@ class SallaApiService
             'grant_type'    => 'refresh_token',
             'client_id'     => env('SALLA_OAUTH_CLIENT_ID'),
             'client_secret' => env('SALLA_OAUTH_CLIENT_SECRET'),
-            'refresh_token' => $this->merchant->refresh_token,
+            'refresh_token' => $this->sallaApp->refresh_token,
         ]);
 
         if (!$response->successful()) {
@@ -224,44 +242,12 @@ class SallaApiService
 
         $tokenData = $response->json();
 
-        $this->merchant->update([
+        $this->sallaApp->update([
             'access_token'     => $tokenData['access_token'],
-            'refresh_token'    => $tokenData['refresh_token'] ?? $this->merchant->refresh_token,
+            'refresh_token'    => $tokenData['refresh_token'] ?? $this->sallaApp->refresh_token,
             'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 3600),
         ]);
 
         Log::info('تم تجديد التوكن بنجاح', ['merchant_id' => $this->merchant->id]);
     }
-    public function applySpecialPrice(
-    string $sallaProductId,
-    float $discountedPrice,
-    string $startsAt,
-    string $endsAt,
-    int $discountPercent = 20
-): void {
-    $result = $this->post('/specialoffers', [
-        'name'            => 'Expiry Discount ' . $sallaProductId . ' ' . now()->timestamp,
-        'offer_type'      => 'percentage',
-        'applied_to'      => 'product',
-        'applied_channel' => 'browser_and_application',
-        'start_date'  => Carbon::parse($startsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
-'expiry_date' => Carbon::parse($endsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
-        'buy' => [
-            'type'     => 'product',
-            'products' => [(int) $sallaProductId],
-            'quantity' => 1,
-        ],
-        'get' => [
-            'type'            => 'product',
-            'discount_type'   => 'percentage',
-            'discount_amount' => $discountPercent,
-            'quantity'        => 1,
-            'products'        => [(int) $sallaProductId],
-        ],
-    ]);
-
-    if (!$result || !($result['success'] ?? false)) {
-        throw new \Exception("فشل تطبيق العرض الخاص: {$sallaProductId}");
-    }
-}
 }
