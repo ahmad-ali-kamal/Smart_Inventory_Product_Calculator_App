@@ -14,6 +14,7 @@ use App\Http\Controllers\Inventory\DiscountController;
 use App\Http\Controllers\Settings\CategoryMappingController;
 use App\Http\Controllers\Settings\BatchSettingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Inventory\NotificationController;
 
 /* --- 1. الروابط العامة --- */
 Route::get('/', [DashboardController::class, 'index'])->name('welcome');
@@ -57,6 +58,12 @@ Route::middleware(['auth'])->prefix('inventory')->group(function () {
     // روابط إضافية (تعليمات، خصومات)
     Route::get('/instructions', [InventoryDashboardController::class, 'instructions'])->name('inventory.instructions');
     Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('inventory.discount.apply');
+
+     // الإشعارات
+Route::get('/notifications', [NotificationController::class, 'index'])->name('inventory.notifications');
+Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('inventory.notifications.read');
+Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('inventory.notifications.readAll');
+  
     
     // مسار احتياطي في حال كان الـ JS يرسل المعرف في الرابط
     Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('inventory.expiry.store');
