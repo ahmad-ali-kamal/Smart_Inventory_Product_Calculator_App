@@ -97,23 +97,23 @@
                         data-used-qty="{{ $usedQty }}">
 
                         {{-- 1. Product --}}
-                        <td>
-                            <div class="prod-cell">
-                                <div class="prod-img-placeholder" title="Product image">
-                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" style="width:100%; border-radius:4px;">
-                                </div>
-                                <div>
-                                    <div class="prod-name">{{ $product->name }}</div>
-                                    <div class="prod-id">#{{ $product->salla_id ?? $product->id }}</div>
-                                    @if($product->sale_price < $product->regular_price)
-                                        <div class="disc-pill">
-                                            <i class="bi bi-tag-fill"></i>
-                                            On Sale &bull; Active
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </td>
+<td>
+    <div class="prod-cell">
+        <div class="prod-img-placeholder">
+            <img src="{{ $product->image_url }}" alt="{{ $product->name }}" 
+                 style="width:100%; height:100%; object-fit:cover; border-radius:0.6rem;">
+        </div>
+        <div>
+            <div class="prod-name">{{ $product->name }}</div>
+            <div class="prod-id">#{{ $product->salla_id ?? $product->id }}</div>
+            @if($product->sale_price < $product->regular_price)
+                <div class="disc-pill">
+                    <i class="bi bi-tag-fill"></i> On Sale &bull; Active
+                </div>
+            @endif
+        </div>
+    </div>
+</td>
 
                         {{-- 2. Category --}}
                         <td><span class="b-cat">{{ $product->category }}</span></td>
@@ -181,18 +181,18 @@
                     @php $bStatus = $item->batch->status ?? 'green'; @endphp
                     <tr class="batch-row" data-parent="{{ $product->id }}" data-filter="{{ $product->bucket_type }}" style="display:none;">
 
-                        {{-- 1. Batch code (under Product column) --}}
-                        <td>
-                            <div class="batch-indent">
-                                <span class="batch-label-field">
-                                    <i class="bi bi-layers"></i>
-                                    {{ $item->batch->batch_code ?? 'Default Batch' }}
-                                </span>
-                            </div>
-                        </td>
+                        {{-- 1. Batch --}}
+<td>
+    <div class="prod-cell">
+        <span class="batch-label-field" style="margin-left:0;">
+            <i class="bi bi-layers"></i>
+            {{ $item->batch->batch_code ?? 'Default Batch' }}
+        </span>
+    </div>
+</td>
 
-                        {{-- 2. Empty (Category column) --}}
-                        <td></td>
+                        {{-- 2. Category --}}
+<td><span class="b-cat">{{ $product->category }}</span></td>
 
                         {{-- 3. Status (under Status column) --}}
                         <td>

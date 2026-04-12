@@ -11,7 +11,7 @@
     --fg:           hsl(25, 30%, 15%);
     --muted:        hsl(25, 10%, 50%);
 
-    /* ═══ Status Colors — موحدة لكل الصفحات ═══ */
+    /* ═══ Status Colors ═══ */
     --clr-green-bg:     hsla(140, 55%, 45%, 0.12);
     --clr-green-border: hsla(140, 55%, 45%, 0.28);
     --clr-green-text:   hsl(140, 50%, 22%);
@@ -108,68 +108,15 @@ body {
     backdrop-filter: blur(24px);
     border: 1px solid hsla(0,0%,100%,0.7);
     border-radius: 1.25rem;
-    overflow: hidden;
+    overflow: visible;
 }
-.table-header-row {
-    background: hsla(28,60%,92%,0.35);
-    border-bottom: 1px solid hsla(0,0%,0%,0.06);
-}
-.table-header-row th {
-    padding: 0.875rem 1.5rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--muted);
-    text-align: left;
-}
-.table-header-row th:last-child { text-align: right; }
 
-.table-row {
-    border-bottom: 1px solid hsla(0,0%,0%,0.04);
-    transition: background 0.15s ease;
-}
-.table-row:last-child { border-bottom: none; }
-.table-row:hover { background: hsla(28,70%,90%,0.15); }
-
-/* ─── Expand Button ─── */
-.expand-btn {
-    width: 1.75rem; height: 1.75rem;
-    display: flex; align-items: center; justify-content: center;
-    background: hsla(28,60%,88%,0.4);
-    border: 1px solid hsla(28,55%,75%,0.3);
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: background 0.15s ease, transform 0.2s ease;
-    color: hsl(28,55%,52%);
-    font-size: 0.7rem;
-}
-.expand-btn:hover    { background: hsla(28,60%,85%,0.6); transform: scale(1.05); }
-.expand-btn.expanded { transform: rotate(90deg); }
-
-/* ─── Product Icon ─── */
-.product-icon {
-    width: 2.25rem; height: 2.25rem;
-    background: hsla(28,70%,88%,0.45);
-    border: 1px solid hsla(28,65%,74%,0.3);
-    border-radius: 0.625rem;
-    overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-    color: hsl(28,65%,50%);
-    font-size: 0.85rem;
-    flex-shrink: 0;
-}
-.product-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.product-icon-fallback {
+.dash-table-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    color: hsl(28,65%,50%);
-    font-size: 0.85rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid hsla(0,0%,0%,0.05);
 }
 
 /* ─── Status Badges ─── */
@@ -197,21 +144,7 @@ body {
 .b-red    { background: var(--clr-red-bg);    color: var(--clr-red-text);    border-color: var(--clr-red-border); }
 .b-none   { background: hsla(0,0%,0%,0.05);   color: var(--muted);           border-color: hsla(0,0%,0%,0.12); }
 
-/* ─── Action Buttons ─── */
-.action-btn {
-    padding: 0.4rem 0.9rem;
-    border-radius: 0.6rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-.action-btn:active { transform: scale(0.96); }
-
+/* ─── Dashboard Action Buttons ─── */
 .btn-discount {
     background: var(--clr-yellow-bg);
     color: var(--clr-yellow-text);
@@ -226,12 +159,11 @@ body {
 }
 .btn-hide:hover { background: hsla(0, 68%, 50%, 0.22); }
 
-.btn-restock {
-    background: var(--clr-green-bg);
-    color: var(--clr-green-text);
-    border: 1px solid var(--clr-green-border);
+.btn-hide,
+.btn-discount {
+    width: 9rem;
+    justify-content: center;
 }
-.btn-restock:hover { background: hsla(140, 55%, 45%, 0.22); }
 
 /* ─── Empty State ─── */
 .empty-icon {
@@ -286,14 +218,12 @@ body {
    INVENTORY PRODUCTS PAGE
 ============================================= */
 
-/* ── Page ── */
 .inv-page {
     position: relative; z-index: 1;
     max-width: 1180px; margin: 0 auto;
     padding: 2rem 1.5rem 3rem;
 }
 
-/* ── Info Banner ── */
 .inv-banner {
     display: flex; align-items: center; gap: 0.65rem;
     background: hsla(30,100%,55%,0.10);
@@ -305,7 +235,6 @@ body {
 }
 .inv-banner i { font-size: 1rem; flex-shrink: 0; }
 
-/* ── Card ── */
 .inv-card {
     background: hsla(0,0%,100%,0.55);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -325,7 +254,6 @@ body {
 }
 .inv-card-title i { color: var(--mauve); }
 
-/* ── Head Actions Row ── */
 .inv-head-actions {
     display: flex;
     align-items: center;
@@ -333,7 +261,7 @@ body {
     margin-bottom: 1rem;
 }
 
-/* ── Shared Button Style ── */
+/* ─── Filter Button ─── */
 .inv-action-btn {
     display: inline-flex;
     align-items: center;
@@ -359,17 +287,14 @@ body {
 }
 .inv-action-btn:active { transform: scale(0.97); }
 
-/* ── Chevron Animation ── */
 .inv-chevron {
     font-size: 0.65rem;
     transition: transform 0.2s ease;
 }
 .inv-chevron.open { transform: rotate(180deg); }
 
-/* ── Dropdown Wrapper ── */
 .inv-filter-dropdown { position: relative; }
 
-/* ── Filter Menu ── */
 .inv-filter-menu {
     display: none;
     position: absolute;
@@ -391,7 +316,6 @@ body {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Menu Options ── */
 .inv-filter-option {
     display: block;
     width: 100%;
@@ -406,22 +330,13 @@ body {
     cursor: pointer;
     transition: background 0.12s;
 }
-.inv-filter-option:hover {
-    background: hsla(28, 85%, 55%, 0.07);
-    color: hsl(28, 70%, 30%);
-}
-.inv-filter-option.active {
-    background: hsla(28, 85%, 55%, 0.12);
-    color: hsl(28, 70%, 30%);
-    font-weight: 700;
-}
-.inv-filter-option + .inv-filter-option {
-    border-top: 1px solid hsla(28, 50%, 80%, 0.25);
-}
+.inv-filter-option:hover { background: hsla(28, 85%, 55%, 0.07); color: hsl(28, 70%, 30%); }
+.inv-filter-option.active { background: hsla(28, 85%, 55%, 0.12); color: hsl(28, 70%, 30%); font-weight: 700; }
+.inv-filter-option + .inv-filter-option { border-top: 1px solid hsla(28, 50%, 80%, 0.25); }
 
-/* ── Table ── */
-.inv-table-wrap { overflow-x: auto; }
-.inv-table { width: 100%; border-collapse: collapse; }
+/* ─── Table ─── */
+.inv-table-wrap { overflow-x: auto; overflow-y: visible; }
+.inv-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .inv-table thead { background: hsla(0,0%,0%,0.025); border-bottom: 1px solid hsla(0,0%,0%,0.07); }
 .inv-table th {
     padding: 1rem 1.5rem; text-align: center;
@@ -438,18 +353,18 @@ body {
 }
 .inv-table td:first-child { text-align: left; }
 
-/* ── Product Cell ── */
+/* ─── Product Cell ─── */
 .prod-cell { display: flex; align-items: center; gap: 0.75rem; }
 .prod-img-placeholder {
     width: 2.4rem; height: 2.4rem; flex-shrink: 0;
     background: hsla(0,0%,0%,0.04); border: 1.5px dashed hsla(0,0%,0%,0.15);
     border-radius: 0.6rem; display: flex; align-items: center; justify-content: center;
-    color: hsla(0,0%,0%,0.22); font-size: 0.9rem;
+    color: hsla(0,0%,0%,0.22); font-size: 0.9rem; overflow: hidden;
 }
 .prod-name { font-weight: 600; }
 .prod-id   { font-size: 0.69rem; color: var(--muted); margin-top: 0.05rem; }
 
-/* ── Discount Pill ── */
+/* ─── Discount Pill ─── */
 .disc-pill {
     display: inline-flex; align-items: center; gap: 0.3rem;
     font-size: 0.71rem; font-weight: 700; color: hsl(28,80%,32%);
@@ -460,7 +375,7 @@ body {
 }
 .disc-pill i { font-size: 0.62rem; color: hsl(38,80%,42%); }
 
-/* ── Expiry Cell ── */
+/* ─── Expiry Cell ─── */
 .exp-cell { display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: var(--muted); }
 .btn-eye {
     background: none; border: none; padding: 0.22rem 0.42rem;
@@ -469,7 +384,7 @@ body {
 }
 .btn-eye:hover { background: var(--mauve-soft); color: var(--mauve-deep); }
 
-/* ── Toast ── */
+/* ─── Toast ─── */
 .inv-toast {
     position: fixed; bottom: 2rem; left: 50%;
     transform: translateX(-50%) translateY(6px);
@@ -485,7 +400,7 @@ body {
 .inv-toast.toast-edit { background: hsl(28,70%,22%);  color: hsl(38,90%,88%); }
 .inv-toast i { font-size: 1rem; }
 
-/* ── Batch Rows ── */
+/* ─── Batch Rows ─── */
 .inv-table tbody tr.batch-row { display: none; }
 .inv-table tbody tr.batch-row.open { display: table-row; }
 .batch-row td {
@@ -495,16 +410,17 @@ body {
     font-size: 0.79rem; color: var(--fg);
 }
 .batch-row:last-of-type td { border-bottom: none !important; }
-.batch-indent { display: flex; align-items: center; gap: 0.5rem; padding-left: 3.1rem; }
+
 .batch-label-field {
     display: inline-flex; align-items: center; gap: 0.38rem;
     padding: 0.32rem 0.75rem;
     background: hsla(28,85%,55%,0.09); border: 1.5px solid var(--mauve-border);
     border-radius: 0.7rem; font-size: 0.77rem; font-weight: 700; color: var(--mauve-deep);
+    width: 90%;
 }
 .batch-label-field i { font-size: 0.72rem; }
 
-/* ── Expiry & Edit Buttons ── */
+/* ─── Expiry & Edit Buttons ─── */
 .btn-expiry {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.38rem;
     padding: 0.42rem 0.9rem; min-width: 9rem;
@@ -535,12 +451,11 @@ body {
 .btn-edit-batch:hover  { background: hsla(28,85%,55%,0.16); border-color: var(--mauve); transform: translateY(-1px); }
 .btn-edit-batch:active { transform: scale(0.97); }
 
-/* ── Empty State ── */
+/* ─── Empty & Footer ─── */
 .inv-empty { padding: 3rem 1.5rem; text-align: center; color: var(--muted); display: none; }
 .inv-empty i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; opacity: 0.35; }
 .inv-empty p { font-size: 0.85rem; margin: 0; }
 
-/* ── Footer ── */
 .inv-footer {
     text-align: center; margin-top: 1.25rem;
     font-size: 0.77rem; color: var(--muted);
@@ -548,11 +463,10 @@ body {
     opacity: 0; animation: fade-up 0.5s ease-out 0.9s forwards;
 }
 
-/* ── Responsive ── */
+/* ─── Responsive ─── */
 @media (max-width: 768px) {
     .inv-page { padding: 1rem 0.75rem 2rem; }
     .inv-table th, .inv-table td { padding: 0.7rem 0.75rem; }
-    .inv-filter-tab { font-size: 0.72rem; padding: 0.3rem 0.7rem; }
     .inv-card-head { flex-direction: column; }
     .th-status, .td-status { display: none; }
 }
@@ -561,11 +475,9 @@ body {
    SETTINGS PAGE
 ============================================= */
 
-/* ── Layout ── */
 .settings-main  { max-width: 56rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 .settings-stack { display: flex; flex-direction: column; gap: 1.25rem; }
 
-/* ── Card ── */
 .s-card {
     background: hsla(0,0%,100%,0.58);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
@@ -574,7 +486,6 @@ body {
     padding: 1.75rem;
 }
 
-/* ── Section Header ── */
 .s-section-title { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
 .s-section-icon {
     width: 2rem; height: 2rem; flex-shrink: 0;
@@ -590,7 +501,6 @@ body {
     margin: 0 0 1.4rem; padding-left: 2.75rem;
 }
 
-/* ── Thresholds ── */
 .threshold-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
 .threshold-card {
     background: hsla(28,50%,96%,0.7);
@@ -618,7 +528,6 @@ body {
 .threshold-unit { font-size: 0.72rem; font-weight: 600; color: var(--muted); }
 .threshold-hint { font-size: 0.7rem; color: var(--muted); margin: 0.55rem 0 0; line-height: 1.45; }
 
-/* ── Category Mapping ── */
 .mapping-tip {
     background: var(--mauve-soft);
     border: 1px solid hsla(28,85%,55%,0.2);
@@ -663,7 +572,6 @@ body {
 .category-pill:hover { background: hsla(28,70%,95%,0.9); border-color: hsla(28,65%,68%,0.55); transform: translateX(2px); }
 .category-pill i { color: hsl(28,55%,60%); font-size: 0.7rem; }
 
-/* ── Toggle Rows ── */
 .toggle-list { display: flex; flex-direction: column; }
 .toggle-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -706,7 +614,6 @@ body {
 }
 .toggle-switch.on::after { left: 1.4375rem; }
 
-/* ── Discount Input Panel ── */
 .discount-panel {
     display: none;
     margin-top: 0.875rem; padding: 1rem 1.1rem;
@@ -728,7 +635,7 @@ body {
     font-size: 0.9rem; font-weight: 700; color: var(--fg);
     outline: none; transition: border-color 0.2s;
 }
-.discount-input       { padding-right: 1.6rem; }
+.discount-input { padding-right: 1.6rem; }
 .discount-input:focus,
 .discount-input-plain:focus { border-color: var(--mauve); }
 .discount-input-suffix {
@@ -738,7 +645,6 @@ body {
 }
 .discount-panel-hint { margin: 0; font-size: 0.72rem; color: var(--muted); line-height: 1.5; width: 100%; }
 
-/* ── Footer Buttons ── */
 .settings-footer { display: flex; justify-content: flex-end; gap: 0.75rem; align-items: center; }
 .btn-cancel {
     padding: 0.65rem 1.4rem;
@@ -769,12 +675,10 @@ body {
    DATE FORM (EXPIRY MODAL)
 ============================================= */
 
-/* ── Animations ── */
-@keyframes ef-fade-in { from { opacity:0; } to   { opacity:1; } }
-@keyframes ef-card-in { to   { opacity:1; transform:translateY(0) scale(1); } }
-@keyframes ef-spin    { to   { transform:rotate(360deg); } }
+@keyframes ef-fade-in { from { opacity:0; } to { opacity:1; } }
+@keyframes ef-card-in { to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes ef-spin    { to { transform:rotate(360deg); } }
 
-/* ── Overlay ── */
 .ef-backdrop {
     display:none; position:fixed; inset:0; z-index:200;
     background:hsla(25,30%,10%,0.55);
@@ -784,7 +688,6 @@ body {
 .ef-backdrop.open { display:flex; animation:ef-fade-in 0.22s ease-out forwards; }
 body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0.22s ease; }
 
-/* ── Card ── */
 .ef-card {
     background:#fff; border:1px solid hsla(0,0%,0%,0.08);
     border-radius:1.75rem; width:100%; max-width:560px;
@@ -794,7 +697,6 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
     animation:ef-card-in 0.32s cubic-bezier(0.34,1.4,0.64,1) 0.05s forwards;
 }
 
-/* ── Header ── */
 .ef-header      { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
 .ef-header-left { display:flex; align-items:center; gap:0.85rem; }
 .ef-icon {
@@ -817,7 +719,6 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 
 .ef-divider { height:1px; background:hsla(0,0%,0%,0.07); margin-bottom:1.5rem; }
 
-/* ── Edit Banner ── */
 .ef-edit-banner {
     display:none; align-items:center; gap:0.5rem;
     background:hsla(28,85%,55%,0.08); border:1px solid var(--mauve-border);
@@ -826,7 +727,6 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 }
 .ef-edit-banner.show { display:flex; }
 
-/* ── Mode Toggle ── */
 .ef-question  { font-size:0.87rem; font-weight:700; color:var(--fg); margin-bottom:0.85rem; }
 .ef-toggle    { display:flex; gap:0.65rem; margin-bottom:1.5rem; }
 .ef-toggle-btn {
@@ -837,15 +737,14 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
     display:flex; align-items:center; justify-content:center; gap:0.4rem;
     transition:all 0.18s ease; font-family:'DM Sans', sans-serif;
 }
-.ef-toggle-btn:hover      { border-color:var(--mauve-border); color:var(--fg); }
+.ef-toggle-btn:hover { border-color:var(--mauve-border); color:var(--fg); }
 .ef-toggle-btn.active-yes,
-.ef-toggle-btn.active-no  { background:hsla(28,85%,55%,0.1); border-color:var(--mauve); color:var(--mauve-deep); }
+.ef-toggle-btn.active-no { background:hsla(28,85%,55%,0.1); border-color:var(--mauve); color:var(--mauve-deep); }
 
-/* ── Panels ── */
 .ef-panel { border-radius:1.1rem; padding:1.35rem; margin-bottom:1.5rem; display:none; }
-.ef-panel.show         { display:block; animation:fade-up 0.25s ease-out forwards; }
+.ef-panel.show { display:block; animation:fade-up 0.25s ease-out forwards; }
 .ef-panel-yes,
-.ef-panel-no           { background:hsla(28,85%,55%,0.07); border:1px solid var(--mauve-border); }
+.ef-panel-no { background:hsla(28,85%,55%,0.07); border:1px solid var(--mauve-border); }
 .ef-panel-title {
     font-size:0.75rem; font-weight:700; letter-spacing:0.05em;
     text-transform:uppercase; margin-bottom:1rem; color:var(--mauve-deep);
@@ -853,7 +752,6 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 .ef-batch-panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
 .ef-batch-panel-head .ef-panel-title { margin:0; }
 
-/* ── Form Fields ── */
 .ef-label {
     display:block; font-size:0.69rem; font-weight:700;
     text-transform:uppercase; letter-spacing:0.06em;
@@ -868,7 +766,6 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 }
 .ef-input:focus { border-color:var(--mauve); background:white; box-shadow:0 0 0 3px hsla(28,85%,55%,0.15); }
 
-/* ── Batch Items ── */
 .ef-batch-list { display:flex; flex-direction:column; gap:0.75rem; }
 .ef-batch-item {
     background:hsla(0,0%,100%,0.65); border:1px solid hsla(0,0%,0%,0.08);
@@ -886,7 +783,6 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 .ef-batch-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
 .ef-batch-icon { font-size:0.78rem; color:var(--mauve); }
 
-/* ── Add Batch Button ── */
 .ef-add-batch {
     display:inline-flex; align-items:center; gap:0.38rem;
     padding:0.52rem 1rem; margin-top:0.85rem;
@@ -898,18 +794,21 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 }
 .ef-add-batch:hover { background:hsla(28,85%,55%,0.15); border-color:var(--mauve); }
 
-/* ── Status Badge (Expiry Modal) ── */
-.ef-status-badge {
-    display:inline-flex; align-items:center; gap:0.25rem;
-    padding:0.15rem 0.55rem; border-radius:2rem;
-    font-size:0.68rem; font-weight:700;
-    text-transform: none;
-}
+/* ─── Status Badge ─── */
 .ef-s-green  { background: var(--clr-green-bg);  color: var(--clr-green-text); }
 .ef-s-yellow { background: var(--clr-yellow-bg); color: var(--clr-yellow-text); }
 .ef-s-red    { background: var(--clr-red-bg);    color: var(--clr-red-text); }
 
-/* ── Save Button ── */
+.ef-status-badge {
+    display:inline-flex; align-items:center; gap:0.3rem;
+    font-size:0.72rem; font-weight:600;
+    padding:0.15rem 0.55rem; border-radius:20px;
+    vertical-align:middle;
+}
+.ef-status-badge.ef-s-green  { background: var(--clr-green-bg);  color: var(--clr-green-text); }
+.ef-status-badge.ef-s-yellow { background: var(--clr-yellow-bg); color: var(--clr-yellow-text); }
+.ef-status-badge.ef-s-red    { background: var(--clr-red-bg);    color: var(--clr-red-text); }
+
 .ef-save {
     width:100%; padding:0.88rem; border:none; border-radius:1rem;
     background:linear-gradient(135deg, var(--mauve), var(--mauve-deep));
@@ -923,93 +822,25 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
 .ef-save:active   { transform:scale(0.98); }
 .ef-save:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
 .ef-spinner       { animation:ef-spin 0.7s linear infinite; }
-/*
- * ══════════════════════════════════════════════
- *  Qty Tracker — Warning States
- *  أضف هذا الـ CSS في ملف الـ styles الخاص بك
- * ══════════════════════════════════════════════
- */
 
-/* الحاوية الأساسية */
+/* ─── Qty Tracker ─── */
 .ef-qty-tracker {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.6rem 0.9rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; padding: 0.6rem 0.9rem;
     border-radius: 10px;
     background: var(--surface, #f9f5f0);
     border: 1px solid var(--border, #e8ddd3);
-    font-size: 0.82rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
+    font-size: 0.82rem; margin-bottom: 1rem; flex-wrap: wrap;
 }
 
-/* رسالة التحذير العامة */
 .ef-qty-warn {
-    display: none;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.25rem 0.65rem;
-    border-radius: 20px;
+    display: none; align-items: center; gap: 0.4rem;
+    font-size: 0.8rem; font-weight: 600;
+    padding: 0.25rem 0.65rem; border-radius: 20px;
 }
-
-/* ✅ مكتمل — أخضر */
-.ef-qty-warn.ef-qty-full {
-    display: flex;
-    background: hsl(142, 70%, 92%);
-    color: hsl(142, 55%, 28%);
-    border: 1px solid hsl(142, 50%, 78%);
-}
-
-/* ⚠️ قليل — برتقالي */
-.ef-qty-warn.ef-qty-low {
-    display: flex;
-    background: hsl(35, 90%, 92%);
-    color: hsl(28, 75%, 35%);
-    border: 1px solid hsl(35, 75%, 72%);
-}
-
-/* 🚫 تجاوز — أحمر */
-.ef-qty-warn.ef-qty-over {
-    display: flex;
-    background: hsl(0, 80%, 94%);
-    color: hsl(0, 65%, 38%);
-    border: 1px solid hsl(0, 65%, 78%);
-}
-
-/*
- * ══════════════════════════════════════════════
- *  Status Badges داخل الـ DateForm
- * ══════════════════════════════════════════════
- */
-.ef-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.15rem 0.55rem;
-    border-radius: 20px;
-    vertical-align: middle;
-}
-
-.ef-status-badge.ef-s-green {
-    background: hsl(142, 65%, 90%);
-    color: hsl(142, 55%, 28%);
-}
-
-.ef-status-badge.ef-s-yellow {
-    background: hsl(40, 95%, 90%);
-    color: hsl(32, 80%, 32%);
-}
-
-.ef-status-badge.ef-s-red {
-    background: hsl(0, 80%, 92%);
-    color: hsl(0, 65%, 38%);
-}
+.ef-qty-warn.ef-qty-full { display: flex; background: hsl(142,70%,92%); color: hsl(142,55%,28%); border: 1px solid hsl(142,50%,78%); }
+.ef-qty-warn.ef-qty-low  { display: flex; background: hsl(35,90%,92%);  color: hsl(28,75%,35%);  border: 1px solid hsl(35,75%,72%); }
+.ef-qty-warn.ef-qty-over { display: flex; background: hsl(0,80%,94%);   color: hsl(0,65%,38%);   border: 1px solid hsl(0,65%,78%); }
 
 @media (max-width: 768px) {
     .ef-batch-grid { grid-template-columns:1fr; }
@@ -1055,29 +886,16 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
     font-size:0.82rem; font-weight:700; color:hsl(28,65%,50%); pointer-events:none;
 }
 
-/* ── Validation ── */
 .input-error {
     outline: 2px solid var(--clr-red-border) !important;
     outline-offset: 2px;
     background: var(--clr-red-bg) !important;
 }
-.field-error {
-    display: block;
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--clr-red-solid);
-}
-/* ── Qty Pill ── */
+.field-error { display: block; margin-top: 4px; font-size: 12px; color: var(--clr-red-solid); }
+
 .qty-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.2rem 0.75rem;
-    border-radius: 20px;
-    background: hsl(30, 15%, 88%);
-    color: hsl(30, 10%, 35%);
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.2rem 0.75rem; border-radius: 20px;
+    background: hsl(30,15%,88%); color: hsl(30,10%,35%);
+    font-size: 0.82rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap;
 }

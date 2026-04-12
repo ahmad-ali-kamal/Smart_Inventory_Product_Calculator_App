@@ -65,16 +65,6 @@
     {{-- ═══════════════════════════════════════
          Products Table
     ═══════════════════════════════════════ --}}
-    <style>
-    .dash-table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid hsla(0,0%,0%,0.05);
-    }
-    .prod-img-placeholder { overflow: hidden; }
-    </style>
     <div class="table-wrapper">
 
         {{-- ✅ Header مضغوط بدون مسافة زائدة --}}
@@ -102,19 +92,20 @@
         <div class="inv-table-wrap">
             <table class="inv-table">
                 <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Expiry Info</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+    <tr>
+        <th>Product</th>
+        <th>Status</th>
+        <th>Expiry Info</th>
+        <th>Actions</th>
+    </tr>
+</thead>
                 <tbody id="dashBody">
                     @foreach($products as $product)
                     @php $hasBatches = $product->batches && count($product->batches) > 0; @endphp
 
                     {{-- ── الصف الرئيسي ── --}}
-                    <tr data-id="{{ $product->id }}" data-status="{{ $product->status }}">
+                   
+<tr data-id="{{ $product->id }}" data-status="{{ $product->status }}">
 
                         {{-- Product --}}
                         <td>
@@ -140,92 +131,107 @@
                             </div>
                         </td>
 
-                        {{-- Expiry Info + زر العين بجانبها --}}
-                        <td id="dash-expiry-{{ $product->id }}">
-                            @if($hasBatches)
-                                <div class="exp-cell">
-                                    <button class="btn-eye" data-product-id="{{ $product->id }}">
-                                        <i class="bi bi-eye" id="dash-eye-{{ $product->id }}"></i>
-                                    </button>
-                                    <span>{{ count($product->batches) }} batch{{ count($product->batches) > 1 ? 'es' : '' }}</span>
-                                </div>
-                            @elseif($product->expiry_date)
-                                <div class="exp-cell">
-                                    <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                                    <span>{{ $product->expiry_date }}</span>
-                                </div>
-                            @else
-                                <span style="color:var(--muted);">—</span>
-                            @endif
-                        </td>
-
                         {{-- Status --}}
-                        <td>
-                            @if($product->status === 'green')
-                                <span class="b-green">Safe</span>
-                            @elseif($product->status === 'yellow')
-                                <span class="b-yellow">Approaching</span>
-                            @elseif($product->status === 'red')
-                                <span class="b-red">Expired</span>
-                            @endif
-                        </td>
+<td>
+    @if($product->status === 'green')
+        <span class="b-green">Safe</span>
+    @elseif($product->status === 'yellow')
+        <span class="b-yellow">Approaching</span>
+    @elseif($product->status === 'red')
+        <span class="b-red">Expired</span>
+    @endif
+</td>
 
-                        {{-- Actions --}}
-                        <td>
-                            @if($product->status === 'yellow')
-                                @if(!$autoDiscountsOn)
-                                    <button class="btn-edit-batch btn-discount"
-                                            data-product-id="{{ $product->id }}"
-                                            data-product-name="{{ $product->name }}">
-                                        <i class="bi bi-percent"></i> Discount
-                                    </button>
-                                @else
-                                    <span class="b-yellow" style="font-size:0.7rem; min-width:0; padding:0.25rem 0.7rem;">
-                                        <i class="bi bi-check-circle-fill"></i> Auto Discount Applied
-                                    </span>
-                                @endif
-                            @endif
+{{-- Expiry Info --}}
+<td id="dash-expiry-{{ $product->id }}">
+    @if($hasBatches)
+        <div class="exp-cell">
+            <button class="btn-eye" data-product-id="{{ $product->id }}">
+                <i class="bi bi-eye" id="dash-eye-{{ $product->id }}"></i>
+            </button>
+            <span>{{ count($product->batches) }} batch</span>
+        </div>
+    @elseif($product->expiry_date)
+        <div class="exp-cell">
+            <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
+            <span>{{ $product->expiry_date }}</span>
+        </div>
+    @else
+        <span style="color:var(--muted);">—</span>
+    @endif
+</td>
 
-                            @if($product->status === 'red')
-                                <div style="display:flex; gap:0.4rem; justify-content:center;">
-                                    <button class="btn-edit-batch btn-hide" data-product-id="{{ $product->id }}">
-                                        <i class="bi bi-eye-slash"></i> Hide
-                                    </button>
-                                    <button class="btn-edit-batch btn-restock" data-product-id="{{ $product->id }}">
-                                        <i class="bi bi-arrow-repeat"></i> Restock
-                                    </button>
-                                </div>
-                            @endif
-                        </td>
-
+{{-- Actions --}}
+<td></td>
                     </tr>
 
                     {{-- ── صفوف الدفعات — نفس batch-row من Products بالضبط ── --}}
                     @if($hasBatches)
                         @foreach($product->batches as $batch)
-                        <tr class="batch-row" data-parent="{{ $product->id }}">
-                            <td>
-                                <div class="batch-indent">
-                                    <span class="batch-label-field">
-                                        <i class="bi bi-layers"></i>
-                                        {{ $batch->batch_code ?? 'Default Batch' }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="exp-cell">
-                                    <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                                    <span style="color:var(--muted);">{{ $batch->expiry_date ?? 'No Date' }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                @php $bs = $batch->status ?? $product->status; @endphp
-                                <span class="b-{{ $bs }}">
-                                    {{ $bs === 'red' ? 'Expired' : ($bs === 'yellow' ? 'Approaching' : 'Safe') }}
-                                </span>
-                            </td>
-                            <td></td>
-                        </tr>
+                       @php $bs = $batch->status ?? $product->status; @endphp
+<tr class="batch-row" 
+    data-parent="{{ $product->id }}"
+    data-batch-status="{{ $bs }}">
+
+    {{-- Product --}}
+    <td>
+        <div class="prod-cell">
+            <div class="prod-img-placeholder">
+                @if(!empty($product->image_url))
+                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
+                         style="width:100%; border-radius:4px;">
+                @else
+                    <i class="bi bi-box"></i>
+                @endif
+            </div>
+            <div>
+                <div class="prod-name">{{ $product->name }}</div>
+                <div class="prod-id" style="font-size:0.68rem; color:var(--muted);">
+                    {{ $batch->batch_code ?? 'Default Batch' }}
+                </div>
+            </div>
+        </div>
+    </td>
+{{-- Status --}}
+<td>
+    <span class="b-{{ $bs }}">
+        {{ $bs === 'red' ? 'Expired' : ($bs === 'yellow' ? 'Approaching' : 'Safe') }}
+    </span>
+</td>
+
+{{-- Expiry Info --}}
+<td>
+    <div class="exp-cell">
+        <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
+        <span style="color:var(--muted);">
+            {{ $batch->expiry_date 
+                ? \Carbon\Carbon::parse($batch->expiry_date)->format('Y-m-d') 
+                : 'No Date' }}
+        </span>
+    </div>
+</td>
+
+{{-- Actions --}}
+<td>
+    @if($bs === 'red')
+        <button class="btn-edit-batch btn-hide" data-product-id="{{ $product->id }}">
+            <i class="bi bi-eye-slash"></i> Hide
+        </button>
+    @elseif($bs === 'yellow')
+        @if(!$autoDiscountsOn)
+            <button class="btn-edit-batch btn-discount"
+                    data-product-id="{{ $product->id }}"
+                    data-product-name="{{ $product->name }}">
+                <i class="bi bi-percent"></i> Discount
+            </button>
+        @else
+            <span class="b-yellow" style="font-size:0.7rem; min-width:0; padding:0.25rem 0.7rem;">
+                <i class="bi bi-check-circle-fill"></i> Auto Discount Applied
+            </span>
+        @endif
+    @endif
+</td>
+</tr>
                         @endforeach
                     @endif
 

@@ -50,37 +50,37 @@ window.Inventory = (() => {
        6 columns: batch-code | (empty) | status | qty | date | (empty)
        مخفية من البداية دائماً
     ══════════════════════════════════════════ */
-    function _buildBatchRow(productId, b) {
-        const statusClass = b.status || 'green';
-        const statusText  = statusClass === 'red' ? 'Expired'
-                          : statusClass === 'yellow' ? 'Approaching' : 'Safe';
+    function _buildBatchRow(productId, b, category = '') {
+    const statusClass = b.status || 'green';
+    const statusText  = statusClass === 'red' ? 'Expired'
+                      : statusClass === 'yellow' ? 'Approaching' : 'Safe';
 
-        const tr = document.createElement('tr');
-        tr.className      = 'batch-row';
-        tr.dataset.parent = productId;
-        tr.style.display  = 'none';   // ← مخفية دائماً من البداية
+    const tr = document.createElement('tr');
+    tr.className      = 'batch-row';
+    tr.dataset.parent = productId;
+    tr.style.display  = 'none';
 
-        tr.innerHTML = `
-            <td>
-                <div class="batch-indent">
-                    <span class="batch-label-field">
-                        <i class="bi bi-layers"></i> ${b.batch_code || 'N/A'}
-                    </span>
-                </div>
-            </td>
-            <td></td>
-            <td><span class="badge b-${statusClass}">${statusText}</span></td>
-            <td style="color:var(--muted);">${b.qty ?? b.quantity ?? 0} units</td>
-            <td>
-                <div class="exp-cell">
-                    <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
-                    <span style="color:var(--muted);">${b.expiry ?? b.expiry_date ?? 'No Date'}</span>
-                </div>
-            </td>
-            <td></td>`;
+    tr.innerHTML = `
+        <td>
+            <div class="prod-cell">
+                <span class="batch-label-field">
+                    <i class="bi bi-layers"></i> ${b.batch_code || 'N/A'}
+                </span>
+            </div>
+        </td>
+        <td><span class="b-cat">${category}</span></td>
+        <td><span class="badge b-${statusClass}">${statusText}</span></td>
+        <td style="color:var(--muted);">${b.qty ?? b.quantity ?? 0} units</td>
+        <td>
+            <div class="exp-cell">
+                <i class="bi bi-calendar3" style="font-size:0.78rem;"></i>
+                <span style="color:var(--muted);">${b.expiry ?? b.expiry_date ?? 'No Date'}</span>
+            </div>
+        </td>
+        <td></td>`;
 
-        return tr;
-    }
+    return tr;
+}
 
     /* ══════════════════════════════════════════
        OPEN EXPIRY FORM
@@ -112,6 +112,7 @@ window.Inventory = (() => {
         const expiryCell = document.getElementById(`expiry-cell-${productId}`);
         const actionBtn  = document.getElementById(`btn-expiry-${productId}`);
         if (!row) return;
+        const category = row.querySelector('td:nth-child(2) .b-cat')?.textContent?.trim() ?? '';
 
         row.dataset.originalType = payload.type;
 
@@ -125,6 +126,16 @@ window.Inventory = (() => {
             };
             const [cls, label] = statusMap[payload.status] ?? ['b-none', 'No expiry set'];
             statusCell.innerHTML = `<span class="badge ${cls}">${label}</span>`;
+            const qtyCell = row.querySelector('td:nth-child(4)');
+if (qtyCell) {
+    const sallaQty = parseInt(row.dataset.sallaQty) || 0;
+    const newUsedQty = (payload.batches ?? [{ quantity: payload.quantity }])
+        .reduce((sum, b) => sum + (b.qty ?? b.quantity ?? 0), 0);
+    row.dataset.usedQty = newUsedQty;
+    qtyCell.innerHTML = sallaQty > 0 
+        ? `<span class="qty-pill">${newUsedQty} / ${sallaQty}</span>`
+        : `<span style="color:var(--muted)">—</span>`;
+}
         }
 
         // احذف الـ batch rows القديمة
@@ -150,11 +161,11 @@ window.Inventory = (() => {
                 </div>`;
 
             row.insertAdjacentElement('afterend', _buildBatchRow(productId, {
-                batch_code: payload.batch_code,
-                qty:        payload.quantity,
-                status:     payload.status,
-                expiry:     payload.expiry_date,
-            }));
+    batch_code: payload.batch_code,
+    qty:        payload.quantity,
+    status:     payload.status,
+    expiry:     payload.expiry_date,
+}, category));
 
         } else if (payload.type === 'batch' && payload.batches?.length) {
             const normalized = payload.batches.map(b => ({
@@ -180,7 +191,7 @@ window.Inventory = (() => {
 
             let lastRow = row;
             normalized.forEach(b => {
-                const tr = _buildBatchRow(productId, b);
+    const tr = _buildBatchRow(productId, b, category);
                 lastRow.insertAdjacentElement('afterend', tr);
                 lastRow = tr;
             });
@@ -244,10 +255,7 @@ window.Inventory = (() => {
             }
         });
 
-        const footer = document.getElementById('invFooter');
-        const empty  = document.getElementById('invEmpty');
-        if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
-        if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+        _updateFooter();
     }
 
     function toggleFilterMenu() {
@@ -268,6 +276,13 @@ window.Inventory = (() => {
         currentFilter = btn.dataset.filter;
         _applyFilter();
     }
+    function _updateFooter() {
+    const count  = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
+    const footer = document.getElementById('invFooter');
+    const empty  = document.getElementById('invEmpty');
+    if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
+    if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+}
 
     /* ══════════════════════════════════════════
        EVENT DELEGATION
@@ -292,22 +307,14 @@ window.Inventory = (() => {
             }
         });
 
-        const count  = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
-        const footer = document.getElementById('invFooter');
-        const empty  = document.getElementById('invEmpty');
-        if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
-        if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+        _updateFooter();
     }
 
     document.addEventListener('DOMContentLoaded', _initListeners);
 
     window.addEventListener('pageshow', e => {
         if (e.persisted) {
-            const count  = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
-            const footer = document.getElementById('invFooter');
-            const empty  = document.getElementById('invEmpty');
-            if (footer) footer.innerHTML = `<i class="bi bi-box-seam"></i> Showing ${count} products from your Salla store`;
-            if (empty)  empty.style.display = count === 0 ? 'block' : 'none';
+           _updateFooter();
         }
     });
 
