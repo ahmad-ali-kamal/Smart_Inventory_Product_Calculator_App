@@ -3,6 +3,12 @@ var __webpack_exports__ = {};
 /*!********************************************!*\
   !*** ./resources/js/inventory-products.js ***!
   \********************************************/
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
+function _iterableToArrayLimit(arr, i) { var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"]; if (null != _i) { var _s, _e, _x, _r, _arr = [], _n = !0, _d = !1; try { if (_x = (_i = _i.call(arr)).next, 0 === i) { if (Object(_i) !== _i) return; _n = !1; } else for (; !(_n = (_s = _x.call(_i)).done) && (_arr.push(_s.value), _arr.length !== i); _n = !0); } catch (err) { _d = !0, _e = err; } finally { try { if (!_n && null != _i["return"] && (_r = _i["return"](), Object(_r) !== _r)) return; } finally { if (_d) throw _e; } } return _arr; } }
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 /**
  * inventory-products.js
  * Products Page — Filter, Batch Toggle, Form Bridge, Toast
@@ -33,7 +39,6 @@ window.Inventory = function () {
 
   /* ══════════════════════════════════════════
      TOGGLE BATCH ROWS
-     eye icon: closed = bi-eye | open = bi-eye-slash
   ══════════════════════════════════════════ */
   function toggleBatch(productId) {
     var rows = document.querySelectorAll(".batch-row[data-parent=\"".concat(productId, "\"]"));
@@ -48,6 +53,24 @@ window.Inventory = function () {
   }
 
   /* ══════════════════════════════════════════
+     HELPER — build a single batch <tr>
+     6 columns: batch-code | (empty) | status | qty | date | (empty)
+     مخفية من البداية دائماً
+  ══════════════════════════════════════════ */
+  function _buildBatchRow(productId, b) {
+    var _ref, _b$qty, _ref2, _b$expiry;
+    var statusClass = b.status || 'green';
+    var statusText = statusClass === 'red' ? 'Expired' : statusClass === 'yellow' ? 'Approaching' : 'Safe';
+    var tr = document.createElement('tr');
+    tr.className = 'batch-row';
+    tr.dataset.parent = productId;
+    tr.style.display = 'none'; // ← مخفية دائماً من البداية
+
+    tr.innerHTML = "\n            <td>\n                <div class=\"batch-indent\">\n                    <span class=\"batch-label-field\">\n                        <i class=\"bi bi-layers\"></i> ".concat(b.batch_code || 'N/A', "\n                    </span>\n                </div>\n            </td>\n            <td></td>\n            <td><span class=\"badge b-").concat(statusClass, "\">").concat(statusText, "</span></td>\n            <td style=\"color:var(--muted);\">").concat((_ref = (_b$qty = b.qty) !== null && _b$qty !== void 0 ? _b$qty : b.quantity) !== null && _ref !== void 0 ? _ref : 0, " units</td>\n            <td>\n                <div class=\"exp-cell\">\n                    <i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i>\n                    <span style=\"color:var(--muted);\">").concat((_ref2 = (_b$expiry = b.expiry) !== null && _b$expiry !== void 0 ? _b$expiry : b.expiry_date) !== null && _ref2 !== void 0 ? _ref2 : 'No Date', "</span>\n                </div>\n            </td>\n            <td></td>");
+    return tr;
+  }
+
+  /* ══════════════════════════════════════════
      OPEN EXPIRY FORM
   ══════════════════════════════════════════ */
   function openForm(productId, productName) {
@@ -57,12 +80,15 @@ window.Inventory = function () {
     try {
       batches = JSON.parse(row.dataset.batches || '[]');
     } catch (e) {}
-    if (row.dataset.expiryType === 'single' || batches.length === 0 && row.dataset.expiry) {
-      ExpiryForm.openSingle(productId, productName, row.dataset.expiry, row.dataset.batchCode);
+    var threshold = parseInt(row.dataset.threshold) || 14;
+    if (row.dataset.originalType === 'single' || row.dataset.expiryType === 'single' || batches.length === 0 && row.dataset.expiry) {
+      var _b$expiry2, _b$batch_code;
+      var b = batches[0];
+      ExpiryForm.openSingle(productId, productName, (_b$expiry2 = b === null || b === void 0 ? void 0 : b.expiry) !== null && _b$expiry2 !== void 0 ? _b$expiry2 : row.dataset.expiry, (_b$batch_code = b === null || b === void 0 ? void 0 : b.batch_code) !== null && _b$batch_code !== void 0 ? _b$batch_code : row.dataset.batchCode, threshold);
     } else if (row.dataset.expiryType === 'batch' || batches.length > 0) {
-      ExpiryForm.openBatch(productId, productName, batches);
+      ExpiryForm.openBatch(productId, productName, batches, threshold);
     } else {
-      ExpiryForm.open(productId, productName);
+      ExpiryForm.open(productId, productName, threshold);
     }
   }
 
@@ -75,42 +101,64 @@ window.Inventory = function () {
     var expiryCell = document.getElementById("expiry-cell-".concat(productId));
     var actionBtn = document.getElementById("btn-expiry-".concat(productId));
     if (!row) return;
+    row.dataset.originalType = payload.type;
+
+    // تحديث خانة Status
+    var statusCell = row.querySelector('td:nth-child(3)');
+    if (statusCell && payload.status) {
+      var _statusMap$payload$st;
+      var statusMap = {
+        green: ['b-green', 'Safe'],
+        yellow: ['b-yellow', 'Approaching'],
+        red: ['b-red', 'Expired']
+      };
+      var _ref3 = (_statusMap$payload$st = statusMap[payload.status]) !== null && _statusMap$payload$st !== void 0 ? _statusMap$payload$st : ['b-none', 'No expiry set'],
+        _ref4 = _slicedToArray(_ref3, 2),
+        cls = _ref4[0],
+        label = _ref4[1];
+      statusCell.innerHTML = "<span class=\"badge ".concat(cls, "\">").concat(label, "</span>");
+    }
+
+    // احذف الـ batch rows القديمة
+    document.querySelectorAll(".batch-row[data-parent=\"".concat(productId, "\"]")).forEach(function (r) {
+      return r.remove();
+    });
     if (payload.type === 'single') {
-      row.dataset.expiry = payload.expiry_date;
-      row.dataset.expiryType = 'single';
-      row.dataset.batches = '[]';
-      if (payload.batch_code) row.dataset.batchCode = payload.batch_code;
-      expiryCell.innerHTML = "\n                <div class=\"exp-cell\">\n                    <i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i>\n                    <span style=\"color:var(--muted);\">".concat(payload.expiry_date, "</span>\n                </div>");
+      var singleBatch = [{
+        batch_code: payload.batch_code,
+        qty: payload.quantity,
+        status: payload.status,
+        expiry: payload.expiry_date
+      }];
+      row.dataset.batches = JSON.stringify(singleBatch);
+      row.dataset.expiryType = 'batch';
+      row.dataset.expiry = '';
+      expiryCell.innerHTML = "\n                <div class=\"exp-cell\">\n                    <button class=\"btn-eye\" data-product-id=\"".concat(productId, "\">\n                        <i class=\"bi bi-eye\" id=\"eye-").concat(productId, "\"></i>\n                    </button>\n                    <span>1 batch</span>\n                </div>");
+      row.insertAdjacentElement('afterend', _buildBatchRow(productId, {
+        batch_code: payload.batch_code,
+        qty: payload.quantity,
+        status: payload.status,
+        expiry: payload.expiry_date
+      }));
     } else if (payload.type === 'batch' && (_payload$batches = payload.batches) !== null && _payload$batches !== void 0 && _payload$batches.length) {
-      // ❗ احذف أي batch rows قديمة
-      document.querySelectorAll(".batch-row[data-parent=\"".concat(productId, "\"]")).forEach(function (r) {
-        return r.remove();
-      });
       var normalized = payload.batches.map(function (b) {
-        var _ref, _b$expiry_date, _b$batch_code;
+        var _ref5, _b$expiry_date, _b$batch_code2;
         return {
           label: b.label,
           qty: b.qty,
           status: b.status,
-          expiry: ((_ref = (_b$expiry_date = b.expiry_date) !== null && _b$expiry_date !== void 0 ? _b$expiry_date : b.expiry) !== null && _ref !== void 0 ? _ref : '').substring(0, 10),
-          batch_code: (_b$batch_code = b.batch_code) !== null && _b$batch_code !== void 0 ? _b$batch_code : null
+          expiry: ((_ref5 = (_b$expiry_date = b.expiry_date) !== null && _b$expiry_date !== void 0 ? _b$expiry_date : b.expiry) !== null && _ref5 !== void 0 ? _ref5 : '').substring(0, 10),
+          batch_code: (_b$batch_code2 = b.batch_code) !== null && _b$batch_code2 !== void 0 ? _b$batch_code2 : null
         };
       });
       row.dataset.batches = JSON.stringify(normalized);
       row.dataset.expiryType = 'batch';
       row.dataset.expiry = '';
       var count = payload.batches.length;
-      expiryCell.innerHTML = "\n                <div class=\"exp-cell\">\n                    <button class=\"btn-eye\" data-product-id=\"".concat(productId, "\">\n                        <i class=\"bi bi-eye\" id=\"eye-").concat(productId, "\"></i>\n                    </button>\n                    <span>").concat(count, " batch").concat(count > 1 ? 'es' : '', "</span>\n                </div>");
+      expiryCell.innerHTML = "\n                <div class=\"exp-cell\">\n                    <button class=\"btn-eye\" data-product-id=\"".concat(productId, "\">\n                        <i class=\"bi bi-eye\" id=\"eye-").concat(productId, "\"></i>\n                    </button>\n                    <span>").concat(count, " batch</span>\n                </div>");
       var lastRow = row;
       normalized.forEach(function (b) {
-        var tr = document.createElement('tr');
-        tr.className = 'batch-row';
-        tr.dataset.parent = productId;
-        var statusClass = b.status || 'green';
-        var statusText = statusClass === 'red' ? 'Expired' : statusClass === 'yellow' ? 'Approaching' : 'Safe';
-        tr.innerHTML = "\n        <td>\n            <div class=\"batch-indent\">\n                <span class=\"batch-label-field\">\n                    <i class=\"bi bi-layers\"></i>\n                   ".concat(b.batch_code || 'N/A', "\n                </span>\n            </div>\n        </td>\n\n        <td style=\"color:var(--muted);\">\n            ").concat(b.qty, " units\n        </td>\n\n        <td>\n            <span class=\"badge b-").concat(statusClass, "\">\n                ").concat(statusText, "\n            </span>\n        </td>\n\n        <td>\n            <div class=\"exp-cell\">\n                <i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i>\n                <span style=\"color:var(--muted);\">\n                   ").concat(b.expiry || 'No Date', "\n                </span>\n            </div>\n        </td>\n\n        <td></td>\n    ");
-
-        // 👇 هذا يخلي الصفوف تطلع تحت بعض بشكل مرتب
+        var tr = _buildBatchRow(productId, b);
         lastRow.insertAdjacentElement('afterend', tr);
         lastRow = tr;
       });
@@ -146,7 +194,7 @@ window.Inventory = function () {
   }
 
   /* ══════════════════════════════════════════
-     FILTER — DROPDOWN (الجديد)
+     FILTER — DROPDOWN
   ══════════════════════════════════════════ */
   function _applyFilter() {
     var count = 0;
@@ -154,8 +202,6 @@ window.Inventory = function () {
       var visible = currentFilter === 'all' || row.dataset.filter === currentFilter;
       row.style.display = visible ? '' : 'none';
       if (visible) count++;
-
-      // ← البحث عن product id من data-id مباشرة
       var pid = row.dataset.id;
       if (pid) {
         document.querySelectorAll(".batch-row[data-parent=\"".concat(pid, "\"]")).forEach(function (r) {
@@ -163,12 +209,7 @@ window.Inventory = function () {
             r.classList.remove('open');
             r.style.display = 'none';
           } else {
-            // جديد
-            if (r.classList.contains('open')) {
-              r.style.display = 'table-row';
-            } else {
-              r.style.removeProperty('display');
-            }
+            r.style.display = r.classList.contains('open') ? 'table-row' : 'none';
           }
         });
       }
@@ -188,20 +229,13 @@ window.Inventory = function () {
   }
   function selectFilter(btn) {
     var _document$getElementB;
-    // تحديث active state في القائمة
     document.querySelectorAll('.inv-filter-option').forEach(function (o) {
       return o.classList.remove('active');
     });
     btn.classList.add('active');
-
-    // تحديث نص الزر
     document.getElementById('filterLabel').textContent = btn.textContent.trim();
-
-    // إغلاق القائمة
     document.getElementById('filterMenu').classList.remove('open');
     (_document$getElementB = document.getElementById('filterChevron')) === null || _document$getElementB === void 0 ? void 0 : _document$getElementB.classList.remove('open');
-
-    // ← الحل: تحديث currentFilter مباشرة ثم تطبيق الفلتر
     currentFilter = btn.dataset.filter;
     _applyFilter();
   }
@@ -211,7 +245,6 @@ window.Inventory = function () {
   ══════════════════════════════════════════ */
   function _initListeners() {
     var _document$getElementB2;
-    // Expiry + batch-edit + eye buttons — single delegated listener on tbody
     (_document$getElementB2 = document.getElementById('invBody')) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.addEventListener('click', function (e) {
       var expiryBtn = e.target.closest('.btn-expiry, .btn-edit-batch');
       if (expiryBtn) {
@@ -223,8 +256,6 @@ window.Inventory = function () {
         toggleBatch(eyeBtn.dataset.productId);
       }
     });
-
-    // إغلاق القائمة عند الضغط خارجها
     document.addEventListener('click', function (e) {
       if (!e.target.closest('#filterDropdown')) {
         var _document$getElementB3, _document$getElementB4;
@@ -232,9 +263,6 @@ window.Inventory = function () {
         (_document$getElementB4 = document.getElementById('filterChevron')) === null || _document$getElementB4 === void 0 ? void 0 : _document$getElementB4.classList.remove('open');
       }
     });
-
-    // apply filter on load
-    // count on load only
     var count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
     var footer = document.getElementById('invFooter');
     var empty = document.getElementById('invEmpty');
@@ -242,8 +270,6 @@ window.Inventory = function () {
     if (empty) empty.style.display = count === 0 ? 'block' : 'none';
   }
   document.addEventListener('DOMContentLoaded', _initListeners);
-
-  // ── bfcache fix: re-apply filter state after back navigation ──
   window.addEventListener('pageshow', function (e) {
     if (e.persisted) {
       var count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
@@ -253,11 +279,8 @@ window.Inventory = function () {
       if (empty) empty.style.display = count === 0 ? 'block' : 'none';
     }
   });
-  /* ── كشف الدوال للـ window ── */
   window.toggleFilterMenu = toggleFilterMenu;
   window.selectFilter = selectFilter;
-
-  /* ── Public API ── */
   return {
     toggleBatch: toggleBatch,
     openForm: openForm,

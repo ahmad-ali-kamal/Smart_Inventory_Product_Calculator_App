@@ -9,49 +9,27 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 /**
  * inventory-discountform.js
- * Discount Modal — AI Recommended + Manual Scheduling
+ * Discount Modal — Manual only
  *
- * API Endpoints:
- *   APPLY AI     POST  /api/inventory/discount/ai      { product_id }
- *   APPLY MANUAL POST  /api/inventory/discount/manual  { product_id, percent, end_date }
+ * APPLY MANUAL  POST  /api/inventory/discount/manual
+ *               Body  { product_id, percent, end_date }
  *
  * Success callback: Inventory.onDiscountSuccess(productId, data)
- *
- * Fixes:
- *   1. close() resets state + DOM fully so re-opening always works
- *   2. pageshow listener handles bfcache restore
  */
 window.DiscountForm = function () {
-  /* ── State ── */
   var productId = null;
-  var aiPercent = 20;
   var _isOpen = false;
-
-  /* ── DOM helper ── */
   var $ = function $(id) {
     return document.getElementById(id);
   };
 
-  /* ══════════════════════════════════════════
-     OPEN
-  ══════════════════════════════════════════ */
+  /* ══════ OPEN ══════ */
   function open(pid, productName) {
-    var recommendedPercent = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 20;
     productId = pid;
-    aiPercent = recommendedPercent;
     $('dfProductName').textContent = productName;
-    $('dfAiPercent').textContent = aiPercent + '%';
-    $('dfAiBtnPercent').textContent = aiPercent + '%';
-    $('dfAiBody').innerHTML = "<strong>".concat(productName, "</strong> is likely to expire before being sold at the current rate. ") + "A <strong>".concat(aiPercent, "% discount</strong> is recommended to clear this batch.");
-
-    // reset manual panel to collapsed state
-    $('dfManualPanel').classList.remove('show');
-    $('dfManualToggleWrap').style.display = '';
     $('dfPercent').value = '';
     $('dfEndDate').value = '';
     $('dfManualBtn').disabled = true;
-
-    // clear any lingering error
     var err = $('dfErrorMsg');
     if (err) err.style.display = 'none';
     _isOpen = true;
@@ -60,20 +38,13 @@ window.DiscountForm = function () {
     document.body.style.overflow = 'hidden';
   }
 
-  /* ══════════════════════════════════════════
-     CLOSE — full reset so re-open always works
-  ══════════════════════════════════════════ */
+  /* ══════ CLOSE ══════ */
   function close() {
     _isOpen = false;
     productId = null;
-    aiPercent = 20;
     $('dfBackdrop').classList.remove('open');
     document.body.classList.remove('ef-open');
     document.body.style.overflow = '';
-
-    // reset DOM for next open
-    $('dfManualPanel').classList.remove('show');
-    $('dfManualToggleWrap').style.display = '';
     $('dfPercent').value = '';
     $('dfEndDate').value = '';
     $('dfManualBtn').disabled = true;
@@ -81,49 +52,48 @@ window.DiscountForm = function () {
     if (err) err.style.display = 'none';
   }
 
-  /* ── Show manual panel ── */
-  function _showManual() {
-    $('dfManualToggleWrap').style.display = 'none';
-    $('dfManualPanel').classList.add('show');
-  }
-
-  /* ── Validate manual fields ── */
+  /* ══════ VALIDATE ══════ */
   function _validate() {
     var p = parseInt($('dfPercent').value);
     var d = $('dfEndDate').value;
     $('dfManualBtn').disabled = !(p >= 1 && p <= 100 && d);
   }
 
-  /* ══════════════════════════════════════════
-     GENERIC POST HELPER
-  ══════════════════════════════════════════ */
-  function _post(_x, _x2, _x3, _x4) {
-    return _post2.apply(this, arguments);
+  /* ══════ POST ══════ */
+  function _applyManual() {
+    return _applyManual2.apply(this, arguments);
   }
-  function _post2() {
-    _post2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(endpoint, payload, btn, originalHtml) {
-      var res, data, _data$message;
+  /* ══════ ERROR ══════ */
+  function _applyManual2() {
+    _applyManual2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
+      var btn, originalHtml, res, data, _data$message;
       return _regeneratorRuntime().wrap(function _callee$(_context) {
         while (1) switch (_context.prev = _context.next) {
           case 0:
+            btn = $('dfManualBtn');
+            originalHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:ef-spin 0.7s linear infinite"></i> Applying...';
-            _context.prev = 2;
-            _context.next = 5;
-            return fetch(endpoint, {
+            _context.prev = 4;
+            _context.next = 7;
+            return fetch("/inventory/products/".concat(productId, "/discount"), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
               },
-              body: JSON.stringify(payload)
+              // ✅ احذف product_id من الـ body (صار في الـ URL)
+              body: JSON.stringify({
+                discount_percentage: parseInt($('dfPercent').value),
+                ends_at: $('dfEndDate').value
+              })
             });
-          case 5:
+          case 7:
             res = _context.sent;
-            _context.next = 8;
+            _context.next = 10;
             return res.json();
-          case 8:
+          case 10:
             data = _context.sent;
             if (res.ok && data.success) {
               Inventory.onDiscountSuccess(productId, data);
@@ -131,48 +101,32 @@ window.DiscountForm = function () {
             } else {
               _showError((_data$message = data.message) !== null && _data$message !== void 0 ? _data$message : 'Something went wrong. Please try again.');
             }
-            _context.next = 15;
+            _context.next = 17;
             break;
-          case 12:
-            _context.prev = 12;
-            _context.t0 = _context["catch"](2);
+          case 14:
+            _context.prev = 14;
+            _context.t0 = _context["catch"](4);
             _showError('Network error. Please check your connection and try again.');
-          case 15:
-            _context.prev = 15;
+          case 17:
+            _context.prev = 17;
             btn.disabled = false;
             btn.innerHTML = originalHtml;
-            return _context.finish(15);
-          case 19:
+            return _context.finish(17);
+          case 21:
           case "end":
             return _context.stop();
         }
-      }, _callee, null, [[2, 12, 15, 19]]);
+      }, _callee, null, [[4, 14, 17, 21]]);
     }));
-    return _post2.apply(this, arguments);
+    return _applyManual2.apply(this, arguments);
   }
-  function _applyAi() {
-    _post('/api/inventory/discount/ai', {
-      product_id: productId
-    }, $('dfAiBtn'), "<i class=\"bi bi-stars\"></i> Apply AI Recommended Discount (".concat(aiPercent, "%)"));
-  }
-  function _applyManual() {
-    _post('/api/inventory/discount/manual', {
-      product_id: productId,
-      percent: parseInt($('dfPercent').value),
-      end_date: $('dfEndDate').value
-    }, $('dfManualBtn'), '<i class="bi bi-check2-circle"></i> Apply Manual Discount');
-  }
-
-  /* ══════════════════════════════════════════
-     INLINE ERROR
-  ══════════════════════════════════════════ */
   function _showError(msg) {
     var el = $('dfErrorMsg');
     if (!el) {
       el = document.createElement('div');
       el.id = 'dfErrorMsg';
       el.className = 'ef-edit-banner show';
-      el.style.cssText = 'background:hsla(0,70%,50%,0.08);border-color:hsla(0,70%,50%,0.3);color:hsl(0,60%,35%);margin-top:0.75rem;';
+      el.style.cssText = 'background:var(--clr-red-bg);border-color:var(--clr-red-border);color:var(--clr-red-text);margin-top:0.75rem;';
       $('dfCard').appendChild(el);
     }
     el.innerHTML = "<i class=\"bi bi-exclamation-triangle-fill\"></i> ".concat(msg);
@@ -182,31 +136,23 @@ window.DiscountForm = function () {
     }, 5000);
   }
 
-  /* ══════════════════════════════════════════
-     EVENT LISTENERS
-  ══════════════════════════════════════════ */
+  /* ══════ EVENTS ══════ */
   document.addEventListener('DOMContentLoaded', function () {
-    var _$, _$2, _$3, _$4, _$5, _$6, _$7;
+    var _$, _$2, _$3, _$4, _$5;
     (_$ = $('dfBackdrop')) === null || _$ === void 0 ? void 0 : _$.addEventListener('click', function (e) {
       if (e.target === $('dfBackdrop')) close();
     });
     (_$2 = $('dfCloseBtn')) === null || _$2 === void 0 ? void 0 : _$2.addEventListener('click', close);
-    (_$3 = $('dfAiBtn')) === null || _$3 === void 0 ? void 0 : _$3.addEventListener('click', _applyAi);
-    (_$4 = $('dfManualBtn')) === null || _$4 === void 0 ? void 0 : _$4.addEventListener('click', _applyManual);
-    (_$5 = $('dfShowManualBtn')) === null || _$5 === void 0 ? void 0 : _$5.addEventListener('click', _showManual);
-    (_$6 = $('dfPercent')) === null || _$6 === void 0 ? void 0 : _$6.addEventListener('input', _validate);
-    (_$7 = $('dfEndDate')) === null || _$7 === void 0 ? void 0 : _$7.addEventListener('input', _validate);
+    (_$3 = $('dfManualBtn')) === null || _$3 === void 0 ? void 0 : _$3.addEventListener('click', _applyManual);
+    (_$4 = $('dfPercent')) === null || _$4 === void 0 ? void 0 : _$4.addEventListener('input', _validate);
+    (_$5 = $('dfEndDate')) === null || _$5 === void 0 ? void 0 : _$5.addEventListener('input', _validate);
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && _isOpen) close();
   });
-
-  // ── bfcache fix ──
   window.addEventListener('pageshow', function (e) {
     if (e.persisted && _isOpen) close();
   });
-
-  /* ── Public API ── */
   return {
     open: open,
     close: close
