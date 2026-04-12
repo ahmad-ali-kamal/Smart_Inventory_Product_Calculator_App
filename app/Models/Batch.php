@@ -9,10 +9,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Log;
 
 class Batch extends Model
 {
     use HasFactory;
+
+    /**
+     * نترك afterCommit مفعلة لضمان استقرار العمليات المرتبطة بالباتش
+     */
+    public $afterCommit = true;
 
     protected $fillable = [
         'merchant_id',
@@ -46,79 +52,30 @@ class Batch extends Model
     {
         parent::boot();
 
-        // قبل الحفظ: تحديث الحالة والأيام المتبقية
         static::saving(function ($batch) {
             $batch->calculateStatus();
         });
 
-        // بعد الحفظ: إرسال الإشعارات وتطبيق الخصم التلقائي
         static::saved(function ($batch) {
             $oldStatus = $batch->getOriginal('status');
             $newStatus = $batch->status;
-
-            if ($oldStatus === $newStatus) return;
-            if (!in_array($newStatus, ['yellow', 'red'])) return;
-
             $merchant = $batch->merchant;
+
+            Log::info("--- [Batch Hook] Notification Triggered for ID: {$batch->id} ---");
+
             if (!$merchant) return;
 
-            // 1. إرسال إشعار للنظام
-            $merchant->notify(
-                new \App\Notifications\BatchExpiryNotification($batch, $newStatus)
-            );
-
-            // 2. تطبيق الخصم التلقائي إذا تحولت الحالة إلى "صفراء"
-            if ($newStatus === 'yellow') {
-                $setting = \App\Models\BatchSetting::where('merchant_id', $merchant->id)->first();
-
-                if (!$setting || !$setting->auto_discounts) return;
-
-                foreach ($batch->items as $batchItem) {
-                    $product = $batchItem->product;
-                    if (!$product) continue;
-
-                    // تجنب خصم مكرر
-                    $alreadyDiscounted = \App\Models\ProductDiscount::where('product_id', $product->id)
-                        ->where('status', 'active')
-                        ->exists();
-
-                    if ($alreadyDiscounted) continue;
-
-                    try {
-                        $discountPercent = $setting->auto_discount_percent;
-                        $durationDays    = $setting->auto_discount_duration_days ?? 7;
-                        $discountedPrice = $product->price * (1 - ($discountPercent / 100));
-                        $endsAt          = now()->addDays($durationDays);
-
-                        // الربط مع API سلة لتعديل السعر في المتجر
-                        $sallaApi = \App\Services\SallaApiService::for($merchant);
-                        $sallaApi->applySpecialPrice(
-                            $product->salla_product_id,
-                            $discountedPrice,
-                            now()->toIso8601String(),
-                            $endsAt->toIso8601String(),
-                            $discountPercent
-                        );
-
-                        // توثيق الخصم في قاعدة البيانات
-                        \App\Models\ProductDiscount::create([
-                            'product_id'          => $product->id,
-                            'batch_id'            => $batch->id,
-                            'discount_percentage' => $discountPercent,
-                            'starts_at'           => now(),
-                            'ends_at'             => $endsAt,
-                            'status'              => 'active',
-                            'is_ai_suggested'     => false,
-                            'applied_to_salla'    => true,
-                        ]);
-
-                        \Illuminate\Support\Facades\Log::info("[AutoDiscount] تم تطبيق خصم {$discountPercent}% على: {$product->name}");
-
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error("[AutoDiscount] فشل: " . $e->getMessage());
-                    }
-                }
+            // 1. الإشعارات (هذا هو المكان الأنسب لها في الموديل)
+            if ($oldStatus !== $newStatus && in_array($newStatus, ['yellow', 'red'])) {
+                $merchant->notify(new \App\Notifications\BatchExpiryNotification($batch, $newStatus));
+                Log::info("[Batch Hook] Notification sent for merchant: {$merchant->id}");
             }
+
+            /**
+             * ملاحظة هامة: تم نقل منطق الإخفاء التلقائي والخصومات إلى الكنترولر
+             * لضمان أن جميع العناصر (Items) قد حُفظت فعلياً في قاعدة البيانات
+             * وتجنب مشاكل سباق التوقيت (Race Conditions).
+             */
         });
     }
 

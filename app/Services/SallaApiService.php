@@ -76,6 +76,14 @@ class SallaApiService
         return ['synced' => $synced, 'errors' => $errors];
     }
 
+    /**
+     * تحديث بيانات أو حالة المنتج في سلة
+     */
+    public function updateProductStatus(string $sallaProductId, array $data): ?array
+    {
+        return $this->put("/products/{$sallaProductId}", $data);
+    }
+
     private function saveProduct(array $data): Product
     {
         $product = Product::updateOrCreate(
@@ -212,6 +220,33 @@ class SallaApiService
 
         if (!$response->successful()) {
             Log::error('Salla API POST Error', [
+                'endpoint'    => $endpoint,
+                'status'      => $response->status(),
+                'body'        => $response->body(),
+                'merchant_id' => $this->merchant->id,
+            ]);
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    public function put(string $endpoint, array $data = []): ?array
+    {
+        if (!$this->sallaApp) {
+            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
+            return null;
+        }
+
+        if ($this->sallaApp->isTokenExpired()) {
+            $this->refreshToken();
+        }
+
+        $response = Http::withToken($this->sallaApp->access_token)
+            ->put($this->baseUrl . $endpoint, $data);
+
+        if (!$response->successful()) {
+            Log::error('Salla API PUT Error', [
                 'endpoint'    => $endpoint,
                 'status'      => $response->status(),
                 'body'        => $response->body(),
