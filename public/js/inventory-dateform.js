@@ -18,12 +18,15 @@ function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
  * Expiry Date Modal — Add / Edit (single date or batch-level)
  */
 window.ExpiryForm = function () {
-  /* ── State ── */
   var productId = null;
-  var mode = null; // true = single | false = batch | null = not chosen
+  var mode = null;
   var isEdit = false;
   var batchCount = 0;
-  var _isOpen = false; // track modal visibility
+  var _isOpen = false;
+  var _threshold = 14;
+  var _sallaQty = 0;
+  var _usedQty = 0;
+  var _userStarted = false; // يمنع التحذير قبل أول إدخال
 
   /* ── DOM helper ── */
   var $ = function $(id) {
@@ -37,8 +40,8 @@ window.ExpiryForm = function () {
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var days = Math.floor((new Date(dateStr) - today) / 86400000);
-    if (days < 0) return 'red';
-    if (days <= 7) return 'yellow';
+    if (days <= 0) return 'red';
+    if (days <= _threshold) return 'yellow';
     return 'green';
   }
   function _statusBadgeHtml(status, idx) {
@@ -64,16 +67,82 @@ window.ExpiryForm = function () {
     if (!dateEl || !badge) return;
     badge.outerHTML = dateEl.value ? _statusBadgeHtml(_calcStatus(dateEl.value), idx) : "<span class=\"ef-status-badge\" id=\"bStatus-".concat(idx, "\"></span>");
   }
+  function _updateSingleStatus() {
+    var dateEl = $('efSingleDate');
+    var statusEl = $('efSingleStatus');
+    if (!statusEl) return;
+    if (!(dateEl !== null && dateEl !== void 0 && dateEl.value)) {
+      statusEl.className = 'ef-status-badge';
+      statusEl.innerHTML = '';
+      return;
+    }
+    var s = _calcStatus(dateEl.value);
+    var map = {
+      green: ['ef-s-green', 'Safe'],
+      yellow: ['ef-s-yellow', 'Approaching'],
+      red: ['ef-s-red', 'Expired']
+    };
+    var _map$s = _slicedToArray(map[s], 2),
+      cls = _map$s[0],
+      label = _map$s[1];
+    statusEl.className = "ef-status-badge ".concat(cls);
+    statusEl.innerHTML = "<i class=\"bi bi-circle-fill\" style=\"font-size:0.4rem\"></i> ".concat(label);
+  }
+
+  /* ══════════════════════════════════════════
+     QTY TRACKER
+  ══════════════════════════════════════════ */
+  function _getRemainingQty() {
+    var entered = 0;
+    document.querySelectorAll('#efBatchList .ef-batch-item').forEach(function (item) {
+      var _$;
+      var id = item.id.replace('efBatch-', '');
+      entered += parseInt((_$ = $("bQty-".concat(id))) === null || _$ === void 0 ? void 0 : _$.value) || 0;
+    });
+    return _sallaQty - _usedQty - entered;
+  }
+  function _updateQtyTracker() {
+    var avail = $('efQtyAvail');
+    var warn = $('efQtyWarn');
+    var msg = $('efQtyWarnMsg');
+    if (!avail) return;
+
+    // في حالة single mode نعرض الكمية الكلية فقط
+    if (mode === true) {
+      avail.textContent = _sallaQty;
+      if (warn) warn.style.display = 'none';
+      return;
+    }
+    var remaining = _getRemainingQty();
+    avail.textContent = remaining >= 0 ? remaining : 0;
+    if (!warn || !msg) return;
+    if (remaining < 0) {
+      // تجاوز — أحمر (يظهر دائماً)
+      msg.textContent = "Exceeded by ".concat(Math.abs(remaining), " units \u2014 reduce batch quantities");
+      warn.className = 'ef-qty-warn ef-qty-over';
+      warn.style.display = 'flex';
+    } else if (remaining === 0 && _userStarted) {
+      // مكتمل — أخضر (بعد إدخال فقط)
+      msg.textContent = '✓ All units assigned — ready to save';
+      warn.className = 'ef-qty-warn ef-qty-full';
+      warn.style.display = 'flex';
+    } else if (remaining <= 3 && _userStarted) {
+      // قليل — برتقالي (بعد إدخال فقط)
+      msg.textContent = "Only ".concat(remaining, " unit").concat(remaining > 1 ? 's' : '', " left to assign");
+      warn.className = 'ef-qty-warn ef-qty-low';
+      warn.style.display = 'flex';
+    } else {
+      warn.style.display = 'none';
+    }
+  }
 
   /* ══════════════════════════════════════════
      RESET — clears DOM + state completely
   ══════════════════════════════════════════ */
   function _reset(productName) {
-    // state
     mode = null;
     batchCount = 0;
-
-    // DOM
+    _userStarted = false;
     $('efProductName').textContent = productName !== null && productName !== void 0 ? productName : '';
     $('btnYes').className = 'ef-toggle-btn';
     $('btnNo').className = 'ef-toggle-btn';
@@ -84,7 +153,11 @@ window.ExpiryForm = function () {
     $('efBatchList').innerHTML = '';
     $('efSaveBtn').disabled = true;
 
-    // clear any lingering error message
+    // تحديث عرض الكمية الكلية
+    var avail = $('efQtyAvail');
+    if (avail) avail.textContent = _sallaQty > 0 ? _sallaQty : '—';
+    var warn = $('efQtyWarn');
+    if (warn) warn.style.display = 'none';
     var err = $('efErrorMsg');
     if (err) err.style.display = 'none';
   }
@@ -93,20 +166,24 @@ window.ExpiryForm = function () {
      BATCH ITEM BUILDER
   ══════════════════════════════════════════ */
   function _buildBatchItem() {
-    var _prefill$qty, _prefill$expiry, _prefill$batch_code;
+    var _prefill$status, _prefill$qty, _prefill$expiry, _prefill$batch_code;
     var prefill = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     batchCount++;
     var idx = batchCount;
+    var status = (_prefill$status = prefill.status) !== null && _prefill$status !== void 0 ? _prefill$status : prefill.expiry ? _calcStatus(prefill.expiry) : null;
     var item = document.createElement('div');
     item.className = 'ef-batch-item';
     item.id = "efBatch-".concat(idx);
-    var status = prefill.expiry ? _calcStatus(prefill.expiry) : null;
     var badgeHtml = status ? _statusBadgeHtml(status, idx) : "<span class=\"ef-status-badge\" id=\"bStatus-".concat(idx, "\"></span>");
     item.innerHTML = "\n    <div class=\"ef-batch-head\">\n        <span class=\"ef-batch-lbl\" id=\"bLbl-".concat(idx, "\">\n            <i class=\"bi bi-layers\" style=\"font-size:0.78rem;color:var(--mauve)\"></i>\n            Batch ").concat(idx, " ").concat(badgeHtml, "\n        </span>\n        <button class=\"ef-batch-remove\" data-idx=\"").concat(idx, "\" title=\"Remove\">\n            <i class=\"bi bi-trash3\"></i>\n        </button>\n    </div>\n    <div class=\"ef-batch-grid\">\n        <div>\n            <label class=\"ef-label\">Quantity</label>\n            <input type=\"number\" class=\"ef-input\" id=\"bQty-").concat(idx, "\" min=\"1\"\n                   value=\"").concat((_prefill$qty = prefill.qty) !== null && _prefill$qty !== void 0 ? _prefill$qty : '', "\" placeholder=\"0\">\n        </div>\n        <div>\n            <label class=\"ef-label\">Expiry Date</label>\n            <input type=\"date\" class=\"ef-input\" id=\"bDate-").concat(idx, "\"\n                   value=\"").concat((_prefill$expiry = prefill.expiry) !== null && _prefill$expiry !== void 0 ? _prefill$expiry : '', "\">\n        </div>\n    </div>\n    <input type=\"hidden\" id=\"bCode-").concat(idx, "\" value=\"").concat((_prefill$batch_code = prefill.batch_code) !== null && _prefill$batch_code !== void 0 ? _prefill$batch_code : '', "\">");
     item.querySelector('.ef-batch-remove').addEventListener('click', function () {
       return removeBatch(idx);
     });
-    item.querySelector("#bQty-".concat(idx)).addEventListener('input', validate);
+    item.querySelector("#bQty-".concat(idx)).addEventListener('input', function () {
+      _userStarted = true;
+      _updateQtyTracker();
+      validate();
+    });
     item.querySelector("#bDate-".concat(idx)).addEventListener('input', function () {
       updateBadge(idx);
       validate();
@@ -128,17 +205,17 @@ window.ExpiryForm = function () {
   /* ── Collect batch payload ── */
   function _collectBatches() {
     var batches = [];
-    document.querySelectorAll('#efBatchList .ef-batch-item').forEach(function (item, i) {
-      var _$, _$2;
+    document.querySelectorAll('#efBatchList .ef-batch-item').forEach(function (item) {
+      var _$2, _$3;
       var id = item.id.replace('efBatch-', '');
-      var qty = parseInt((_$ = $("bQty-".concat(id))) === null || _$ === void 0 ? void 0 : _$.value) || 0;
-      var dt = (_$2 = $("bDate-".concat(id))) === null || _$2 === void 0 ? void 0 : _$2.value;
+      var qty = parseInt((_$2 = $("bQty-".concat(id))) === null || _$2 === void 0 ? void 0 : _$2.value) || 0;
+      var dt = (_$3 = $("bDate-".concat(id))) === null || _$3 === void 0 ? void 0 : _$3.value;
       if (qty > 0 && dt) {
-        var _$3;
+        var _$4;
         batches.push({
           qty: qty,
           expiry_date: dt,
-          batch_code: ((_$3 = $("bCode-".concat(id))) === null || _$3 === void 0 ? void 0 : _$3.value) || null,
+          batch_code: ((_$4 = $("bCode-".concat(id))) === null || _$4 === void 0 ? void 0 : _$4.value) || null,
           status: _calcStatus(dt)
         });
       }
@@ -154,20 +231,22 @@ window.ExpiryForm = function () {
     $('efBackdrop').classList.add('open');
     document.body.classList.add('ef-open');
     document.body.style.overflow = 'hidden';
+    // تحديث الـ tracker بعد الفتح مباشرة
+    _updateQtyTracker();
   }
   function close() {
     _isOpen = false;
     $('efBackdrop').classList.remove('open');
     document.body.classList.remove('ef-open');
     document.body.style.overflow = '';
-
-    // ── Full state reset so next open() starts clean ──
     productId = null;
     mode = null;
     isEdit = false;
     batchCount = 0;
-
-    // ── DOM reset ──
+    _threshold = 14;
+    _sallaQty = 0;
+    _usedQty = 0;
+    _userStarted = false;
     $('btnYes').className = 'ef-toggle-btn';
     $('btnNo').className = 'ef-toggle-btn';
     $('panelYes').classList.remove('show');
@@ -176,6 +255,10 @@ window.ExpiryForm = function () {
     $('efBatchList').innerHTML = '';
     $('efSaveBtn').disabled = true;
     $('efEditBanner').classList.remove('show');
+    var avail = $('efQtyAvail');
+    if (avail) avail.textContent = '—';
+    var warn = $('efQtyWarn');
+    if (warn) warn.style.display = 'none';
     var err = $('efErrorMsg');
     if (err) err.style.display = 'none';
   }
@@ -184,8 +267,13 @@ window.ExpiryForm = function () {
      OPEN VARIANTS
   ══════════════════════════════════════════ */
   function open(pid, productName) {
+    var threshold = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 14;
     productId = pid;
     isEdit = false;
+    _threshold = threshold;
+    var row = document.querySelector("#invBody tr[data-id=\"".concat(pid, "\"]"));
+    _sallaQty = parseInt(row === null || row === void 0 ? void 0 : row.dataset.sallaQty) || 0;
+    _usedQty = 0;
     _reset(productName);
     $('efTitle').textContent = 'Add Expiry Date';
     $('efIcon').className = 'bi bi-calendar-plus';
@@ -193,10 +281,15 @@ window.ExpiryForm = function () {
     _show();
   }
   function openSingle(pid, productName, dateValue, batchCode) {
+    var threshold = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 14;
     productId = pid;
     isEdit = true;
-    _reset(productName); // reset first, then set mode
-    mode = true; // set mode after reset so it doesn't get cleared
+    _threshold = threshold;
+    var row = document.querySelector("#invBody tr[data-id=\"".concat(pid, "\"]"));
+    _sallaQty = parseInt(row === null || row === void 0 ? void 0 : row.dataset.sallaQty) || 0;
+    _usedQty = 0;
+    _reset(productName);
+    mode = true;
     $('efTitle').textContent = 'Edit Expiry Date';
     $('efIcon').className = 'bi bi-pencil-square';
     $('efEditBanner').classList.add('show');
@@ -205,12 +298,18 @@ window.ExpiryForm = function () {
     $('efSingleDate').value = dateValue !== null && dateValue !== void 0 ? dateValue : '';
     $('efSingleBatchCode').value = batchCode !== null && batchCode !== void 0 ? batchCode : '';
     validate();
+    _updateSingleStatus();
     _show();
   }
   function openBatch(pid, productName) {
     var prefillBatches = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+    var threshold = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 14;
     productId = pid;
     isEdit = prefillBatches.length > 0;
+    _threshold = threshold;
+    var row = document.querySelector("#invBody tr[data-id=\"".concat(pid, "\"]"));
+    _sallaQty = parseInt(row === null || row === void 0 ? void 0 : row.dataset.sallaQty) || 0;
+    _usedQty = 0;
     _reset(productName);
     mode = false;
     $('efTitle').textContent = isEdit ? 'Edit Expiry Date' : 'Add Expiry Date';
@@ -238,6 +337,7 @@ window.ExpiryForm = function () {
     if (!isSingle && $('efBatchList').children.length === 0) {
       $('efBatchList').appendChild(_buildBatchItem());
     }
+    _updateQtyTracker();
     validate();
   }
 
@@ -247,12 +347,14 @@ window.ExpiryForm = function () {
   function addBatch() {
     $('efBatchList').appendChild(_buildBatchItem());
     _reNumber();
+    _updateQtyTracker();
     validate();
   }
   function removeBatch(idx) {
-    var _$4;
-    (_$4 = $("efBatch-".concat(idx))) === null || _$4 === void 0 ? void 0 : _$4.remove();
+    var _$5;
+    (_$5 = $("efBatch-".concat(idx))) === null || _$5 === void 0 ? void 0 : _$5.remove();
     _reNumber();
+    _updateQtyTracker();
     validate();
   }
 
@@ -261,6 +363,7 @@ window.ExpiryForm = function () {
   ══════════════════════════════════════════ */
   function validate() {
     var btn = $('efSaveBtn');
+    _updateQtyTracker();
     if (mode === null && !isEdit) {
       btn.disabled = true;
       return;
@@ -269,7 +372,21 @@ window.ExpiryForm = function () {
       btn.disabled = !$('efSingleDate').value;
       return;
     }
-    btn.disabled = !_collectBatches().length;
+    var batches = _collectBatches();
+    var remaining = _getRemainingQty();
+    if (!batches.length) {
+      btn.disabled = true;
+      return;
+    }
+    if (remaining < 0) {
+      btn.disabled = true;
+      return;
+    }
+    if (remaining > 0) {
+      btn.disabled = true;
+      return;
+    }
+    btn.disabled = false;
   }
 
   /* ══════════════════════════════════════════
@@ -283,7 +400,7 @@ window.ExpiryForm = function () {
   ══════════════════════════════════════════ */
   function _save() {
     _save = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-      var btn, collectedBatches, endpoint, method, payload, _$12, date, res, data, successPayload, _data$message;
+      var btn, collectedBatches, endpoint, payload, _$13, date, res, data, successPayload, _data$message;
       return _regeneratorRuntime().wrap(function _callee$(_context) {
         while (1) switch (_context.prev = _context.next) {
           case 0:
@@ -299,7 +416,7 @@ window.ExpiryForm = function () {
                 same_expiry: true,
                 single_batch: {
                   expiry_date: date,
-                  batch_code: ((_$12 = $('efSingleBatchCode')) === null || _$12 === void 0 ? void 0 : _$12.value) || null
+                  batch_code: ((_$13 = $('efSingleBatchCode')) === null || _$13 === void 0 ? void 0 : _$13.value) || null
                 }
               };
             } else {
@@ -337,10 +454,13 @@ window.ExpiryForm = function () {
               successPayload = mode === true ? {
                 type: 'single',
                 expiry_date: payload.single_batch.expiry_date,
-                batch_code: payload.single_batch.batch_code
+                batch_code: data.batch_code,
+                status: data.status,
+                quantity: data.quantity
               } : {
                 type: 'batch',
-                batches: data.batches
+                batches: data.batches,
+                status: data.status
               };
               Inventory.onSaveSuccess(productId, successPayload, isEdit);
               close();
@@ -384,39 +504,33 @@ window.ExpiryForm = function () {
   }
 
   /* ══════════════════════════════════════════
-     EVENT LISTENERS SETUP
-     — extracted to a named function so it can
-       be called again after bfcache restore
+     EVENT LISTENERS
   ══════════════════════════════════════════ */
   function _initListeners() {
-    var _$5, _$6, _$7, _$8, _$9, _$10, _$11;
-    (_$5 = $('efBackdrop')) === null || _$5 === void 0 ? void 0 : _$5.addEventListener('click', function (e) {
+    var _$6, _$7, _$8, _$9, _$10, _$11, _$12;
+    (_$6 = $('efBackdrop')) === null || _$6 === void 0 ? void 0 : _$6.addEventListener('click', function (e) {
       if (e.target === $('efBackdrop')) close();
     });
-    (_$6 = $('efCloseBtn')) === null || _$6 === void 0 ? void 0 : _$6.addEventListener('click', close);
-    (_$7 = $('btnYes')) === null || _$7 === void 0 ? void 0 : _$7.addEventListener('click', function () {
+    (_$7 = $('efCloseBtn')) === null || _$7 === void 0 ? void 0 : _$7.addEventListener('click', close);
+    (_$8 = $('btnYes')) === null || _$8 === void 0 ? void 0 : _$8.addEventListener('click', function () {
       return selectMode(true);
     });
-    (_$8 = $('btnNo')) === null || _$8 === void 0 ? void 0 : _$8.addEventListener('click', function () {
+    (_$9 = $('btnNo')) === null || _$9 === void 0 ? void 0 : _$9.addEventListener('click', function () {
       return selectMode(false);
     });
-    (_$9 = $('efSingleDate')) === null || _$9 === void 0 ? void 0 : _$9.addEventListener('input', validate);
-    (_$10 = $('efAddBatchBtn')) === null || _$10 === void 0 ? void 0 : _$10.addEventListener('click', addBatch);
-    (_$11 = $('efSaveBtn')) === null || _$11 === void 0 ? void 0 : _$11.addEventListener('click', save);
+    (_$10 = $('efSingleDate')) === null || _$10 === void 0 ? void 0 : _$10.addEventListener('input', function () {
+      _updateSingleStatus();
+      validate();
+    });
+    (_$11 = $('efAddBatchBtn')) === null || _$11 === void 0 ? void 0 : _$11.addEventListener('click', addBatch);
+    (_$12 = $('efSaveBtn')) === null || _$12 === void 0 ? void 0 : _$12.addEventListener('click', save);
   }
   document.addEventListener('DOMContentLoaded', _initListeners);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && _isOpen) close();
   });
-
-  // ── bfcache fix: إذا رجع المستخدم بزر الرجوع في المتصفح ──
-  // المتصفح يستعيد الصفحة من الـ cache بدون إعادة تشغيل JS
-  // pageshow يُطلق في هذه الحالة مع persisted = true
   window.addEventListener('pageshow', function (e) {
-    if (e.persisted) {
-      // أغلق الـ modal لو كان مفتوحاً وقت المغادرة
-      if (_isOpen) close();
-    }
+    if (e.persisted && _isOpen) close();
   });
 
   /* ── Public API ── */

@@ -87,10 +87,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = document.getElementById('toggle-' + id);
     if (!btn) return;
     var willBeOn = !btn.classList.contains('on');
-    if (willBeOn) {
-      if (id === 'autodiscounts') _turnOff('aidiscounts');
-      if (id === 'aidiscounts') _turnOff('autodiscounts');
-    }
     btn.classList.toggle('on', willBeOn);
     document.getElementById('val-' + id).value = willBeOn ? 1 : 0;
     if (id === 'autodiscounts') _toggleDiscountPanel(willBeOn);
