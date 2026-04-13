@@ -58,32 +58,28 @@ class SallaWebhookController extends Controller
      */
     private function upsertProduct(Merchant $merchant, array $p)
     {
-        // استخراج التصنيف الرئيسي
-        $categoryName = 'General';
+        // البحث عن المنتج أولاً
+        $product = Product::firstOrNew(['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']]);
+
+        // تحديث البيانات "فقط" إذا كانت موجودة في الـ Payload
+        if (isset($p['name'])) $product->name = $p['name'];
+        if (isset($p['price']['amount'])) $product->price = $p['price']['amount'];
+        if (isset($p['sku'])) $product->sku = $p['sku'];
+        if (isset($p['status'])) $product->status = $p['status'];
+        if (isset($p['quantity'])) $product->quantity = $p['quantity'];
+
+        // استخراج التصنيف
         if (!empty($p['categories'])) {
             $mainCat = collect($p['categories'])->firstWhere('main', true) ?? $p['categories'][0];
-            $categoryName = $mainCat['name'] ?? 'General';
+            $product->category = $mainCat['name'] ?? 'General';
         }
 
-        // تحديث المنتج
-        $product = Product::updateOrCreate(
-            ['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']],
-            [
-                'name'      => $p['name'],
-                'price'     => $p['price']['amount'] ?? 0,
-                'sku'       => $p['sku'] ?? null,
-                'category'  => $categoryName,
-                'status'    => $p['status'] ?? 'active',
-                'quantity'  => $p['quantity'] ?? 0,
-                'synced_at' => now(),
-            ]
-        );
+        $product->synced_at = now();
+        $product->save(); // حفظ التعديلات الجراحية
 
-        // تحديث الصور
+        // تحديث الصور (فقط إذا أرسلت سلة صور جديدة)
         if (!empty($p['images'])) {
-            // نمسح الصور القديمة للمنتج لنضيف الجديدة (لتجنب التكرار)
             $product->images()->delete(); 
-            
             foreach ($p['images'] as $index => $imgData) {
                 ProductImage::create([
                     'product_id' => $product->id,

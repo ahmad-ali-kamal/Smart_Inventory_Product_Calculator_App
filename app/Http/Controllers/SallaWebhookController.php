@@ -9,43 +9,41 @@ use Illuminate\Support\Facades\Log;
 
 class SallaWebhookController extends Controller
 {
+    /**
+     * استقبال ومعالجة تنبيهات سلة
+     */
     public function handle(Request $request)
     {
-        // 1. قراءة البيانات (الحدث، التوكن، معرف التاجر، والبيانات)
-        $event = $request->header('x-salla-event') ?? $request->json('event');
+        $event = $request->header('x-salla-event') ?? $request->header('Salla-Event') ?? $request->json('event');
         $token = $request->header('Authorization'); 
         $merchantId = $request->json('merchant');
         $payload = $request->json('data');
 
-        Log::info("--- Quantix Webhook Received ---");
-        Log::info("Event: " . ($event ?? 'NOT_FOUND'));
-        Log::info("Merchant ID: " . ($merchantId ?? 'NULL'));
+        Log::info("--- Quantix Webhook Received --- Event: {$event}");
 
-        // 2. البحث عن التاجر في قاعدة بياناتنا
+        // البحث عن التاجر
         $merchant = Merchant::where('salla_merchant_id', $merchantId)->first();
         if (!$merchant) {
             Log::error("Merchant {$merchantId} not found in Quantix.");
             return response()->json(['message' => 'Merchant not found'], 404);
         }
 
-        // 3. التحقق من التوكن السري (الأمان)
+        // التحقق من التوكن
         if (!$this->isTokenValid($token)) {
             Log::error("Invalid Webhook Token for Merchant {$merchantId}");
             return response()->json(['message' => 'Unauthorized Token'], 401);
         }
 
-        // 4. توجيه الحدث للمعالجة الصحيحة
+        // توجيه الأحداث
         switch ($event) {
             case 'product.created':
             case 'product.updated':
-            case 'product.status.updated': // تم الإضافة بناءً على اللوق
-            case 'product.available':      // تم الإضافة بناءً على اللوق
-                // تحديث بيانات المنتج والكمية عند أي تعديل في سلة
+            case 'product.status.updated': 
+            case 'product.available':      
                 $this->syncWebhookProduct($merchant, $payload);
                 break;
 
             case 'order.created':
-                // خصم الكمية وتحدثها فور حدوث عملية بيع
                 $this->handleOrderCreated($merchant, $payload);
                 break;
                 
@@ -58,43 +56,64 @@ class SallaWebhookController extends Controller
     }
 
     /**
-     * التحقق من التوكن السري بناءً على الإعدادات في الـ .env
+     * التحقق من التوكن بناءً على الإعدادات
      */
     private function isTokenValid($token)
     {
-        $managementSecret = env('SALLA_MANAGEMENT_WEBHOOK_SECRET');
-        $calculatorSecret = env('SALLA_CALCULATOR_WEBHOOK_SECRET');
-
         $cleanToken = str_replace('Bearer ', '', $token);
-
-        return ($cleanToken === $managementSecret || $cleanToken === $calculatorSecret);
+        return ($cleanToken === env('SALLA_MANAGEMENT_WEBHOOK_SECRET') || $cleanToken === env('SALLA_CALCULATOR_WEBHOOK_SECRET'));
     }
 
     /**
-     * تحديث أو إنشاء منتج بناءً على بيانات سلة
+     * المزامنة الجراحية للمنتج (تمنع "بدون اسم" وتحمي حالة sale)
      */
     private function syncWebhookProduct($merchant, $p)
     {
-        // إضافة لوق للتأكد من القيمة القادمة من سلة فعلياً
-        $incomingQty = $p['quantity'] ?? 0;
-        Log::info("Syncing Product: {$p['id']} | Incoming Qty from Salla: {$incomingQty}");
+        $product = Product::firstOrNew(['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']]);
 
-        Product::updateOrCreate(
-            ['merchant_id' => $merchant->id, 'salla_product_id' => $p['id']],
-            [
-                'name'      => $p['name'] ?? 'بدون اسم',
-                'price'     => $p['price']['amount'] ?? 0,
-                'quantity'  => $incomingQty, // تحديث العدد هنا
-                'status'    => $p['status'] ?? 'active',
-                'synced_at' => now(),
-            ]
-        );
+        // 1. تحديث جراحي للبيانات الأساسية فقط إذا كانت موجودة
+        if (isset($p['name']) && !empty($p['name'])) {
+            $product->name = $p['name'];
+        }
+
+        if (isset($p['price']['amount'])) {
+            $product->price = $p['price']['amount'];
+        }
+
+        if (isset($p['quantity'])) {
+            $product->quantity = $p['quantity'];
+        }
+
+        // 2. --- [ درع الحماية ضد حلقة الإخفاء ] ---
+        if (isset($p['status'])) {
+            // فحص الدفعات بناءً على التاريخ
+            $hasValidBatches = $product->batchItems()->whereHas('batch', function ($query) {
+                $query->where('expiry_date', '>=', now()->format('Y-m-d'));
+            })->exists();
+
+            // إذا سلة حاولت تخفيه (hidden) وعندنا دفعات صالحة -> نجبرها ترجع sale
+            if ($hasValidBatches && $p['status'] === 'hidden') {
+                Log::info("Shield Active: Ignoring 'hidden' for product {$p['id']} due to valid local batches.");
+                $product->status = 'sale'; 
+            } else {
+                $product->status = $p['status'];
+            }
+        }
+
+        // تحديث التصنيف
+        if (!empty($p['categories'])) {
+            $mainCat = collect($p['categories'])->firstWhere('main', true) ?? $p['categories'][0];
+            $product->category = $mainCat['name'] ?? 'General';
+        }
+
+        $product->synced_at = now();
+        $product->save();
         
-        Log::info("Product {$p['id']} quantity/data updated in DB via Webhook.");
+        Log::info("Product {$p['id']} update finished. Status: {$product->status}");
     }
 
     /**
-     * معالجة الطلب الجديد وخصم الكميات المباعة
+     * خصم الكمية عند الطلب
      */
     private function handleOrderCreated($merchant, $order)
     {
@@ -107,14 +126,9 @@ class SallaWebhookController extends Controller
 
             if ($product) {
                 $soldQty = $item['quantity'] ?? 0;
-                $newQuantity = max(0, $product->quantity - $soldQty);
-                
-                $product->update([
-                    'quantity' => $newQuantity,
-                    'synced_at' => now()
-                ]);
-
-                Log::info("Order Sale: Product {$product->id} quantity reduced by {$soldQty}. New total: {$newQuantity}");
+                $product->quantity = max(0, $product->quantity - $soldQty);
+                $product->save();
+                Log::info("Order Sale: Product {$product->id} quantity reduced by {$soldQty}.");
             }
         }
     }

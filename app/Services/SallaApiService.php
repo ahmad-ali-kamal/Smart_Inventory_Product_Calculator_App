@@ -78,19 +78,25 @@ class SallaApiService
 
     /**
      * تحديث بيانات أو حالة المنتج في سلة
+     * تم إضافة Log هنا لتصوير البيانات قبل إرسالها لسلة
      */
     public function updateProductStatus(string $sallaProductId, array $data): ?array
     {
+        Log::info("إرسال تحديث حالة لمنتج سلة: {$sallaProductId}", ['payload' => $data]);
         return $this->put("/products/{$sallaProductId}", $data);
     }
 
+    /**
+     * حفظ المنتج مع حماية الاسم من الضياع أثناء المزامنة
+     */
     private function saveProduct(array $data): Product
     {
+        // نستخدم updateOrCreate ولكن نتأكد أن الاسم لا يتم تصفيره
         $product = Product::updateOrCreate(
             ['salla_product_id' => (string) $data['id']],
             [
                 'merchant_id' => $this->merchant->id,
-                'name'        => $data['name'],
+                'name'        => $data['name'] ?? 'بدون اسم', // حماية للاسم
                 'sku'         => $data['sku'] ?? null,
                 'price'       => $data['price']['amount'] ?? 0,
                 'quantity'    => $data['quantity'] ?? 0,
