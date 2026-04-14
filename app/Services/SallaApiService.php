@@ -132,39 +132,85 @@ class SallaApiService
     // ====================================================================
 
     public function applySpecialPrice(
-        string $sallaProductId,
-        float $discountedPrice,
-        string $startsAt,
-        string $endsAt,
-        int $discountPercent = 20
-    ): void {
-        $result = $this->post('/specialoffers', [
-            'name'            => 'Expiry Discount ' . $sallaProductId . ' ' . now()->timestamp,
-            'offer_type'      => 'percentage',
-            'applied_to'      => 'product',
-            'applied_channel' => 'browser_and_application',
-            'start_date'      => Carbon::parse($startsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
-            'expiry_date'     => Carbon::parse($endsAt)->timezone('Asia/Riyadh')->format('Y-m-d H:i:s'),
-            'buy' => [
-                'type'     => 'product',
-                'products' => [(int) $sallaProductId],
-                'quantity' => 1,
-            ],
-            'get' => [
-                'type'            => 'product',
-                'discount_type'   => 'percentage',
-                'discount_amount' => $discountPercent,
-                'quantity'        => 1,
-                'products'        => [(int) $sallaProductId],
-            ],
-        ]);
-
-        if (!$result || !($result['success'] ?? false)) {
-            Log::error('Salla specialoffers response', ['result' => $result]);
-            throw new \Exception("فشل تطبيق العرض الخاص: {$sallaProductId}");
-        }
+    string $sallaProductId,
+    string $startsAt,
+    string $endsAt,
+    int $discountPercent
+): array {
+    if ($this->sallaApp->isTokenExpired()) {
+        $this->refreshToken();
     }
 
+    $payload = [
+        'name'            => 'خصم - ' . $sallaProductId,
+        'offer_type'      => 'percentage',
+        'applied_to'      => 'product',
+        'applied_channel' => 'browser_and_application',
+        'start_date'      => Carbon::parse($startsAt)->format('Y-m-d H:i:s'),
+        'expiry_date'     => Carbon::parse($endsAt)->format('Y-m-d H:i:s'),
+        'is_active'       => true,
+        'buy' => [
+            'type'     => 'product',
+            'products' => [(int) $sallaProductId],
+            'quantity' => 1,
+        ],
+        'get' => [
+            'type'            => 'product',
+            'products'        => [(int) $sallaProductId],
+            'quantity'        => 1,
+            'discount_type'   => 'percentage',
+            'discount_amount' => $discountPercent,
+        ],
+    ];
+
+    // ← استخدم HTTP مباشرة بدل post() عشان نقرأ الـ body حتى لو 404
+    $response = Http::withToken($this->sallaApp->access_token)
+        ->post($this->baseUrl . '/specialoffers', $payload);
+
+    $body = $response->json();
+
+    Log::info('Salla specialoffers raw response', [
+        'status' => $response->status(),
+        'body'   => $body,
+    ]);
+
+    // سلة تنشئ العرض حتى لو رجعت 404، نتحقق من البيانات
+    if (!empty($body['data']['id'])) {
+        return $body['data'];
+    }
+
+    // إذا نجح بـ 2xx
+    if ($response->successful() && ($body['success'] ?? false)) {
+        return $body['data'];
+    }
+
+    throw new \Exception("فشل إنشاء العرض: " . json_encode($body));
+}
+public function removeSpecialPrice(string $offerId): void
+{
+    $this->delete('/specialoffers/' . $offerId);
+}
+
+public function delete(string $endpoint): ?array
+{
+    if (!$this->sallaApp || $this->sallaApp->isTokenExpired()) {
+        $this->refreshToken();
+    }
+
+    $response = Http::withToken($this->sallaApp->access_token)
+        ->delete($this->baseUrl . $endpoint);
+
+    return $response->successful() ? $response->json() : null;
+}
+
+public function hideProduct(string $sallaProductId): void
+{
+    $result = $this->post('/products/' . $sallaProductId, ['status' => 'hidden']);
+
+    if (!$result) {
+        throw new \Exception("فشل إخفاء المنتج: {$sallaProductId}");
+    }
+}
     // ====================================================================
     // Helper Methods
     // ====================================================================

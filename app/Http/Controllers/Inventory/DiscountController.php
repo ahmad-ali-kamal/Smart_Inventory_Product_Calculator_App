@@ -106,51 +106,48 @@ class DiscountController extends Controller
         }
 
         try {
-            // حساب السعر بعد الخصم
-            $discountedPrice = $product->price * (1 - ($validated['discount_percentage'] / 100));
+    // 1. استدعاء خدمة سلة (تمرير المعاملات الصحيحة فقط)
+    $sallaApi = SallaApiService::for($product->merchant);
+    
+    $sallaOffer = $sallaApi->applySpecialPrice(
+        $product->salla_product_id,
+        now()->toIso8601String(), // تاريخ البدء
+        $validated['ends_at'] ?? now()->addMonth()->toIso8601String(), // تاريخ الانتهاء
+        (int) $validated['discount_percentage'] // النسبة المئوية
+    );
 
-            // تطبيق الخصم في سلة
-            $sallaApi = SallaApiService::for($product->merchant);
-$sallaApi->applySpecialPrice(
-    $product->salla_product_id,
-    $discountedPrice,
-    now()->toIso8601String(),
-    $validated['ends_at'] ?? now()->addMonth()->toIso8601String(),
-    (int) $validated['discount_percentage']
+    // 2. حفظ الخصم في قاعدة بياناتك مع الـ ID العائد من سلة
+    $discount = ProductDiscount::create([
+        'product_id'             => $product->id,
+        'batch_id'               => $batch->id,
+        'discount_percentage'    => $validated['discount_percentage'],
+        'starts_at'              => now(),
+        'ends_at'                => $validated['ends_at'] ?? now()->addMonth(),
+        'status'                 => 'active',
+        'is_ai_suggested'        => $validated['is_ai_suggested'] ?? false,
+        'applied_to_salla'       => true,
+        'salla_special_price_id' => $sallaOffer['id'], // حفظ الـ ID للإلغاء لاحقاً
+    ]);
+    // بعد ProductDiscount::create أضف هذا
+ActivityLog::log(
+    $request->user()->id,
+    'discount_applied',
+    "تم تطبيق خصم {$validated['discount_percentage']}% على المنتج: {$product->name} (الدفعة: {$batch->batch_code})",
+    $product,
+    [
+        'discount_id' => $discount->id,
+        'batch_id'    => $batch->id,
+        'batch_code'  => $batch->batch_code,
+    ]
 );
 
-            // حفظ الخصم في قاعدة البيانات
-            $discount = ProductDiscount::create([
-                'product_id' => $product->id,
-                'batch_id' => $batch->id,
-                'discount_percentage' => $validated['discount_percentage'],
-                'starts_at' => now(),
-                'ends_at' => $validated['ends_at'] ?? now()->addMonth(),
-                'status' => 'active',
-                'is_ai_suggested' => $validated['is_ai_suggested'] ?? false,
-                'applied_to_salla' => true,
-            ]);
+    // مسح الكاش وتسجيل النشاط...
+    \Cache::forget("inventory_dashboard_{$request->user()->id}");
+    
+    return response()->json(['success' => true, 'message' => 'تم تطبيق الخصم بنجاح']);
 
-            // مسح الكاش
-            \Cache::forget("inventory_dashboard_{$request->user()->id}");
-
-            // تسجيل النشاط
-            ActivityLog::log(
-                $request->user()->id,
-                'discount_applied',
-                "تم تطبيق خصم {$validated['discount_percentage']}% على المنتج: {$product->name} (الدفعة: {$batch->batch_code})",
-                $product,
-                [
-                    'discount_id' => $discount->id,
-                    'batch_id' => $batch->id,
-                    'batch_code' => $batch->batch_code,
-                ]
-            );
-
-            return response()->json(['success' => true, 'message' => 'تم تطبيق الخصم بنجاح']);
-
-
-        } catch (\Exception $e) {
+    // ... handling error
+} catch (\Exception $e) {
             \Log::error('Failed to apply discount', [
                 'product_id' => $product->id,
                 'batch_id' => $batch->id,
@@ -165,15 +162,16 @@ $sallaApi->applySpecialPrice(
      * إلغاء الخصم
      */
     public function cancel(ProductDiscount $discount)
-    {
-        $this->authorize('update', $discount->product);
+{
+    $this->authorize('update', $discount->product);
 
-        try {
-            // إزالة الخصم من سلة
-            if ($discount->applied_to_salla) {
-                $sallaApi = SallaApiService::for(auth()->user());
-                $sallaApi->removeSpecialPrice($discount->product->salla_product_id);
-            }
+    try {
+        if ($discount->applied_to_salla && $discount->salla_special_price_id) {
+            $sallaApi = SallaApiService::for($discount->product->merchant);
+            
+            // نمرر ID العرض وليس ID المنتج
+            $sallaApi->removeSpecialPrice($discount->salla_special_price_id);
+        }
 
             $discount->cancel();
 
