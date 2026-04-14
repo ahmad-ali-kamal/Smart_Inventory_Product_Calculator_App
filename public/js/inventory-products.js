@@ -59,14 +59,14 @@ window.Inventory = function () {
   ══════════════════════════════════════════ */
   function _buildBatchRow(productId, b) {
     var _ref, _b$qty, _ref2, _b$expiry;
+    var category = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
     var statusClass = b.status || 'green';
     var statusText = statusClass === 'red' ? 'Expired' : statusClass === 'yellow' ? 'Approaching' : 'Safe';
     var tr = document.createElement('tr');
     tr.className = 'batch-row';
     tr.dataset.parent = productId;
-    tr.style.display = 'none'; // ← مخفية دائماً من البداية
-
-    tr.innerHTML = "\n            <td>\n                <div class=\"batch-indent\">\n                    <span class=\"batch-label-field\">\n                        <i class=\"bi bi-layers\"></i> ".concat(b.batch_code || 'N/A', "\n                    </span>\n                </div>\n            </td>\n            <td></td>\n            <td><span class=\"badge b-").concat(statusClass, "\">").concat(statusText, "</span></td>\n            <td style=\"color:var(--muted);\">").concat((_ref = (_b$qty = b.qty) !== null && _b$qty !== void 0 ? _b$qty : b.quantity) !== null && _ref !== void 0 ? _ref : 0, " units</td>\n            <td>\n                <div class=\"exp-cell\">\n                    <i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i>\n                    <span style=\"color:var(--muted);\">").concat((_ref2 = (_b$expiry = b.expiry) !== null && _b$expiry !== void 0 ? _b$expiry : b.expiry_date) !== null && _ref2 !== void 0 ? _ref2 : 'No Date', "</span>\n                </div>\n            </td>\n            <td></td>");
+    tr.style.display = 'none';
+    tr.innerHTML = "\n        <td>\n            <div class=\"prod-cell\">\n                <span class=\"batch-label-field\">\n                    <i class=\"bi bi-layers\"></i> ".concat(b.batch_code || 'N/A', "\n                </span>\n            </div>\n        </td>\n        <td><span class=\"b-cat\">").concat(category, "</span></td>\n        <td><span class=\"badge b-").concat(statusClass, "\">").concat(statusText, "</span></td>\n        <td style=\"color:var(--muted);\">").concat((_ref = (_b$qty = b.qty) !== null && _b$qty !== void 0 ? _b$qty : b.quantity) !== null && _ref !== void 0 ? _ref : 0, " units</td>\n        <td>\n            <div class=\"exp-cell\">\n                <i class=\"bi bi-calendar3\" style=\"font-size:0.78rem;\"></i>\n                <span style=\"color:var(--muted);\">").concat((_ref2 = (_b$expiry = b.expiry) !== null && _b$expiry !== void 0 ? _b$expiry : b.expiry_date) !== null && _ref2 !== void 0 ? _ref2 : 'No Date', "</span>\n            </div>\n        </td>\n        <td></td>");
     return tr;
   }
 
@@ -96,11 +96,12 @@ window.Inventory = function () {
      CALLED BY ExpiryForm AFTER SUCCESSFUL SAVE
   ══════════════════════════════════════════ */
   function onSaveSuccess(productId, payload, wasEdit) {
-    var _payload$batches;
+    var _row$querySelector$te, _row$querySelector, _payload$batches2;
     var row = document.querySelector("#invBody tr[data-id=\"".concat(productId, "\"]"));
     var expiryCell = document.getElementById("expiry-cell-".concat(productId));
     var actionBtn = document.getElementById("btn-expiry-".concat(productId));
     if (!row) return;
+    var category = (_row$querySelector$te = (_row$querySelector = row.querySelector('td:nth-child(2) .b-cat')) === null || _row$querySelector === void 0 || (_row$querySelector = _row$querySelector.textContent) === null || _row$querySelector === void 0 ? void 0 : _row$querySelector.trim()) !== null && _row$querySelector$te !== void 0 ? _row$querySelector$te : '';
     row.dataset.originalType = payload.type;
 
     // تحديث خانة Status
@@ -117,6 +118,19 @@ window.Inventory = function () {
         cls = _ref4[0],
         label = _ref4[1];
       statusCell.innerHTML = "<span class=\"badge ".concat(cls, "\">").concat(label, "</span>");
+      var qtyCell = row.querySelector('td:nth-child(4)');
+      if (qtyCell) {
+        var _payload$batches;
+        var sallaQty = parseInt(row.dataset.sallaQty) || 0;
+        var newUsedQty = ((_payload$batches = payload.batches) !== null && _payload$batches !== void 0 ? _payload$batches : [{
+          quantity: payload.quantity
+        }]).reduce(function (sum, b) {
+          var _ref5, _b$qty2;
+          return sum + ((_ref5 = (_b$qty2 = b.qty) !== null && _b$qty2 !== void 0 ? _b$qty2 : b.quantity) !== null && _ref5 !== void 0 ? _ref5 : 0);
+        }, 0);
+        row.dataset.usedQty = newUsedQty;
+        qtyCell.innerHTML = sallaQty > 0 ? "<span class=\"qty-pill\">".concat(newUsedQty, " / ").concat(sallaQty, "</span>") : "<span style=\"color:var(--muted)\">\u2014</span>";
+      }
     }
 
     // احذف الـ batch rows القديمة
@@ -139,15 +153,15 @@ window.Inventory = function () {
         qty: payload.quantity,
         status: payload.status,
         expiry: payload.expiry_date
-      }));
-    } else if (payload.type === 'batch' && (_payload$batches = payload.batches) !== null && _payload$batches !== void 0 && _payload$batches.length) {
+      }, category));
+    } else if (payload.type === 'batch' && (_payload$batches2 = payload.batches) !== null && _payload$batches2 !== void 0 && _payload$batches2.length) {
       var normalized = payload.batches.map(function (b) {
-        var _ref5, _b$expiry_date, _b$batch_code2;
+        var _ref6, _b$expiry_date, _b$batch_code2;
         return {
           label: b.label,
           qty: b.qty,
           status: b.status,
-          expiry: ((_ref5 = (_b$expiry_date = b.expiry_date) !== null && _b$expiry_date !== void 0 ? _b$expiry_date : b.expiry) !== null && _ref5 !== void 0 ? _ref5 : '').substring(0, 10),
+          expiry: ((_ref6 = (_b$expiry_date = b.expiry_date) !== null && _b$expiry_date !== void 0 ? _b$expiry_date : b.expiry) !== null && _ref6 !== void 0 ? _ref6 : '').substring(0, 10),
           batch_code: (_b$batch_code2 = b.batch_code) !== null && _b$batch_code2 !== void 0 ? _b$batch_code2 : null
         };
       });
@@ -158,7 +172,7 @@ window.Inventory = function () {
       expiryCell.innerHTML = "\n                <div class=\"exp-cell\">\n                    <button class=\"btn-eye\" data-product-id=\"".concat(productId, "\">\n                        <i class=\"bi bi-eye\" id=\"eye-").concat(productId, "\"></i>\n                    </button>\n                    <span>").concat(count, " batch</span>\n                </div>");
       var lastRow = row;
       normalized.forEach(function (b) {
-        var tr = _buildBatchRow(productId, b);
+        var tr = _buildBatchRow(productId, b, category);
         lastRow.insertAdjacentElement('afterend', tr);
         lastRow = tr;
       });
@@ -169,8 +183,8 @@ window.Inventory = function () {
       var fresh = actionBtn.cloneNode(true);
       actionBtn.replaceWith(fresh);
       fresh.addEventListener('click', function () {
-        var _row$querySelector$te, _row$querySelector;
-        return openForm(productId, (_row$querySelector$te = (_row$querySelector = row.querySelector('.prod-name')) === null || _row$querySelector === void 0 || (_row$querySelector = _row$querySelector.textContent) === null || _row$querySelector === void 0 ? void 0 : _row$querySelector.trim()) !== null && _row$querySelector$te !== void 0 ? _row$querySelector$te : '');
+        var _row$querySelector$te2, _row$querySelector2;
+        return openForm(productId, (_row$querySelector$te2 = (_row$querySelector2 = row.querySelector('.prod-name')) === null || _row$querySelector2 === void 0 || (_row$querySelector2 = _row$querySelector2.textContent) === null || _row$querySelector2 === void 0 ? void 0 : _row$querySelector2.trim()) !== null && _row$querySelector$te2 !== void 0 ? _row$querySelector$te2 : '');
       });
     }
     _showToast(wasEdit ? 'Expiry date updated successfully' : 'Expiry date added successfully', wasEdit ? 'edit' : 'add');
@@ -184,10 +198,10 @@ window.Inventory = function () {
     if (!row) return;
     var pill = row.querySelector('.disc-pill');
     if (!pill) {
-      var _row$querySelector2;
+      var _row$querySelector3;
       pill = document.createElement('div');
       pill.className = 'disc-pill';
-      (_row$querySelector2 = row.querySelector('.prod-name')) === null || _row$querySelector2 === void 0 ? void 0 : _row$querySelector2.insertAdjacentElement('afterend', pill);
+      (_row$querySelector3 = row.querySelector('.prod-name')) === null || _row$querySelector3 === void 0 ? void 0 : _row$querySelector3.insertAdjacentElement('afterend', pill);
     }
     pill.innerHTML = "<i class=\"bi bi-tag-fill\"></i> ".concat(data.percent, "% &bull; Active");
     _showToast('Discount applied successfully', 'add');
@@ -214,10 +228,7 @@ window.Inventory = function () {
         });
       }
     });
-    var footer = document.getElementById('invFooter');
-    var empty = document.getElementById('invEmpty');
-    if (footer) footer.innerHTML = "<i class=\"bi bi-box-seam\"></i> Showing ".concat(count, " products from your Salla store");
-    if (empty) empty.style.display = count === 0 ? 'block' : 'none';
+    _updateFooter();
   }
   function toggleFilterMenu() {
     var menu = document.getElementById('filterMenu');
@@ -238,6 +249,13 @@ window.Inventory = function () {
     (_document$getElementB = document.getElementById('filterChevron')) === null || _document$getElementB === void 0 ? void 0 : _document$getElementB.classList.remove('open');
     currentFilter = btn.dataset.filter;
     _applyFilter();
+  }
+  function _updateFooter() {
+    var count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
+    var footer = document.getElementById('invFooter');
+    var empty = document.getElementById('invEmpty');
+    if (footer) footer.innerHTML = "<i class=\"bi bi-box-seam\"></i> Showing ".concat(count, " products from your Salla store");
+    if (empty) empty.style.display = count === 0 ? 'block' : 'none';
   }
 
   /* ══════════════════════════════════════════
@@ -263,20 +281,12 @@ window.Inventory = function () {
         (_document$getElementB4 = document.getElementById('filterChevron')) === null || _document$getElementB4 === void 0 ? void 0 : _document$getElementB4.classList.remove('open');
       }
     });
-    var count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
-    var footer = document.getElementById('invFooter');
-    var empty = document.getElementById('invEmpty');
-    if (footer) footer.innerHTML = "<i class=\"bi bi-box-seam\"></i> Showing ".concat(count, " products from your Salla store");
-    if (empty) empty.style.display = count === 0 ? 'block' : 'none';
+    _updateFooter();
   }
   document.addEventListener('DOMContentLoaded', _initListeners);
   window.addEventListener('pageshow', function (e) {
     if (e.persisted) {
-      var count = document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').length;
-      var footer = document.getElementById('invFooter');
-      var empty = document.getElementById('invEmpty');
-      if (footer) footer.innerHTML = "<i class=\"bi bi-box-seam\"></i> Showing ".concat(count, " products from your Salla store");
-      if (empty) empty.style.display = count === 0 ? 'block' : 'none';
+      _updateFooter();
     }
   });
   window.toggleFilterMenu = toggleFilterMenu;

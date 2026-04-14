@@ -76,13 +76,27 @@ class SallaApiService
         return ['synced' => $synced, 'errors' => $errors];
     }
 
+    /**
+     * تحديث بيانات أو حالة المنتج في سلة
+     * تم إضافة Log هنا لتصوير البيانات قبل إرسالها لسلة
+     */
+    public function updateProductStatus(string $sallaProductId, array $data): ?array
+    {
+        Log::info("إرسال تحديث حالة لمنتج سلة: {$sallaProductId}", ['payload' => $data]);
+        return $this->put("/products/{$sallaProductId}", $data);
+    }
+
+    /**
+     * حفظ المنتج مع حماية الاسم من الضياع أثناء المزامنة
+     */
     private function saveProduct(array $data): Product
     {
+        // نستخدم updateOrCreate ولكن نتأكد أن الاسم لا يتم تصفيره
         $product = Product::updateOrCreate(
             ['salla_product_id' => (string) $data['id']],
             [
                 'merchant_id' => $this->merchant->id,
-                'name'        => $data['name'],
+                'name'        => $data['name'] ?? 'بدون اسم', // حماية للاسم
                 'sku'         => $data['sku'] ?? null,
                 'price'       => $data['price']['amount'] ?? 0,
                 'quantity'    => $data['quantity'] ?? 0,
@@ -258,6 +272,33 @@ public function hideProduct(string $sallaProductId): void
 
         if (!$response->successful()) {
             Log::error('Salla API POST Error', [
+                'endpoint'    => $endpoint,
+                'status'      => $response->status(),
+                'body'        => $response->body(),
+                'merchant_id' => $this->merchant->id,
+            ]);
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    public function put(string $endpoint, array $data = []): ?array
+    {
+        if (!$this->sallaApp) {
+            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
+            return null;
+        }
+
+        if ($this->sallaApp->isTokenExpired()) {
+            $this->refreshToken();
+        }
+
+        $response = Http::withToken($this->sallaApp->access_token)
+            ->put($this->baseUrl . $endpoint, $data);
+
+        if (!$response->successful()) {
+            Log::error('Salla API PUT Error', [
                 'endpoint'    => $endpoint,
                 'status'      => $response->status(),
                 'body'        => $response->body(),
