@@ -193,7 +193,8 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
                    value="${prefill.expiry ?? ''}">
         </div>
     </div>
-    <input type="hidden" id="bCode-${idx}" value="${prefill.batch_code ?? ''}">`;
+    <input type="hidden" id="bCode-${idx}" value="${prefill.batch_code ?? ''}">
+<input type="hidden" id="bId-${idx}"   value="${prefill.id ?? ''}">`;
 
         item.querySelector('.ef-batch-remove')
             .addEventListener('click', () => removeBatch(idx));
@@ -225,6 +226,7 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
             const dt  = $(`bDate-${id}`)?.value;
             if (qty > 0 && dt) {
                 batches.push({
+                     id:          $(`bId-${id}`)?.value || null,
                     qty,
                     expiry_date: dt,
                     batch_code:  $(`bCode-${id}`)?.value || null,
@@ -270,6 +272,15 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
         $('efBatchList').innerHTML = '';
         $('efSaveBtn').disabled    = true;
         $('efEditBanner').classList.remove('show');
+        // إعادة زر الحذف لحالته
+const deleteBtnEl = $('efDeleteBtn');
+if (deleteBtnEl) {
+    deleteBtnEl.disabled = true;
+    deleteBtnEl.classList.remove('confirm-mode');
+    $('efDeleteBtnText').textContent = 'Delete All';
+}
+const confirmBanner = $('efDeleteConfirm');
+if (confirmBanner) confirmBanner.classList.remove('show');
 
         const avail = $('efQtyAvail');
         if (avail) avail.textContent = '—';
@@ -298,7 +309,7 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
         _show();
     }
 
-    function openSingle(pid, productName, dateValue, batchCode, threshold = 14) {
+    function openSingle(pid, productName, dateValue, batchCode, threshold = 14, batchId = null) {
         productId  = pid;
         isEdit     = true;
         _threshold = threshold;
@@ -314,9 +325,13 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
         $('panelYes').classList.add('show');
         $('efSingleDate').value      = dateValue ?? '';
         $('efSingleBatchCode').value = batchCode ?? '';
+            $('efSingleBatchId').value   = batchId ?? '';
         validate();
         _updateSingleStatus();
         _show();
+        // في openSingle — بعد validate()
+const deleteBtnEl = $('efDeleteBtn');
+if (deleteBtnEl) deleteBtnEl.disabled = false;
     }
 
     function openBatch(pid, productName, prefillBatches = [], threshold = 14) {
@@ -342,6 +357,9 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
 
         validate();
         _show();
+        // في openBatch — بعد validate()
+const deleteBtnEl = $('efDeleteBtn');
+if (deleteBtnEl) deleteBtnEl.disabled = false;
     }
 
     /* ══════════════════════════════════════════
@@ -399,6 +417,12 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
         if (remaining > 0)     { btn.disabled = true;  return; }
 
         btn.disabled = false;
+        // تفعيل/تعطيل زر الحذف
+const deleteBtnEl = $('efDeleteBtn');
+if (deleteBtnEl) {
+    const hasData = mode !== null;
+    deleteBtnEl.disabled = !hasData;
+}
     }
 
     /* ══════════════════════════════════════════
@@ -421,6 +445,7 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
                 single_batch: {
                     expiry_date: date,
                     batch_code:  $('efSingleBatchCode')?.value || null,
+                     batch_id:    $('efSingleBatchId')?.value   || null,
                 },
             };
         } else {
@@ -429,6 +454,7 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
                 product_id:  productId,
                 same_expiry: false,
                 batches:     collectedBatches.map(b => ({
+                     id:          b.id || null, 
                     expiry_date: b.expiry_date,
                     quantity:    b.qty,
                     batch_code:  b.batch_code || null,
@@ -507,6 +533,50 @@ let _userStarted  = false;  // يمنع التحذير قبل أول إدخال
         });
         $('efAddBatchBtn')?.addEventListener('click', addBatch);
         $('efSaveBtn')?.addEventListener('click', save);
+        // منطق زر Delete All
+let _deleteConfirmMode = false;
+
+$('efDeleteBtn')?.addEventListener('click', async () => {
+    if (!_deleteConfirmMode) {
+        // المرحلة الأولى: اطلب تأكيد
+        _deleteConfirmMode = true;
+        $('efDeleteBtnText').textContent = 'Confirm & Reset';
+        $('efDeleteBtn').classList.add('confirm-mode');
+        $('efDeleteConfirm').classList.add('show');
+        return;
+    }
+
+    // المرحلة الثانية: نفّذ الحذف
+    const btn = $('efDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:ef-spin 0.7s linear infinite"></i> Resetting...';
+
+    try {
+        const res = await fetch(`/inventory/products/${productId}/expiry`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            Inventory.onResetSuccess(productId);
+            close();
+        } else {
+            _showError(data.message ?? 'Something went wrong.');
+        }
+    } catch {
+        _showError('Network error. Please try again.');
+    } finally {
+        _deleteConfirmMode = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-trash3"></i> <span id="efDeleteBtnText">Delete All</span>';
+        $('efDeleteConfirm').classList.remove('show');
+        btn.classList.remove('confirm-mode');
+    }
+});
     }
 
     document.addEventListener('DOMContentLoaded', _initListeners);

@@ -96,7 +96,7 @@ window.Inventory = (() => {
 
         if (row.dataset.originalType === 'single' || row.dataset.expiryType === 'single' || (batches.length === 0 && row.dataset.expiry)) {
             const b = batches[0];
-            ExpiryForm.openSingle(productId, productName, b?.expiry ?? row.dataset.expiry, b?.batch_code ?? row.dataset.batchCode, threshold);
+           ExpiryForm.openSingle(productId, productName, b?.expiry ?? row.dataset.expiry, b?.batch_code ?? row.dataset.batchCode, threshold, b?.id ?? null);
         } else if (row.dataset.expiryType === 'batch' || batches.length > 0) {
             ExpiryForm.openBatch(productId, productName, batches, threshold);
         } else {
@@ -143,6 +143,7 @@ if (qtyCell) {
 
         if (payload.type === 'single') {
             const singleBatch = [{
+                 id:         payload.batch_id ?? null, 
                 batch_code: payload.batch_code,
                 qty:        payload.quantity,
                 status:     payload.status,
@@ -169,6 +170,7 @@ if (qtyCell) {
 
         } else if (payload.type === 'batch' && payload.batches?.length) {
             const normalized = payload.batches.map(b => ({
+                id:         b.id ?? null,
                 label:      b.label,
                 qty:        b.qty,
                 status:     b.status,
@@ -320,12 +322,63 @@ if (qtyCell) {
 
     window.toggleFilterMenu = toggleFilterMenu;
     window.selectFilter     = selectFilter;
+    function onResetSuccess(productId) {
+    const row        = document.querySelector(`#invBody tr[data-id="${productId}"]`);
+    const expiryCell = document.getElementById(`expiry-cell-${productId}`);
+    const actionBtn  = document.getElementById(`btn-expiry-${productId}`);
+    if (!row) return;
+
+    // حذف batch rows
+    document.querySelectorAll(`.batch-row[data-parent="${productId}"]`).forEach(r => r.remove());
+
+    // إعادة data attributes
+    row.dataset.batches      = '[]';
+    row.dataset.expiryType   = '';
+    row.dataset.expiry       = '';
+    row.dataset.originalType = '';
+    row.dataset.usedQty      = '0';
+
+    // إعادة status badge
+    const statusCell = row.querySelector('td:nth-child(3)');
+    if (statusCell) {
+        // بعد
+statusCell.innerHTML = `<span class="badge b-green">Safe</span>`;
+    }
+
+    // إعادة qty pill
+    const qtyCell = row.querySelector('td:nth-child(4)');
+    const sallaQty = parseInt(row.dataset.sallaQty) || 0;
+    if (qtyCell) {
+        qtyCell.innerHTML = sallaQty > 0
+            ? `<span class="qty-pill">0 / ${sallaQty}</span>`
+            : `<span style="color:var(--muted)">—</span>`;
+    }
+
+    // إعادة expiry cell
+    if (expiryCell) {
+        expiryCell.innerHTML = `<span style="color:var(--muted);">—</span>`;
+    }
+
+    // إعادة زر Action لحالة "Add"
+    if (actionBtn) {
+        actionBtn.className = 'btn-expiry';
+        actionBtn.innerHTML = '<i class="bi bi-calendar-plus"></i> Add Expiry Date';
+        const fresh = actionBtn.cloneNode(true);
+        actionBtn.replaceWith(fresh);
+        fresh.addEventListener('click', () =>
+            openForm(productId, row.querySelector('.prod-name')?.textContent?.trim() ?? '')
+        );
+    }
+
+    _showToast('All expiry data has been reset successfully', 'edit');
+}
 
     return {
         toggleBatch,
         openForm,
         onSaveSuccess,
         onDiscountSuccess,
+         onResetSuccess,
     };
 
 })();

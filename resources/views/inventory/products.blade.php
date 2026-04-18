@@ -69,6 +69,7 @@
                         $hasBatches = $product->batchItems->count() > 0;
                         $jsBatches = $product->batchItems->map(function($item) use ($product, $settings) {
                             return [
+                                'id'         => $item->batch->id ?? null,   // ← السطر الجديد فقط
                                 'label'      => $item->batch->batch_code ?? 'Batch',
                                 'qty'        => $item->quantity,
                                 'status'     => $item->batch->status ?? 'green',

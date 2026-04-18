@@ -67,6 +67,7 @@ Route::post('/notifications/read-all', [NotificationController::class, 'markAllA
     
     // مسار احتياطي في حال كان الـ JS يرسل المعرف في الرابط
     Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('inventory.expiry.store');
+    Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('inventory.expiry.destroy');
 });
 
 /* --- 3. تطبيق المستشار (الآلة الحاسبة) --- */

@@ -899,3 +899,74 @@ body.ef-open .inv-card { opacity:0.35; pointer-events:none; transition:opacity 0
     background: hsl(30,15%,88%); color: hsl(30,10%,35%);
     font-size: 0.82rem; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap;
 }
+/* ─── Delete / Reset Button ─── */
+.ef-action-row {
+    display: flex;
+    gap: 0.65rem;
+    align-items: stretch;
+}
+
+.ef-action-row .ef-save {
+    flex: 1;
+}
+
+.ef-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.88rem 1.1rem;
+    border: 1.5px solid var(--clr-red-border);
+    border-radius: 1rem;
+    background: var(--clr-red-bg);
+    color: var(--clr-red-text);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.18s, border-color 0.18s, transform 0.15s;
+    white-space: nowrap;
+}
+
+.ef-delete-btn:hover:not(:disabled) {
+    background: hsla(0, 68%, 50%, 0.22);
+    border-color: var(--clr-red-solid);
+    transform: translateY(-1px);
+}
+
+.ef-delete-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ef-delete-btn.confirm-mode {
+    background: var(--clr-red-bg);
+    border-color: var(--clr-red-solid);
+    color: var(--clr-red-solid);
+}
+
+/* ─── Delete Confirm Banner ─── */
+.ef-delete-confirm {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--clr-red-bg);
+    border: 1px solid var(--clr-red-border);
+    border-radius: 0.75rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--clr-red-text);
+    line-height: 1.5;
+}
+
+.ef-delete-confirm.show {
+    display: flex;
+}
+
+.ef-delete-confirm i {
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}

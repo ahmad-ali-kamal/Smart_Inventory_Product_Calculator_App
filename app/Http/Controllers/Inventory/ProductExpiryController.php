@@ -59,32 +59,110 @@ class ProductExpiryController extends Controller
 
             // 3. إدارة الأكواد القديمة ومسح الداتا القديمة
             $oldBatchCodes = $product->batchItems()
-                ->with('batch')
-                ->get()
-                ->map(fn($item) => $item->batch?->batch_code)
-                ->filter()
-                ->values()
-                ->toArray();
+    ->with('batch')
+    ->get()
+    ->map(fn($item) => $item->batch?->batch_code)
+    ->filter()
+    ->values()
+    ->toArray();
 
-            $batchIds = $product->batchItems()->pluck('batch_id');
-            $product->batchItems()->delete();
-            Batch::whereIn('id', $batchIds)->delete();
+$savedBatchCode = null;
 
-            $savedBatchCode = null;
+// في حالة same_expiry = true: حدّث إن وُجد، احذف الزائد، أنشئ إن لم يوجد
+if ($request->same_expiry) {
+    $existingItem = $product->batchItems()->with('batch')->first();
+
+    if ($existingItem && $existingItem->batch) {
+        // ── UPDATE: باتش موجود — حدّث فقط دون مس الـ ID ──
+        $existingItem->batch->update([
+            'expiry_date'       => $request->input('single_batch.expiry_date'),
+            'manufactured_date' => $request->input('single_batch.manufactured_date'),
+        ]);
+        $existingItem->update(['quantity' => $product->quantity ?? 0]);
+        $savedBatchCode = $existingItem->batch->batch_code;
+
+        // احذف أي باتشات زائدة (لو كان فيه أكثر من باتش سابق)
+        $extraIds = $product->batchItems()
+            ->where('batch_id', '!=', $existingItem->batch_id)
+            ->pluck('batch_id');
+        if ($extraIds->isNotEmpty()) {
+            $product->batchItems()->where('batch_id', '!=', $existingItem->batch_id)->delete();
+            Batch::whereIn('id', $extraIds)->where('merchant_id', $merchant->id)->delete();
+        }
+    } else {
+        // ── CREATE: لا يوجد باتش سابق ──
+        $batchIds = $product->batchItems()->pluck('batch_id');
+        $product->batchItems()->delete();
+        Batch::whereIn('id', $batchIds)->delete();
+    }
+}
 
             // 4. إنشاء الدفعات الجديدة
             if ($request->same_expiry) {
-                $data = $request->input('single_batch', []);
-                $data['batch_code'] = $oldBatchCodes[0] ?? ($data['batch_code'] ?? 'B-'.Str::upper(Str::random(6)));
-                $this->createSingleBatch($merchant, $product, $data);
-                $savedBatchCode = $data['batch_code'];
-            } else {
-                $inputBatches = $request->input('batches', []);
-                foreach ($inputBatches as $i => $b) {
-                    $b['batch_code'] = $oldBatchCodes[$i] ?? ($b['batch_code'] ?? 'B-'.Str::upper(Str::random(6)));
-                    $this->createMultipleBatches($merchant, $product, [$b]);
-                }
+    // إذا لم يتم التعديل أعلاه (لا يوجد باتش سابق) — أنشئ جديداً
+    if (!$savedBatchCode) {
+        $data = $request->input('single_batch', []);
+        $data['batch_code'] = $oldBatchCodes[0] ?? ($data['batch_code'] ?? 'B-'.Str::upper(Str::random(6)));
+        $this->createSingleBatch($merchant, $product, $data);
+        $savedBatchCode = $data['batch_code'];
+    }
+} else {
+    $inputBatches = $request->input('batches', []);
+
+    // 1. IDs الواردة في الطلب (الموجودة فعلاً = تحديث، الفارغة = جديدة)
+    $incomingIds = collect($inputBatches)
+        ->pluck('id')
+        ->filter()
+        ->map(fn($id) => (int) $id)
+        ->values()
+        ->toArray();
+
+    // 2. IDs الموجودة في DB للمنتج هذا
+    $existingIds = $product->batchItems()
+        ->pluck('batch_id')
+        ->map(fn($id) => (int) $id)
+        ->values()
+        ->toArray();
+
+    // 3. IDs التي يجب حذفها = موجودة في DB لكن غائبة عن الطلب
+    $idsToDelete = array_diff($existingIds, $incomingIds);
+
+    if (!empty($idsToDelete)) {
+        $product->batchItems()->whereIn('batch_id', $idsToDelete)->delete();
+        Batch::whereIn('id', $idsToDelete)
+             ->where('merchant_id', $merchant->id)
+             ->delete();
+    }
+
+    // 4. Update أو Create لكل باتش في الطلب
+    foreach ($inputBatches as $b) {
+        $batchId = !empty($b['id']) ? (int) $b['id'] : null;
+
+        if ($batchId && in_array($batchId, $existingIds)) {
+            // ── UPDATE: باتش موجود — حدّث فقط، لا تمس الـ ID ──
+            $existingBatch = Batch::where('id', $batchId)
+                ->where('merchant_id', $merchant->id)
+                ->first();
+
+            if ($existingBatch) {
+                $existingBatch->update([
+                    'expiry_date'       => $b['expiry_date'],
+                    'manufactured_date' => $b['manufactured_date'] ?? null,
+                ]);
+
+                $product->batchItems()
+                    ->where('batch_id', $existingBatch->id)
+                    ->update([
+                        'quantity'           => $b['quantity'],
+                    ]);
             }
+        } else {
+            // ── CREATE: باتش جديد، بدون id أو id غير موجود في DB ──
+            $b['batch_code'] = $b['batch_code'] ?? 'B-' . Str::upper(Str::random(6));
+            $this->createMultipleBatches($merchant, $product, [$b]);
+        }
+    }
+}
 
             DB::commit();
 
@@ -104,13 +182,23 @@ class ProductExpiryController extends Controller
 
             // تسجيل النشاط
             ActivityLog::log($merchant->id, 'expiry_added', "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}", $product);
+$freshBatches = $request->same_expiry ? [] : $freshProduct->batchItems->map(fn($item) => [
+    'id'         => $item->batch?->id,
+    'batch_code' => $item->batch?->batch_code,
+    'expiry_date'=> $item->batch?->expiry_date?->format('Y-m-d'),
+    'qty'        => $item->quantity,
+    'status'     => $item->batch?->status ?? 'green',
+])->values()->toArray();
+$savedBatchId = $request->same_expiry ? $freshProduct->batchItems->first()?->batch?->id : null;
+           return $this->respondWithSuccess('تم حفظ تواريخ الانتهاء بنجاح', [
+    'type' => $request->same_expiry ? 'single' : 'batch',
+    'batch_code' => $savedBatchCode,
+    'batch_id'   => $savedBatchId,
+    'status' => $worstStatus,
+    'quantity' => $product->quantity ?? 0,
+    'batches'    => $freshBatches,
+]);
 
-            return $this->respondWithSuccess('تم حفظ تواريخ الانتهاء بنجاح', [
-                'type' => $request->same_expiry ? 'single' : 'batch',
-                'batch_code' => $savedBatchCode,
-                'status' => $worstStatus,
-                'quantity' => $product->quantity ?? 0,
-            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -171,7 +259,6 @@ class ProductExpiryController extends Controller
             'batch_id' => $batch->id,
             'product_id' => $product->id,
             'quantity' => $product->quantity ?? 0,
-            'remaining_quantity' => $product->quantity ?? 0,
             'unit_cost' => $product->price ?? 0,
         ]);
     }
@@ -191,24 +278,50 @@ class ProductExpiryController extends Controller
                 'batch_id' => $batch->id,
                 'product_id' => $product->id,
                 'quantity' => $data['quantity'],
-                'remaining_quantity' => $data['quantity'],
+                //'remaining_quantity' => $data['quantity'],
                 'unit_cost' => $product->price ?? 0,
             ]);
         }
     }
 
     public function destroy($id)
-    {
-        $product = Product::findOrFail($id);
-        if ($product->merchant_id !== auth()->id()) return abort(403);
+{
+    $product = Product::findOrFail($id);
+    if ($product->merchant_id !== auth()->id()) return abort(403);
 
+    DB::beginTransaction();
+    try {
         $batchIds = $product->batchItems()->pluck('batch_id');
         $product->batchItems()->delete();
         Batch::whereIn('id', $batchIds)->delete();
-        
-        Cache::forget("inventory_dashboard_" . auth()->id());
-        return $this->respondWithSuccess('تم حذف تواريخ الانتهاء بنجاح');
+
+        // إعادة الحالة الافتراضية
+        $product->status = 'sale';
+        $product->save();
+
+        // مزامنة مع سلة
+        $merchant = auth()->user();
+        try {
+            $sallaApi = \App\Services\SallaApiService::for($merchant);
+            $sallaApi->updateProductStatus($product->salla_product_id, ['status' => 'sale']);
+        } catch (\Exception $e) {
+            Log::warning("Salla sync failed on reset: " . $e->getMessage());
+        }
+
+        DB::commit();
+        Cache::forget("inventory_dashboard_" . $merchant->id);
+        ActivityLog::log($merchant->id, 'expiry_deleted', "تم حذف تواريخ الانتهاء للمنتج: {$product->name}", $product);
+
+        return $this->respondWithSuccess('تم حذف البيانات وإعادة المنتج للحالة الافتراضية', [
+            'reset' => true,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Destroy Expiry Error: ' . $e->getMessage());
+        return $this->respondWithError('حدث خطأ أثناء الحذف: ' . $e->getMessage());
     }
+}
 
     protected function respondWithSuccess($message, $data = [])
     {
