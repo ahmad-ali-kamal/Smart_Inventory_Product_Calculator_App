@@ -22,6 +22,7 @@ class Batch extends Model
 
     protected $fillable = [
         'merchant_id',
+        'salla_variant_id', // الإضافة الجديدة لربط الباتش بـ Variant سلة
         'batch_code',
         'name',
         'manufactured_date',

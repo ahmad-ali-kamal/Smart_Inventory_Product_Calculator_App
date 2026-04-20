@@ -4,9 +4,6 @@ namespace App\Services;
 
 use App\Models\Merchant;
 use App\Models\SallaApp;
-use App\Models\Product;
-use App\Models\ProductImage;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -29,312 +26,127 @@ class SallaApiService
         return new self($merchant);
     }
 
-    // ====================================================================
-    // Products
-    // ====================================================================
-
-    public function syncProducts(): array
+    /**
+     * جلب بيانات المنتج والخيارات
+     */
+    public function getProductDetails(string $sallaProductId): ?array
     {
-        $synced = 0;
-        $errors = 0;
-        $page = 1;
-
-        Log::info('بدء مزامنة المنتجات', ['merchant_id' => $this->merchant->id]);
-
-        do {
-            $response = $this->get('/products', ['page' => $page, 'per_page' => 50]);
-            if (!$response) break;
-
-            $products   = $response['data'] ?? [];
-            $pagination = $response['pagination'] ?? null;
-
-            foreach ($products as $productData) {
-                try {
-                    $this->saveProduct($productData);
-                    $synced++;
-                } catch (\Exception $e) {
-                    $errors++;
-                    Log::error('خطأ في حفظ منتج', [
-                        'product_id' => $productData['id'] ?? 'unknown',
-                        'error'      => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            $page++;
-
-        } while (!empty($products) && $pagination && $page <= ($pagination['totalPages'] ?? 1));
-
-        Log::info('انتهت مزامنة المنتجات', [
-            'merchant_id' => $this->merchant->id,
-            'synced'      => $synced,
-            'errors'      => $errors,
-        ]);
-
-        $this->merchant->update(['synced_at' => now()]);
-
-        return ['synced' => $synced, 'errors' => $errors];
+        return $this->get("/products/{$sallaProductId}");
     }
 
     /**
-     * تحديث بيانات أو حالة المنتج في سلة
-     * تم إضافة Log هنا لتصوير البيانات قبل إرسالها لسلة
+     * إنشاء خيار "الدفعات" للمنتج مع أول قيمة
+     *
+     * ملاحظات مهمة من الـ API:
+     * - display_type يقبل فقط: "text" أو "image" — القيمة "dropdown" غير صالحة وترجع 422
+     * - يجب عدم إرسال price داخل values لمنتج فيزيائي
+     *   (السعر يُحدَّث لاحقاً عبر Update Variant)
      */
-    public function updateProductStatus(string $sallaProductId, array $data): ?array
+    public function createProductOption(string $sallaProductId, string $optionName, string $valueName): ?array
     {
-        Log::info("إرسال تحديث حالة لمنتج سلة: {$sallaProductId}", ['payload' => $data]);
-        return $this->put("/products/{$sallaProductId}", $data);
-    }
-
-    /**
-     * حفظ المنتج مع حماية الاسم من الضياع أثناء المزامنة
-     */
-    private function saveProduct(array $data): Product
-    {
-        // نستخدم updateOrCreate ولكن نتأكد أن الاسم لا يتم تصفيره
-        $product = Product::updateOrCreate(
-            ['salla_product_id' => (string) $data['id']],
-            [
-                'merchant_id' => $this->merchant->id,
-                'name'        => $data['name'] ?? 'بدون اسم', // حماية للاسم
-                'sku'         => $data['sku'] ?? null,
-                'price'       => $data['price']['amount'] ?? 0,
-                'quantity'    => $data['quantity'] ?? 0,
-                'category'    => $data['category']['name'] ?? null,
-                'status'      => $data['status'] ?? 'active',
-                'metadata'    => [
-                    'description' => $data['description'] ?? null,
-                    'url'         => $data['url'] ?? null,
-                    'type'        => $data['type'] ?? null,
-                    'sale_price'  => $data['sale_price']['amount'] ?? null,
+        Log::info("[Harees] إنشاء خيار جديد للمنتج: {$sallaProductId}");
+        return $this->post("/products/{$sallaProductId}/options", [
+            'name'         => $optionName,
+            'display_type' => 'text',   // ✅ القيم الصالحة: text | image (ليس dropdown)
+            'required'     => false,
+            'values'       => [
+                [
+                    'name'       => $valueName,
+                    'is_default' => false,
+                    // ❌ لا نُرسل price هنا — سلة ترفضه للمنتجات الفيزيائية
+                    //    السعر يُعيَّن بعد الإنشاء عبر updateBatchVariant
                 ],
-                'synced_at' => now(),
-            ]
-        );
-
-        $this->syncProductImages($product, $data);
-        return $product;
+            ],
+        ]);
     }
 
-    private function syncProductImages(Product $product, array $data): void
+    /**
+     * إضافة قيمة لخيار موجود
+     * المسار الصحيح: POST /products/options/{option}
+     * (وليس /products/options/{option}/values)
+     */
+    public function addValueToOption(string $optionId, string $valueName): ?array
     {
-        $product->images()->delete();
+        Log::info("[Harees] إضافة قيمة للدفعة للخيار ID: {$optionId}");
+        return $this->post("/products/options/{$optionId}", [
+            'name' => $valueName,
+            // ❌ لا نُرسل price — يُحدَّث لاحقاً عبر updateBatchVariant
+        ]);
+    }
 
-        if (!empty($data['main_image'])) {
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_url'  => $data['main_image'],
-                'is_main'    => true,
-                'sort_order' => 0,
-            ]);
-        }
+    /**
+     * تحديث بيانات الـ Variant (الكمية والسعر)
+     */
+    public function updateBatchVariant(string $variantId, array $payload): ?array
+    {
+        return $this->put("/products/variants/{$variantId}", $payload);
+    }
 
-        if (!empty($data['images'])) {
-            foreach ($data['images'] as $index => $image) {
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image_url'  => is_string($image) ? $image : ($image['url'] ?? ''),
-                    'is_main'    => false,
-                    'sort_order' => $index + 1,
-                ]);
-            }
-        }
+    /**
+     * تحديث حالة المنتج (sale/hidden)
+     */
+    public function updateProductStatusOnly(string $sallaProductId, string $status): ?array
+    {
+        return $this->post("/products/{$sallaProductId}/status", ['status' => $status]);
     }
 
     // ====================================================================
-    // Special Offers
-    // ====================================================================
-
-    public function applySpecialPrice(
-    string $sallaProductId,
-    string $startsAt,
-    string $endsAt,
-    int $discountPercent
-): array {
-    if ($this->sallaApp->isTokenExpired()) {
-        $this->refreshToken();
-    }
-
-    $payload = [
-        'name'            => 'خصم - ' . $sallaProductId,
-        'offer_type'      => 'percentage',
-        'applied_to'      => 'product',
-        'applied_channel' => 'browser_and_application',
-        'start_date'      => Carbon::parse($startsAt)->format('Y-m-d H:i:s'),
-        'expiry_date'     => Carbon::parse($endsAt)->format('Y-m-d H:i:s'),
-        'is_active'       => true,
-        'buy' => [
-            'type'     => 'product',
-            'products' => [(int) $sallaProductId],
-            'quantity' => 1,
-        ],
-        'get' => [
-            'type'            => 'product',
-            'products'        => [(int) $sallaProductId],
-            'quantity'        => 1,
-            'discount_type'   => 'percentage',
-            'discount_amount' => $discountPercent,
-        ],
-    ];
-
-    // ← استخدم HTTP مباشرة بدل post() عشان نقرأ الـ body حتى لو 404
-    $response = Http::withToken($this->sallaApp->access_token)
-        ->post($this->baseUrl . '/specialoffers', $payload);
-
-    $body = $response->json();
-
-    Log::info('Salla specialoffers raw response', [
-        'status' => $response->status(),
-        'body'   => $body,
-    ]);
-
-    // سلة تنشئ العرض حتى لو رجعت 404، نتحقق من البيانات
-    if (!empty($body['data']['id'])) {
-        return $body['data'];
-    }
-
-    // إذا نجح بـ 2xx
-    if ($response->successful() && ($body['success'] ?? false)) {
-        return $body['data'];
-    }
-
-    throw new \Exception("فشل إنشاء العرض: " . json_encode($body));
-}
-public function removeSpecialPrice(string $offerId): void
-{
-    $this->delete('/specialoffers/' . $offerId);
-}
-
-public function delete(string $endpoint): ?array
-{
-    if (!$this->sallaApp || $this->sallaApp->isTokenExpired()) {
-        $this->refreshToken();
-    }
-
-    $response = Http::withToken($this->sallaApp->access_token)
-        ->delete($this->baseUrl . $endpoint);
-
-    return $response->successful() ? $response->json() : null;
-}
-
-public function hideProduct(string $sallaProductId): void
-{
-    $result = $this->post('/products/' . $sallaProductId, ['status' => 'hidden']);
-
-    if (!$result) {
-        throw new \Exception("فشل إخفاء المنتج: {$sallaProductId}");
-    }
-}
-    // ====================================================================
-    // Helper Methods
+    // Helpers
     // ====================================================================
 
     public function get(string $endpoint, array $params = []): ?array
     {
-        if (!$this->sallaApp) {
-            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
-            return null;
-        }
-
-        if ($this->sallaApp->isTokenExpired()) {
-            $this->refreshToken();
-        }
-
-        $response = Http::withToken($this->sallaApp->access_token)
-            ->get($this->baseUrl . $endpoint, $params);
-
-        if (!$response->successful()) {
-            Log::error('Salla API Error', [
-                'endpoint'    => $endpoint,
-                'status'      => $response->status(),
-                'body'        => $response->body(),
-                'merchant_id' => $this->merchant->id,
-            ]);
-            return null;
-        }
-
-        return $response->json();
+        $this->ensureTokenIsValid();
+        $response = Http::withToken($this->sallaApp->access_token)->get($this->baseUrl . $endpoint, $params);
+        return $this->handleResponse($response, 'GET', $endpoint);
     }
 
     public function post(string $endpoint, array $data = []): ?array
     {
-        if (!$this->sallaApp) {
-            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
-            return null;
-        }
-
-        if ($this->sallaApp->isTokenExpired()) {
-            $this->refreshToken();
-        }
-
-        $response = Http::withToken($this->sallaApp->access_token)
-            ->post($this->baseUrl . $endpoint, $data);
-
-        if (!$response->successful()) {
-            Log::error('Salla API POST Error', [
-                'endpoint'    => $endpoint,
-                'status'      => $response->status(),
-                'body'        => $response->body(),
-                'merchant_id' => $this->merchant->id,
-            ]);
-            return null;
-        }
-
-        return $response->json();
+        $this->ensureTokenIsValid();
+        $response = Http::withToken($this->sallaApp->access_token)->post($this->baseUrl . $endpoint, $data);
+        return $this->handleResponse($response, 'POST', $endpoint);
     }
 
     public function put(string $endpoint, array $data = []): ?array
     {
-        if (!$this->sallaApp) {
-            Log::error('SallaApp not found for merchant', ['merchant_id' => $this->merchant->id]);
-            return null;
-        }
+        $this->ensureTokenIsValid();
+        $response = Http::withToken($this->sallaApp->access_token)->put($this->baseUrl . $endpoint, $data);
+        return $this->handleResponse($response, 'PUT', $endpoint);
+    }
 
-        if ($this->sallaApp->isTokenExpired()) {
-            $this->refreshToken();
-        }
+    private function ensureTokenIsValid(): void
+    {
+        if ($this->sallaApp->isTokenExpired()) $this->refreshToken();
+    }
 
-        $response = Http::withToken($this->sallaApp->access_token)
-            ->put($this->baseUrl . $endpoint, $data);
-
+    private function handleResponse($response, $method, $endpoint): ?array
+    {
         if (!$response->successful()) {
-            Log::error('Salla API PUT Error', [
-                'endpoint'    => $endpoint,
-                'status'      => $response->status(),
-                'body'        => $response->body(),
-                'merchant_id' => $this->merchant->id,
+            Log::error("Salla API Error", [
+                'method'   => $method,
+                'endpoint' => $endpoint,
+                'status'   => $response->status(),
+                'body'     => $response->body(),
             ]);
             return null;
         }
-
         return $response->json();
     }
 
     private function refreshToken(): void
     {
-        if (!$this->sallaApp->refresh_token) {
-            throw new \Exception('لا يوجد Refresh Token');
-        }
-
         $response = Http::asForm()->post('https://accounts.salla.sa/oauth2/token', [
             'grant_type'    => 'refresh_token',
             'client_id'     => env('SALLA_OAUTH_CLIENT_ID'),
             'client_secret' => env('SALLA_OAUTH_CLIENT_SECRET'),
             'refresh_token' => $this->sallaApp->refresh_token,
         ]);
-
-        if (!$response->successful()) {
-            throw new \Exception('فشل تجديد التوكن: ' . $response->body());
+        if ($response->successful()) {
+            $this->sallaApp->update([
+                'access_token'     => $response->json()['access_token'],
+                'token_expires_at' => now()->addSeconds($response->json()['expires_in']),
+            ]);
         }
-
-        $tokenData = $response->json();
-
-        $this->sallaApp->update([
-            'access_token'     => $tokenData['access_token'],
-            'refresh_token'    => $tokenData['refresh_token'] ?? $this->sallaApp->refresh_token,
-            'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 3600),
-        ]);
-
-        Log::info('تم تجديد التوكن بنجاح', ['merchant_id' => $this->merchant->id]);
     }
 }
