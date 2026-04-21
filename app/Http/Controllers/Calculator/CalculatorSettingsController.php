@@ -71,7 +71,8 @@ public function  getSettingsForStore($salla_product_id)
     $product = Product::where('salla_product_id', $salla_product_id)->first();
 
     if (!$product) {
-        return response()->json(['enabled' => false], 404)->header('Access-Control-Allow-Origin', '*');
+        return response()->json(['enabled' => false], 404)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     // 2. تحقق إذا مفعّل في product_calculator
@@ -80,16 +81,59 @@ public function  getSettingsForStore($salla_product_id)
         ->first();
 
     if (!$calculator) {
-        return response()->json(['enabled' => false], 404)->header('Access-Control-Allow-Origin', '*');
+        return response()->json(['enabled' => false], 404)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     // 3. جلب إعدادات التاجر
     $settings = CalculatorSetting::where('merchant_id', $product->merchant_id)->first();
 
+    // 4. Overrides per product (optional) via metadata
+    // This allows different products to have different coverage/unit types without schema changes.
+    $metaCalc = is_array($product->metadata) ? ($product->metadata['calculator'] ?? null) : null;
+
+    $unitType = is_array($metaCalc) && !empty($metaCalc['unit_type'])
+        ? (string) $metaCalc['unit_type']
+        : 'box'; // box|meter
+
+    $coveragePerUnit = is_array($metaCalc) && isset($metaCalc['coverage_per_unit'])
+        ? (float) $metaCalc['coverage_per_unit']
+        : ($settings ? (float) $settings->coverage_per_unit : 2.56);
+
+    $waste = is_array($metaCalc) && isset($metaCalc['waste_percentage'])
+        ? (float) $metaCalc['waste_percentage']
+        : ($settings ? (float) $settings->waste_percentage : 10);
+
+    // price: use synced Salla product price (amount)
+    $unitPrice = (float) $product->price;
+
     return response()->json([
-        'enabled'  => true,
-        'coverage' => $settings ? (float) $settings->coverage_per_unit : 2.56,
-        'waste'    => $settings ? (float) $settings->waste_percentage  : 10,
+        'enabled' => true,
+        'product' => [
+            'id'    => (string) $product->salla_product_id,
+            'name'  => (string) $product->name,
+            'price' => [
+                'amount'   => $unitPrice,
+                'currency' => 'SAR',
+            ],
+        ],
+        'calculator' => [
+            // dimensions → area
+            'area_unit' => 'm2',
+
+            // area → selling units
+            'selling_unit' => [
+                'type'              => $unitType,        // box|meter
+                'coverage_per_unit'  => $coveragePerUnit, // m2 per box OR 1 if meter pricing
+                'rounding'           => $unitType === 'box' ? 'ceil' : 'none',
+                'min'                => 1,
+                'step'               => $unitType === 'box' ? 1 : 0.01,
+                'decimals'           => $unitType === 'box' ? 0 : 2,
+            ],
+
+            // waste handling
+            'waste_percentage' => $waste,
+        ],
     ])->header('Access-Control-Allow-Origin', '*');
 }
 }
