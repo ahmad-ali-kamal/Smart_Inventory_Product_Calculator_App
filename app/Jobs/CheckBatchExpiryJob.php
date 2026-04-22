@@ -41,7 +41,7 @@ class CheckBatchExpiryJob implements ShouldQueue
                     'days'     => now()->diffInDays($batch->expiry_date, false),
                 ]);
 
-                // الباتشات الحمراء: لا ننشئ Variant جديد، نصفّر الكمية فقط إن كان موجوداً
+                // الباتشات الحمراء: تصفير الكمية فقط إن كان Variant موجوداً، لا ننشئ جديداً
                 if ($batch->status === 'red') {
                     if ($batch->salla_variant_id) {
                         Log::info('[Batch] باتش أحمر — تصفير الكمية', ['batch_id' => $batch->id]);
@@ -50,7 +50,7 @@ class CheckBatchExpiryJob implements ShouldQueue
                     continue;
                 }
 
-                // الباتشات الخضراء والصفراء تُزامَن
+                // الباتشات الخضراء والصفراء → مزامنة كاملة
                 $product     = $batch->products()->first();
                 $variantName = ($batch->batch_code ?? 'Batch') . ' - ' . $batch->expiry_date->format('Y-m-d');
 
@@ -69,7 +69,7 @@ class CheckBatchExpiryJob implements ShouldQueue
     }
 
     // =========================================================
-    // إنشاء أو تحديث الـ Variant
+    // إنشاء أو تحديث الـ Variant للباتشات الخضراء/الصفراء
     // =========================================================
 
     private function syncBatchProcess(SallaApiService $sallaApi, Batch $batch): void
@@ -80,9 +80,8 @@ class CheckBatchExpiryJob implements ShouldQueue
             return;
         }
 
-        $variantName = ($batch->batch_code ?? 'Batch') . ' - ' . $batch->expiry_date->format('Y-m-d');
-
         if (!$batch->salla_variant_id) {
+            $variantName = ($batch->batch_code ?? 'Batch') . ' - ' . $batch->expiry_date->format('Y-m-d');
             Log::info('[Batch Sync] Variant غير موجود، سيتم إنشاؤه', [
                 'product_id' => $product->salla_product_id,
                 'batch_name' => $variantName,
@@ -105,9 +104,10 @@ class CheckBatchExpiryJob implements ShouldQueue
         $details = $sallaApi->getProductDetails($product->salla_product_id);
         $options = $details['data']['options'] ?? [];
 
+        // ✅ نبحث دائماً بالاسم الموحَّد من الـ Constant
         $targetOption = null;
         foreach ($options as $opt) {
-            if (trim($opt['name']) === 'الدفعات') {
+            if (trim($opt['name']) === SallaApiService::BATCH_OPTION_NAME) {
                 $targetOption = $opt;
                 break;
             }
@@ -117,23 +117,22 @@ class CheckBatchExpiryJob implements ShouldQueue
         $res       = null;
 
         if (!$targetOption) {
-            // إنشاء خيار جديد "الدفعات" مع أول قيمة
-            // ⚠️ لا نُرسل price هنا — سلة ترفضه، السعر يُحدَّث بعدها عبر updateBatchVariant
-            Log::info('[Batch Sync] إنشاء خيار جديد "الدفعات"', [
+            // إنشاء خيار جديد مع أول قيمة
+            Log::info('[Batch Sync] إنشاء خيار جديد "' . SallaApiService::BATCH_OPTION_NAME . '"', [
                 'product_id' => $product->salla_product_id,
             ]);
             $res = $sallaApi->createProductOption(
                 $product->salla_product_id,
-                'الدفعات',
+                SallaApiService::BATCH_OPTION_NAME,
                 $variantName
             );
-            // الرد يحتوي data.skus[0].id أو data[0].skus[0].id
+            // سلة ترجع data.skus[0].id بعد إنشاء الخيار
             $variantId = $res['data']['skus'][0]['id']
                       ?? $res['data'][0]['skus'][0]['id']
                       ?? null;
         } else {
-            // إضافة قيمة لخيار "الدفعات" الموجود
-            Log::info('[Batch Sync] إضافة قيمة لخيار "الدفعات" الموجود', [
+            // إضافة قيمة لخيار موجود
+            Log::info('[Batch Sync] إضافة قيمة لخيار موجود', [
                 'option_id' => $targetOption['id'],
             ]);
             $res = $sallaApi->addValueToOption($targetOption['id'], $variantName);
@@ -145,9 +144,7 @@ class CheckBatchExpiryJob implements ShouldQueue
         if ($variantId) {
             $batch->update(['salla_variant_id' => $variantId]);
             Log::info('[Batch Sync] ✅ تم حفظ variant_id', ['variant_id' => $variantId]);
-
-            // الآن نُحدِّث السعر والكمية بعد ما صار عندنا variant_id
-            // (السعر لا يُرسَل وقت إنشاء الخيار بسبب قيود سلة)
+            // نحدّث السعر والكمية بعد الإنشاء (سلة لا تقبلهم وقت الإنشاء)
             $this->updateVariantStock($sallaApi, $batch);
         } else {
             Log::error('[Batch Sync] ❌ لم يُعثر على variant_id', [
@@ -166,7 +163,7 @@ class CheckBatchExpiryJob implements ShouldQueue
         $payload = [
             'sku'            => $batch->batch_code ?? 'B-' . $batch->id,
             'stock_quantity' => $batch->quantity,
-            // خصم 30% للصفراء، 0 = لا يوجد سعر مخفض
+            // خصم 30% للصفراء فقط — 0 يعني لا يوجد سعر مخفض في سلة
             'sale_price'     => ($batch->status === 'yellow')
                                     ? round($batch->price * 0.7, 2)
                                     : 0,
@@ -193,14 +190,13 @@ class CheckBatchExpiryJob implements ShouldQueue
     // مزامنة ظهور/إخفاء المنتج
     //
     // القواعد:
-    //   - منتج بدون باتشات مسجّلة      → لا نلمسه (يديره التاجر يدوياً)
-    //   - منتج باتشاته كلها حمراء       → hidden
-    //   - منتج فيه باتش أخضر أو أصفر   → sale
+    //   - منتج بدون باتشات مسجّلة        → لا نلمسه (يديره التاجر يدوياً)
+    //   - كل باتشاته حمراء                → hidden
+    //   - فيه باتش أخضر أو أصفر واحد على الأقل → sale
     // =========================================================
 
     private function reconcileVisibility(SallaApiService $sallaApi, Merchant $merchant): void
     {
-        // نجلب فقط المنتجات التي يديرها نظام الباتشات (لها باتشات مسجّلة)
         $products = Product::where('merchant_id', $merchant->id)
             ->whereHas('batches')
             ->get();
@@ -219,6 +215,7 @@ class CheckBatchExpiryJob implements ShouldQueue
                 'status'     => $newStatus,
             ]);
 
+            // ✅ يستخدم المسار الصحيح: POST /products/{id}/status
             $sallaApi->updateProductStatusOnly($product->salla_product_id, $newStatus);
         }
     }
