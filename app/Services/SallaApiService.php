@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 class SallaApiService
 {
+    /**
+     * الاسم الموحَّد لخيار الدفعات في سلة
+     * استخدم هذا الـ Constant في كل مكان — لا تكتب النص مباشرةً
+     */
+    public const BATCH_OPTION_NAME = 'بيانات الدفعة';
+
     private Merchant $merchant;
     private ?SallaApp $sallaApp = null;
     private string $baseUrl = 'https://api.salla.dev/admin/v2';
@@ -26,8 +32,12 @@ class SallaApiService
         return new self($merchant);
     }
 
+    // ====================================================================
+    // Products API
+    // ====================================================================
+
     /**
-     * جلب بيانات المنتج والخيارات
+     * جلب بيانات المنتج مع options و variants
      */
     public function getProductDetails(string $sallaProductId): ?array
     {
@@ -35,47 +45,48 @@ class SallaApiService
     }
 
     /**
-     * إنشاء خيار "الدفعات" للمنتج مع أول قيمة
+     * تحديث بيانات المنتج العامة
+     * PUT /products/{product}
+     */
+    public function updateProduct(string $sallaProductId, array $data): ?array
+    {
+        return $this->put("/products/{$sallaProductId}", $data);
+    }
+
+    /**
+     * تحديث حالة المنتج (sale / hidden)
+     * المسار الصحيح الوحيد: POST /products/{product}/status
      *
-     * ملاحظات مهمة من الـ API:
-     * - display_type يقبل فقط: "text" أو "image" — القيمة "dropdown" غير صالحة وترجع 422
-     * - يجب عدم إرسال price داخل values لمنتج فيزيائي
-     *   (السعر يُحدَّث لاحقاً عبر Update Variant)
+     * ⚠️  هذا الاسم هو الاسم الأساسي المستخدَم في CheckBatchExpiryJob
      */
-    public function createProductOption(string $sallaProductId, string $optionName, string $valueName): ?array
+    public function updateProductStatusOnly(string $sallaProductId, string $status): ?array
     {
-        Log::info("[Harees] إنشاء خيار جديد للمنتج: {$sallaProductId}");
-        return $this->post("/products/{$sallaProductId}/options", [
-            'name'         => $optionName,
-            'display_type' => 'text',   // ✅ القيم الصالحة: text | image (ليس dropdown)
-            'required'     => false,
-            'values'       => [
-                [
-                    'name'       => $valueName,
-                    'is_default' => false,
-                    // ❌ لا نُرسل price هنا — سلة ترفضه للمنتجات الفيزيائية
-                    //    السعر يُعيَّن بعد الإنشاء عبر updateBatchVariant
-                ],
-            ],
+        Log::info('[SallaApi] تحديث حالة المنتج', [
+            'product_id' => $sallaProductId,
+            'status'     => $status,
+        ]);
+
+        return $this->post("/products/{$sallaProductId}/status", [
+            'status' => $status,
         ]);
     }
 
     /**
-     * إضافة قيمة لخيار موجود
-     * المسار الصحيح: POST /products/options/{option}
-     * (وليس /products/options/{option}/values)
+     * نفس الـ method باسم بديل لتوافق الأكواد القديمة التي تستدعي updateProductStatus()
+     * إذا كان عندك أي ملف يستدعي ->updateProductStatus() لن يرمي خطأ
      */
-    public function addValueToOption(string $optionId, string $valueName): ?array
+    public function updateProductStatus(string $sallaProductId, string $status): ?array
     {
-        Log::info("[Harees] إضافة قيمة للدفعة للخيار ID: {$optionId}");
-        return $this->post("/products/options/{$optionId}", [
-            'name' => $valueName,
-            // ❌ لا نُرسل price — يُحدَّث لاحقاً عبر updateBatchVariant
-        ]);
+        return $this->updateProductStatusOnly($sallaProductId, $status);
     }
 
+    // ====================================================================
+    // Variants API
+    // ====================================================================
+
     /**
-     * تحديث بيانات الـ Variant (الكمية والسعر)
+     * تحديث بيانات الـ Variant (الكمية، السعر، SKU...)
+     * PUT /products/variants/{variant}
      */
     public function updateBatchVariant(string $variantId, array $payload): ?array
     {
@@ -83,47 +94,147 @@ class SallaApiService
     }
 
     /**
-     * تحديث حالة المنتج (sale/hidden)
+     * تخفيض كمية الـ Variant بعد البيع من سلة
+     *
+     * يُستدعى من:  SallaWebhookController عند استقبال حدث order.created
+     *
+     * @param string $variantId   — الـ salla_variant_id المحفوظ في الـ Batch
+     * @param int    $soldQty     — الكمية المبيعة من الطلب
+     * @param int    $currentQty  — الكمية الحالية في قاعدة بياناتنا
      */
-    public function updateProductStatusOnly(string $sallaProductId, string $status): ?array
+    public function decrementVariantQuantity(string $variantId, int $soldQty, int $currentQty): ?array
     {
-        return $this->post("/products/{$sallaProductId}/status", ['status' => $status]);
+        $newQty = max(0, $currentQty - $soldQty);
+
+        Log::info('[Variant] تخفيض الكمية بعد البيع', [
+            'variant_id'   => $variantId,
+            'sold'         => $soldQty,
+            'current'      => $currentQty,
+            'new_quantity' => $newQty,
+        ]);
+
+        return $this->put("/products/variants/{$variantId}", [
+            'stock_quantity' => $newQty,
+        ]);
+    }
+
+    /**
+     * زيادة كمية الـ Variant عند تعديل التاجر للكمية
+     *
+     * يُستدعى من:  SallaWebhookController عند استقبال حدث product.quantity.updated
+     *              أو من BatchController عند تحديث الكمية يدوياً
+     *
+     * @param string $variantId   — الـ salla_variant_id المحفوظ في الـ Batch
+     * @param int    $newQty      — الكمية الجديدة الكاملة (وليس الفرق)
+     */
+    public function updateVariantQuantity(string $variantId, int $newQty): ?array
+    {
+        Log::info('[Variant] تحديث الكمية', [
+            'variant_id'   => $variantId,
+            'new_quantity' => $newQty,
+        ]);
+
+        return $this->put("/products/variants/{$variantId}", [
+            'stock_quantity' => $newQty,
+        ]);
     }
 
     // ====================================================================
-    // Helpers
+    // Batch Option Management
+    // ====================================================================
+
+    /**
+     * إنشاء خيار "بيانات الدفعة" للمنتج مع أول قيمة
+     * POST /products/{product}/options
+     *
+     * ⚠️ قواعد سلة الصارمة:
+     *   - display_type: "text" فقط (ليس dropdown أو غيره)
+     *   - لا ترسل price داخل values للمنتجات الفيزيائية → 422
+     */
+    public function createProductOption(string $sallaProductId, string $optionName, string $valueName): ?array
+    {
+        Log::info('[SallaApi] إنشاء خيار جديد للمنتج', [
+            'product_id'  => $sallaProductId,
+            'option_name' => $optionName,
+            'value_name'  => $valueName,
+        ]);
+
+        return $this->post("/products/{$sallaProductId}/options", [
+            'name'         => $optionName,
+            'display_type' => 'text',
+            'required'     => false,
+            'values'       => [
+                [
+                    'name'       => $valueName,
+                    'is_default' => false,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * إضافة قيمة لخيار موجود
+     * POST /products/options/{option}    ← المسار الصحيح
+     * (وليس /products/options/{option}/values)
+     */
+    public function addValueToOption(string $optionId, string $valueName): ?array
+    {
+        Log::info('[SallaApi] إضافة قيمة لخيار موجود', [
+            'option_id'  => $optionId,
+            'value_name' => $valueName,
+        ]);
+
+        return $this->post("/products/options/{$optionId}", [
+            'name' => $valueName,
+        ]);
+    }
+
+    // ====================================================================
+    // HTTP Helpers
     // ====================================================================
 
     public function get(string $endpoint, array $params = []): ?array
     {
         $this->ensureTokenIsValid();
-        $response = Http::withToken($this->sallaApp->access_token)->get($this->baseUrl . $endpoint, $params);
+        $response = Http::withToken($this->sallaApp->access_token)
+            ->get($this->baseUrl . $endpoint, $params);
+
         return $this->handleResponse($response, 'GET', $endpoint);
     }
 
     public function post(string $endpoint, array $data = []): ?array
     {
         $this->ensureTokenIsValid();
-        $response = Http::withToken($this->sallaApp->access_token)->post($this->baseUrl . $endpoint, $data);
+        $response = Http::withToken($this->sallaApp->access_token)
+            ->post($this->baseUrl . $endpoint, $data);
+
         return $this->handleResponse($response, 'POST', $endpoint);
     }
 
     public function put(string $endpoint, array $data = []): ?array
     {
         $this->ensureTokenIsValid();
-        $response = Http::withToken($this->sallaApp->access_token)->put($this->baseUrl . $endpoint, $data);
+        $response = Http::withToken($this->sallaApp->access_token)
+            ->put($this->baseUrl . $endpoint, $data);
+
         return $this->handleResponse($response, 'PUT', $endpoint);
     }
 
     private function ensureTokenIsValid(): void
     {
-        if ($this->sallaApp->isTokenExpired()) $this->refreshToken();
+        if (!$this->sallaApp) {
+            throw new \Exception('SallaApp not found for merchant');
+        }
+
+        if ($this->sallaApp->isTokenExpired()) {
+            $this->refreshToken();
+        }
     }
 
-    private function handleResponse($response, $method, $endpoint): ?array
+    private function handleResponse($response, string $method, string $endpoint): ?array
     {
         if (!$response->successful()) {
-            Log::error("Salla API Error", [
+            Log::error('Salla API Error', [
                 'method'   => $method,
                 'endpoint' => $endpoint,
                 'status'   => $response->status(),
@@ -131,22 +242,34 @@ class SallaApiService
             ]);
             return null;
         }
+
         return $response->json();
     }
 
     private function refreshToken(): void
     {
+        Log::info('[Token] تجديد Access Token');
+
         $response = Http::asForm()->post('https://accounts.salla.sa/oauth2/token', [
             'grant_type'    => 'refresh_token',
             'client_id'     => env('SALLA_OAUTH_CLIENT_ID'),
             'client_secret' => env('SALLA_OAUTH_CLIENT_SECRET'),
             'refresh_token' => $this->sallaApp->refresh_token,
         ]);
-        if ($response->successful()) {
-            $this->sallaApp->update([
-                'access_token'     => $response->json()['access_token'],
-                'token_expires_at' => now()->addSeconds($response->json()['expires_in']),
-            ]);
+
+        if (!$response->successful()) {
+            Log::error('[Token] فشل تجديد Token', ['body' => $response->body()]);
+            throw new \Exception('Failed to refresh token');
         }
+
+        $tokenData = $response->json();
+
+        $this->sallaApp->update([
+            'access_token'     => $tokenData['access_token'],
+            'refresh_token'    => $tokenData['refresh_token'] ?? $this->sallaApp->refresh_token,
+            'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 3600),
+        ]);
+
+        Log::info('[Token] ✅ تم تجديد Token بنجاح');
     }
 }
