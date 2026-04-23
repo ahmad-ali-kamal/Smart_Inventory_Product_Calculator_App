@@ -16,9 +16,6 @@ use Illuminate\Support\Str;
 
 class ProductExpiryController extends Controller
 {
-    /**
-     * حفظ تاريخ الانتهاء للمنتج (دفعة واحدة أو متعددة)
-     */
     public function store(Request $request)
     {
         $productId = $request->product_id;
@@ -39,15 +36,15 @@ class ProductExpiryController extends Controller
         }
 
         $request->validate([
-            'same_expiry'                        => 'required|boolean',
-            'single_batch'                       => 'required_if:same_expiry,true|array',
-            'single_batch.expiry_date'           => 'required_if:same_expiry,true|date|after_or_equal:today',
-            'single_batch.batch_code'            => 'nullable|string',
-            'single_batch.manufactured_date'     => 'nullable|date|before:single_batch.expiry_date',
-            'batches'                            => 'required_if:same_expiry,false|array|min:1',
-            'batches.*.quantity'                 => 'required_with:batches|integer|min:1',
-            'batches.*.expiry_date'              => 'required_with:batches|date|after_or_equal:today',
-            'batches.*.batch_code'               => 'nullable|string',
+            'same_expiry'                    => 'required|boolean',
+            'single_batch'                   => 'required_if:same_expiry,true|array',
+            'single_batch.expiry_date'       => 'required_if:same_expiry,true|date|after_or_equal:today',
+            'single_batch.batch_code'        => 'nullable|string',
+            'single_batch.manufactured_date' => 'nullable|date|before:single_batch.expiry_date',
+            'batches'                        => 'required_if:same_expiry,false|array|min:1',
+            'batches.*.quantity'             => 'required_with:batches|integer|min:1',
+            'batches.*.expiry_date'          => 'required_with:batches|date|after_or_equal:today',
+            'batches.*.batch_code'           => 'nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -64,6 +61,7 @@ class ProductExpiryController extends Controller
 
             $savedBatchCode = null;
 
+            // ─── إدارة الباتشات القديمة ───────────────────────────────
             if ($request->same_expiry) {
                 $existingItem = $product->batchItems()->with('batch')->first();
 
@@ -89,36 +87,33 @@ class ProductExpiryController extends Controller
                 }
             }
 
+            // ─── إنشاء الباتشات الجديدة ───────────────────────────────
+            // ✅ نتتبع الباتشات الجديدة لإرسال الـ notification بعد ربطها بالمنتج
+            $newlyCreatedBatches = [];
+
             if ($request->same_expiry) {
                 if (!$savedBatchCode) {
                     $data               = $request->input('single_batch', []);
                     $data['batch_code'] = $oldBatchCodes[0] ?? ($data['batch_code'] ?? 'B-' . Str::upper(Str::random(6)));
-                    $this->createSingleBatch($merchant, $product, $data);
-                    $savedBatchCode = $data['batch_code'];
+                    $newBatch           = $this->createSingleBatch($merchant, $product, $data);
+                    $savedBatchCode     = $data['batch_code'];
+                    if ($newBatch) $newlyCreatedBatches[] = $newBatch;
                 }
             } else {
                 $inputBatches = $request->input('batches', []);
 
                 $incomingIds = collect($inputBatches)
-                    ->pluck('id')
-                    ->filter()
-                    ->map(fn($id) => (int) $id)
-                    ->values()
-                    ->toArray();
+                    ->pluck('id')->filter()
+                    ->map(fn($id) => (int) $id)->values()->toArray();
 
                 $existingIds = $product->batchItems()
                     ->pluck('batch_id')
-                    ->map(fn($id) => (int) $id)
-                    ->values()
-                    ->toArray();
+                    ->map(fn($id) => (int) $id)->values()->toArray();
 
                 $idsToDelete = array_diff($existingIds, $incomingIds);
-
                 if (!empty($idsToDelete)) {
                     $product->batchItems()->whereIn('batch_id', $idsToDelete)->delete();
-                    Batch::whereIn('id', $idsToDelete)
-                        ->where('merchant_id', $merchant->id)
-                        ->delete();
+                    Batch::whereIn('id', $idsToDelete)->where('merchant_id', $merchant->id)->delete();
                 }
 
                 foreach ($inputBatches as $b) {
@@ -126,27 +121,31 @@ class ProductExpiryController extends Controller
 
                     if ($batchId && in_array($batchId, $existingIds)) {
                         $existingBatch = Batch::where('id', $batchId)
-                            ->where('merchant_id', $merchant->id)
-                            ->first();
+                            ->where('merchant_id', $merchant->id)->first();
 
                         if ($existingBatch) {
                             $existingBatch->update([
                                 'expiry_date'       => $b['expiry_date'],
                                 'manufactured_date' => $b['manufactured_date'] ?? null,
                             ]);
-
                             $product->batchItems()
                                 ->where('batch_id', $existingBatch->id)
                                 ->update(['quantity' => $b['quantity']]);
                         }
                     } else {
                         $b['batch_code'] = $b['batch_code'] ?? 'B-' . Str::upper(Str::random(6));
-                        $this->createMultipleBatches($merchant, $product, [$b]);
+                        $createdBatches  = $this->createMultipleBatches($merchant, $product, [$b]);
+                        $newlyCreatedBatches = array_merge($newlyCreatedBatches, $createdBatches);
                     }
                 }
             }
 
             DB::commit();
+
+            // ✅ الآن BatchItem موجود — نُرسل الـ notifications بأمان
+            foreach ($newlyCreatedBatches as $newBatch) {
+                $newBatch->sendExpiryNotificationIfNeeded();
+            }
 
             $this->handleAutoHide($product, $merchant);
 
@@ -154,17 +153,14 @@ class ProductExpiryController extends Controller
             $worstStatus  = 'green';
             foreach ($freshProduct->batchItems as $item) {
                 $s = $item->batch?->status ?? 'green';
-                if ($s === 'red') { $worstStatus = 'red'; break; }
+                if ($s === 'red')    { $worstStatus = 'red'; break; }
                 if ($s === 'yellow') { $worstStatus = 'yellow'; }
             }
 
             Cache::forget("inventory_dashboard_{$merchant->id}");
-
             ActivityLog::log(
-                $merchant->id,
-                'expiry_added',
-                "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}",
-                $product
+                $merchant->id, 'expiry_added',
+                "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}", $product
             );
 
             $freshBatches = $request->same_expiry ? [] : $freshProduct->batchItems->map(fn($item) => [
@@ -190,14 +186,11 @@ class ProductExpiryController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Store Expiry Error: ' . $e->getMessage());
+            Log::error('Store Expiry Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return $this->respondWithError('حدث خطأ أثناء حفظ البيانات: ' . $e->getMessage());
         }
     }
 
-    /**
-     * حذف كل الباتشات وإعادة المنتج لحالة sale
-     */
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
@@ -205,16 +198,13 @@ class ProductExpiryController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. حذف الـ BatchItems ثم الـ Batches
             $batchIds = $product->batchItems()->pluck('batch_id');
             $product->batchItems()->delete();
             Batch::whereIn('id', $batchIds)->where('merchant_id', auth()->id())->delete();
 
-            // 2. إعادة الحالة sale في DB
             $product->status = 'sale';
             $product->save();
 
-            // 3. مزامنة مع سلة — ✅ نُرسل string مباشرةً وليس array
             $merchant = auth()->user();
             try {
                 $sallaApi = \App\Services\SallaApiService::for($merchant);
@@ -224,18 +214,11 @@ class ProductExpiryController extends Controller
             }
 
             DB::commit();
-
             Cache::forget("inventory_dashboard_{$merchant->id}");
-            ActivityLog::log(
-                $merchant->id,
-                'expiry_deleted',
-                "تم حذف تواريخ الانتهاء للمنتج: {$product->name}",
-                $product
-            );
+            ActivityLog::log($merchant->id, 'expiry_deleted',
+                "تم حذف تواريخ الانتهاء للمنتج: {$product->name}", $product);
 
-            return $this->respondWithSuccess('تم حذف البيانات وإعادة المنتج للحالة الافتراضية', [
-                'reset' => true,
-            ]);
+            return $this->respondWithSuccess('تم حذف البيانات وإعادة المنتج للحالة الافتراضية', ['reset' => true]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -244,42 +227,38 @@ class ProductExpiryController extends Controller
         }
     }
 
-    /**
-     * تحديث حالة الظهور تلقائياً (sale أو hidden)
-     */
-    protected function handleAutoHide($product, $merchant)
+    protected function handleAutoHide($product, $merchant): void
     {
         try {
             $product->load('batchItems.batch');
 
+            if (!$merchant || !$product || !$product->salla_product_id) return;
+
             $setting = BatchSetting::where('merchant_id', $merchant->id)->first();
+            if (!$setting || !$setting->auto_hide_expired) return;
 
-            if ($setting && $setting->auto_hide_expired) {
-                $hasValidBatches = $product->batchItems()->whereHas('batch', function ($query) {
-                    $query->where('expiry_date', '>=', now()->format('Y-m-d'));
-                })->exists();
+            $hasValidBatches = $product->batchItems()->whereHas('batch', function ($q) {
+                $q->where('expiry_date', '>=', now()->format('Y-m-d'));
+            })->exists();
 
-                $sallaApi  = \App\Services\SallaApiService::for($merchant);
-                $newStatus = $hasValidBatches ? 'sale' : 'hidden';
+            $sallaApi  = \App\Services\SallaApiService::for($merchant);
+            $newStatus = $hasValidBatches ? 'sale' : 'hidden';
 
-                // ✅ نُرسل string مباشرةً وليس array
-                $sallaApi->updateProductStatusOnly($product->salla_product_id, $newStatus);
+            $sallaApi->updateProductStatusOnly($product->salla_product_id, $newStatus);
+            $product->status = $newStatus;
+            $product->save();
 
-                $product->status = $newStatus;
-                $product->save();
-
-                Log::info("[AutoHide] {$product->name} → {$newStatus}");
-            }
+            Log::info("[AutoHide] {$product->name} → {$newStatus}");
         } catch (\Exception $e) {
             Log::error('AutoHide Error: ' . $e->getMessage());
         }
     }
 
     // =========================================================
-    // Helpers
+    // Helpers — يُرجعان الـ Batch المُنشأ لإرسال الـ notification لاحقاً
     // =========================================================
 
-    protected function createSingleBatch($merchant, Product $product, array $data)
+    protected function createSingleBatch($merchant, Product $product, array $data): ?Batch
     {
         $batch = Batch::create([
             'merchant_id'       => $merchant->id,
@@ -296,10 +275,16 @@ class ProductExpiryController extends Controller
             'quantity'   => $product->quantity ?? 0,
             'unit_cost'  => $product->price ?? 0,
         ]);
+
+        return $batch;
     }
 
-    protected function createMultipleBatches($merchant, Product $product, array $batches)
+    /**
+     * @return Batch[]
+     */
+    protected function createMultipleBatches($merchant, Product $product, array $batches): array
     {
+        $created = [];
         foreach ($batches as $data) {
             $batch = Batch::create([
                 'merchant_id'       => $merchant->id,
@@ -315,7 +300,10 @@ class ProductExpiryController extends Controller
                 'quantity'   => $data['quantity'],
                 'unit_cost'  => $product->price ?? 0,
             ]);
+
+            $created[] = $batch;
         }
+        return $created;
     }
 
     protected function respondWithSuccess($message, $data = [])
