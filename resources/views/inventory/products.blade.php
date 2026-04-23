@@ -12,7 +12,7 @@
     ],
 ])
 
-<main class="inv-page">
+<main class="inv-page inventory-page">
 
     {{-- Info Banner --}}
     <div class="inv-banner">
@@ -26,6 +26,15 @@
             <h2 class="inv-card-title"><i class="bi bi-box-seam"></i> Products</h2>
 
             <div class="inv-head-actions">
+                {{-- Search --}}
+    <div class="search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text"
+               id="invSearchInput"
+               placeholder="Quick find product…"
+               class="search-input"
+               aria-label="Search products">
+    </div>
 
                 <div class="inv-filter-dropdown" id="filterDropdown">
                     <button class="inv-action-btn" id="filterToggle" onclick="toggleFilterMenu()">
@@ -239,9 +248,14 @@
             </div>
         </div>
 
-        <div class="inv-pagination-wrap">
-            {{ $products->links() }}
-        </div>
+        {{-- Footer --}}
+@if($products->hasPages())
+<div class="table-footer table-footer--centered-pagination">
+    <div class="table-pagination">
+        {{ $products->onEachSide(1)->links('pagination::bootstrap-5') }}
+    </div>
+</div>
+@endif
     </div>
 
     <p class="inv-footer" id="invFooter">

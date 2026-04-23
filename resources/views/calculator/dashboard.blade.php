@@ -3,11 +3,11 @@
 @section('content')
 @include('layouts._header', [
     'headerNav' => [
-        ['url' => route('welcome'), 'icon' => 'bi-house-door-fill', 'label' => 'Home', 'route_match' => 'welcome'],
-        ['url' => route('calculator.dashboard'), 'icon' => 'bi-grid-fill', 'label' => 'Dashboard', 'route_match' => 'calculator.dashboard'],
-        ['url' => route('calculator.products.index'), 'icon' => 'bi-box-seam-fill', 'label' => 'Products', 'route_match' => 'calculator.products.*'],
-        ['url' => route('calculator.settings'),       'icon' => 'bi-gear-fill',     'label' => 'Settings', 'route_match' => 'calculator.settings'],
-        ['url' => route('calculator.instructions'), 'icon' => 'bi-exclamation-circle-fill', 'label' => '', 'route_match' => 'calculator.instructions'],
+        ['url' => route('welcome'),                   'icon' => 'bi-house-door-fill',         'label' => 'Home',      'route_match' => 'welcome'],
+        ['url' => route('calculator.dashboard'),      'icon' => 'bi-grid-fill',               'label' => 'Dashboard', 'route_match' => 'calculator.dashboard'],
+        ['url' => route('calculator.products.index'), 'icon' => 'bi-box-seam-fill',           'label' => 'Products',  'route_match' => 'calculator.products.*'],
+        ['url' => route('calculator.settings'),       'icon' => 'bi-gear-fill',               'label' => 'Settings',  'route_match' => 'calculator.settings'],
+        ['url' => route('calculator.instructions'),   'icon' => 'bi-exclamation-circle-fill', 'label' => '',          'route_match' => 'calculator.instructions'],
     ],
 ])
 
@@ -49,6 +49,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    {{-- cat-badge resized to Orange App spec via CSS variables --}}
                     <span class="cat-badge">{{ $settings->coverage_per_unit }} sqm</span>
                     <span class="cat-badge">{{ $settings->waste_percentage }}% waste</span>
                     <a href="{{ route('calculator.settings') }}"
@@ -76,40 +77,95 @@
             </div>
 
         @else
+            {{--
+                Activated Products table — fully synced with products.blade.php:
+                  • Same 4-column structure: Product / Category / Status / Toggle
+                  • TASK 1: .product-icon uses Orange App image frame (2.4rem, 0.6rem radius,
+                            dashed border, object-fit:cover, onerror fallback)
+                  • TASK 2: .cat-badge resized to Orange App token spec
+                  • Toggle column: identical .switch markup; products.js picks it up
+                    via .product-toggle + data-toggle-url, so no extra JS is needed.
+            --}}
             <div style="opacity:0; animation: fade-up 0.5s ease-out 0.7s forwards;">
                 <p class="section-heading" style="padding: 0 0 0 0.25rem;">Activated Products</p>
+
                 <div class="table-card" style="opacity:1; animation:none;">
                     <table style="width:100%; border-collapse:collapse;">
                         <thead>
                             <tr class="table-head">
                                 <th class="th-cell" style="text-align:left;">Product</th>
-                                <th class="th-cell" style="text-align:left;">Category</th>
+                                <th class="th-cell" style="text-align:center;">Category</th>
                                 <th class="th-cell" style="text-align:center;">Status</th>
+                                <th class="th-cell" style="text-align:center;">Toggle</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($enabledProducts as $product)
-                            <tr class="table-row">
+                            <tr class="table-row"
+                                id="row-{{ $product->id }}"
+                                data-product-name="{{ strtolower($product->name) }}">
+
+                                {{-- Product name --}}
                                 <td class="td-cell">
                                     <div style="display:flex; align-items:center; gap:0.875rem;">
-                                     <div class="product-icon active">
-    <img src="{{ $product->image_url }}" 
-         alt="{{ $product->name }}" 
-         style="width:100%; height:100%; object-fit:cover; border-radius:6px;">
-</div>
-                                        <span style="font-size:0.875rem; font-weight:600; color:var(--fg);">
+
+                                        {{--
+                                            TASK 1 — Orange App image standard (identical to products page)
+                                        --}}
+                                        <div id="icon-{{ $product->id }}"
+                                             class="product-icon active">
+                                            @if(!empty($product->image_url))
+                                                <img src="{{ $product->image_url }}"
+                                                     alt="{{ $product->name }}"
+                                                     loading="lazy"
+                                                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                                <span style="display:none; align-items:center; justify-content:center; width:100%; height:100%;">
+                                                    <i class="bi bi-box"></i>
+                                                </span>
+                                            @else
+                                                <i class="bi bi-box"></i>
+                                            @endif
+                                        </div>
+
+                                        <span id="name-{{ $product->id }}"
+                                              style="font-size:0.875rem; font-weight:600; color:var(--fg);">
                                             {{ $product->name }}
                                         </span>
                                     </div>
                                 </td>
+
+                                {{-- TASK 2 — Resized category badge --}}
                                 <td class="td-cell">
-                                    <span class="cat-badge">{{ $product->category ?? 'General' }}</span>
+                                    <div class="cell-center">
+                                        <span id="cat-{{ $product->id }}" class="cat-badge">
+                                            {{ $product->category ?? 'General' }}
+                                        </span>
+                                    </div>
                                 </td>
+
+                                {{-- Status --}}
+                                <td class="td-cell"
+                                    id="status-cell-{{ $product->id }}"
+                                    style="text-align:center;">
+                                    <div class="cell-center">
+                                        <span class="status-active">
+                                            <span class="status-dot"></span> Active
+                                        </span>
+                                    </div>
+                                </td>
+
+                                {{-- Toggle — identical to products page --}}
                                 <td class="td-cell" style="text-align:center;">
-                                    <span class="status-active">
-                                        <span class="status-dot"></span> Active
-                                    </span>
+                                    <label class="switch">
+                                        <input type="checkbox"
+                                               class="product-toggle"
+                                               data-product-id="{{ $product->id }}"
+                                               data-toggle-url="{{ route('calculator.products.toggle', $product->id) }}"
+                                               checked>
+                                        <span class="slider"></span>
+                                    </label>
                                 </td>
+
                             </tr>
                             @endforeach
                         </tbody>
@@ -121,3 +177,7 @@
     </div>
 </section>
 @endsection
+
+@push('scripts')
+<script src="{{ mix('js/products.js') }}" defer></script>
+@endpush

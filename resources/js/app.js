@@ -33,3 +33,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 });
+
+// User menu dropdown
+const userMenuBtn      = document.getElementById('userMenuBtn');
+const userMenuDropdown = document.getElementById('userMenuDropdown');
+
+if (userMenuBtn && userMenuDropdown) {
+    userMenuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        userMenuDropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function () {
+        userMenuDropdown.classList.remove('open');
+    });
+}

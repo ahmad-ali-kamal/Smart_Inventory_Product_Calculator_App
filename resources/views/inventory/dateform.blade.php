@@ -42,7 +42,11 @@
 </div>
         <div class="ef-panel ef-panel-yes" id="panelYes">
             <p class="ef-panel-title"><i class="bi bi-calendar3"></i> Single Expiry Date</p>
+           
             <label class="ef-label" for="efSingleDate">Expiry Date <span class="ef-status-badge" id="efSingleStatus"></span></label>
+             <button class="ef-delete-btn ef-delete-btn--icon" id="efSingleDeleteBtn" type="button" disabled title="Delete expiry details">
+                    <i class="bi bi-trash3"></i>
+                </button>
             
             <input type="date" class="ef-input" id="efSingleDate">
 <input type="hidden" id="efSingleBatchCode" value="">
@@ -57,6 +61,10 @@
                 <button class="ef-add-batch" id="efAddBatchBtn">
                     <i class="bi bi-plus-lg"></i> Add Batch
                 </button>
+                <button class="ef-delete-btn ef-delete-btn--compact" id="efDeleteBtn" type="button" disabled>
+                        <i class="bi bi-trash3"></i>
+                        <span id="efDeleteBtnText">Delete All</span>
+                    </button>
             </div>
             <div class="ef-batch-list" id="efBatchList"></div>
         </div>
@@ -67,10 +75,6 @@
         <div class="ef-action-row">
     <button class="ef-save" id="efSaveBtn" disabled>
         <i class="bi bi-floppy"></i> Save Expiry Information
-    </button>
-    <button class="ef-delete-btn" id="efDeleteBtn" disabled>
-        <i class="bi bi-trash3"></i>
-        <span id="efDeleteBtnText">Delete All</span>
     </button>
 </div>
 </div>

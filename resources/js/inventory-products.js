@@ -308,7 +308,33 @@ if (qtyCell) {
                 document.getElementById('filterChevron')?.classList.remove('open');
             }
         });
+// Search
+const searchInput = document.getElementById('invSearchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase();
+        let visible = 0;
 
+        document.querySelectorAll('#invBody tr[data-filter]:not(.batch-row)').forEach(row => {
+            const name    = row.querySelector('.prod-name')?.textContent?.toLowerCase() ?? '';
+            const matches = name.includes(query);
+            row.style.display = matches ? '' : 'none';
+            if (matches) visible++;
+
+            const pid = row.dataset.id;
+            if (pid) {
+                document.querySelectorAll(`.batch-row[data-parent="${pid}"]`).forEach(r => {
+                    if (!matches) { r.classList.remove('open'); r.style.display = 'none'; }
+                });
+            }
+        });
+
+        const empty  = document.getElementById('invEmpty');
+        const footer = document.getElementById('invFooter');
+        if (empty)  empty.style.display  = visible === 0 ? 'block' : 'none';
+        if (footer) footer.style.display = visible === 0 ? 'none'  : '';
+    });
+}
         _updateFooter();
     }
 

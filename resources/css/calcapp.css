@@ -10,6 +10,13 @@
     --mauve-border: hsla(282, 45%, 58%, 0.2);
     --fg:           hsl(280, 25%, 18%);
     --muted:        hsl(280, 10%, 52%);
+
+    /* Pills (Category/Status) — compact, minimalist */
+    --pill-px:      0.75rem;
+    --pill-py:      0.22rem;
+    --pill-font:    0.68rem;
+    --pill-weight:  600;
+    --pill-radius:  999px;
 }
 
 body {
@@ -51,8 +58,8 @@ body {
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsla(0,0%,100%,0.65);
     border-bottom-width: 4px;
-    border-radius: 1.5rem;
-    padding: 1.5rem;
+    border-radius: 1.35rem;
+    padding: 1.35rem;
     box-shadow: 0 8px 32px hsla(282,45%,45%,0.07);
     transition: transform 0.25s, box-shadow 0.25s;
 }
@@ -62,11 +69,11 @@ body {
 .stat-card.card-3 { border-bottom-color: hsl(265,45%,62%); }
 
 .icon-box {
-    width: 2.75rem; height: 2.75rem;
+    width: 2.55rem; height: 2.55rem;
     background: linear-gradient(135deg, var(--mauve), var(--mauve-deep));
-    border-radius: 0.875rem;
+    border-radius: 0.85rem;
     display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 1.1rem;
+    color: white; font-size: 1.06rem;
     box-shadow: 0 4px 12px hsla(282,45%,55%,0.3);
     flex-shrink: 0; position: relative;
 }
@@ -77,8 +84,8 @@ body {
 .icon-box.icon-2 { background: linear-gradient(135deg, hsl(282,40%,62%), hsl(270,45%,52%)); }
 .icon-box.icon-3 { background: linear-gradient(135deg, hsl(265,45%,58%), hsl(282,40%,50%)); }
 
-.stat-num   { font-size: 1.75rem; font-weight: 800; color: var(--fg); letter-spacing: -0.03em; line-height: 1; }
-.stat-label { font-size: 0.82rem; font-weight: 600; color: var(--fg); margin-bottom: 0.15rem; }
+.stat-num   { font-size: 1.6rem; font-weight: 800; color: var(--fg); letter-spacing: -0.03em; line-height: 1; }
+.stat-label { font-size: 0.78rem; font-weight: 650; color: var(--fg); margin-bottom: 0.15rem; }
 .stat-sub   { font-size: 0.72rem; color: var(--muted); }
 
 .empty-card {
@@ -103,7 +110,7 @@ body {
 }
 
 /* =============================================
-   PRODUCTS — Table
+   PRODUCTS — Guide box
 ============================================= */
 .guide-box {
     background: hsla(0,0%,100%,0.5);
@@ -113,6 +120,8 @@ body {
     box-shadow: 0 8px 32px hsla(282,45%,45%,0.07);
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
     opacity: 0; animation: fade-up 0.5s ease-out 0.4s forwards;
+    position: relative;
+    z-index: 20; 
 }
 .guide-icon {
     width: 2.75rem; height: 2.75rem;
@@ -121,54 +130,224 @@ body {
     display: flex; align-items: center; justify-content: center;
     color: var(--mauve); font-size: 1.1rem; flex-shrink: 0;
 }
-.search-wrap { position: relative; width: 100%; max-width: 280px; }
-.search-wrap i {
-    position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
-    color: var(--muted); font-size: 0.875rem; pointer-events: none;
-}
-.search-input {
-    width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.75rem;
-    background: hsla(0,0%,100%,0.6);
-    border: 1.5px solid hsla(0,0%,100%,0.7);
-    border-radius: 1rem;
-    font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: var(--fg); outline: none;
-    transition: all 0.2s;
-}
-.search-input::placeholder { color: var(--muted); }
-.search-input:focus { background: hsla(0,0%,100%,0.9); border-color: var(--mauve); box-shadow: 0 0 0 4px hsla(282,45%,55%,0.1); }
 
+/* =============================================
+   TASK 3 — Unified Toolbar: [Search | Filter | Sync]
+   Mirrors Orange App .inv-head-actions pattern exactly.
+   Height anchor: 2.25rem — same as .inv-action-btn in expiryapp.css.
+============================================= */
+.calc-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;          /* matches Orange App .inv-head-actions gap */
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+}
+
+/*
+ * Filter & Sync buttons — inherit .inv-action-btn from expiryapp.css
+ * but override hue to the Calculator's purple palette.
+ * The base class stays identical; only colour tokens change.
+ */
+.calc-toolbar .inv-action-btn {
+    /* Re-skin: purple accent instead of orange */
+    color: hsl(282, 55%, 42%);
+    border-color: hsla(282, 45%, 58%, 0.45);
+    box-shadow: 0 1px 4px hsla(282, 45%, 55%, 0.1);
+}
+.calc-toolbar .inv-action-btn:hover {
+    background: hsla(282, 45%, 58%, 0.06);
+    border-color: hsla(282, 45%, 58%, 0.7);
+    box-shadow: 0 2px 8px hsla(282, 45%, 55%, 0.15);
+}
+
+/* Filter menu — purple-accented */
+.calc-toolbar .inv-filter-menu {
+    border-color: hsla(282, 45%, 58%, 0.3);
+    box-shadow: 0 8px 24px hsla(282, 40%, 40%, 0.12);
+}
+.calc-toolbar .inv-filter-option:hover  {
+    background: hsla(282, 45%, 58%, 0.07);
+    color: hsl(282, 45%, 30%);
+}
+.calc-toolbar .inv-filter-option.active {
+    background: hsla(282, 45%, 58%, 0.12);
+    color: hsl(282, 45%, 30%);
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .calc-toolbar { flex-wrap: wrap; }
+ 
+}
+
+/* =============================================
+   PRODUCTS — Table
+============================================= */
 .table-card {
     background: hsla(0,0%,100%,0.5);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsla(0,0%,100%,0.65);
-    border-radius: 1.5rem; overflow: hidden;
+    border-radius: 1.5rem; overflow: visible; 
     box-shadow: 0 8px 32px hsla(282,45%,45%,0.07);
     opacity: 0; animation: fade-up 0.5s ease-out 0.55s forwards;
 }
 .table-head  { background: var(--mauve-soft); border-bottom: 1px solid var(--mauve-border); }
-.th-cell     { padding: 1rem 1.75rem; font-size: 0.68rem; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.th-cell     { padding: 0.85rem 1.75rem; font-size: 0.68rem; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
 .table-row   { border-bottom: 1px solid hsla(282,30%,70%,0.1); transition: background 0.2s; }
 .table-row:last-child  { border-bottom: none; }
 .table-row:hover       { background: hsla(282,45%,55%,0.04); }
 .table-row.hidden-row  { display: none; }
-.td-cell     { padding: 0 1.75rem; height: 72px; vertical-align: middle; }
+.td-cell     { padding: 0 1.75rem; height: 64px; vertical-align: middle; }
 
-.product-icon { width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; transition: all 0.3s; }
-.product-icon.active   { background: var(--mauve-soft);    border: 1px solid var(--mauve-border); color: var(--mauve); }
-.product-icon.inactive { background: hsla(0,0%,0%,0.04);   border: 1px solid hsla(0,0%,0%,0.07); color: var(--muted); }
+/* Table cell helpers */
+.cell-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
 
-.cat-badge         { display: inline-block; padding: 0.2rem 0.65rem; background: var(--mauve-soft); border: 1px solid var(--mauve-border); border-radius: 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--mauve-deep); }
-.cat-badge.inactive{ background: hsla(0,0%,0%,0.04); border-color: hsla(0,0%,0%,0.08); color: var(--muted); }
+/*
+ * TASK 1 — Product icon: Orange App image standard
+ *   Spec source: expiryapp.css .prod-img-placeholder
+ *   • size:          2.4rem × 2.4rem
+ *   • border-radius: 0.6rem
+ *   • border:        1.5px dashed hsla(0,0%,0%,0.15)
+ *   • background:    hsla(0,0%,0%,0.04)
+ *   • overflow:      hidden (clips image to rounded frame)
+ *   • img object-fit: cover (fills frame, no distortion)
+ */
+.product-icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    flex-shrink: 0;
+    border-radius: 0.6rem;
+    border: 1.5px dashed hsla(0,0%,0%,0.15);
+    background: hsla(0,0%,0%,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: hsla(0,0%,0%,0.22);
+    font-size: 0.9rem;
+    overflow: hidden;
+    transition: border-color 0.25s, background 0.25s;
+}
+.product-icon.active {
+    border-style: solid;
+    border-color: var(--mauve-border);
+    background: var(--mauve-soft);
+    color: var(--mauve);
+}
+.product-icon.inactive {
+    border-style: dashed;
+    border-color: hsla(0,0%,0%,0.15);
+    background: hsla(0,0%,0%,0.04);
+    color: hsla(0,0%,0%,0.22);
+}
+.product-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    display: block;
+}
 
-.status-active { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.75rem; background: hsla(150,60%,45%,0.1); border: 1px solid hsla(150,60%,45%,0.25); border-radius: 2rem; font-size: 0.68rem; font-weight: 700; color: hsl(150,50%,28%); letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.3s; }
-.status-dot    { width: 6px; height: 6px; border-radius: 50%; background: hsl(150,55%,42%); animation: pulse-dot 2s infinite; }
-.status-inactive { font-size: 0.68rem; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+/* Unified pills: Category + Status */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: var(--pill-py) var(--pill-px);
+    border-radius: var(--pill-radius);
+    font-size: var(--pill-font);
+    font-weight: var(--pill-weight);
+    line-height: 1.15;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+.pill--category {
+    background: var(--mauve-soft);
+    border: 1px solid var(--mauve-border);
+    color: hsl(282, 45%, 32%);
+}
+.pill--muted {
+    background: hsla(0,0%,0%,0.035);
+    border: 1px solid hsla(0,0%,0%,0.08);
+    color: var(--muted);
+}
+.pill--active {
+    background: hsla(150,60%,45%,0.09);
+    border: 1px solid hsla(150,60%,45%,0.22);
+    color: hsl(150,45%,26%);
+    text-transform: uppercase;
+}
+.pill--inactive {
+    background: hsla(0,0%,0%,0.03);
+    border: 1px solid hsla(0,0%,0%,0.08);
+    color: var(--muted);
+    text-transform: uppercase;
+}
+.pill-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: hsl(150,55%,42%);
+    flex-shrink: 0;
+}
 
+/* Backwards-compat mapping (used in markup + JS) */
+.cat-badge,
+.cat-badge.inactive,
+.status-active,
+.status-inactive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: var(--pill-py) var(--pill-px);
+    border-radius: var(--pill-radius);
+    font-size: var(--pill-font);
+    font-weight: var(--pill-weight);
+    line-height: 1.15;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.cat-badge {
+    background: var(--mauve-soft);
+    border: 1px solid var(--mauve-border);
+    color: hsl(282, 45%, 32%);
+}
+.cat-badge.inactive {
+    background: hsla(0,0%,0%,0.035);
+    border: 1px solid hsla(0,0%,0%,0.08);
+    color: var(--muted);
+}
+.status-active {
+    background: hsla(150,60%,45%,0.09);
+    border: 1px solid hsla(150,60%,45%,0.22);
+    color: hsl(150,45%,26%);
+    text-transform: uppercase;
+}
+.status-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: hsl(150,55%,42%);
+    flex-shrink: 0;
+}
+.status-inactive {
+    background: hsla(0,0%,0%,0.03);
+    border: 1px solid hsla(0,0%,0%,0.08);
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+/* ── Toggle switch ── */
 .switch           { position: relative; display: inline-block; width: 40px; height: 22px; }
 .switch input     { opacity: 0; width: 0; height: 0; }
-.slider           { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: hsla(0,0%,0%,0.12); border-radius: 22px; transition: 0.3s; }
-.slider::before   { position: absolute; content: ''; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+.slider           { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: hsla(0,0%,0%,0.12); border-radius: 22px; transition: background 0.3s; }
+.slider::before   { position: absolute; content: ''; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 input:checked + .slider          { background: var(--mauve); }
 input:checked + .slider::before  { transform: translateX(18px); }
 .switch.loading .slider          { opacity: 0.5; pointer-events: none; }
@@ -180,9 +359,6 @@ input:checked + .slider::before  { transform: translateX(18px); }
 .toast       { padding: 0.75rem 1.25rem; border-radius: 0.875rem; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.12); transform: translateY(10px); opacity: 0; transition: all 0.3s ease; pointer-events: none; }
 .toast.show  { transform: translateY(0); opacity: 1; }
 .toast.success { background: hsla(150,60%,45%,0.1); border: 1px solid hsla(150,60%,45%,0.25); color: hsl(150,50%,28%); }
+.toast.info    { background: hsla(0,0%,0%,0.05);     border: 1px solid hsla(0,0%,0%,0.12);     color: hsl(280, 10%, 34%); }
 .toast.error   { background: hsla(0,80%,55%,0.1);   border: 1px solid hsla(0,80%,55%,0.25);   color: hsl(0,60%,35%); }
-
-.table-footer { padding: 1.5rem; border-top: 1px solid hsla(282,30%,70%,0.12); display: flex; justify-content: center; background: hsla(282,45%,55%,0.03); }
-
-@keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
-.skeleton { background: linear-gradient(90deg, hsla(0,0%,0%,0.06) 25%, hsla(0,0%,0%,0.1) 50%, hsla(0,0%,0%,0.06) 75%); background-size: 1000px 100%; animation: shimmer 1.5s infinite; border-radius: 0.5rem; }
+.toast.warning { background: hsla(38, 90%, 50%, 0.12); border: 1px solid hsla(38, 90%, 50%, 0.28); color: hsl(38, 70%, 24%); }

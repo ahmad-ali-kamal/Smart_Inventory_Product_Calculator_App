@@ -24,7 +24,7 @@
 
     @stack('styles')
 </head>
-<body>
+<body class="inventory-page">
 
     {{-- Shared background elements --}}
     <div class="grain"></div>
@@ -33,6 +33,12 @@
     <div class="orb orb-3"></div>
 
     @yield('content')
+
+    {{-- Global inventory toast (fixed, does not affect layout) --}}
+    <div class="inv-toast" id="invToast">
+        <i id="invToastIcon"></i>
+        <span id="invToastMsg"></span>
+    </div>
 
     @stack('scripts')
     <script src="{{ asset('js/notifications.js') }}" defer></script>

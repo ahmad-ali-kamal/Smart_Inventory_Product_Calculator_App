@@ -24,11 +24,14 @@
 
     @stack('styles')
 </head>
-<body>
+<body class="calculator-page">
     <div class="grain"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
+
+    {{-- Global toast container (fixed, does not affect layout) --}}
+    <div class="toast-wrap" id="toastContainer"></div>
 
     @yield('content')
 

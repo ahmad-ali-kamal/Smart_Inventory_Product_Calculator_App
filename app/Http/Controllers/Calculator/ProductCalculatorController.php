@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CalculatorSetting;
 use App\Models\Product;
 use App\Models\ProductCalculator;
+use App\Jobs\FetchProductsJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -19,26 +20,26 @@ class ProductCalculatorController extends Controller
     {
         $merchant = Auth::user();
 
-        // البحث عن المنتج باستخدام salla_product_id + التحقق من الملكية
         $product = Product::where('merchant_id', $merchant->id)
             ->where('salla_product_id', (string) $product_id)
             ->first();
 
         if (!$product) {
-            return response()->json(['enabled' => false, 'message' => 'Product not found']);
+            return response()->json([
+                'enabled' => false,
+                'success' => false,
+                'message' => "We couldn't find this product in your store. Please refresh and try again.",
+            ], 404);
         }
 
-        // تحقق من التفعيل
         $calculator = $product->calculator;
 
         if (!$calculator || !$calculator->is_enabled) {
             return response()->json(['enabled' => false]);
         }
 
-        // جلب إعدادات التاجر
         $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
 
-        // Overrides per product (optional) via metadata
         $metaCalc = is_array($product->metadata) ? ($product->metadata['calculator'] ?? null) : null;
         $unitType = is_array($metaCalc) && !empty($metaCalc['unit_type'])
             ? (string) $metaCalc['unit_type']
@@ -67,7 +68,7 @@ class ProductCalculatorController extends Controller
             'calculator' => [
                 'area_unit' => 'm2',
                 'selling_unit' => [
-                    'type'             => $unitType,
+                    'type'              => $unitType,
                     'coverage_per_unit' => $coveragePerUnit,
                     'rounding'          => $unitType === 'box' ? 'ceil' : 'none',
                     'min'               => 1,
@@ -81,7 +82,6 @@ class ProductCalculatorController extends Controller
 
     /**
      * تحديث إعدادات منتج واحد (Overrides) عبر API
-     * يستخدم لتحديد: نوع الوحدة (box|meter) + تغطية الصندوق + هدر
      */
     public function updateSettings(Request $request)
     {
@@ -116,7 +116,7 @@ class ProductCalculatorController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Calculator settings updated.',
+            'message' => 'Calculator settings saved successfully.',
             'calculator' => $metadata['calculator'],
         ]);
     }
@@ -128,65 +128,103 @@ class ProductCalculatorController extends Controller
     {
         $merchant = Auth::user();
 
-        // جلب المنتجات مع البحث إذا وجد
         $query = Product::where('merchant_id', $merchant->id)
                         ->with(['calculator']);
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $products = $query->orderBy('name')->paginate(20);
+        // Server-side filter by activation status
+        if ($request->filled('filter')) {
+            if ($request->filter === 'active') {
+                $query->whereHas('calculator', fn($q) => $q->where('is_enabled', true));
+            } elseif ($request->filter === 'inactive') {
+                $query->where(function ($q) {
+                    $q->whereDoesntHave('calculator')
+                      ->orWhereHas('calculator', fn($inner) => $inner->where('is_enabled', false));
+                });
+            }
+        }
+
+        $products = $query->orderBy('name')->paginate(20)->withQueryString();
 
         return view('calculator.products', compact('products'));
     }
 
     /**
-     * ✅ إصلاح: تفعيل/إيقاف الآلة الحاسبة (Toggle) بأسلوب آمن
-     * حل مشكلة "Double Flip" التي تمنع التفعيل.
+     * مزامنة المنتجات من سلة — يُطلق FetchProductsJob في الخلفية
+     */
+    public function sync(Request $request)
+    {
+        $merchant = Auth::user();
+
+        try {
+            FetchProductsJob::dispatch($merchant);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sync started. Products will appear shortly.',
+                ]);
+            }
+
+            return back()->with('success', 'Sync started. Products will appear shortly.');
+
+        } catch (\Exception $e) {
+            Log::error('Calculator sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "We're having trouble syncing. Please try again shortly.",
+                ], 500);
+            }
+
+            return back()->with('error', 'Sync failed. Please try again.');
+        }
+    }
+
+    /**
+     * تفعيل/إيقاف الآلة الحاسبة (Toggle)
      */
     public function toggle(Request $request, $id)
     {
         $merchant = Auth::user();
 
         try {
-            // 1. التحقق الصارم من ملكية المنتج
             $product = Product::where('id', $id)
                               ->where('merchant_id', $merchant->id)
                               ->firstOrFail();
 
-            // 2. جلب السجل الحالي أو إنشاء واحد جديد إذا لم يوجد
             $calculator = ProductCalculator::firstOrCreate(['product_id' => $product->id]);
 
-            // 3. تحديد الحالة الجديدة:
-            // إذا تم تمرير حالة محددة من الواجهة نستخدمها، وإلا نعكس الحالة الحالية.
             if ($request->has('is_enabled')) {
                 $newState = filter_var($request->is_enabled, FILTER_VALIDATE_BOOLEAN);
             } else {
                 $newState = !$calculator->is_enabled;
             }
 
-            // 4. حفظ الحالة الجديدة
             $calculator->is_enabled = $newState;
             $calculator->save();
 
-            // 5. الرد لطلبات AJAX
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success'    => true,
-                    'is_enabled' => (bool)$calculator->is_enabled,
-                    'message'    => $calculator->is_enabled ? 'Al-Mustashar activated' : 'Al-Mustashar disabled'
+                    'is_enabled' => (bool) $calculator->is_enabled,
+                    'message'    => $calculator->is_enabled
+                        ? 'Calculator enabled for this product.'
+                        : 'Calculator disabled for this product.',
                 ]);
             }
 
-            // للطلبات العادية (تراجع)
-            return back()->with('success', 'Status updated successfully');
+            return back()->with('success', 'Product settings updated.');
 
         } catch (\Exception $e) {
             Log::error("Toggle Error for Product ID {$id}: " . $e->getMessage());
             return response()->json([
-                'success' => false, 
-                'message' => 'Error: ' . $e->getMessage()
+                'success' => false,
+                'message' => "We're having trouble saving your changes. Please try again shortly.",
             ], 500);
         }
     }
@@ -199,11 +237,10 @@ class ProductCalculatorController extends Controller
         $merchant = Auth::user();
 
         $validated = $request->validate([
-            'product_ids' => 'required|array',
+            'product_ids'   => 'required|array',
             'product_ids.*' => 'exists:products,id',
         ]);
 
-        // جلب المنتجات المملوكة فقط لضمان الأمان
         $products = Product::where('merchant_id', $merchant->id)
                            ->whereIn('id', $validated['product_ids'])
                            ->get();
@@ -218,10 +255,10 @@ class ProductCalculatorController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Activated for ' . $products->count() . ' products successfully.'
+                'message' => 'Calculator enabled for ' . $products->count() . ' product(s).',
             ]);
         }
 
-        return back()->with('success', 'Selected products activated.');
+        return back()->with('success', 'Selected products updated.');
     }
 }
