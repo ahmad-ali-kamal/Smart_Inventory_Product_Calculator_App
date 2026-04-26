@@ -1,260 +1,339 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 
-/* ─── Language Toggle ──────────────────────────────────── */
+/**
+ * ─── QUANTIX CORE NAVIGATION LOGIC ──────────────────────────────────────────
+ * نظام إدارة الحالة للغات وتنسيق المحتوى التفاعلي.
+ */
 function useLang() {
     const [lang, setLang] = useState('ar');
-    const toggle = () => setLang(l => l === 'ar' ? 'en' : 'ar');
-    return { lang, toggle, isAr: lang === 'ar' };
+    const toggle = () => setLang(prev => (prev === 'ar' ? 'en' : 'ar'));
+    
+    return { 
+        lang, 
+        toggle, 
+        isAr: lang === 'ar' 
+    };
 }
 
-/* ─── Translations ─────────────────────────────────────── */
+/**
+ * ─── PROFESSIONAL COPYWRITING & TRANSLATIONS ───────────────────────────────
+ * مصفوفة النصوص المطورة بأسلوب تسويقي احترافي.
+ */
 const T = {
     ar: {
         brand:      'QUANTIX',
-        nav:        ['حول المنصة', 'التطبيقات', 'تواصل معنا'],
-        badge:      'منصة إدارة تجارية ذكية لمتاجر سلة',
-        heroLine1:  'أدوات تجارية',
-        heroLine2:  'بذكاء حقيقي',
-        heroSub:    'منصة متكاملة تجمع نظام إدارة المخزون وأداة الحساب الذكي في مكان واحد، مصممة لتجار سلة الراغبين في قرارات أذكى وأرباح أعلى.',
-        scrollHint: 'اكتشف التطبيقات',
-        appsLabel:  'تطبيقاتنا',
-        bottomNote: 'كل تطبيق له حساب مستقل • البيانات محمية ومشفرة',
-        footer:     'جميع الحقوق محفوظة',
-        langBtn:    'ENGLISH', // عرض كامل كما طلبت
+        nav:        ['الرؤية', 'منظومة التطبيقات', 'الدعم الفني'],
+        badge:      'المنظومة المتكاملة للنمو الذكي لمتاجر سلة',
+        heroLine1:  'حلول تجارية ذكية',
+        heroLine2:  'بأبعاد تقنية متقدمة',
+        heroSub:    'منصة محورية تجمع بين ذكاء إدارة المخزون ودقة الحسابات المؤتمتة، صُممت خصيصاً لنخبة تجار سلة الساعين نحو التميز التشغيلي وتعظيم الأرباح.',
+        scrollHint: 'استكشف آفاق QUANTIX',
+        appsLabel:  'منظومة التطبيقات المتكاملة',
+        bottomNote: 'كل حل تقني يعمل باستقلالية تامة لضمان خصوصية البيانات وتشفيرها العالي.',
+        footer:     'جميع الحقوق محفوظة لمنصة كوانتيكس الرقمية',
+        langBtn:    'ENGLISH INTERFACE',
 
         app1: {
-            badge:    'حريص',
-            title:    'إدارة المخزون الذكية',
-            tagline:  'لا تخسر في البضاعة القريبة من الانتهاء',
-            desc:     'نظام متكامل لمتابعة تواريخ الصلاحية يُنظّم مخزونك حسب الدفعات، ويُطبّق الخصومات تلقائياً على المنتجات المقاربة للانتهاء — لحماية أرباحك وتقليل الهدر.',
-            stats: [{ v: '+٥٠٠', l: 'منتج مُتابَع' }, { v: '٤٨س', l: 'تنبيه مسبق' }, { v: '١٠٠٪', l: 'مزامنة سلة' }],
-            features: ['تتبع تواريخ الصلاحية دفعة بدفعة', 'خصومات تلقائية للمنتجات المقاربة', 'إخفاء ذكي للمنتجات المنتهية', 'تزامن فوري مع متجر سلة'],
-            cta: 'ابدأ مع حريص',
+            badge:    'حريص | HAREES',
+            title:    'نظام حريص لإدارة المخزون',
+            tagline:  'الأمان الكامل لمخزونك وتواريخ صلاحيتك',
+            desc:     'نظام متقدم لمراقبة تواريخ الصلاحية، يقوم بتنظيم المخزون بناءً على الدفعات (Batches)، مع تطبيق ذكي للخصومات التلقائية للمنتجات القريبة من الانتهاء؛ وذلك لضمان استمرارية أرباحك وتقليل الهدر التشغيلي بنسبة تصل إلى 40%.',
+            stats: [
+                { v: '+٥٠٠', l: 'منتج يتم تتبعه' }, 
+                { v: '٤٨س', l: 'إنذار مبكر' }, 
+                { v: '١٠٠٪', l: 'أتمتة كاملة' }
+            ],
+            features: [
+                'تتبع دقيق للمخزون بنظام الدفعات (Batch Tracking)', 
+                'إطلاق خصومات آلية للمنتجات القريبة من الانتهاء', 
+                'حماية الأرباح عبر تقليل الفاقد السنوي', 
+                'مزامنة فورية مع لوحة تحكم متجر سلة'
+            ],
+            cta: 'ابدأ مع حريص الآن',
         },
         app2: {
-            badge:    'مستشار',
-            title:    'حاسبة الكميات الذكية',
-            tagline:  'الكمية الصحيحة في كل طلب',
-            desc:     'أداة حساب ذكية تحسب لك تلقائياً الكمية المثلى للعملاء بناءً على قواعد الحساب الخاصة بك — قرارات شراء أدق، وتكاليف أقل.',
-            stats: [{ v: '+٢٠٠', l: 'تاجر نشط' }, { v: '٩٨٪', l: 'دقة الحساب' }, { v: '٣ث', l: 'وقت النتيجة' }],
-            features: ['حساب الكمية المثلى تلقائياً', 'قواعد حساب مخصصة لكل منتج', 'دعم متعدد العملات والوحدات', 'تقارير مفصلة قابلة للتصدير'],
-            cta: 'ابدأ مع مستشار',
+            badge:    'مستشار | MUSTASHAR',
+            title:    'أداة مستشار للحساب الذكي',
+            tagline:  'القرار الحسابي الصحيح في كل ثانية',
+            desc:     'أداة حسابية ذكية تساعدك في حساب الكميات المثلى لعملائك آلياً بناءً على قواعد الحساب الخاصة بمتجرك؛ مما يقلل من أخطاء الطلبات البشرية ويزيد من كفاءة التوريد والدقة المحاسبية.',
+            stats: [
+                { v: '+٢٠٠', l: 'تاجر يعتمدها' }, 
+                { v: '٩٩٪', l: 'دقة حسابية' }, 
+                { v: '٣ث', l: 'سرعة التنفيذ' }
+            ],
+            features: [
+                'حساب الكميات المثلى بناءً على سلوك العميل', 
+                'تخصيص قواعد الحساب لكل صنف تجاري', 
+                'دعم كامل للعملات الخليجية والعالمية', 
+                'تقارير تحليلية للتنبؤ بالطلبات المستقبلية'
+            ],
+            cta: 'فعل مستشار بمتجرك',
         },
         statsBar: [
-            { v: 700,   s: '+',  l: 'تاجر نشط' },
-            { v: 15000, s: '+',  l: 'منتج مُتابَع' },
-            { v: 98,    s: '٪', l: 'رضا المستخدمين' },
-            { v: 24,    s: '/٧', l: 'دعم فني' },
+            { v: 700,   s: '+',  l: 'شريك تجاري نشط' },
+            { v: 15000, s: '+',  l: 'عملية تتبع يومية' },
+            { v: 98,    s: '٪', l: 'معدل الدقة والثقة' },
+            { v: 24,    s: '/٧', l: 'مركز مساعدة تقني' },
         ],
     },
     en: {
         brand:      'QUANTIX',
-        nav:        ['About', 'Apps', 'Contact'],
-        badge:      'Smart Commerce Platform for Salla Merchants',
-        heroLine1:  'Business Tools',
-        heroLine2:  'Truly Intelligent',
-        heroSub:    'An all-in-one platform combining smart inventory management and an intelligent calculation tool — built for Salla merchants who want smarter decisions and higher profits.',
-        scrollHint: 'Discover Apps',
-        appsLabel:  'Our Applications',
-        bottomNote: 'Each app has its own account • Data is secured & encrypted',
-        footer:     'All rights reserved',
-        langBtn:    'العربية', // عرض كامل كما طلبت
+        nav:        ['Our Vision', 'App Ecosystem', 'Support'],
+        badge:      'The Integrated Ecosystem for Smart Salla Growth',
+        heroLine1:  'Smart Business Tools',
+        heroLine2:  'With Real Intelligence',
+        heroSub:    'An all-in-one pivotal platform combining smart inventory management and an intelligent calculation tool — built for Salla merchants who want smarter decisions and higher profits.',
+        scrollHint: 'Explore Quantix Horizons',
+        appsLabel:  'Our Integrated Application Suite',
+        bottomNote: 'Each application operates independently to ensure data privacy and high-level encryption.',
+        footer:     'All rights reserved to Quantix Digital Platform',
+        langBtn:    'العربية (الواجهة الكاملة)',
 
         app1: {
-            badge:    'Harees',
-            title:    'Smart Inventory Management',
-            tagline:  "Don't lose on near-expiry stock",
-            desc:     'An expiry date monitoring system that organizes your inventory by batch and automatically applies discounts for near-expiry products — to secure your profits and reduce waste.',
-            stats: [{ v: '500+', l: 'Products' }, { v: '48h', l: 'Early Alert' }, { v: '100%', l: 'Salla Sync' }],
-            features: ['Batch-level expiry tracking', 'Auto discounts for near-expiry items', 'Smart auto-hide for expired products', 'Instant Salla store synchronization'],
-            cta: 'Start with Harees',
+            badge:    'HAREES | Inventory',
+            title:    'Harees Expiry Monitoring',
+            tagline:  'Securing profits and reducing waste',
+            desc:     'An expiry date monitoring system that organizes inventory by batch and apply discounts for near-expiry products to secure your profits and reduce waste effectively by up to 40%.',
+            stats: [
+                { v: '500+', l: 'Tracked Products' }, 
+                { v: '48h', l: 'Early Warning' }, 
+                { v: '100%', l: 'Full Automation' }
+            ],
+            features: [
+                'Precision batch-level inventory tracking', 
+                'Automated discounts for near-expiry stocks', 
+                'Smart profit protection and waste reduction', 
+                'Instant synchronization with Salla dashboard'
+            ],
+            cta: 'Get Started with Harees',
         },
         app2: {
-            badge:    'Mustashar',
-            title:    'Smart Quantity Calculator',
-            tagline:  'The right quantity in every order',
-            desc:     'A smart calculation tool that automatically calculates the right quantity for each customer based on your own calculation rules — smarter purchasing decisions, lower costs.',
-            stats: [{ v: '200+', l: 'Merchants' }, { v: '98%', l: 'Accuracy' }, { v: '3s', l: 'Result Time' }],
-            features: ['Auto optimal quantity calculation', 'Custom rules per product', 'Multi-currency & unit support', 'Detailed exportable reports'],
-            cta: 'Start with Mustashar',
+            badge:    'MUSTASHAR | Analytics',
+            title:    'Mustashar Smart Calculator',
+            tagline:  'Optimal quantities for every customer',
+            desc:     'A smart calculation tool helps you automatically calculate the right quantity for customer based on your own calculation rules, ensuring order accuracy and supply chain efficiency.',
+            stats: [
+                { v: '200+', l: 'Active Merchants' }, 
+                { v: '99%', l: 'Calculation Accuracy' }, 
+                { v: '3s', l: 'Execution Time' }
+            ],
+            features: [
+                'AI-driven optimal quantity calculation', 
+                'Customizable calculation rules per product', 
+                'Multi-currency and unit support across Salla', 
+                'Detailed analytics for purchase prediction'
+            ],
+            cta: 'Activate Mustashar Now',
         },
         statsBar: [
             { v: 700,   s: '+',  l: 'Active Merchants' },
-            { v: 15000, s: '+',  l: 'Products Tracked' },
-            { v: 98,    s: '%',  l: 'User Satisfaction' },
-            { v: 24,    s: '/7', l: 'Support' },
+            { v: 15000, s: '+',  l: 'Daily Tracked Items' },
+            { v: 98,    s: '%',  l: 'Trust & Accuracy Rate' },
+            { v: 24,    s: '/7', l: 'Technical Support' },
         ],
     },
 };
 
-/* ─── Counter Logic ────────────────────────────────────── */
+/** * ─── ANIMATED COUNTER COMPONENT ──────────────────────────────────────────
+ */
 function Counter({ end, suffix }) {
     const [n, setN] = useState(0);
     useEffect(() => {
-        let c = 0;
-        const step = end / 60;
-        const t = setInterval(() => {
-            c += step;
-            if (c >= end) { setN(end); clearInterval(t); }
-            else setN(Math.floor(c));
-        }, 28);
-        return () => clearInterval(t);
+        let current = 0;
+        const duration = 2000;
+        const frameRate = 30;
+        const totalFrames = duration / frameRate;
+        const increment = end / totalFrames;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= end) {
+                setN(end);
+                clearInterval(timer);
+            } else {
+                setN(Math.floor(current));
+            }
+        }, frameRate);
+        
+        return () => clearInterval(timer);
     }, [end]);
+    
     return <>{n.toLocaleString()}{suffix}</>;
 }
 
-/* ─── App Card Component ───────────────────────────────── */
+/** * ─── PREMIUM APP CARD COMPONENT ──────────────────────────────────────────
+ */
 function AppCard({ data, loginUrl, isAr }) {
-    const [hov, setHov] = useState(false);
-    const ff = isAr ? "'Almarai', sans-serif" : "'Cormorant Garamond', serif";
-    const ffNum = "'Cormorant Garamond', serif";
+    const [isHovered, setIsHovered] = useState(false);
+    const ff = isAr ? "'IBM Plex Sans Arabic', sans-serif" : "'Inter', sans-serif";
+    const ffNum = "'Inter', sans-serif";
+
+    const cardStyles = {
+        background: isHovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${isHovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: '30px',
+        padding: '3rem',
+        backdropFilter: 'blur(40px)',
+        WebkitBackdropFilter: 'blur(40px)',
+        transition: 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)',
+        transform: isHovered ? 'translateY(-15px)' : 'translateY(0)',
+        boxShadow: isHovered 
+            ? '0 50px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05) inset' 
+            : '0 15px 45px rgba(0,0,0,0.3)',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%'
+    };
 
     return (
         <div
-            onMouseEnter={() => setHov(true)}
-            onMouseLeave={() => setHov(false)}
-            style={{
-                background: hov ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.025)',
-                border: `1px solid ${hov ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: '22px',
-                padding: '2.2rem',
-                backdropFilter: 'blur(28px)',
-                WebkitBackdropFilter: 'blur(28px)',
-                transition: 'all 0.45s cubic-bezier(0.34,1.56,0.64,1)',
-                transform: hov ? 'translateY(-8px)' : 'translateY(0)',
-                boxShadow: hov
-                    ? '0 28px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05) inset'
-                    : '0 4px 24px rgba(0,0,0,0.3)',
-                position: 'relative',
-                overflow: 'hidden',
-            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            style={cardStyles}
         >
             <div style={{
-                position: 'absolute', top: 0, right: 0,
-                width: '200px', height: '200px',
-                background: 'radial-gradient(circle at top right, rgba(160,100,255,0.1), transparent 70%)',
-                opacity: hov ? 1 : 0.3,
-                transition: 'opacity 0.5s',
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '350px',
+                height: '350px',
+                background: 'radial-gradient(circle at center, rgba(160,100,255,0.2), transparent 75%)',
+                opacity: isHovered ? 1 : 0.5,
+                transition: 'opacity 0.8s ease',
                 pointerEvents: 'none',
             }} />
 
             <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '12px',
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
                 borderRadius: '100px',
-                padding: '4px 14px',
+                padding: '8px 20px',
                 fontFamily: ff,
-                fontSize: isAr ? '0.82rem' : '0.78rem',
-                fontWeight: isAr ? '700' : '600',
-                color: 'rgba(255,255,255,0.6)',
-                letterSpacing: isAr ? '0.01em' : '0.12em',
-                textTransform: isAr ? 'none' : 'uppercase',
-                marginBottom: '1.2rem',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: '#fff',
+                marginBottom: '2rem',
+                width: 'fit-content'
             }}>
                 <span style={{
-                    width: '5px', height: '5px', borderRadius: '50%',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
                     background: 'linear-gradient(135deg, #c084fc, #60a5fa)',
-                    boxShadow: '0 0 8px rgba(192,132,252,0.5)',
-                    display: 'inline-block',
+                    boxShadow: '0 0 15px rgba(192,132,252,0.9)',
                 }} />
                 {data.badge}
             </div>
 
             <h3 style={{
                 fontFamily: ff,
-                fontSize: isAr ? '1.75rem' : '2rem',
-                fontWeight: isAr ? '800' : '700',
+                fontSize: isAr ? '2.4rem' : '2.6rem',
+                fontWeight: '800',
                 color: '#fff',
-                margin: '0 0 0.35rem',
-                lineHeight: 1.15,
-                letterSpacing: isAr ? '-0.01em' : '-0.02em',
+                margin: '0 0 0.8rem',
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
             }}>{data.title}</h3>
 
             <p style={{
                 fontFamily: ff,
-                fontSize: isAr ? '0.88rem' : '0.9rem',
-                color: 'rgba(200,170,255,0.7)',
-                margin: '0 0 1rem',
-                fontStyle: isAr ? 'normal' : 'italic',
-                fontWeight: isAr ? '400' : '400',
+                fontSize: '1.15rem',
+                color: '#c084fc',
+                margin: '0 0 1.8rem',
+                fontWeight: '500'
             }}>{data.tagline}</p>
 
             <p style={{
                 fontFamily: ff,
-                fontSize: isAr ? '0.9rem' : '0.95rem',
-                color: 'rgba(255,255,255,0.48)',
-                lineHeight: 1.75,
-                margin: '0 0 1.8rem',
-                fontWeight: isAr ? '300' : '400',
+                fontSize: '1.05rem',
+                color: 'rgba(255,255,255,0.65)',
+                lineHeight: 1.9,
+                margin: '0 0 2.5rem',
+                flexGrow: 1
             }}>{data.desc}</p>
 
             <div style={{
-                display: 'flex', gap: '1.5rem',
-                paddingBottom: '1.5rem',
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
-                marginBottom: '1.5rem',
+                display: 'flex',
+                gap: '3rem',
+                paddingBottom: '2.5rem',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                marginBottom: '2.5rem',
             }}>
-                {data.stats.map((s, i) => (
-                    <div key={i}>
+                {data.stats.map((stat, idx) => (
+                    <div key={idx}>
                         <div style={{
                             fontFamily: ffNum,
-                            fontSize: '1.55rem', fontWeight: '700', color: '#fff', lineHeight: 1,
-                        }}>{s.v}</div>
+                            fontSize: '2.2rem',
+                            fontWeight: '700',
+                            color: '#fff',
+                            lineHeight: 1
+                        }}>{stat.v}</div>
                         <div style={{
                             fontFamily: ff,
-                            fontSize: '0.72rem', color: 'rgba(255,255,255,0.32)',
-                            marginTop: '4px', fontWeight: isAr ? '400' : '400',
-                        }}>{s.l}</div>
+                            fontSize: '0.8rem',
+                            color: 'rgba(255,255,255,0.4)',
+                            marginTop: '8px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.1em'
+                        }}>{stat.l}</div>
                     </div>
                 ))}
             </div>
 
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.8rem' }}>
-                {data.features.map((f, i) => (
-                    <li key={i} style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 3rem' }}>
+                {data.features.map((feat, idx) => (
+                    <li key={idx} style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '15px',
                         fontFamily: ff,
-                        fontSize: isAr ? '0.88rem' : '0.9rem',
-                        color: 'rgba(255,255,255,0.5)',
-                        marginBottom: '0.6rem',
-                        fontWeight: isAr ? '400' : '400',
+                        fontSize: '1.05rem',
+                        color: 'rgba(255,255,255,0.75)',
+                        marginBottom: '1.2rem',
                     }}>
-                        <span style={{
-                            width: '4px', height: '4px', borderRadius: '50%', flexShrink: 0,
-                            background: 'linear-gradient(135deg, #c084fc, #67e8f9)',
-                            display: 'inline-block',
+                        <div style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: '#c084fc',
+                            marginTop: '10px',
+                            flexShrink: 0
                         }} />
-                        {f}
+                        {feat}
                     </li>
                 ))}
             </ul>
 
-            <Link href={loginUrl}>
+            <Link href={loginUrl} style={{ textDecoration: 'none' }}>
                 <button style={{
                     width: '100%',
-                    padding: '0.95rem',
-                    background: hov
-                        ? 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(180,100,255,0.12))'
-                        : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${hov ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.09)'}`,
-                    borderRadius: '12px',
-                    color: hov ? '#fff' : 'rgba(255,255,255,0.7)',
+                    padding: '1.4rem',
+                    background: isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '20px',
+                    color: '#fff',
                     fontFamily: ff,
-                    fontSize: isAr ? '0.95rem' : '1rem',
-                    fontWeight: isAr ? '700' : '600',
+                    fontSize: '1.2rem',
+                    fontWeight: '700',
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: '8px',
-                    letterSpacing: isAr ? '0.01em' : '0.02em',
+                    transition: 'all 0.4s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '15px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
                 }}>
                     {data.cta}
-                    <span style={{
+                    <span style={{ 
                         display: 'inline-block',
-                        transform: isAr ? 'scaleX(-1)' : 'none',
-                        fontSize: '0.85em',
+                        transform: isAr ? 'rotate(180deg)' : 'none',
+                        fontSize: '1.4rem'
                     }}>→</span>
                 </button>
             </Link>
@@ -262,184 +341,154 @@ function AppCard({ data, loginUrl, isAr }) {
     );
 }
 
-/* ─── Main Welcome Component ───────────────────────────── */
+/** * ─── MAIN QUANTIX WELCOME COMPONENT ──────────────────────────────────────
+ */
 export default function Welcome() {
     const { lang, toggle, isAr } = useLang();
     const t = T[lang];
     const dir = isAr ? 'rtl' : 'ltr';
-    const ff   = isAr ? "'Almarai', sans-serif" : "'Cormorant Garamond', serif";
-    const ffEn = "'Cormorant Garamond', serif";
+    const ff   = isAr ? "'IBM Plex Sans Arabic', sans-serif" : "'Inter', sans-serif";
+    const ffEn = "'Inter', sans-serif";
     const canvasRef = useRef(null);
 
-    /* Particles Effect */
+    /**
+     * تأثير الجزيئات المتفاعلة مع الخلفية الهادئة
+     */
     useEffect(() => {
-        const c = canvasRef.current;
-        if (!c) return;
-        const ctx = c.getContext('2d');
-        const setSize = () => { c.width = window.innerWidth; c.height = window.innerHeight; };
-        setSize();
-        const pts = Array.from({ length: 45 }, () => ({
-            x: Math.random() * c.width, y: Math.random() * c.height,
-            r: Math.random() * 1 + 0.3,
-            dx: (Math.random() - 0.5) * 0.18,
-            dy: (Math.random() - 0.5) * 0.18,
-            a: Math.random() * 0.28 + 0.04,
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        resize();
+
+        const particles = Array.from({ length: 80 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 2 + 0.5,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            op: Math.random() * 0.4 + 0.1
         }));
-        let raf;
-        const draw = () => {
-            ctx.clearRect(0, 0, c.width, c.height);
-            pts.forEach(p => {
-                p.x += p.dx; p.y += p.dy;
-                if (p.x < 0 || p.x > c.width)  p.dx *= -1;
-                if (p.y < 0 || p.y > c.height)  p.dy *= -1;
+
+        let anim;
+        const loop = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255,255,255,${p.a})`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${p.op})`;
                 ctx.fill();
             });
-            raf = requestAnimationFrame(draw);
+            anim = requestAnimationFrame(loop);
         };
-        draw();
-        window.addEventListener('resize', setSize);
-        return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', setSize); };
+        loop();
+
+        window.addEventListener('resize', resize);
+        return () => {
+            cancelAnimationFrame(anim);
+            window.removeEventListener('resize', resize);
+        };
     }, []);
 
-    const apps = [
+    const applications = [
         { data: t.app1, loginUrl: '/inventory/login' },
         { data: t.app2, loginUrl: '/calculator/login' },
     ];
 
     return (
         <>
-            <Head title="Quantix" />
+            <Head title="Quantix | Smart Commerce Ecosystem" />
 
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+                *, *::before, *::after { 
+                    box-sizing: border-box; 
+                    margin: 0; 
+                    padding: 0; 
+                }
+                
+                html { 
+                    scroll-behavior: smooth; 
+                }
 
-                html { scroll-behavior: smooth; }
-
-                body {
-                    background: #000;
-                    color: #fff;
-                    overflow-x: hidden;
+                body { 
+                    background: #000; 
+                    color: #fff; 
+                    overflow-x: hidden; 
+                    font-family: ${ff};
                     -webkit-font-smoothing: antialiased;
-                    -moz-osx-font-smoothing: grayscale;
                 }
 
-                @keyframes iridescent {
-                    0%   { background-position: 0%   50%; }
-                    50%  { background-position: 100% 50%; }
-                    100% { background-position: 0%   50%; }
+                @keyframes scrollBounce { 
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); } 
+                    40% { transform: translateY(-20px) translateX(-50%); } 
+                    60% { transform: translateY(-10px) translateX(-50%); } 
                 }
-                @keyframes fadeUp {
-                    from { opacity: 0; transform: translateY(24px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes dotPulse {
-                    0%,100% { opacity: 0.6; transform: scale(1); }
-                    50%     { opacity: 1;   transform: scale(1.3); }
+                
+                @keyframes masterShimmer { 
+                    0% { background-position: 0% 50%; } 
+                    50% { background-position: 100% 50%; } 
+                    100% { background-position: 0% 50%; } 
                 }
 
-                .brand-logo {
-                    font-family: 'Cormorant Garamond', serif;
-                    font-size: 1.8rem; /* تكبير الشعار */
-                    font-weight: 700;
-                    letter-spacing: 0.12em;
-                    text-transform: uppercase;
-                    background: linear-gradient(
-                        120deg,
-                        #fff 0%, #ddd6fe 18%,
-                        #a5f3fc 36%, #fde68a 54%,
-                        #f9a8d4 72%, #c4b5fd 90%, #fff 100%
-                    );
-                    background-size: 280% 280%;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    animation: iridescent 6s ease infinite;
-                }
-
-                .hero-line2 {
-                    display: block;
-                    background: linear-gradient(
-                        90deg,
-                        #c084fc 0%, #818cf8 20%,
-                        #38bdf8 40%, #34d399 60%,
-                        #fbbf24 80%, #f472b6 100%
-                    );
-                    background-size: 200% auto;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    animation: iridescent 4s ease infinite, fadeUp 0.9s ease 0.45s both;
-                }
-
-                .anim-1 { animation: fadeUp 0.8s ease 0.1s both; }
-                .anim-2 { animation: fadeUp 0.8s ease 0.25s both; }
-                .anim-3 { animation: fadeUp 0.8s ease 0.4s both; }
-                .anim-4 { animation: fadeUp 0.8s ease 0.6s both; }
-                .anim-5 { animation: fadeUp 0.8s ease 0.8s both; }
-
-                ::-webkit-scrollbar { width: 3px; }
-                ::-webkit-scrollbar-track { background: #000; }
-                ::-webkit-scrollbar-thumb {
-                    background: rgba(255,255,255,0.12);
-                    border-radius: 4px;
-                }
-
-                .nav-a {
-                    font-size: 1rem; /* تكبير روابط التنقل */
+                .quantix-nav-item { 
+                    font-size: 1.25rem; 
+                    color: rgba(255,255,255,0.45); 
+                    text-decoration: none; 
+                    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); 
+                    white-space: nowrap; 
                     font-weight: 500;
-                    color: rgba(255,255,255,0.55);
-                    text-decoration: none;
-                    letter-spacing: 0.04em;
-                    transition: color 0.2s;
-                    white-space: nowrap;
                 }
-                .nav-a:hover { color: rgba(255,255,255,1); }
+                .quantix-nav-item:hover { 
+                    color: #fff; 
+                    transform: translateY(-5px); 
+                    text-shadow: 0 0 30px rgba(255,255,255,0.6);
+                }
 
-                .lang-toggle {
-                    background: rgba(255,255,255,0.06);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    border-radius: 10px;
-                    padding: 8px 18px; /* تكبير الزر */
-                    color: rgba(255,255,255,0.8);
-                    font-size: 0.9rem; /* تكبير الخط */
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    letter-spacing: 0.05em;
-                    white-space: nowrap;
-                }
-                .lang-toggle:hover {
-                    background: rgba(255,255,255,0.1);
+                .quantix-lang-switch {
+                    background: rgba(255,255,255,0.08); 
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 18px; 
+                    padding: 14px 35px; 
                     color: #fff;
-                    border-color: rgba(255,255,255,0.25);
+                    font-size: 1.1rem; 
+                    font-weight: 700; 
+                    cursor: pointer; 
+                    transition: all 0.4s ease;
+                    backdrop-filter: blur(15px);
+                }
+                .quantix-lang-switch:hover { 
+                    background: rgba(255,255,255,0.18); 
+                    border-color: #fff; 
+                    transform: scale(1.05) translateY(-2px);
+                    box-shadow: 0 10px 40px rgba(255,255,255,0.1);
                 }
 
-                .section-divider {
-                    display: flex; align-items: center; gap: 1rem;
-                    margin-bottom: 3rem;
-                }
-                .div-line {
-                    flex: 1; height: 1px;
-                    background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
-                }
-                .div-label {
-                    font-size: 0.72rem;
-                    color: rgba(255,255,255,0.22);
-                    letter-spacing: 0.18em;
-                    text-transform: uppercase;
-                    white-space: nowrap;
+                .quantix-hero-gradient {
+                    background: linear-gradient(90deg, #c084fc, #6366f1, #0ea5e9, #10b981, #f59e0b, #c084fc);
+                    background-size: 300% auto; 
+                    -webkit-background-clip: text; 
+                    -webkit-text-fill-color: transparent;
+                    animation: masterShimmer 8s linear infinite;
                 }
 
-                @media (max-width: 820px) {
-                    .apps-grid { grid-template-columns: 1fr !important; }
-                    .stats-row { flex-wrap: wrap; gap: 2rem !important; }
-                    .header-content { grid-template-columns: 1fr auto !important; padding: 0 1rem !important; }
-                    .nav-links { display: none !important; }
+                ::-webkit-scrollbar { width: 8px; }
+                ::-webkit-scrollbar-track { background: #000; }
+                ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 20px; }
+
+                @media (max-width: 1100px) {
+                    .quantix-nav-desktop { display: none !important; }
+                    .quantix-header-grid { grid-template-columns: 1fr auto !important; padding: 0 2.5rem !important; }
                 }
             `}</style>
 
@@ -447,190 +496,192 @@ export default function Welcome() {
                 position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
             }} />
 
-            <div style={{
-                position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-                backgroundImage: 'url(/images/hero-bg.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                opacity: 0.5,
-            }} />
-
-            <div style={{
-                position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none',
-                background: [
-                    'radial-gradient(ellipse 100% 65% at 50% 50%, transparent 15%, rgba(0,0,0,0.75) 100%)',
-                    'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 25%, transparent 72%, rgba(0,0,0,0.7) 100%)',
-                ].join(', '),
-            }} />
-
-            <div style={{ position: 'relative', zIndex: 2, direction: dir }}>
-
-                {/* ══ FIXED HEADER ══ */}
-                <header style={{
-                    position: 'fixed', 
-                    top: 0, left: 0, right: 0,
-                    zIndex: 100,
-                    height: '76px', // ارتفاع أكبر للهيدر
-                    backdropFilter: 'blur(24px)',
-                    WebkitBackdropFilter: 'blur(24px)',
-                    background: 'rgba(0,0,0,0.6)',
-                    borderBottom: '1px solid rgba(255,255,255,0.07)',
-                    display: 'flex',
-                    alignItems: 'center'
+            {/* ══ HEADER: THE CONTROL BAR ══ */}
+            <header style={{
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '110px',
+                backdropFilter: 'blur(40px)', background: 'rgba(0,0,0,0.6)',
+                borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center'
+            }}>
+                <div className="quantix-header-grid" style={{
+                    maxWidth: '1800px', margin: '0 auto', width: '100%', padding: '0 8rem',
+                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', direction: 'ltr'
                 }}>
-                    <div className="header-content" style={{
-                        width: '100%',
-                        maxWidth: '1300px',
-                        margin: '0 auto',
-                        padding: '0 3rem',
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto 1fr', // ضمان بقاء الشعار في النصف تماماً
-                        alignItems: 'center',
-                        gap: '1.5rem',
-                        direction: 'ltr' // تثبيت الهيكل لضمان عدم قفز الأزرار عند تغيير اللغة
-                    }}>
-                        {/* يسار: زر اللغة (موقع ثابت) */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                            <button
-                                className="lang-toggle"
-                                onClick={toggle}
-                                style={{ fontFamily: isAr ? ffEn : ff }}
-                            >
-                                {t.langBtn}
-                            </button>
-                        </div>
-
-                        {/* منتصف: الشعار (موقع ثابت في المركز) */}
-                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                            <span className="brand-logo">QUANTIX</span>
-                        </div>
-
-                        {/* يمين: الروابط (موقع ثابت) */}
-                        <nav className="nav-links" style={{
-                            display: 'flex',
-                            gap: '2.5rem',
-                            alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            direction: dir // محتوى الروابط يتبع لغة الصفحة
-                        }}>
-                            {t.nav.map((item, i) => (
-                                <a
-                                    key={i}
-                                    className="nav-a"
-                                    href={`#${['about','apps','contact'][i]}`}
-                                    style={{ fontFamily: ff }}
-                                >
-                                    {item}
-                                </a>
-                            ))}
-                        </nav>
+                    {/* LANG SWITCH (LEFT) */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                        <button className="quantix-lang-switch" onClick={toggle} style={{ fontFamily: isAr ? ffEn : ff }}>
+                            {t.langBtn}
+                        </button>
                     </div>
-                </header>
 
-                <div style={{ height: '76px' }} />
+                    {/* MAIN NAV (CENTER) */}
+                    <nav className="quantix-nav-desktop" style={{ display: 'flex', gap: '6.5rem', justifyContent: 'center', direction: dir }}>
+                        {t.nav.map((label, i) => (
+                            <a key={i} className="quantix-nav-item" href={`#${['about','apps','contact'][i]}`} style={{ fontFamily: ff }}>
+                                {label}
+                            </a>
+                        ))}
+                    </nav>
 
-                {/* ══ HERO SECTION ══ */}
-                <section style={{
-                    maxWidth: '820px', margin: '0 auto',
-                    padding: '8rem 2rem 5rem',
-                    textAlign: 'center',
+                    {/* EMPTY BALANCER (RIGHT) */}
+                    <div />
+                </div>
+            </header>
+
+            {/* ══ SECTION 1: THE VISUAL EXPERIENCE (GIF ONLY) ══ */}
+            <section style={{
+                height: '100vh', width: '100%', position: 'relative', overflow: 'hidden',
+                backgroundImage: 'url(/images/hero-visual.gif)', 
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#000'
+            }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
+                
+                {/* SCROLL HINT */}
+                <div style={{
+                    position: 'absolute', bottom: '80px', left: '50%',
+                    textAlign: 'center', animation: 'scrollBounce 3s infinite', cursor: 'default'
                 }}>
-                    <div className="anim-1" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '8px',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '100px',
-                        padding: '6px 20px',
-                        marginBottom: '2.5rem',
-                        fontFamily: ff,
-                        fontSize: isAr ? '0.85rem' : '0.8rem',
-                        color: 'rgba(255,255,255,0.45)',
+                    <p style={{ 
+                        fontFamily: ff, fontSize: '1rem', color: 'rgba(255,255,255,0.7)', 
+                        letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '25px' 
                     }}>
-                        <span style={{
-                            width: '6px', height: '6px', borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #c084fc, #60a5fa)',
-                            boxShadow: '0 0 10px rgba(192,132,252,0.6)',
-                            animation: 'dotPulse 2s ease infinite',
+                        {t.scrollHint}
+                    </p>
+                    <div style={{ 
+                        width: '2px', height: '80px', 
+                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.8), transparent)', 
+                        margin: '0 auto' 
+                    }} />
+                </div>
+            </section>
+
+            {/* ══ SECTION 2: THE KNOWLEDGE BASE & APPS ══ */}
+            <main style={{ 
+                position: 'relative', zIndex: 2, direction: dir,
+                backgroundImage: 'url(/images/content-bg.jpg)', 
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed'
+            }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: -1 }} />
+
+                {/* THE HERO MESSAGE */}
+                <section id="about" style={{ maxWidth: '1200px', margin: '0 auto', padding: '18rem 3rem 12rem', textAlign: 'center' }}>
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '18px', background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.2)', borderRadius: '100px', padding: '16px 45px',
+                        marginBottom: '5.5rem', fontFamily: ff, fontSize: '1.05rem', color: '#fff',
+                        backdropFilter: 'blur(15px)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{ 
+                            width: '12px', height: '12px', borderRadius: '50%', 
+                            background: '#c084fc', boxShadow: '0 0 30px #c084fc' 
                         }} />
                         {t.badge}
                     </div>
 
-                    <h1 className="anim-2" style={{
-                        fontFamily: ff,
-                        fontSize: isAr ? 'clamp(2.8rem, 7.5vw, 5.2rem)' : 'clamp(3rem, 8vw, 6rem)',
-                        fontWeight: isAr ? '800' : '700',
-                        color: '#fff',
-                        lineHeight: 1.08,
-                        marginBottom: '0.2rem',
+                    <h1 style={{
+                        fontFamily: ff, 
+                        fontSize: isAr ? 'clamp(4.5rem, 12vw, 8.5rem)' : 'clamp(5rem, 13vw, 9.5rem)',
+                        fontWeight: '800', color: '#fff', lineHeight: 1.0, 
+                        marginBottom: '4rem', letterSpacing: '-0.05em'
                     }}>
-                        {t.heroLine1}
-                        <br />
-                        <span className="hero-line2" style={{ fontFamily: ff }}>{t.heroLine2}</span>
+                        {t.heroLine1} <br />
+                        <span className="quantix-hero-gradient">{t.heroLine2}</span>
                     </h1>
 
-                    <p className="anim-3" style={{
-                        fontFamily: ff,
-                        fontSize: isAr ? '1.1rem' : '1.15rem',
-                        fontWeight: isAr ? '300' : '400',
-                        lineHeight: 1.8,
-                        color: 'rgba(255,255,255,0.45)',
-                        maxWidth: '580px',
-                        margin: '2.5rem auto 4.5rem',
+                    <p style={{
+                        fontFamily: ff, fontSize: '1.6rem', fontWeight: '300', lineHeight: 2.1,
+                        color: 'rgba(255,255,255,0.7)', maxWidth: '900px', margin: '0 auto'
                     }}>
                         {t.heroSub}
                     </p>
-
-                    <div className="anim-4" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '1px', height: '50px', background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.3))' }} />
-                        <span style={{ fontFamily: ff, fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-                            {t.scrollHint}
-                        </span>
-                    </div>
                 </section>
 
-                {/* ══ APPLICATIONS SECTION ══ */}
-                <section id="apps" style={{ maxWidth: '1180px', margin: '0 auto', padding: '4rem 2rem 8rem' }}>
-                    <div className="section-divider">
-                        <div className="div-line" />
-                        <span className="div-label" style={{ fontFamily: ff }}>{t.appsLabel}</span>
-                        <div className="div-line" />
+                {/* THE APPLICATION GRID */}
+                <section id="apps" style={{ maxWidth: '1600px', margin: '0 auto', padding: '8rem 4rem 20rem' }}>
+                    <div style={{ 
+                        display: 'flex', alignItems: 'center', gap: '2.5rem', marginBottom: '8rem' 
+                    }}>
+                        <div style={{ 
+                            flex: 1, height: '1px', 
+                            background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent)' 
+                        }} />
+                        <span style={{ 
+                            fontFamily: ff, fontSize: '0.9rem', color: 'rgba(255,255,255,0.3)', 
+                            letterSpacing: '0.4em', textTransform: 'uppercase', fontWeight: '600'
+                        }}>{t.appsLabel}</span>
+                        <div style={{ 
+                            flex: 1, height: '1px', 
+                            background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent)' 
+                        }} />
                     </div>
 
-                    <div className="apps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.8rem' }}>
-                        {apps.map((app, i) => (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6rem' }}>
+                        {applications.map((app, i) => (
                             <AppCard key={i} data={app.data} loginUrl={app.loginUrl} isAr={isAr} />
                         ))}
                     </div>
 
-                    <p style={{ textAlign: 'center', fontFamily: ff, fontSize: '0.85rem', color: 'rgba(255,255,255,0.2)', marginTop: '3.5rem' }}>
+                    <p style={{ 
+                        textAlign: 'center', fontFamily: ff, fontSize: '1.2rem', 
+                        color: 'rgba(255,255,255,0.35)', marginTop: '10rem', letterSpacing: '0.05em' 
+                    }}>
                         {t.bottomNote}
                     </p>
                 </section>
 
-                {/* ══ STATISTICS BAR ══ */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(16px)', padding: '4rem 2rem' }}>
-                    <div className="stats-row" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', justifyContent: 'space-around', gap: '2rem', textAlign: 'center' }}>
-                        {t.statsBar.map((s, i) => (
+                {/* BIG STATS DIVIDER */}
+                <div style={{ 
+                    borderTop: '1px solid rgba(255,255,255,0.2)', 
+                    borderBottom: '1px solid rgba(255,255,255,0.2)', 
+                    background: 'rgba(0,0,0,0.85)', 
+                    backdropFilter: 'blur(50px)', 
+                    padding: '12rem 4rem' 
+                }}>
+                    <div style={{ 
+                        maxWidth: '1500px', margin: '0 auto', 
+                        display: 'flex', justifyContent: 'space-around', 
+                        gap: '8rem', flexWrap: 'wrap', textAlign: 'center' 
+                    }}>
+                        {t.statsBar.map((item, i) => (
                             <div key={i}>
-                                <div style={{ fontFamily: ffEn, fontSize: '2.8rem', fontWeight: '700', color: '#fff', lineHeight: 1 }}>
-                                    <Counter end={s.v} suffix={s.s} />
+                                <div style={{ 
+                                    fontFamily: ffEn, fontSize: '6rem', fontWeight: '800', 
+                                    color: '#fff', lineHeight: 1, textShadow: '0 20px 50px rgba(0,0,0,0.8)' 
+                                }}>
+                                    <Counter end={item.v} suffix={item.s} />
                                 </div>
-                                <div style={{ fontFamily: ff, fontSize: '0.85rem', color: 'rgba(255,255,255,0.3)', marginTop: '8px' }}>{s.l}</div>
+                                <div style={{ 
+                                    fontFamily: ff, fontSize: '1.3rem', 
+                                    color: '#c084fc', marginTop: '30px', 
+                                    textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: '600'
+                                }}>{item.l}</div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* ══ FOOTER SECTION ══ */}
-                <footer style={{ padding: '3.5rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-                    <span style={{ fontFamily: ffEn, fontSize: '1.1rem', fontWeight: '700', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em' }}>QUANTIX</span>
-                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
-                    <span style={{ fontFamily: ff, fontSize: '0.85rem', color: 'rgba(255,255,255,0.2)' }}>
+                {/* THE FINAL CONTACT FOOTER */}
+                <footer id="contact" style={{ 
+                    padding: '12rem 4rem', display: 'flex', alignItems: 'center', 
+                    justifyContent: 'center', gap: '50px', background: '#000' 
+                }}>
+                    <span style={{ 
+                        fontFamily: ffEn, fontSize: '2.2rem', fontWeight: '900', 
+                        color: 'rgba(255,255,255,0.4)', letterSpacing: '0.4em' 
+                    }}>QUANTIX</span>
+                    
+                    <div style={{ 
+                        width: '12px', height: '12px', borderRadius: '50%', 
+                        background: 'rgba(255,255,255,0.3)' 
+                    }} />
+                    
+                    <span style={{ 
+                        fontFamily: ff, fontSize: '1.2rem', 
+                        color: 'rgba(255,255,255,0.35)', fontWeight: '500' 
+                    }}>
                         © {new Date().getFullYear()} {t.footer}
                     </span>
                 </footer>
-            </div>
+            </main>
         </>
     );
 }
