@@ -28,14 +28,14 @@ const T = {
         heroLine1:  'حلول تجارية ذكية',
         heroLine2:  'بأبعاد تقنية متقدمة',
         heroSub:    'منصة محورية تجمع بين ذكاء إدارة المخزون ودقة الحسابات المؤتمتة، صُممت خصيصاً لنخبة تجار سلة الساعين نحو التميز التشغيلي وتعظيم الأرباح.',
-        scrollHint: 'استكشف آفاق QUANTIX',
+        scrollHint: 'استكشف آفاق كوانتيكس',
         appsLabel:  'منظومة التطبيقات المتكاملة',
         bottomNote: 'كل حل تقني يعمل باستقلالية تامة لضمان خصوصية البيانات وتشفيرها العالي.',
         footer:     'جميع الحقوق محفوظة لمنصة كوانتيكس الرقمية',
-        langBtn:    'ENGLISH INTERFACE',
+        langBtn:    'ENGLISH',
 
         app1: {
-            badge:    'حريص | HAREES',
+            badge:    'حريص',
             title:    'نظام حريص لإدارة المخزون',
             tagline:  'الأمان الكامل لمخزونك وتواريخ صلاحيتك',
             desc:     'نظام متقدم لمراقبة تواريخ الصلاحية، يقوم بتنظيم المخزون بناءً على الدفعات (Batches)، مع تطبيق ذكي للخصومات التلقائية للمنتجات القريبة من الانتهاء؛ وذلك لضمان استمرارية أرباحك وتقليل الهدر التشغيلي بنسبة تصل إلى 40%.',
@@ -53,7 +53,7 @@ const T = {
             cta: 'ابدأ مع حريص الآن',
         },
         app2: {
-            badge:    'مستشار | MUSTASHAR',
+            badge:    'مستشار',
             title:    'أداة مستشار للحساب الذكي',
             tagline:  'القرار الحسابي الصحيح في كل ثانية',
             desc:     'أداة حسابية ذكية تساعدك في حساب الكميات المثلى لعملائك آلياً بناءً على قواعد الحساب الخاصة بمتجرك؛ مما يقلل من أخطاء الطلبات البشرية ويزيد من كفاءة التوريد والدقة المحاسبية.',
@@ -74,7 +74,7 @@ const T = {
             { v: 700,   s: '+',  l: 'شريك تجاري نشط' },
             { v: 15000, s: '+',  l: 'عملية تتبع يومية' },
             { v: 98,    s: '٪', l: 'معدل الدقة والثقة' },
-            { v: 24,    s: '/٧', l: 'مركز مساعدة تقني' },
+            { v: 24,    s: '/7', l: 'مركز مساعدة تقني' },
         ],
     },
     en: {
@@ -88,10 +88,10 @@ const T = {
         appsLabel:  'Our Integrated Application Suite',
         bottomNote: 'Each application operates independently to ensure data privacy and high-level encryption.',
         footer:     'All rights reserved to Quantix Digital Platform',
-        langBtn:    'العربية (الواجهة الكاملة)',
+        langBtn:    'العربية',
 
         app1: {
-            badge:    'HAREES | Inventory',
+            badge:    'HAREES',
             title:    'Harees Expiry Monitoring',
             tagline:  'Securing profits and reducing waste',
             desc:     'An expiry date monitoring system that organizes inventory by batch and apply discounts for near-expiry products to secure your profits and reduce waste effectively by up to 40%.',
@@ -109,7 +109,7 @@ const T = {
             cta: 'Get Started with Harees',
         },
         app2: {
-            badge:    'MUSTASHAR | Analytics',
+            badge:    'MUSTASHAR',
             title:    'Mustashar Smart Calculator',
             tagline:  'Optimal quantities for every customer',
             desc:     'A smart calculation tool helps you automatically calculate the right quantity for customer based on your own calculation rules, ensuring order accuracy and supply chain efficiency.',
