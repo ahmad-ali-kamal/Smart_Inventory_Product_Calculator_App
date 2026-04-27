@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Product extends Model
 {
@@ -23,25 +22,21 @@ class Product extends Model
         'quantity',
         'category',
         'status',
-        'synced_at',
         'metadata',
+        'synced_at',
     ];
 
     protected $casts = [
+        'price'     => 'decimal:2',
+        'quantity'  => 'integer',
+        'metadata'  => 'array',
         'synced_at' => 'datetime',
-        'metadata' => 'array',
-        'price' => 'decimal:2',
-        'quantity' => 'integer',
     ];
 
-    protected $appends = [
-        'main_image_url',
-        'overall_status',
-        'has_expiry_data',
-        'has_calculator_enabled',
-    ];
+    // ====================================================================
+    // العلاقات (Relations)
+    // ====================================================================
 
-    // Relationships
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
@@ -57,11 +52,19 @@ class Product extends Model
         return $this->hasOne(ProductImage::class)->where('is_main', true);
     }
 
+    public function calculator(): HasOne
+    {
+        return $this->hasOne(ProductCalculator::class);
+    }
+
+    /**
+     * العلاقة مع الباتشات عبر جدول batch_items
+     * محرك "حريص" يعتمد على هذه العلاقة لحساب الكميات الفعلية الصالحة
+     */
     public function batches(): BelongsToMany
     {
         return $this->belongsToMany(Batch::class, 'batch_items')
-            ->using(BatchItem::class)
-            ->withPivot(['quantity', 'sold_quantity', 'unit_cost'])
+            ->withPivot('quantity', 'sold_quantity', 'unit_cost')
             ->withTimestamps();
     }
 
@@ -75,103 +78,68 @@ class Product extends Model
         return $this->hasMany(ProductDiscount::class);
     }
 
-    public function calculator(): HasOne
-    {
-        return $this->hasOne(ProductCalculator::class);
-    }
+    // ====================================================================
+    // القانون الذكي (The Logic)
+    // ====================================================================
 
-    public function activityLogs(): MorphMany
+    /**
+     * جلب الحد الأدنى للتنبيه (Threshold) بناءً على نوع التصنيف
+     * القانون: Category -> CategoryMapping -> TermType -> BatchSettings
+     */
+    public function getCategoryThreshold(): int
     {
-        return $this->morphMany(ActivityLog::class, 'loggable');
-    }
-
-    public function categoryMapping(): BelongsTo
-    {
-        return $this->belongsTo(CategoryMapping::class, 'category', 'category_name')
-            ->where('merchant_id', $this->merchant_id);
-    }
-
-    // Accessors
-    public function getMainImageUrlAttribute(): ?string
-    {
-        return $this->mainImage?->image_url ?? $this->images()->first()?->image_url;
-    }
-
-    public function getOverallStatusAttribute(): ?string
-    {
-        // Get the most urgent batch status
-        $batchItem = $this->batchItems()
-            ->whereHas('batch')
-            ->with('batch')
-            ->get()
-            ->sortBy(function ($item) {
-                $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
-                return $order[$item->batch->status] ?? 99;
-            })
+        // 1. البحث عن خريطة التصنيف لهذا المنتج وللبائع الحالي
+        $mapping = CategoryMapping::where('merchant_id', $this->merchant_id)
+            ->where('category_name', $this->category)
             ->first();
 
-        return $batchItem?->batch->status;
+        // 2. جلب إعدادات المدد العامة للبائع
+        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+
+        // 3. إذا لم توجد خريطة أو إعدادات، نرجع القيمة الافتراضية (مثلاً 14 يوم)
+        if (!$mapping || !$settings) {
+            return $settings->medium_term_days ?? 14;
+        }
+
+        // 4. تحديد الأيام بناءً على النوع المربوط (Short, Medium, Long)
+        switch ($mapping->bucket) {
+            case 'short':  return $settings->short_term_days;
+            case 'long':   return $settings->long_term_days;
+            case 'medium':
+            default:       return $settings->medium_term_days;
+        }
     }
 
-    public function getHasExpiryDataAttribute(): bool
+    // ====================================================================
+    // نطاقات البحث (Scopes)
+    // ====================================================================
+
+    public function scopeForMerchant($query, int $merchantId)
     {
-        return $this->batchItems()->exists();
+        return $query->where('merchant_id', $merchantId);
     }
 
-    public function getHasCalculatorEnabledAttribute(): bool
-    {
-        return $this->calculator && $this->calculator->is_enabled;
-    }
-
-    // Helper Methods
-    public function canApplyDiscount(): bool
-    {
-        return $this->overall_status === 'yellow';
-    }
-
-    public function isExpired(): bool
-    {
-        return $this->overall_status === 'red';
-    }
-
-    public function getActiveDiscount(): ?ProductDiscount
-    {
-        return $this->discounts()
-            ->where('status', 'active')
-            ->where('ends_at', '>', now())
-            ->first();
-    }
-
-    public function getExpiringBatches(): HasMany
-    {
-        return $this->batchItems()
-            ->whereHas('batch', function ($q) {
-                $q->where('status', '!=', 'green');
-            });
-    }
-
-    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
     }
 
-    public function scopeWithStatus($query, string $status)
+    // ====================================================================
+    // الموصلات (Accessors & Mutators)
+    // ====================================================================
+
+    public function getImageUrlAttribute(): string
     {
-        return $query->whereHas('batchItems.batch', function ($q) use ($status) {
-            $q->where('status', $status);
-        });
+        return $this->mainImage?->image_url ?? asset('images/placeholder-product.png');
     }
 
-    public function scopeWithCalculatorEnabled($query)
+    public function getDescriptionAttribute(): ?string
     {
-        return $query->whereHas('calculator', function ($q) {
-            $q->where('is_enabled', true);
-        });
+        return $this->metadata['description'] ?? null;
     }
 
-    public function scopeInCategory($query, string $category)
+    public function getFormattedPriceAttribute(): string
     {
-        return $query->where('category', $category);
+        return number_format($this->price, 2) . ' ر.س';
     }
 }

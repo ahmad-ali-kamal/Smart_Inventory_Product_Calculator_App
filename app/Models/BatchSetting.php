@@ -12,60 +12,75 @@ class BatchSetting extends Model
 
     protected $fillable = [
         'merchant_id',
-        'green_threshold_days',
-        'yellow_threshold_days',
-        'red_threshold_days',
+        'short_term_days',
+        'medium_term_days',
+        'long_term_days',
         'auto_hide_expired',
         'enable_notifications',
+        'auto_discounts',
+        'auto_discount_percent',
+        'auto_discount_duration_days',
     ];
 
     protected $casts = [
-        'green_threshold_days' => 'integer',
-        'yellow_threshold_days' => 'integer',
-        'red_threshold_days' => 'integer',
-        'auto_hide_expired' => 'boolean',
-        'enable_notifications' => 'boolean',
+        'short_term_days'             => 'integer',
+        'medium_term_days'            => 'integer',
+        'long_term_days'              => 'integer',
+        'auto_hide_expired'           => 'boolean',
+        'enable_notifications'        => 'boolean',
+        'auto_discounts'              => 'boolean',
+        'auto_discount_percent'       => 'integer',
+        'auto_discount_duration_days' => 'integer',
     ];
 
-    // Relationships
+    /**
+     * العلاقة مع التاجر
+     */
     public function merchant(): BelongsTo
     {
-        return $this->belongsTo(Merchant::class);
+        return $this->belongsTo(User::class, 'merchant_id');
     }
 
-    // Methods
-    public function getStatusForDays(int $days): string
-    {
-        if ($days < 0 || $days <= $this->red_threshold_days) {
-            return 'red';
-        } elseif ($days <= $this->yellow_threshold_days) {
-            return 'yellow';
-        } elseif ($days <= $this->green_threshold_days) {
-            return 'yellow';
-        } else {
-            return 'green';
-        }
-    }
+    /**
+     * تحديد حالة المنتج بناءً على الأيام المتبقية والعتبة الزمنية
+     */
+    public static function getStatusForDays(?int $days, int $threshold): string
+{
+    if (is_null($days) || $days <= 0) return 'red';
+    if ($days <= $threshold)          return 'yellow';
+    return 'green';
+}
 
+    /**
+     * التحقق من خيار الإخفاء التلقائي
+     */
     public function shouldAutoHideExpired(): bool
     {
         return $this->auto_hide_expired;
     }
 
+    /**
+     * التحقق من تفعيل الإشعارات
+     */
     public function shouldSendNotifications(): bool
     {
         return $this->enable_notifications;
     }
 
-    // Static Methods
+    /**
+     * القيم الافتراضية
+     */
     public static function getDefaults(): array
     {
         return [
-            'green_threshold_days' => 60,
-            'yellow_threshold_days' => 15,
-            'red_threshold_days' => 0,
-            'auto_hide_expired' => false,
-            'enable_notifications' => true,
+            'short_term_days'             => 7,
+            'medium_term_days'            => 14,
+            'long_term_days'              => 30,
+            'auto_hide_expired'           => false,
+            'enable_notifications'        => true,
+            'auto_discounts'              => false,
+            'auto_discount_percent'       => 20,
+            'auto_discount_duration_days' => 7,
         ];
     }
 }

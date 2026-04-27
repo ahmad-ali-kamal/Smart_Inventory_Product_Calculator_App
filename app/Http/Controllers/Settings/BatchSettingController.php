@@ -4,92 +4,110 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\BatchSetting;
+use App\Models\CategoryMapping;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BatchSettingController extends Controller
 {
     /**
-     * عرض صفحة إعدادات الدفعات
+     * حفظ أو تحديث إعدادات المدد الزمنية (Buckets) + توزيع التصنيفات
      */
-    public function index(Request $request)
-    {
-        $merchant = $request->user();
-        $settings = $merchant->batchSettings;
+public function store(Request $request)
+{
+    $merchant = Auth::user();
 
-        return Inertia::render('Settings/BatchSettings', [
-            'settings' => $settings ? [
-                'green_threshold_days' => $settings->green_threshold_days,
-                'yellow_threshold_days' => $settings->yellow_threshold_days,
-                'red_threshold_days' => $settings->red_threshold_days,
-                'auto_hide_expired' => $settings->auto_hide_expired,
-                'enable_notifications' => $settings->enable_notifications,
-            ] : BatchSetting::getDefaults(),
-        ]);
-    }
+    // 1. Validate
+    $validated = $request->validate([
+        'short_term_days'             => 'required|integer|min:1',
+        'medium_term_days'            => 'required|integer|min:1',
+        'long_term_days'              => 'required|integer|min:1',
+        'auto_hide_expired'           => 'nullable|boolean',
+        'enable_notifications'        => 'nullable|boolean',
+        'auto_discounts'              => 'nullable|boolean',
+        'auto_discount_percent'       => 'nullable|integer',
+        'auto_discount_duration_days' => 'nullable|integer',
+        'category_mapping'            => 'nullable|array',
+        'category_mapping.short'      => 'nullable|array',
+        'category_mapping.medium'     => 'nullable|array',
+        'category_mapping.long'       => 'nullable|array',
+    ]);
 
-    /**
-     * حفظ/تحديث الإعدادات
-     */
-    public function store(Request $request)
-    {
-        $merchant = $request->user();
+    // 2. Transaction
+    DB::transaction(function () use ($request, $merchant, $validated) {
 
-        $validated = $request->validate([
-            'green_threshold_days' => 'required|integer|min:1|max:365',
-            'yellow_threshold_days' => 'required|integer|min:0|max:365',
-            'red_threshold_days' => 'required|integer|min:0|max:365',
-            'auto_hide_expired' => 'boolean',
-            'enable_notifications' => 'boolean',
-        ], [
-            'green_threshold_days.required' => 'حد الحالة الخضراء مطلوب',
-            'green_threshold_days.min' => 'الحد يجب أن يكون على الأقل يوم واحد',
-            'yellow_threshold_days.required' => 'حد الحالة الصفراء مطلوب',
-        ]);
+        // 3. Prepare data with correct boolean casting
+        $dataToSave = collect($validated)
+            ->except('category_mapping')
+            ->toArray();
 
-        // التحقق من المنطقية: green > yellow > red
-        if ($validated['green_threshold_days'] <= $validated['yellow_threshold_days']) {
-            return back()->withErrors([
-                'green_threshold_days' => 'حد الحالة الخضراء يجب أن يكون أكبر من حد الحالة الصفراء',
-            ]);
-        }
+        $dataToSave['auto_hide_expired']    = (int) $request->input('auto_hide_expired',    0);
+        $dataToSave['enable_notifications'] = (int) $request->input('enable_notifications', 0);
+        $dataToSave['auto_discounts']       = (int) $request->input('auto_discounts',       0);
 
+        // 4. Save settings (unchanged)
         BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
-            $validated
+            $dataToSave
         );
 
-        // إعادة حساب حالة جميع الدفعات
-        $this->recalculateBatchStatuses($merchant);
+        // 5. Save Category Mappings — UPSERT, no destructive delete
+        if ($request->has('category_mapping')) {
 
-        return back()->with('success', 'تم حفظ الإعدادات وتحديث حالة الدفعات');
-    }
+            $incomingMapping = $request->category_mapping;
 
-    /**
-     * إعادة حساب حالة جميع الدفعات
-     */
-    protected function recalculateBatchStatuses($merchant): void
-    {
-        $batches = $merchant->batches;
+            // Flatten to detect which categories were removed entirely
+            $submittedNames = collect($incomingMapping)
+                ->flatten()
+                ->filter()
+                ->values()
+                ->toArray();
 
-        foreach ($batches as $batch) {
-            $batch->calculateStatus();
-            $batch->saveQuietly(); // بدون إطلاق events
+            // Delete only rows absent from the new submission
+            CategoryMapping::where('merchant_id', $merchant->id)
+                ->whereNotIn('category_name', $submittedNames)
+                ->delete();
+
+            // Update existing rows or create new ones — never touches the ID
+            foreach ($incomingMapping as $bucket => $categories) {
+                if (!is_array($categories)) continue;
+
+                foreach ($categories as $index => $catName) {
+                    CategoryMapping::updateOrCreate(
+                        [
+                            'merchant_id'   => $merchant->id,
+                            'category_name' => $catName,
+                        ],
+                        [
+                            'bucket'     => $bucket,
+                            'sort_order' => $index,
+                        ]
+                    );
+                }
+            }
         }
-    }
+    });
 
+    Cache::forget("inventory_dashboard_{$merchant->id}");
+
+    return back()->with('success', 'تم حفظ الإعدادات بنجاح.');
+}
     /**
      * إعادة تعيين الإعدادات للقيم الافتراضية
      */
-    public function reset(Request $request)
+    public function reset()
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
         BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
             BatchSetting::getDefaults()
         );
 
-        return back()->with('success', 'تم إعادة تعيين الإعدادات للقيم الافتراضية');
+        Cache::forget("inventory_dashboard_{$merchant->id}");
+
+        return back()->with('success', 'تمت إعادة الإعدادات للقيم الافتراضية.');
     }
 }

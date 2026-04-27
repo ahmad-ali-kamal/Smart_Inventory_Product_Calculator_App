@@ -9,13 +9,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Log;
 
 class Batch extends Model
 {
     use HasFactory;
 
+    public $afterCommit = true;
+
     protected $fillable = [
         'merchant_id',
+        'salla_variant_id',
         'batch_code',
         'name',
         'manufactured_date',
@@ -27,7 +31,7 @@ class Batch extends Model
 
     protected $casts = [
         'manufactured_date' => 'date',
-        'expiry_date' => 'date',
+        'expiry_date'       => 'date:Y-m-d',
         'days_until_expiry' => 'integer',
     ];
 
@@ -35,81 +39,85 @@ class Batch extends Model
         'is_expired',
         'expiry_label',
         'total_quantity',
-        'total_sold',
         'total_remaining',
+        'total_sold',
     ];
 
-    // Relationships
-    public function merchant(): BelongsTo
-    {
-        return $this->belongsTo(Merchant::class);
-    }
-
-    public function items(): HasMany
-    {
-        return $this->hasMany(BatchItem::class);
-    }
-
-    public function products(): BelongsToMany
-    {
-        return $this->belongsToMany(Product::class, 'batch_items')
-            ->using(BatchItem::class)
-            ->withPivot(['quantity', 'sold_quantity', 'unit_cost'])
-            ->withTimestamps();
-    }
-
-    public function discounts(): HasMany
-    {
-        return $this->hasMany(ProductDiscount::class);
-    }
-
-    public function activityLogs(): MorphMany
-    {
-        return $this->morphMany(ActivityLog::class, 'loggable');
-    }
-
-    // Boot
     protected static function boot()
     {
         parent::boot();
 
         static::saving(function ($batch) {
-            $batch->calculateDaysUntilExpiry();
             $batch->calculateStatus();
+        });
+
+        static::saved(function ($batch) {
+            Log::info("--- [Batch Hook] Notification Triggered for ID: {$batch->id} ---");
+
+            $oldStatus = $batch->getOriginal('status');
+            $newStatus = $batch->status;
+
+            // ✅ إصلاح 1: لا نُرسل notification إذا لم يتغيّر الوضع
+            if ($oldStatus === $newStatus) {
+                return;
+            }
+
+            // ✅ إصلاح 2: لا نُرسل إلا للحالات الحرجة
+            if (!in_array($newStatus, ['yellow', 'red'])) {
+                return;
+            }
+
+            $merchant = $batch->merchant;
+            if (!$merchant) {
+                Log::warning("[Batch Hook] لا يوجد تاجر للدفعة ID: {$batch->id}");
+                return;
+            }
+
+            // ✅ إصلاح 3: التحقق من وجود منتج مرتبط قبل إرسال الـ notification
+            // عند إنشاء Batch جديد، البيانات تُحفظ قبل BatchItem بفارق صغير
+            // لذلك نتحقق بدلاً من إطلاق exception
+            $hasProduct = $batch->batchItems()->exists();
+
+            if (!$hasProduct) {
+                Log::info("[Batch Hook] الدفعة {$batch->id} ليس لها منتج بعد — تم تأجيل الـ notification");
+                return;
+            }
+
+            try {
+                $merchant->notify(new \App\Notifications\BatchExpiryNotification($batch, $newStatus));
+                Log::info("[Batch Hook] تم إرسال notification للتاجر: {$merchant->id}");
+            } catch (\Throwable $e) {
+                Log::error("[Batch Hook] فشل إرسال notification: " . $e->getMessage());
+            }
         });
     }
 
+    // ====================================================================
     // Accessors
+    // ====================================================================
+
     public function getIsExpiredAttribute(): bool
     {
-        return $this->expiry_date < now()->startOfDay();
+        if (!$this->expiry_date) return false;
+        return $this->expiry_date->isPast() || $this->expiry_date->isToday();
     }
 
     public function getExpiryLabelAttribute(): string
     {
-        if ($this->is_expired) {
-            return 'منتهي الصلاحية';
-        }
-
-        $days = $this->days_until_expiry;
-
-        if ($days > 60) {
-            return "باقي {$days} يوم";
-        } elseif ($days > 15) {
-            return "تحذير: باقي {$days} يوم";
-        } else {
-            return "خطر: باقي {$days} يوم فقط!";
-        }
+        $days = $this->days_until_expiry ?? 0;
+        if ($days < 0)  return 'منتهي الصلاحية';
+        if ($days == 0) return 'ينتهي اليوم!';
+        return $days <= 7 ? "خطر: باقي {$days} أيام فقط!" : "باقي {$days} يوم";
     }
 
     public function getTotalQuantityAttribute(): int
     {
-        return $this->items()->sum('quantity');
+        return (int) $this->batchItems()->sum('quantity');
     }
 
     public function getTotalSoldAttribute(): int
     {
-        return $this->items()->sum('sold_quantity');
+        return (int) $this->batchItems()->sum('sold_quantity');
     }
 
     public function getTotalRemainingAttribute(): int
@@ -117,56 +125,39 @@ class Batch extends Model
         return $this->total_quantity - $this->total_sold;
     }
 
-    // Methods
-    public function calculateDaysUntilExpiry(): void
+    // ====================================================================
+    // Relationships
+    // ====================================================================
+
+    public function merchant(): BelongsTo
     {
-        $this->days_until_expiry = Carbon::parse($this->expiry_date)
-            ->diffInDays(now()->startOfDay(), false);
+        return $this->belongsTo(Merchant::class, 'merchant_id');
     }
 
-    public function calculateStatus(): void
+    public function batchItems(): HasMany
     {
-        // Get merchant's batch settings
-        $settings = $this->merchant->batchSettings;
-
-        if (!$settings) {
-            // Default thresholds
-            $greenThreshold = 60;
-            $yellowThreshold = 15;
-        } else {
-            $greenThreshold = $settings->green_threshold_days;
-            $yellowThreshold = $settings->yellow_threshold_days;
-        }
-
-        $days = $this->days_until_expiry;
-
-        if ($days < 0 || $this->is_expired) {
-            $this->status = 'red';
-        } elseif ($days <= $yellowThreshold) {
-            $this->status = 'red';
-        } elseif ($days <= $greenThreshold) {
-            $this->status = 'yellow';
-        } else {
-            $this->status = 'green';
-        }
+        return $this->hasMany(BatchItem::class, 'batch_id');
     }
 
-    public function canApplyDiscount(): bool
+    public function products(): BelongsToMany
     {
-        return $this->status === 'yellow';
+        return $this->belongsToMany(Product::class, 'batch_items')
+            ->withPivot(['quantity', 'sold_quantity'])
+            ->withTimestamps();
     }
 
-    public function needsDiscount(): bool
+    public function activityLogs(): MorphMany
     {
-        return $this->status === 'yellow' && 
-               !$this->discounts()->where('status', 'active')->exists();
+        return $this->morphMany(ActivityLog::class, 'loggable');
     }
 
+    // ====================================================================
     // Scopes
-    public function scopeExpiring($query, int $days = 60)
+    // ====================================================================
+
+    public function scopeForMerchant($query, $merchantId)
     {
-        return $query->where('days_until_expiry', '<=', $days)
-            ->where('days_until_expiry', '>', 0);
+        return $query->where('merchant_id', $merchantId);
     }
 
     public function scopeExpired($query)
@@ -184,8 +175,61 @@ class Batch extends Model
         return $query->where('status', 'green');
     }
 
-    public function scopeForMerchant($query, int $merchantId)
+    // ====================================================================
+    // Methods
+    // ====================================================================
+
+    public function calculateStatus(): void
     {
-        return $query->where('merchant_id', $merchantId);
+        if (!$this->expiry_date) return;
+
+        $expiry   = Carbon::parse($this->expiry_date)->startOfDay();
+        $today    = Carbon::now()->startOfDay();
+        $daysLeft = (int) $today->diffInDays($expiry, false);
+
+        $this->days_until_expiry = $daysLeft;
+
+        if ($daysLeft <= 0) {
+            $this->status = 'red';
+            return;
+        }
+
+        $threshold    = $this->getThreshold();
+        $this->status = ($daysLeft <= $threshold) ? 'yellow' : 'green';
+    }
+
+    public function getThreshold(): int
+    {
+        $product = $this->products()->first();
+        if ($product && method_exists($product, 'getCategoryThreshold')) {
+            $threshold = $product->getCategoryThreshold();
+            if (!is_null($threshold)) return (int) $threshold;
+        }
+
+        $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
+        return (int) ($settings?->medium_term_days ?? 14);
+    }
+
+    /**
+     * إرسال notification يدوياً بعد ربط المنتج (يُستدعى من Controller)
+     * يحل مشكلة: الـ saved hook يُطلَق قبل إنشاء BatchItem
+     */
+    public function sendExpiryNotificationIfNeeded(): void
+    {
+        if (!in_array($this->status, ['yellow', 'red'])) {
+            return;
+        }
+
+        $merchant = $this->merchant;
+        if (!$merchant) return;
+
+        if (!$this->batchItems()->exists()) return;
+
+        try {
+            $merchant->notify(new \App\Notifications\BatchExpiryNotification($this, $this->status));
+            Log::info("[Batch] Notification يدوية أُرسلت للدفعة: {$this->id}");
+        } catch (\Throwable $e) {
+            Log::error("[Batch] فشل إرسال notification يدوية: " . $e->getMessage());
+        }
     }
 }

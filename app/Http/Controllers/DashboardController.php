@@ -2,94 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Merchant;
-use App\Models\Product;
-use App\Models\Batch;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     /**
-     * عرض الصفحة الرئيسية (Dashboard)
+     * النقطة المركزية للتوجيه الذكي
      */
     public function index(Request $request)
     {
-        $merchant = $request->user();
+        // جلب بيانات التاجر المسجل حالياً
+        $merchant = Auth::user();
 
-        // استخدام الكاش لتسريع العمليات
-        $cacheKey = "dashboard_stats_{$merchant->id}";
-        $cacheDuration = now()->addMinutes(5); // 5 دقائق
+        // 1. إذا لم يكن هناك تسجيل دخول، اظهر صفحة الترحيب العامة
+        if (!$merchant) {
+            return view('welcome');
+        }
 
-        $stats = Cache::remember($cacheKey, $cacheDuration, function () use ($merchant) {
-            return [
-                // إحصائيات المنتجات
-                'products' => [
-                    'total' => $merchant->products()->count(),
-                    'active' => $merchant->products()->active()->count(),
-                    'synced' => $merchant->products()
-                        ->whereNotNull('synced_at')
-                        ->count(),
-                ],
+        // 2. التوجيه بناءً على التطبيقات المثبتة
+        $hasCalculator = (bool) $merchant->has_calculator; // تطبيق المستشار
+        $hasManagement = (bool) $merchant->has_management; // تطبيق حريص
 
-                // إحصائيات المخزون
-                'inventory' => [
-                    'green' => $merchant->batches()->safe()->count(),
-                    'yellow' => $merchant->batches()->warning()->count(),
-                    'red' => $merchant->batches()->expired()->count(),
-                    'total_batches' => $merchant->batches()->count(),
-                ],
+        // الحالة الأولى: يملك التطبيقين معاً (عرض صفحة الاختيار)
+        if ($hasCalculator && $hasManagement) {
+            return view('welcome', [
+                'merchant' => $merchant,
+                'showSelector' => true
+            ]);
+        }
 
-                // إحصائيات الآلة الحاسبة
-                'calculator' => [
-                    'has_settings' => $merchant->hasCalculatorSettings(),
-                    'enabled_products' => $merchant->products()
-                        ->withCalculatorEnabled()
-                        ->count(),
-                ],
+        // الحالة الثانية: يملك تطبيق المستشار (الآلة الحاسبة) فقط
+        if ($hasCalculator) {
+            return redirect()->route('calculator.dashboard');
+        }
 
-                // إحصائيات إضافية
-                'settings' => [
-                    'has_batch_settings' => $merchant->hasBatchSettings(),
-                    'has_calculator_settings' => $merchant->hasCalculatorSettings(),
-                ],
-            ];
-        });
+        // الحالة الثالثة: يملك تطبيق حريص (إدارة المخزون) فقط
+        if ($hasManagement) {
+            return redirect()->route('inventory.dashboard');
+        }
 
-        // آخر النشاطات (بدون كاش لأنها ديناميكية)
-        $recentActivities = $merchant->activityLogs()
-            ->with('loggable')
-            ->latest()
-            ->take(10)
-            ->get()
-            ->map(function ($log) {
-                return [
-                    'id' => $log->id,
-                    'action' => $log->action,
-                    'description' => $log->description,
-                    'created_at' => $log->created_at->diffForHumans(),
-                    'loggable_type' => class_basename($log->loggable_type),
-                ];
-            });
-
-        return Inertia::render('Dashboard', [
-            'merchant' => $merchant->only(['id', 'store_name', 'email']),
-            'stats' => $stats,
-            'recentActivities' => $recentActivities,
+        // حالة احتياطية: التاجر مسجل ولكن لم يتم تفعيل أي تطبيق له بعد
+        return view('welcome', [
+            'merchant' => $merchant,
+            'showSelector' => false
         ]);
     }
 
     /**
-     * مسح الكاش للتاجر
+     * دالة لعرض صفحة عرض منتج محدد (التي طلبناها في ملف الويب)
      */
-    public function clearCache(Request $request)
+    public function showProduct($product_id)
     {
-        $merchant = $request->user();
-        $cacheKey = "dashboard_stats_{$merchant->id}";
+        $merchant = Auth::user();
+        $product = $merchant->products()->where('salla_product_id', $product_id)->firstOrFail();
 
-        Cache::forget($cacheKey);
-
-        return back()->with('success', 'تم مسح الكاش بنجاح');
+        return view('inventory.product_details', compact('product'));
     }
 }

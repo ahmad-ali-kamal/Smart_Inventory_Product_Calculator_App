@@ -4,165 +4,162 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\CategoryMapping;
+use App\Models\BatchSetting;
+use App\Models\Product;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CategoryMappingController extends Controller
 {
     /**
-     * عرض صفحة تصنيف الأقسام
+     * عرض صفحة الإعدادات وتوزيع التصنيفات
      */
-    public function index(Request $request)
-    {
-        $merchant = $request->user();
+ public function index(Request $request)
+{
+    $merchant = Auth::user();
 
-        // جلب التصنيفات الحالية
-        $mappings = CategoryMapping::forMerchant($merchant->id)
-            ->ordered()
-            ->get()
-            ->groupBy('expiry_bucket')
-            ->map(function ($items) {
-                return $items->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'category_name' => $item->category_name,
-                        'expiry_bucket' => $item->expiry_bucket,
-                        'threshold_days' => $item->threshold_days,
-                        'custom_threshold_days' => $item->custom_threshold_days,
-                        'products_count' => $item->products()->count(),
-                    ];
-                });
-            });
+    $settings = BatchSetting::where('merchant_id', $merchant->id)->first() 
+                ?? (object) BatchSetting::getDefaults();
 
-        // التأكد من وجود جميع البuckets
-        $buckets = [
-            'short' => $mappings->get('short', collect()),
-            'medium' => $mappings->get('medium', collect()),
-            'long' => $mappings->get('long', collect()),
-        ];
+    $mappings = CategoryMapping::where('merchant_id', $merchant->id)
+        ->orderBy('sort_order')
+        ->get()
+        ->groupBy('bucket');
 
-        return Inertia::render('Settings/CategoryMapping', [
-            'buckets' => $buckets,
-            'defaultCategories' => CategoryMapping::getDefaultCategories(),
-        ]);
-    }
+    $formattedMappings = [
+        'short'  => $mappings->get('short',  collect())->pluck('category_name')->toArray(),
+        'medium' => $mappings->get('medium', collect())->pluck('category_name')->toArray(),
+        'long'   => $mappings->get('long',   collect())->pluck('category_name')->toArray(),
+    ];
+
+    $allMappedCategories = array_merge(
+        $formattedMappings['short'],
+        $formattedMappings['medium'],
+        $formattedMappings['long']
+    );
+
+    // ✅ هنا كان الخطأ — بناء $unmappedCategories فعلياً
+    $unmappedCategories = Product::where('merchant_id', $merchant->id)
+        ->whereNotNull('category')
+        ->distinct()
+        ->pluck('category')
+        ->filter(fn($cat) => !in_array($cat, $allMappedCategories))
+        ->values()
+        ->toArray();
+
+    return view('inventory.settings', [
+        'settings'            => $settings,
+        'mappings'            => $formattedMappings,
+        'allMappedCategories' => $allMappedCategories,
+        'unmappedCategories'  => $unmappedCategories, // ✅ الآن معرّف صح
+    ]);
+}
 
     /**
-     * نقل فئة بين البuckets
-     */
-    public function move(Request $request, CategoryMapping $mapping)
-    {
-        $this->authorize('update', $mapping);
-
-        $request->validate([
-            'expiry_bucket' => 'required|in:short,medium,long',
-            'sort_order' => 'nullable|integer',
-        ]);
-
-        $mapping->update([
-            'expiry_bucket' => $request->expiry_bucket,
-            'sort_order' => $request->sort_order ?? $mapping->sort_order,
-        ]);
-
-        return back()->with('success', 'تم تحديث التصنيف');
-    }
-
-    /**
-     * تحديث الترتيب بالجملة (Drag & Drop)
+     * 🚀 دالة الربط مع الـ JS: تحديث التصنيفات بالجملة بعد السحب والإفلات
      */
     public function reorder(Request $request)
     {
+        $merchant = Auth::user();
+        
         $request->validate([
-            'mappings' => 'required|array',
-            'mappings.*.id' => 'required|exists:category_mappings,id',
-            'mappings.*.expiry_bucket' => 'required|in:short,medium,long',
-            'mappings.*.sort_order' => 'required|integer',
+            'category_mapping' => 'required|array',
+            'category_mapping.short'  => 'nullable|array',
+            'category_mapping.medium' => 'nullable|array',
+            'category_mapping.long'   => 'nullable|array',
         ]);
 
-        foreach ($request->mappings as $data) {
-            CategoryMapping::where('id', $data['id'])
-                ->where('merchant_id', $request->user()->id)
-                ->update([
-                    'expiry_bucket' => $data['expiry_bucket'],
-                    'sort_order' => $data['sort_order'],
-                ]);
+        try {
+            DB::transaction(function () use ($request, $merchant) {
+                // مسح التوزيع القديم للتاجر لإعادة بنائه بناءً على الحالة الجديدة للواجهة
+                CategoryMapping::where('merchant_id', $merchant->id)->delete();
+
+                foreach ($request->category_mapping as $bucket => $categories) {
+                    if (is_array($categories)) {
+                        foreach ($categories as $index => $catName) {
+                            CategoryMapping::create([
+                                'merchant_id'   => $merchant->id,
+                                'category_name' => $catName,
+                                'bucket'        => $bucket,
+                                'sort_order'    => $index,
+                                // threshold_days أصبحت الآن تُقرأ ديناميكياً من BatchSetting في العرض
+                            ]);
+                        }
+                    }
+                }
+            });
+
+            return response()->json(['success' => true, 'message' => 'Category distribution updated!']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
-
-        return back()->with('success', 'تم حفظ الترتيب الجديد');
     }
 
     /**
-     * تحديث Threshold مخصص
+     * نقل تصنيف واحد (تستخدم في العمليات السريعة)
      */
-    public function updateThreshold(Request $request, CategoryMapping $mapping)
+    public function move(Request $request)
     {
-        $this->authorize('update', $mapping);
-
         $request->validate([
-            'custom_threshold_days' => 'nullable|integer|min:1|max:365',
+            'category_name' => 'required|string',
+            'bucket'        => 'required|in:short,medium,long',
         ]);
 
-        $mapping->update([
-            'custom_threshold_days' => $request->custom_threshold_days,
-        ]);
+        CategoryMapping::updateOrCreate(
+            [
+                'merchant_id'   => Auth::id(),
+                'category_name' => $request->category_name
+            ],
+            [
+                'bucket'     => $request->bucket,
+                'sort_order' => 0
+            ]
+        );
 
-        return back()->with('success', 'تم تحديث المدة المخصصة');
+        return response()->json(['success' => true]);
     }
 
     /**
-     * إضافة فئة جديدة
+     * تحديث أيام الإشعار المخصصة (إذا كنت لا تزال ترغب بدعمها)
+     */
+    public function updateThreshold(Request $request)
+    {
+        $request->validate([
+            'bucket' => 'required|in:short,medium,long',
+            'days'   => 'required|integer|min:1'
+        ]);
+
+        $merchant = Auth::user();
+        
+        // تحديث القيمة في BatchSetting لأنها المصدر الرئيسي الآن
+        $column = $request->bucket . '_term_days';
+        
+        BatchSetting::updateOrCreate(
+            ['merchant_id' => $merchant->id],
+            [$column => $request->days]
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * إضافة تصنيف جديد يدوياً
      */
     public function store(Request $request)
     {
         $request->validate([
             'category_name' => 'required|string|max:255',
-            'expiry_bucket' => 'required|in:short,medium,long',
-            'custom_threshold_days' => 'nullable|integer|min:1|max:365',
+            'bucket'        => 'required|in:short,medium,long',
         ]);
 
         CategoryMapping::create([
-            'merchant_id' => $request->user()->id,
+            'merchant_id'   => Auth::id(),
             'category_name' => $request->category_name,
-            'expiry_bucket' => $request->expiry_bucket,
-            'custom_threshold_days' => $request->custom_threshold_days,
-            'sort_order' => CategoryMapping::forMerchant($request->user()->id)->max('sort_order') + 1,
+            'bucket'        => $request->bucket,
+            'sort_order'    => 99,
         ]);
 
-        return back()->with('success', 'تمت إضافة الفئة');
-    }
-
-    /**
-     * حذف فئة
-     */
-    public function destroy(CategoryMapping $mapping)
-    {
-        $this->authorize('delete', $mapping);
-
-        $mapping->delete();
-
-        return back()->with('success', 'تم حذف الفئة');
-    }
-
-    /**
-     * تطبيق التصنيفات الافتراضية
-     */
-    public function applyDefaults(Request $request)
-    {
-        $merchant = $request->user();
-
-        foreach (CategoryMapping::getDefaultCategories() as $index => $category) {
-            CategoryMapping::updateOrCreate(
-                [
-                    'merchant_id' => $merchant->id,
-                    'category_name' => $category['name'],
-                ],
-                [
-                    'expiry_bucket' => $category['bucket'],
-                    'sort_order' => $index,
-                ]
-            );
-        }
-
-        return back()->with('success', 'تم تطبيق التصنيفات الافتراضية');
+        return back()->with('success', 'Category added successfully');
     }
 }

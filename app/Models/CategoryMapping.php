@@ -14,7 +14,7 @@ class CategoryMapping extends Model
     protected $fillable = [
         'merchant_id',
         'category_name',
-        'expiry_bucket',
+        'bucket',  // Using 'bucket' (not 'expiry_bucket') to match the database column name
         'custom_threshold_days',
         'sort_order',
     ];
@@ -48,7 +48,7 @@ class CategoryMapping extends Model
             return $this->custom_threshold_days;
         }
 
-        return match($this->expiry_bucket) {
+       return match($this->bucket) {
             'short' => 7,
             'medium' => 14,
             'long' => 30,
@@ -58,7 +58,7 @@ class CategoryMapping extends Model
 
     public function getBucketLabelAttribute(): string
     {
-        return match($this->expiry_bucket) {
+        return match($this->bucket) {
             'short' => 'قصير الأجل (7 أيام)',
             'medium' => 'متوسط الأجل (14 يوم)',
             'long' => 'طويل الأجل (30 يوم)',
@@ -73,9 +73,9 @@ class CategoryMapping extends Model
     }
 
     public function scopeByBucket($query, string $bucket)
-    {
-        return $query->where('expiry_bucket', $bucket);
-    }
+{
+    return $query->where('bucket', $bucket); // ← بدل expiry_bucket
+}
 
     public function scopeOrdered($query)
     {

@@ -7,137 +7,100 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Str;
 
 class Merchant extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    /**
+     * الحقول القابلة للتعبئة (Mass Assignment)
+     * تم حذف حقول التوكنات لأنها انتقلت لجدول salla_apps
+     */
     protected $fillable = [
         'salla_merchant_id',
-        'store_name',
+        'name',
         'email',
-        'verification_token',
-        'email_verified_at',
-        'access_token',
-        'refresh_token',
-        'token_expires_at',
+        'mobile',
         'store_info',
-        'is_active',
+        'has_calculator', 
+        'has_management', 
     ];
 
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'token_expires_at' => 'datetime',
-        'store_info' => 'array',
-        'is_active' => 'boolean',
-    ];
-
+    /**
+     * الحقول المخفية عند تحويل المودل إلى Array/JSON
+     */
     protected $hidden = [
-        'access_token',
-        'refresh_token',
-        'verification_token',
+        'remember_token',
     ];
 
-    // Relationships
+    /**
+     * تحويل أنواع البيانات تلقائياً
+     */
+    protected $casts = [
+        'store_info' => 'array',
+        'has_calculator' => 'boolean',
+        'has_management' => 'boolean',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | العلاقات (Relationships)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * علاقة التاجر مع تطبيقاته (حريص، المستشار، إلخ)
+     */
+    public function sallaApps(): HasMany
+    {
+        return $this->hasMany(SallaApp::class);
+    }
+
+    /**
+     * الوصول للمنتجات التابعة للتاجر
+     */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
     }
 
+    /**
+     * الوصول للباتشات التابعة للتاجر
+     */
     public function batches(): HasMany
     {
         return $this->hasMany(Batch::class);
     }
 
+    /**
+     * إعدادات التصنيفات
+     */
     public function categoryMappings(): HasMany
     {
         return $this->hasMany(CategoryMapping::class);
     }
 
+    /**
+     * إعدادات الباتشات العامة
+     */
     public function batchSettings(): HasOne
     {
         return $this->hasOne(BatchSetting::class);
     }
 
+    /**
+     * إعدادات الحاسبة
+     */
     public function calculatorSettings(): HasOne
     {
         return $this->hasOne(CalculatorSetting::class);
     }
 
+    /**
+     * سجل النشاطات
+     */
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
-    }
-
-    // Accessors & Mutators
-    public function getAccessTokenAttribute($value): ?string
-    {
-        return $value ? Crypt::decryptString($value) : null;
-    }
-
-    public function setAccessTokenAttribute($value): void
-    {
-        $this->attributes['access_token'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    public function getRefreshTokenAttribute($value): ?string
-    {
-        return $value ? Crypt::decryptString($value) : null;
-    }
-
-    public function setRefreshTokenAttribute($value): void
-    {
-        $this->attributes['refresh_token'] = $value ? Crypt::encryptString($value) : null;
-    }
-
-    // Helper Methods
-    public function isEmailVerified(): bool
-    {
-        return !is_null($this->email_verified_at);
-    }
-
-    public function generateVerificationToken(): string
-    {
-        $this->verification_token = Str::random(64);
-        $this->save();
-
-        return $this->verification_token;
-    }
-
-    public function markEmailAsVerified(): bool
-    {
-        $this->email_verified_at = now();
-        $this->is_active = true;
-        $this->verification_token = null;
-
-        return $this->save();
-    }
-
-    public function isTokenExpired(): bool
-    {
-        return $this->token_expires_at && $this->token_expires_at->isPast();
-    }
-
-    public function hasCalculatorSettings(): bool
-    {
-        return $this->calculatorSettings()->exists();
-    }
-
-    public function hasBatchSettings(): bool
-    {
-        return $this->batchSettings()->exists();
-    }
-
-    // Scopes
-    public function scopeVerified($query)
-    {
-        return $query->whereNotNull('email_verified_at');
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 }

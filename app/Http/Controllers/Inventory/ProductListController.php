@@ -4,130 +4,124 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use App\Models\ProductImage;
-use App\Services\SallaApiService;
+use App\Models\BatchSetting;
+use App\Models\CategoryMapping;
+use App\Jobs\FetchProductsJob;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ProductListController extends Controller
 {
     /**
-     * عرض قائمة المنتجات
+     * عرض قائمة المنتجات مع حساب الحالة (ألوان الإشعارات) ديناميكياً
      */
     public function index(Request $request)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
+        // 1. جلب إعدادات التاجر للمدد الزمنية (أو الافتراضية)
+        $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
+        
+        if (!$settings) {
+            $settings = (object) BatchSetting::getDefaults();
+        }
+
+        // 2. جلب خريطة التصنيفات (اسم التصنيف => نوع الـ Bucket)
+        $categoryMappings = CategoryMapping::where('merchant_id', $merchant->id)
+                            ->pluck('bucket', 'category_name')
+                            ->toArray();
+
+        // 3. جلب المنتجات مع الدفعات المرتبطة
         $products = Product::where('merchant_id', $merchant->id)
-            ->with([
-                'mainImage',
-                'images',
-                'batchItems.batch',
-                'calculator'
-            ])
+            ->with(['images', 'batchItems.batch'])
             ->orderBy('name')
-            ->paginate(20)
-            ->through(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'salla_product_id' => $product->salla_product_id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'price' => $product->price,
-                    'quantity' => $product->quantity,
-                    'category' => $product->category,
-                    'main_image_url' => $product->main_image_url,
-                    'images_count' => $product->images->count(),
-                    'status' => $product->status,
-                    'has_expiry_data' => $product->has_expiry_data,
-                    'overall_status' => $product->overall_status,
-                    'batches_count' => $product->batchItems->count(),
-                    'has_calculator_enabled' => $product->has_calculator_enabled,
-                ];
-            });
+            ->paginate(15);
 
-        return Inertia::render('Inventory/ProductList', [
-            'products' => $products,
-        ]);
+        // 4. معالجة كل منتج لتحديد حالته (Status) وكلاس الفلتر
+        $products->getCollection()->transform(function ($product) use ($merchant, $settings, $categoryMappings) {
+            
+            // أ. تحديد نوع الـ Bucket للمنتج (الافتراضي medium إذا لم يصنف بعد)
+            $bucket = $categoryMappings[$product->category] ?? 'medium';
+            
+            // ب. جلب أيام الإشعار الخاصة بهذا الـ Bucket من الإعدادات
+            $thresholdKey = $bucket . '_term_days';
+            $threshold = $settings->$thresholdKey ?? 14;
+
+            // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية) للمنتج ككل
+            $minDaysRemaining = 999; 
+            
+            if ($product->batchItems && $product->batchItems->count() > 0) {
+                $minDaysRemaining = $product->batchItems->map(function($item) {
+                    // نتحقق أن الـ batch موجود فعلاً وله قيمة تاريخ انتهاء
+                    if (!$item->batch || !$item->batch->expiry_date) return 999;
+                    
+                    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
+                    $today  = \Carbon\Carbon::now()->startOfDay();
+                    return (int) $today->diffInDays($expiry, false);
+                })->min() ?? 999;
+
+                // د. تحديد حالة كل "دفعة" (Batch) بشكل منفصل لعرضها في تفاصيل المنتج
+                $product->batchItems->each(function ($item) use ($threshold) {
+                    if (!$item->batch || !$item->batch->expiry_date) return;
+
+                    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
+                    $today  = \Carbon\Carbon::now()->startOfDay();
+                    $days   = (int) $today->diffInDays($expiry, false);
+
+                    $item->batch->status = match(true) {
+                        $days <= 0           => 'red',    // منتهي
+                        $days <= $threshold  => 'yellow', // قريب الانتهاء
+                        default              => 'green',  // آمن
+                    };
+                });
+            }
+
+            // هـ. تحديد الحالة العامة للمنتج بناءً على أقرب دفعة
+            $status = BatchSetting::getStatusForDays($minDaysRemaining, $merchant->id);
+
+            // و. إضافة الخصائص للمنتج لتظهر في واجهة العرض
+            $product->status = $status;
+            $product->filterClass = "status-" . $status; 
+            $product->bucket_type = $bucket;
+            $product->days_left = $minDaysRemaining; 
+
+            return $product;
+        });
+
+        return view('inventory.products', compact('products', 'settings'));
     }
 
     /**
-     * مزامنة المنتجات من سلة
+     * مزامنة المنتجات من سلة في الخلفية
      */
     public function sync(Request $request)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
         try {
-            $sallaApi = SallaApiService::for($merchant);
-            $page = 1;
-            $synced = 0;
-
-            do {
-                $sallaProducts = $sallaApi->getProducts($page);
-                
-                foreach ($sallaProducts as $sallaProduct) {
-                    // إنشاء/تحديث المنتج
-                    $product = Product::updateOrCreate(
-                        [
-                            'merchant_id' => $merchant->id,
-                            'salla_product_id' => $sallaProduct['id'],
-                        ],
-                        [
-                            'name' => $sallaProduct['name'],
-                            'sku' => $sallaProduct['sku'] ?? null,
-                            'price' => $sallaProduct['price'] ?? 0,
-                            'quantity' => $sallaProduct['quantity'] ?? 0,
-                            'category' => $sallaProduct['category']['name'] ?? null,
-                            'status' => $sallaProduct['status'] ?? 'active',
-                            'synced_at' => now(),
-                            'metadata' => $sallaProduct,
-                        ]
-                    );
-
-                    // مزامنة الصور
-                    if (!empty($sallaProduct['images'])) {
-                        $this->syncProductImages($product, $sallaProduct['images']);
-                    }
-
-                    $synced++;
-                }
-
-                $page++;
-            } while (count($sallaProducts) > 0);
-
-            // مسح الكاش
+            FetchProductsJob::dispatch($merchant);
             Cache::forget("inventory_dashboard_{$merchant->id}");
-
-            return back()->with('success', "تم مزامنة {$synced} منتج بنجاح");
-
+            return back()->with('success', 'بدأت المزامنة في الخلفية. ستظهر المنتجات هنا فور اكتمال السحب من سلة.');
         } catch (\Exception $e) {
-            \Log::error('Product sync failed', [
-                'merchant_id' => $merchant->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->with('error', 'فشلت عملية المزامنة: ' . $e->getMessage());
+            Log::error('Product sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
+            return back()->with('error', 'فشل بدء المزامنة: ' . $e->getMessage());
         }
     }
 
     /**
-     * مزامنة صور المنتج
+     * عرض تفاصيل المنتج والدفعات
      */
-    protected function syncProductImages(Product $product, array $images): void
+    public function show($id)
     {
-        // حذف الصور القديمة
-        $product->images()->delete();
+        $merchant = Auth::user();
+        
+        $product = Product::where('id', $id)
+            ->where('merchant_id', $merchant->id)
+            ->with(['batchItems.batch', 'images'])
+            ->firstOrFail();
 
-        // إضافة الصور الجديدة
-        foreach ($images as $index => $imageData) {
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image_url' => $imageData['url'] ?? $imageData,
-                'sort_order' => $index,
-                'is_main' => $index === 0, // أول صورة هي الرئيسية
-                'alt_text' => $product->name,
-            ]);
-        }
+        return view('inventory.show', compact('product'));
     }
 }

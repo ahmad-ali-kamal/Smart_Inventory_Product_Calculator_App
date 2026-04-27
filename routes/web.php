@@ -1,140 +1,84 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Route;
+
+// استدعاء الكنترولرات
+use App\Http\Controllers\Auth\SallaOAuthController;
+use App\Http\Controllers\Calculator\CalculatorDashboardController;
+use App\Http\Controllers\Calculator\CalculatorSettingsController;
+use App\Http\Controllers\Calculator\ProductCalculatorController;
 use App\Http\Controllers\Inventory\InventoryDashboardController;
 use App\Http\Controllers\Inventory\ProductListController;
 use App\Http\Controllers\Inventory\ProductExpiryController;
 use App\Http\Controllers\Inventory\DiscountController;
-use App\Http\Controllers\Calculator\CalculatorDashboardController;
-use App\Http\Controllers\Calculator\CalculatorSettingsController;
-use App\Http\Controllers\Calculator\ProductCalculatorController;
 use App\Http\Controllers\Settings\CategoryMappingController;
 use App\Http\Controllers\Settings\BatchSettingController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Inventory\NotificationController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
+/* --- 1. الروابط العامة --- */
+Route::get('/', [DashboardController::class, 'index'])->name('welcome');
+Route::get('/calculator/settings/{salla_product_id}', [CalculatorSettingsController::class, 'getSettingsForStore']);
 
-// ====================================================================
-// Authentication Routes
-// ====================================================================
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/login', fn() => view('auth.login'))->name('login');
+    Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');
+    Route::get('/auth/salla/callback', [SallaOAuthController::class, 'callback'])->name('auth.salla.callback');
 });
 
-// Email Verification (بدون auth middleware)
-Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail'])->name('auth.verify-email');
-Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->name('auth.resend-verification');
+Route::post('/logout', [SallaOAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-// Logout
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+/* --- 2. تطبيق حريص (المخزون) --- */
+Route::middleware(['auth'])->prefix('inventory')->group(function () {
+    
+    // الداشبورد
+    Route::get('/', [InventoryDashboardController::class, 'index'])->name('inventory.dashboard');
+    
+    // المنتجات
+    Route::get('/products', [ProductListController::class, 'index'])->name('inventory.products.index');
+    Route::get('/products/{product_id}', [ProductListController::class, 'show'])->name('inventory.products.show');
+    Route::post('/products/sync', [ProductListController::class, 'sync'])->name('inventory.products.sync');
 
-// ====================================================================
-// Protected Routes (تحتاج تسجيل دخول وإيميل مُفعّل)
-// ====================================================================
-Route::middleware(['auth', 'verified'])->group(function () {
+    // الإعدادات
+    Route::get('/settings', [InventoryDashboardController::class, 'settings'])->name('inventory.settings');
     
-    // =======================================
-    // Main Dashboard
-    // =======================================
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::post('/dashboard/clear-cache', [DashboardController::class, 'clearCache'])->name('dashboard.clear-cache');
-    
-    // =======================================
-    // Inventory Management Routes
-    // =======================================
-    Route::prefix('inventory')->name('inventory.')->group(function () {
-        
-        // Inventory Dashboard
-        Route::get('/', [InventoryDashboardController::class, 'index'])->name('dashboard');
-        Route::post('/clear-cache', [InventoryDashboardController::class, 'clearCache'])->name('clear-cache');
-        
-        // Product List
-        Route::get('/products', [ProductListController::class, 'index'])->name('products.index');
-        Route::post('/products/sync', [ProductListController::class, 'sync'])->name('products.sync');
-        
-        // Product Expiry (Batches)
-        Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('expiry.store');
-        Route::put('/products/{product}/expiry', [ProductExpiryController::class, 'update'])->name('expiry.update');
-        Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('expiry.destroy');
-        Route::get('/products/{product}/batches', [ProductExpiryController::class, 'show'])->name('expiry.show');
-        
-        // Discounts
-        Route::get('/products/{product}/discount/suggest', [DiscountController::class, 'suggest'])->name('discount.suggest');
-        Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('discount.apply');
-        Route::delete('/discounts/{discount}', [DiscountController::class, 'cancel'])->name('discount.cancel');
-        
-        // Product Actions
-        Route::post('/products/{product}/hide', [DiscountController::class, 'hideProduct'])->name('product.hide');
-        Route::post('/products/{product}/restock', [DiscountController::class, 'restock'])->name('product.restock');
-    });
-    
-    // =======================================
-    // Calculator Routes
-    // =======================================
-    Route::prefix('calculator')->name('calculator.')->group(function () {
-        
-        // Calculator Dashboard
-        Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
-        
-        // Settings
-        Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
-        Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
-        Route::put('/settings', [CalculatorSettingsController::class, 'update'])->name('settings.update');
-        
-        // Product Management
-        Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
-        Route::post('/products/{product}/enable', [ProductCalculatorController::class, 'enable'])->name('products.enable');
-        Route::post('/products/{product}/disable', [ProductCalculatorController::class, 'disable'])->name('products.disable');
-        Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
-        Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
-    });
-    
-    // =======================================
-    // Settings Routes
-    // =======================================
-    Route::prefix('settings')->name('settings.')->group(function () {
-        
-        // Category Mappings (تصنيف الفئات)
-        Route::get('/categories', [CategoryMappingController::class, 'index'])->name('categories.index');
-        Route::post('/categories', [CategoryMappingController::class, 'store'])->name('categories.store');
-        Route::put('/categories/{mapping}', [CategoryMappingController::class, 'move'])->name('categories.move');
-        Route::delete('/categories/{mapping}', [CategoryMappingController::class, 'destroy'])->name('categories.destroy');
-        Route::post('/categories/reorder', [CategoryMappingController::class, 'reorder'])->name('categories.reorder');
-        Route::put('/categories/{mapping}/threshold', [CategoryMappingController::class, 'updateThreshold'])->name('categories.threshold');
-        Route::post('/categories/apply-defaults', [CategoryMappingController::class, 'applyDefaults'])->name('categories.apply-defaults');
-        
-        // Batch Settings (إعدادات التواريخ)
-        Route::get('/batch', [BatchSettingController::class, 'index'])->name('batch.index');
-        Route::post('/batch', [BatchSettingController::class, 'store'])->name('batch.store');
+    // 🏆 الحل النهائي لخطأ الـ 404: تعريف الرابط الذي يطلبه الـ JavaScript
+    // هذا الرابط سيستقبل طلبات الحفظ (تاريخ واحد أو دفعات متعددة)
+    Route::post('/expiry/batch', [ProductExpiryController::class, 'store'])->name('inventory.expiry.batch');
+
+    // روابط إعدادات التصنيفات والمدد
+    Route::prefix('settings')->name('inventory.settings.')->group(function () {
+        Route::match(['POST', 'PUT'], '/batch', [BatchSettingController::class, 'store'])->name('batch.store');
         Route::post('/batch/reset', [BatchSettingController::class, 'reset'])->name('batch.reset');
+        Route::get('/categories', [CategoryMappingController::class, 'index'])->name('categories.index');
+        Route::post('/categories/reorder', [CategoryMappingController::class, 'reorder'])->name('categories.reorder');
+        Route::post('/categories/move', [CategoryMappingController::class, 'move'])->name('categories.move');
     });
+
+    // روابط إضافية (تعليمات، خصومات)
+    Route::get('/instructions', [InventoryDashboardController::class, 'instructions'])->name('inventory.instructions');
+    Route::post('/products/{product}/discount', [DiscountController::class, 'apply'])->name('inventory.discount.apply');
+
+     // الإشعارات
+Route::get('/notifications', [NotificationController::class, 'index'])->name('inventory.notifications');
+Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('inventory.notifications.read');
+Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('inventory.notifications.readAll');
+  
+    
+    // مسار احتياطي في حال كان الـ JS يرسل المعرف في الرابط
+    Route::post('/products/{product}/expiry', [ProductExpiryController::class, 'store'])->name('inventory.expiry.store');
+    Route::delete('/products/{product}/expiry', [ProductExpiryController::class, 'destroy'])->name('inventory.expiry.destroy');
 });
 
-// ====================================================================
-// API Routes (للاستخدام في Vue أو Ajax)
-// ====================================================================
-Route::middleware(['auth', 'verified'])->prefix('api')->name('api.')->group(function () {
+/* --- 3. تطبيق المستشار (الآلة الحاسبة) --- */
+Route::middleware(['auth'])->prefix('calculator')->name('calculator.')->group(function () {
+    Route::get('/', [CalculatorDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/settings', [CalculatorSettingsController::class, 'index'])->name('settings');
+    Route::get('/instructions', [CalculatorDashboardController::class, 'instructions'])->name('instructions');
+    Route::post('/settings', [CalculatorSettingsController::class, 'store'])->name('settings.store');
     
-    // Product API
-    Route::get('/products/{product}', function (App\Models\Product $product) {
-        return response()->json($product->load(['mainImage', 'images', 'batchItems.batch']));
-    })->name('products.show');
-    
-    // Batch API
-    Route::get('/batches/{batch}', function (App\Models\Batch $batch) {
-        return response()->json($batch->load(['items.product', 'discounts']));
-    })->name('batches.show');
-    
-    // Category Mapping API
-    Route::get('/category-mappings', function (Request $request) {
-        return response()->json(
-            App\Models\CategoryMapping::forMerchant($request->user()->id)->ordered()->get()
-        );
-    })->name('category-mappings.index');
+    Route::get('/products', [ProductCalculatorController::class, 'index'])->name('products.index');
+    Route::post('/products/sync', [ProductCalculatorController::class, 'sync'])->name('products.sync');
+    Route::post('/products/{product}/toggle', [ProductCalculatorController::class, 'toggle'])->name('products.toggle');
+    Route::post('/products/bulk-enable', [ProductCalculatorController::class, 'bulkEnable'])->name('products.bulk-enable');
 });

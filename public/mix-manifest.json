@@ -1,4 +1,16 @@
 {
     "/js/app.js": "/js/app.js",
+    "/js/products.js": "/js/products.js",
+    "/js/settings.js": "/js/settings.js",
+    "/js/inventory-dashboard.js": "/js/inventory-dashboard.js",
+    "/js/inventory-settings.js": "/js/inventory-settings.js",
+    "/js/inventory-products.js": "/js/inventory-products.js",
+    "/js/inventory-discountform.js": "/js/inventory-discountform.js",
+    "/js/inventory-dateform.js": "/js/inventory-dateform.js",
+    "/js/notifications.js": "/js/notifications.js",
+    "/css/shared.css": "/css/shared.css",
+    "/css/expiryapp.css": "/css/expiryapp.css",
+    "/css/calcapp.css": "/css/calcapp.css",
+    "/css/guest.css": "/css/guest.css",
     "/css/app.css": "/css/app.css"
 }

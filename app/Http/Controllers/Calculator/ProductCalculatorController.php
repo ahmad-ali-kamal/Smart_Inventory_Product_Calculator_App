@@ -3,138 +3,262 @@
 namespace App\Http\Controllers\Calculator;
 
 use App\Http\Controllers\Controller;
+use App\Models\CalculatorSetting;
 use App\Models\Product;
 use App\Models\ProductCalculator;
+use App\Jobs\FetchProductsJob;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ProductCalculatorController extends Controller
 {
     /**
-     * عرض صفحة إدارة المنتجات
+     * جلب الإعدادات لمنتج معين (يستخدم عادة من قبل واجهة سلة أو API)
      */
-    public function index(Request $request)
+    public function getSettings($product_id)
     {
-        $merchant = $request->user();
+        $merchant = Auth::user();
 
-        if (!$merchant->hasCalculatorSettings()) {
-            return redirect()->route('calculator.settings')
-                ->with('info', 'يرجى إعداد الإعدادات العامة أولاً');
+        $product = Product::where('merchant_id', $merchant->id)
+            ->where('salla_product_id', (string) $product_id)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'enabled' => false,
+                'success' => false,
+                'message' => "We couldn't find this product in your store. Please refresh and try again.",
+            ], 404);
         }
 
-        $products = Product::where('merchant_id', $merchant->id)
-            ->with('calculator')
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'price' => $product->price,
-                    'image_url' => $product->image_url,
-                    'calculator_enabled' => $product->calculator && $product->calculator->is_enabled,
-                ];
-            });
+        $calculator = $product->calculator;
 
-        return Inertia::render('Calculator/ProductManagement', [
-            'products' => $products,
-            'settings' => [
-                'coverage_per_unit' => $merchant->calculatorSettings->coverage_per_unit,
-                'waste_percentage' => $merchant->calculatorSettings->waste_percentage,
+        if (!$calculator || !$calculator->is_enabled) {
+            return response()->json(['enabled' => false]);
+        }
+
+        $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+
+        $metaCalc = is_array($product->metadata) ? ($product->metadata['calculator'] ?? null) : null;
+        $unitType = is_array($metaCalc) && !empty($metaCalc['unit_type'])
+            ? (string) $metaCalc['unit_type']
+            : 'box';
+
+        $coveragePerUnit = is_array($metaCalc) && isset($metaCalc['coverage_per_unit'])
+            ? (float) $metaCalc['coverage_per_unit']
+            : ($settings ? (float) $settings->coverage_per_unit : 2.56);
+
+        $waste = is_array($metaCalc) && isset($metaCalc['waste_percentage'])
+            ? (float) $metaCalc['waste_percentage']
+            : ($settings ? (float) $settings->waste_percentage : 10);
+
+        $unitPrice = (float) $product->price;
+
+        return response()->json([
+            'enabled' => true,
+            'product' => [
+                'id'    => (string) $product->salla_product_id,
+                'name'  => (string) $product->name,
+                'price' => [
+                    'amount'   => $unitPrice,
+                    'currency' => 'SAR',
+                ],
+            ],
+            'calculator' => [
+                'area_unit' => 'm2',
+                'selling_unit' => [
+                    'type'              => $unitType,
+                    'coverage_per_unit' => $coveragePerUnit,
+                    'rounding'          => $unitType === 'box' ? 'ceil' : 'none',
+                    'min'               => 1,
+                    'step'              => $unitType === 'box' ? 1 : 0.01,
+                    'decimals'          => $unitType === 'box' ? 0 : 2,
+                ],
+                'waste_percentage' => $waste,
             ],
         ]);
     }
 
     /**
-     * تفعيل الآلة الحاسبة للمنتج
+     * تحديث إعدادات منتج واحد (Overrides) عبر API
      */
-    public function enable(Request $request, Product $product)
+    public function updateSettings(Request $request)
     {
-        $this->authorize('update', $product);
+        $merchant = Auth::user();
 
-        if (!$request->user()->hasCalculatorSettings()) {
-            return back()->with('error', 'يرجى إعداد الإعدادات العامة أولاً');
+        $validated = $request->validate([
+            'salla_product_id'   => 'required|string',
+            'unit_type'          => 'nullable|in:box,meter',
+            'coverage_per_unit'  => 'nullable|numeric|min:0.000001',
+            'waste_percentage'   => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $product = Product::where('merchant_id', $merchant->id)
+            ->where('salla_product_id', $validated['salla_product_id'])
+            ->firstOrFail();
+
+        $metadata = is_array($product->metadata) ? $product->metadata : [];
+        $metadata['calculator'] = is_array($metadata['calculator'] ?? null) ? $metadata['calculator'] : [];
+
+        if (array_key_exists('unit_type', $validated) && $validated['unit_type'] !== null) {
+            $metadata['calculator']['unit_type'] = $validated['unit_type'];
+        }
+        if (array_key_exists('coverage_per_unit', $validated) && $validated['coverage_per_unit'] !== null) {
+            $metadata['calculator']['coverage_per_unit'] = (float) $validated['coverage_per_unit'];
+        }
+        if (array_key_exists('waste_percentage', $validated) && $validated['waste_percentage'] !== null) {
+            $metadata['calculator']['waste_percentage'] = (float) $validated['waste_percentage'];
         }
 
-        $calculator = ProductCalculator::firstOrCreate(
-            ['product_id' => $product->id],
-            ['is_enabled' => false]
-        );
-
-        $calculator->enable();
-
-        return back()->with('success', 'تم تفعيل الآلة الحاسبة للمنتج');
-    }
-
-    /**
-     * إيقاف الآلة الحاسبة للمنتج
-     */
-    public function disable(Product $product)
-    {
-        $this->authorize('update', $product);
-
-        $calculator = $product->calculator;
-
-        if ($calculator) {
-            $calculator->disable();
-        }
-
-        return back()->with('success', 'تم إيقاف الآلة الحاسبة للمنتج');
-    }
-
-    /**
-     * تبديل حالة الآلة الحاسبة
-     */
-    public function toggle(Request $request, Product $product)
-    {
-        $this->authorize('update', $product);
-
-        if (!$request->user()->hasCalculatorSettings()) {
-            return response()->json([
-                'message' => 'يرجى إعداد الإعدادات العامة أولاً',
-            ], 400);
-        }
-
-        $calculator = ProductCalculator::firstOrCreate(
-            ['product_id' => $product->id],
-            ['is_enabled' => false]
-        );
-
-        $calculator->toggle();
+        $product->metadata = $metadata;
+        $product->save();
 
         return response()->json([
             'success' => true,
-            'is_enabled' => $calculator->is_enabled,
+            'message' => 'Calculator settings saved successfully.',
+            'calculator' => $metadata['calculator'],
         ]);
     }
 
     /**
-     * تفعيل جماعي
+     * عرض قائمة المنتجات في لوحة تحكم المستشار
      */
-    public function bulkEnable(Request $request)
+    public function index(Request $request)
     {
-        $validated = $request->validate([
-            'product_ids' => 'required|array|min:1',
-            'product_ids.*' => 'exists:products,id',
-        ]);
+        $merchant = Auth::user();
 
-        if (!$request->user()->hasCalculatorSettings()) {
-            return back()->with('error', 'يرجى إعداد الإعدادات العامة أولاً');
+        $query = Product::where('merchant_id', $merchant->id)
+                        ->with(['calculator']);
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        foreach ($validated['product_ids'] as $productId) {
-            $product = Product::find($productId);
-            
-            if ($product && $product->merchant_id === $request->user()->id) {
-                $calculator = ProductCalculator::firstOrCreate(
-                    ['product_id' => $product->id],
-                    ['is_enabled' => false]
-                );
-
-                $calculator->enable();
+        // Server-side filter by activation status
+        if ($request->filled('filter')) {
+            if ($request->filter === 'active') {
+                $query->whereHas('calculator', fn($q) => $q->where('is_enabled', true));
+            } elseif ($request->filter === 'inactive') {
+                $query->where(function ($q) {
+                    $q->whereDoesntHave('calculator')
+                      ->orWhereHas('calculator', fn($inner) => $inner->where('is_enabled', false));
+                });
             }
         }
 
-        return back()->with('success', 'تم تفعيل الآلة الحاسبة للمنتجات المحددة');
+        $products = $query->orderBy('name')->paginate(20)->withQueryString();
+
+        return view('calculator.products', compact('products'));
+    }
+
+    /**
+     * مزامنة المنتجات من سلة — يُطلق FetchProductsJob في الخلفية
+     */
+    public function sync(Request $request)
+    {
+        $merchant = Auth::user();
+
+        try {
+            FetchProductsJob::dispatch($merchant);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sync started. Products will appear shortly.',
+                ]);
+            }
+
+            return back()->with('success', 'Sync started. Products will appear shortly.');
+
+        } catch (\Exception $e) {
+            Log::error('Calculator sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "We're having trouble syncing. Please try again shortly.",
+                ], 500);
+            }
+
+            return back()->with('error', 'Sync failed. Please try again.');
+        }
+    }
+
+    /**
+     * تفعيل/إيقاف الآلة الحاسبة (Toggle)
+     */
+    public function toggle(Request $request, $id)
+    {
+        $merchant = Auth::user();
+
+        try {
+            $product = Product::where('id', $id)
+                              ->where('merchant_id', $merchant->id)
+                              ->firstOrFail();
+
+            $calculator = ProductCalculator::firstOrCreate(['product_id' => $product->id]);
+
+            if ($request->has('is_enabled')) {
+                $newState = filter_var($request->is_enabled, FILTER_VALIDATE_BOOLEAN);
+            } else {
+                $newState = !$calculator->is_enabled;
+            }
+
+            $calculator->is_enabled = $newState;
+            $calculator->save();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success'    => true,
+                    'is_enabled' => (bool) $calculator->is_enabled,
+                    'message'    => $calculator->is_enabled
+                        ? 'Calculator enabled for this product.'
+                        : 'Calculator disabled for this product.',
+                ]);
+            }
+
+            return back()->with('success', 'Product settings updated.');
+
+        } catch (\Exception $e) {
+            Log::error("Toggle Error for Product ID {$id}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => "We're having trouble saving your changes. Please try again shortly.",
+            ], 500);
+        }
+    }
+
+    /**
+     * تفعيل الحاسبة لمجموعة منتجات مختارة (Bulk Enable)
+     */
+    public function bulkEnable(Request $request)
+    {
+        $merchant = Auth::user();
+
+        $validated = $request->validate([
+            'product_ids'   => 'required|array',
+            'product_ids.*' => 'exists:products,id',
+        ]);
+
+        $products = Product::where('merchant_id', $merchant->id)
+                           ->whereIn('id', $validated['product_ids'])
+                           ->get();
+
+        foreach ($products as $product) {
+            ProductCalculator::updateOrCreate(
+                ['product_id' => $product->id],
+                ['is_enabled' => true]
+            );
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Calculator enabled for ' . $products->count() . ' product(s).',
+            ]);
+        }
+
+        return back()->with('success', 'Selected products updated.');
     }
 }
