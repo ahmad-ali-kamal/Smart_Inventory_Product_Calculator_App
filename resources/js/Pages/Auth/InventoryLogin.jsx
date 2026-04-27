@@ -97,7 +97,7 @@ export default function InventoryLogin({ status, canResetPassword }) {
     }, []);
 
     const steps = [
-        { icon: '🏪', title: 'افتح متجرك في سلة', desc: 'إنشاء حساب تاجر في منصة سلة مجاناً على store.salla.sa' },
+        { icon: '🏪', title: 'افتح متجرك في سلة', desc: 'إنشاء حساب تاجر في منصة سلة مجاناً على salla.sa' },
         { icon: '📦', title: 'ثبّت تطبيق حريص', desc: 'ابحث عن "حريص" في سوق التطبيقات داخل لوحة سلة وثبّته' },
         { icon: '✉️', title: 'سجّل دخولك هنا', desc: 'استخدم البريد الإلكتروني الخاص بحساب سلة للدخول' },
     ];
@@ -360,7 +360,7 @@ export default function InventoryLogin({ status, canResetPassword }) {
 
                             {/* Salla link */}
                             <a
-                                href="https://store.salla.sa"
+                                href="https://salla.sa/"
                                 target="_blank"
                                 rel="noreferrer"
                                 style={{

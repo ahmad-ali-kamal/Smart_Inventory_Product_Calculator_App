@@ -63,7 +63,7 @@ export default function CalculatorLogin({ status, canResetPassword }) {
     }, []);
 
     const steps = [
-        { icon: '🏪', title: 'افتح متجرك في سلة', desc: 'أنشئ حساب تاجر مجاناً على store.salla.sa' },
+        { icon: '🏪', title: 'افتح متجرك في سلة', desc: 'أنشئ حساب تاجر مجاناً على salla.sa' },
         { icon: '⚖️', title: 'ثبّت تطبيق مستشار', desc: 'ابحث عن "مستشار" في سوق تطبيقات سلة وثبّته على متجرك' },
         { icon: '✉️', title: 'سجّل دخولك هنا', desc: 'استخدم بريد حساب سلة للوصول إلى لوحة مستشار' },
     ];
@@ -336,7 +336,7 @@ export default function CalculatorLogin({ status, canResetPassword }) {
                             </div>
 
                             <a
-                                href="https://store.salla.sa"
+                                href="https://salla.sa/"
                                 target="_blank" rel="noreferrer"
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '6px',
