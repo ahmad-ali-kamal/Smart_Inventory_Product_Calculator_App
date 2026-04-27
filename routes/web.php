@@ -7,6 +7,10 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
+Route::get('/login', function () {
+    return redirect()->route('inventory.login');
+})->name('login');
+
 // Calculator Login
 Route::get('/calculator/login', function () {
     return Inertia::render('Auth/CalculatorLogin');
