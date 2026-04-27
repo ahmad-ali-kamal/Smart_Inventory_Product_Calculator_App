@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +11,7 @@
 
     @routes
     @viteReactRefresh
-    @vite(['resources/js/app.jsx'])
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
     @inertiaHead
 </head>
 <body class="font-body antialiased">

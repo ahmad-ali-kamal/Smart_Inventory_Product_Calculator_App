@@ -2,6 +2,10 @@
 
 use Inertia\Inertia;
 
+Route::get('/dashboard', function () {
+    return Inertia::render('Dashboard');
+});
+
 // الصفحة الرئيسية
 Route::get('/', function () {
     return Inertia::render('Welcome');

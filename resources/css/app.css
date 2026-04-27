@@ -329,3 +329,24 @@ input, textarea, select {
 .page-enter {
     animation: fadeUp 0.5s ease both;
 }
+/* ─── Dashboard Page Override ───────────────────────────── */
+.dashboard-root {
+    direction: ltr;
+    background-color: #f8f8fb;
+    color: #171717;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.dashboard-root h1,
+.dashboard-root h2,
+.dashboard-root h3,
+.dashboard-root h4,
+.dashboard-root h5,
+.dashboard-root h6 {
+    color: inherit;
+    font-family: inherit;
+}
+
+.dashboard-root p {
+    color: inherit;
+}
