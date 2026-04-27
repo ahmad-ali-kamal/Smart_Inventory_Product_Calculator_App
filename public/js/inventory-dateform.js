@@ -1,551 +1,951 @@
-/******/ (() => { // webpackBootstrap
-var __webpack_exports__ = {};
-/*!********************************************!*\
-  !*** ./resources/js/inventory-dateform.js ***!
-  \********************************************/
-function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
-function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return exports; }; var exports = {}, Op = Object.prototype, hasOwn = Op.hasOwnProperty, defineProperty = Object.defineProperty || function (obj, key, desc) { obj[key] = desc.value; }, $Symbol = "function" == typeof Symbol ? Symbol : {}, iteratorSymbol = $Symbol.iterator || "@@iterator", asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator", toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag"; function define(obj, key, value) { return Object.defineProperty(obj, key, { value: value, enumerable: !0, configurable: !0, writable: !0 }), obj[key]; } try { define({}, ""); } catch (err) { define = function define(obj, key, value) { return obj[key] = value; }; } function wrap(innerFn, outerFn, self, tryLocsList) { var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator, generator = Object.create(protoGenerator.prototype), context = new Context(tryLocsList || []); return defineProperty(generator, "_invoke", { value: makeInvokeMethod(innerFn, self, context) }), generator; } function tryCatch(fn, obj, arg) { try { return { type: "normal", arg: fn.call(obj, arg) }; } catch (err) { return { type: "throw", arg: err }; } } exports.wrap = wrap; var ContinueSentinel = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var IteratorPrototype = {}; define(IteratorPrototype, iteratorSymbol, function () { return this; }); var getProto = Object.getPrototypeOf, NativeIteratorPrototype = getProto && getProto(getProto(values([]))); NativeIteratorPrototype && NativeIteratorPrototype !== Op && hasOwn.call(NativeIteratorPrototype, iteratorSymbol) && (IteratorPrototype = NativeIteratorPrototype); var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(IteratorPrototype); function defineIteratorMethods(prototype) { ["next", "throw", "return"].forEach(function (method) { define(prototype, method, function (arg) { return this._invoke(method, arg); }); }); } function AsyncIterator(generator, PromiseImpl) { function invoke(method, arg, resolve, reject) { var record = tryCatch(generator[method], generator, arg); if ("throw" !== record.type) { var result = record.arg, value = result.value; return value && "object" == _typeof(value) && hasOwn.call(value, "__await") ? PromiseImpl.resolve(value.__await).then(function (value) { invoke("next", value, resolve, reject); }, function (err) { invoke("throw", err, resolve, reject); }) : PromiseImpl.resolve(value).then(function (unwrapped) { result.value = unwrapped, resolve(result); }, function (error) { return invoke("throw", error, resolve, reject); }); } reject(record.arg); } var previousPromise; defineProperty(this, "_invoke", { value: function value(method, arg) { function callInvokeWithMethodAndArg() { return new PromiseImpl(function (resolve, reject) { invoke(method, arg, resolve, reject); }); } return previousPromise = previousPromise ? previousPromise.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(innerFn, self, context) { var state = "suspendedStart"; return function (method, arg) { if ("executing" === state) throw new Error("Generator is already running"); if ("completed" === state) { if ("throw" === method) throw arg; return doneResult(); } for (context.method = method, context.arg = arg;;) { var delegate = context.delegate; if (delegate) { var delegateResult = maybeInvokeDelegate(delegate, context); if (delegateResult) { if (delegateResult === ContinueSentinel) continue; return delegateResult; } } if ("next" === context.method) context.sent = context._sent = context.arg;else if ("throw" === context.method) { if ("suspendedStart" === state) throw state = "completed", context.arg; context.dispatchException(context.arg); } else "return" === context.method && context.abrupt("return", context.arg); state = "executing"; var record = tryCatch(innerFn, self, context); if ("normal" === record.type) { if (state = context.done ? "completed" : "suspendedYield", record.arg === ContinueSentinel) continue; return { value: record.arg, done: context.done }; } "throw" === record.type && (state = "completed", context.method = "throw", context.arg = record.arg); } }; } function maybeInvokeDelegate(delegate, context) { var methodName = context.method, method = delegate.iterator[methodName]; if (undefined === method) return context.delegate = null, "throw" === methodName && delegate.iterator["return"] && (context.method = "return", context.arg = undefined, maybeInvokeDelegate(delegate, context), "throw" === context.method) || "return" !== methodName && (context.method = "throw", context.arg = new TypeError("The iterator does not provide a '" + methodName + "' method")), ContinueSentinel; var record = tryCatch(method, delegate.iterator, context.arg); if ("throw" === record.type) return context.method = "throw", context.arg = record.arg, context.delegate = null, ContinueSentinel; var info = record.arg; return info ? info.done ? (context[delegate.resultName] = info.value, context.next = delegate.nextLoc, "return" !== context.method && (context.method = "next", context.arg = undefined), context.delegate = null, ContinueSentinel) : info : (context.method = "throw", context.arg = new TypeError("iterator result is not an object"), context.delegate = null, ContinueSentinel); } function pushTryEntry(locs) { var entry = { tryLoc: locs[0] }; 1 in locs && (entry.catchLoc = locs[1]), 2 in locs && (entry.finallyLoc = locs[2], entry.afterLoc = locs[3]), this.tryEntries.push(entry); } function resetTryEntry(entry) { var record = entry.completion || {}; record.type = "normal", delete record.arg, entry.completion = record; } function Context(tryLocsList) { this.tryEntries = [{ tryLoc: "root" }], tryLocsList.forEach(pushTryEntry, this), this.reset(!0); } function values(iterable) { if (iterable) { var iteratorMethod = iterable[iteratorSymbol]; if (iteratorMethod) return iteratorMethod.call(iterable); if ("function" == typeof iterable.next) return iterable; if (!isNaN(iterable.length)) { var i = -1, next = function next() { for (; ++i < iterable.length;) if (hasOwn.call(iterable, i)) return next.value = iterable[i], next.done = !1, next; return next.value = undefined, next.done = !0, next; }; return next.next = next; } } return { next: doneResult }; } function doneResult() { return { value: undefined, done: !0 }; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, defineProperty(Gp, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), defineProperty(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, toStringTagSymbol, "GeneratorFunction"), exports.isGeneratorFunction = function (genFun) { var ctor = "function" == typeof genFun && genFun.constructor; return !!ctor && (ctor === GeneratorFunction || "GeneratorFunction" === (ctor.displayName || ctor.name)); }, exports.mark = function (genFun) { return Object.setPrototypeOf ? Object.setPrototypeOf(genFun, GeneratorFunctionPrototype) : (genFun.__proto__ = GeneratorFunctionPrototype, define(genFun, toStringTagSymbol, "GeneratorFunction")), genFun.prototype = Object.create(Gp), genFun; }, exports.awrap = function (arg) { return { __await: arg }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, asyncIteratorSymbol, function () { return this; }), exports.AsyncIterator = AsyncIterator, exports.async = function (innerFn, outerFn, self, tryLocsList, PromiseImpl) { void 0 === PromiseImpl && (PromiseImpl = Promise); var iter = new AsyncIterator(wrap(innerFn, outerFn, self, tryLocsList), PromiseImpl); return exports.isGeneratorFunction(outerFn) ? iter : iter.next().then(function (result) { return result.done ? result.value : iter.next(); }); }, defineIteratorMethods(Gp), define(Gp, toStringTagSymbol, "Generator"), define(Gp, iteratorSymbol, function () { return this; }), define(Gp, "toString", function () { return "[object Generator]"; }), exports.keys = function (val) { var object = Object(val), keys = []; for (var key in object) keys.push(key); return keys.reverse(), function next() { for (; keys.length;) { var key = keys.pop(); if (key in object) return next.value = key, next.done = !1, next; } return next.done = !0, next; }; }, exports.values = values, Context.prototype = { constructor: Context, reset: function reset(skipTempReset) { if (this.prev = 0, this.next = 0, this.sent = this._sent = undefined, this.done = !1, this.delegate = null, this.method = "next", this.arg = undefined, this.tryEntries.forEach(resetTryEntry), !skipTempReset) for (var name in this) "t" === name.charAt(0) && hasOwn.call(this, name) && !isNaN(+name.slice(1)) && (this[name] = undefined); }, stop: function stop() { this.done = !0; var rootRecord = this.tryEntries[0].completion; if ("throw" === rootRecord.type) throw rootRecord.arg; return this.rval; }, dispatchException: function dispatchException(exception) { if (this.done) throw exception; var context = this; function handle(loc, caught) { return record.type = "throw", record.arg = exception, context.next = loc, caught && (context.method = "next", context.arg = undefined), !!caught; } for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i], record = entry.completion; if ("root" === entry.tryLoc) return handle("end"); if (entry.tryLoc <= this.prev) { var hasCatch = hasOwn.call(entry, "catchLoc"), hasFinally = hasOwn.call(entry, "finallyLoc"); if (hasCatch && hasFinally) { if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0); if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc); } else if (hasCatch) { if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0); } else { if (!hasFinally) throw new Error("try statement without catch or finally"); if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc); } } } }, abrupt: function abrupt(type, arg) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.tryLoc <= this.prev && hasOwn.call(entry, "finallyLoc") && this.prev < entry.finallyLoc) { var finallyEntry = entry; break; } } finallyEntry && ("break" === type || "continue" === type) && finallyEntry.tryLoc <= arg && arg <= finallyEntry.finallyLoc && (finallyEntry = null); var record = finallyEntry ? finallyEntry.completion : {}; return record.type = type, record.arg = arg, finallyEntry ? (this.method = "next", this.next = finallyEntry.finallyLoc, ContinueSentinel) : this.complete(record); }, complete: function complete(record, afterLoc) { if ("throw" === record.type) throw record.arg; return "break" === record.type || "continue" === record.type ? this.next = record.arg : "return" === record.type ? (this.rval = this.arg = record.arg, this.method = "return", this.next = "end") : "normal" === record.type && afterLoc && (this.next = afterLoc), ContinueSentinel; }, finish: function finish(finallyLoc) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.finallyLoc === finallyLoc) return this.complete(entry.completion, entry.afterLoc), resetTryEntry(entry), ContinueSentinel; } }, "catch": function _catch(tryLoc) { for (var i = this.tryEntries.length - 1; i >= 0; --i) { var entry = this.tryEntries[i]; if (entry.tryLoc === tryLoc) { var record = entry.completion; if ("throw" === record.type) { var thrown = record.arg; resetTryEntry(entry); } return thrown; } } throw new Error("illegal catch attempt"); }, delegateYield: function delegateYield(iterable, resultName, nextLoc) { return this.delegate = { iterator: values(iterable), resultName: resultName, nextLoc: nextLoc }, "next" === this.method && (this.arg = undefined), ContinueSentinel; } }, exports; }
-function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
-function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
-function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
-function _iterableToArrayLimit(arr, i) { var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"]; if (null != _i) { var _s, _e, _x, _r, _arr = [], _n = !0, _d = !1; try { if (_x = (_i = _i.call(arr)).next, 0 === i) { if (Object(_i) !== _i) return; _n = !1; } else for (; !(_n = (_s = _x.call(_i)).done) && (_arr.push(_s.value), _arr.length !== i); _n = !0); } catch (err) { _d = !0, _e = err; } finally { try { if (!_n && null != _i["return"] && (_r = _i["return"](), Object(_r) !== _r)) return; } finally { if (_d) throw _e; } } return _arr; } }
-function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 /**
- * inventory-dateform.js
- * Expiry Date Modal — Add / Edit (single date or batch-level)
+ * ============================================================================
+ * FILE: inventory-dateform.js
+ * PROJECT: QUANTIX / Harees Engine
+ * DEVELOPER: Developer A
+ * DESCRIPTION: 
+ * Advanced Expiry Date Modal & Inventory Reconciliation logic.
+ * Supports Single Mode, Batch Mode (Scenario 1), and Variants Mode (Scenario 2).
+ * ============================================================================
  */
-window.ExpiryForm = function () {
-  var productId = null;
-  var mode = null;
-  var isEdit = false;
-  var batchCount = 0;
-  var _isOpen = false;
-  var _threshold = 14;
-  var _sallaQty = 0;
-  var _usedQty = 0;
-  var _userStarted = false; // يمنع التحذير قبل أول إدخال
 
-  /* ── DOM helper ── */
-  var $ = function $(id) {
-    return document.getElementById(id);
-  };
+window.ExpiryForm = (() => {
 
-  /* ══════════════════════════════════════════
-     STATUS HELPERS
-  ══════════════════════════════════════════ */
-  function _calcStatus(dateStr) {
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-    var days = Math.floor((new Date(dateStr) - today) / 86400000);
-    if (days <= 0) return 'red';
-    if (days <= _threshold) return 'yellow';
-    return 'green';
-  }
-  function _statusBadgeHtml(status, idx) {
-    var _map$status;
-    var map = {
-      green: ['ef-s-green', 'Safe'],
-      yellow: ['ef-s-yellow', 'Approaching'],
-      red: ['ef-s-red', 'Expired']
+    /* ════════════════════════════════════════════════════════════════════════
+       1. STATE MANAGEMENT (إدارة الحالة الشاملة)
+    ════════════════════════════════════════════════════════════════════════ */
+    const State = {
+        productId: null,
+        productName: '',
+        mode: null,          // 'single', 'batch', 'variants'
+        isEdit: false,
+        batchCount: 0,
+        isOpen: false,
+        threshold: 14,
+        sallaQty: 0,
+        usedQty: 0,
+        userStarted: false,
+        
+        // متغيرات السيناريو 2 (الخيارات المتعددة)
+        hasVariants: false,
+        variantsList: [],
+        globalExpiryDate: ''
     };
-    var _ref = (_map$status = map[status]) !== null && _map$status !== void 0 ? _map$status : ['', ''],
-      _ref2 = _slicedToArray(_ref, 2),
-      cls = _ref2[0],
-      label = _ref2[1];
-    return "<span class=\"ef-status-badge ".concat(cls, "\" id=\"bStatus-").concat(idx, "\">\n            <i class=\"bi bi-circle-fill\" style=\"font-size:0.4rem\"></i> ").concat(label, "\n        </span>");
-  }
 
-  /* ══════════════════════════════════════════
-     BADGE UPDATE
-  ══════════════════════════════════════════ */
-  function updateBadge(idx) {
-    var dateEl = $("bDate-".concat(idx));
-    var badge = $("bStatus-".concat(idx));
-    if (!dateEl || !badge) return;
-    badge.outerHTML = dateEl.value ? _statusBadgeHtml(_calcStatus(dateEl.value), idx) : "<span class=\"ef-status-badge\" id=\"bStatus-".concat(idx, "\"></span>");
-  }
-  function _updateSingleStatus() {
-    var dateEl = $('efSingleDate');
-    var statusEl = $('efSingleStatus');
-    if (!statusEl) return;
-    if (!(dateEl !== null && dateEl !== void 0 && dateEl.value)) {
-      statusEl.className = 'ef-status-badge';
-      statusEl.innerHTML = '';
-      return;
-    }
-    var s = _calcStatus(dateEl.value);
-    var map = {
-      green: ['ef-s-green', 'Safe'],
-      yellow: ['ef-s-yellow', 'Approaching'],
-      red: ['ef-s-red', 'Expired']
-    };
-    var _map$s = _slicedToArray(map[s], 2),
-      cls = _map$s[0],
-      label = _map$s[1];
-    statusEl.className = "ef-status-badge ".concat(cls);
-    statusEl.innerHTML = "<i class=\"bi bi-circle-fill\" style=\"font-size:0.4rem\"></i> ".concat(label);
-  }
+    /* ════════════════════════════════════════════════════════════════════════
+       2. DOM HELPERS & DYNAMIC STYLES (مساعدات الواجهة والتنسيقات)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * دالة مساعدة لاختصار جلب العناصر
+     * @param {string} id 
+     * @returns {HTMLElement|null}
+     */
+    const $ = id => document.getElementById(id);
 
-  /* ══════════════════════════════════════════
-     QTY TRACKER
-  ══════════════════════════════════════════ */
-  function _getRemainingQty() {
-    var entered = 0;
-    document.querySelectorAll('#efBatchList .ef-batch-item').forEach(function (item) {
-      var _$;
-      var id = item.id.replace('efBatch-', '');
-      entered += parseInt((_$ = $("bQty-".concat(id))) === null || _$ === void 0 ? void 0 : _$.value) || 0;
-    });
-    return _sallaQty - _usedQty - entered;
-  }
-  function _updateQtyTracker() {
-    var avail = $('efQtyAvail');
-    var warn = $('efQtyWarn');
-    var msg = $('efQtyWarnMsg');
-    if (!avail) return;
-
-    // في حالة single mode نعرض الكمية الكلية فقط
-    if (mode === true) {
-      avail.textContent = _sallaQty;
-      if (warn) warn.style.display = 'none';
-      return;
-    }
-    var remaining = _getRemainingQty();
-    avail.textContent = remaining >= 0 ? remaining : 0;
-    if (!warn || !msg) return;
-    if (remaining < 0) {
-      // تجاوز — أحمر (يظهر دائماً)
-      msg.textContent = "Exceeded by ".concat(Math.abs(remaining), " units \u2014 reduce batch quantities");
-      warn.className = 'ef-qty-warn ef-qty-over';
-      warn.style.display = 'flex';
-    } else if (remaining === 0 && _userStarted) {
-      // مكتمل — أخضر (بعد إدخال فقط)
-      msg.textContent = '✓ All units assigned — ready to save';
-      warn.className = 'ef-qty-warn ef-qty-full';
-      warn.style.display = 'flex';
-    } else if (remaining <= 3 && _userStarted) {
-      // قليل — برتقالي (بعد إدخال فقط)
-      msg.textContent = "Only ".concat(remaining, " unit").concat(remaining > 1 ? 's' : '', " left to assign");
-      warn.className = 'ef-qty-warn ef-qty-low';
-      warn.style.display = 'flex';
-    } else {
-      warn.style.display = 'none';
-    }
-  }
-
-  /* ══════════════════════════════════════════
-     RESET — clears DOM + state completely
-  ══════════════════════════════════════════ */
-  function _reset(productName) {
-    mode = null;
-    batchCount = 0;
-    _userStarted = false;
-    $('efProductName').textContent = productName !== null && productName !== void 0 ? productName : '';
-    $('btnYes').className = 'ef-toggle-btn';
-    $('btnNo').className = 'ef-toggle-btn';
-    $('panelYes').classList.remove('show');
-    $('panelNo').classList.remove('show');
-    $('efSingleDate').value = '';
-    $('efSingleBatchCode').value = '';
-    $('efBatchList').innerHTML = '';
-    $('efSaveBtn').disabled = true;
-
-    // تحديث عرض الكمية الكلية
-    var avail = $('efQtyAvail');
-    if (avail) avail.textContent = _sallaQty > 0 ? _sallaQty : '—';
-    var warn = $('efQtyWarn');
-    if (warn) warn.style.display = 'none';
-    var err = $('efErrorMsg');
-    if (err) err.style.display = 'none';
-  }
-
-  /* ══════════════════════════════════════════
-     BATCH ITEM BUILDER
-  ══════════════════════════════════════════ */
-  function _buildBatchItem() {
-    var _prefill$status, _prefill$qty, _prefill$expiry, _prefill$batch_code;
-    var prefill = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    batchCount++;
-    var idx = batchCount;
-    var status = (_prefill$status = prefill.status) !== null && _prefill$status !== void 0 ? _prefill$status : prefill.expiry ? _calcStatus(prefill.expiry) : null;
-    var item = document.createElement('div');
-    item.className = 'ef-batch-item';
-    item.id = "efBatch-".concat(idx);
-    var badgeHtml = status ? _statusBadgeHtml(status, idx) : "<span class=\"ef-status-badge\" id=\"bStatus-".concat(idx, "\"></span>");
-    item.innerHTML = "\n    <div class=\"ef-batch-head\">\n        <span class=\"ef-batch-lbl\" id=\"bLbl-".concat(idx, "\">\n            <i class=\"bi bi-layers\" style=\"font-size:0.78rem;color:var(--mauve)\"></i>\n            Batch ").concat(idx, " ").concat(badgeHtml, "\n        </span>\n        <button class=\"ef-batch-remove\" data-idx=\"").concat(idx, "\" title=\"Remove\">\n            <i class=\"bi bi-trash3\"></i>\n        </button>\n    </div>\n    <div class=\"ef-batch-grid\">\n        <div>\n            <label class=\"ef-label\">Quantity</label>\n            <input type=\"number\" class=\"ef-input\" id=\"bQty-").concat(idx, "\" min=\"1\"\n                   value=\"").concat((_prefill$qty = prefill.qty) !== null && _prefill$qty !== void 0 ? _prefill$qty : '', "\" placeholder=\"0\">\n        </div>\n        <div>\n            <label class=\"ef-label\">Expiry Date</label>\n            <input type=\"date\" class=\"ef-input\" id=\"bDate-").concat(idx, "\"\n                   value=\"").concat((_prefill$expiry = prefill.expiry) !== null && _prefill$expiry !== void 0 ? _prefill$expiry : '', "\">\n        </div>\n    </div>\n    <input type=\"hidden\" id=\"bCode-").concat(idx, "\" value=\"").concat((_prefill$batch_code = prefill.batch_code) !== null && _prefill$batch_code !== void 0 ? _prefill$batch_code : '', "\">");
-    item.querySelector('.ef-batch-remove').addEventListener('click', function () {
-      return removeBatch(idx);
-    });
-    item.querySelector("#bQty-".concat(idx)).addEventListener('input', function () {
-      _userStarted = true;
-      _updateQtyTracker();
-      validate();
-    });
-    item.querySelector("#bDate-".concat(idx)).addEventListener('input', function () {
-      updateBadge(idx);
-      validate();
-    });
-    return item;
-  }
-
-  /* ── Re-number batch labels after removal ── */
-  function _reNumber() {
-    document.querySelectorAll('#efBatchList .ef-batch-item').forEach(function (item, i) {
-      var lbl = item.querySelector('.ef-batch-lbl');
-      var badge = lbl === null || lbl === void 0 ? void 0 : lbl.querySelector('.ef-status-badge');
-      if (!lbl) return;
-      lbl.innerHTML = "<i class=\"bi bi-layers\" style=\"font-size:0.78rem;color:var(--mauve)\"></i> Batch ".concat(i + 1, " ");
-      if (badge) lbl.appendChild(badge);
-    });
-  }
-
-  /* ── Collect batch payload ── */
-  function _collectBatches() {
-    var batches = [];
-    document.querySelectorAll('#efBatchList .ef-batch-item').forEach(function (item) {
-      var _$2, _$3;
-      var id = item.id.replace('efBatch-', '');
-      var qty = parseInt((_$2 = $("bQty-".concat(id))) === null || _$2 === void 0 ? void 0 : _$2.value) || 0;
-      var dt = (_$3 = $("bDate-".concat(id))) === null || _$3 === void 0 ? void 0 : _$3.value;
-      if (qty > 0 && dt) {
-        var _$4;
-        batches.push({
-          qty: qty,
-          expiry_date: dt,
-          batch_code: ((_$4 = $("bCode-".concat(id))) === null || _$4 === void 0 ? void 0 : _$4.value) || null,
-          status: _calcStatus(dt)
-        });
-      }
-    });
-    return batches;
-  }
-
-  /* ══════════════════════════════════════════
-     SHOW / CLOSE
-  ══════════════════════════════════════════ */
-  function _show() {
-    _isOpen = true;
-    $('efBackdrop').classList.add('open');
-    document.body.classList.add('ef-open');
-    document.body.style.overflow = 'hidden';
-    // تحديث الـ tracker بعد الفتح مباشرة
-    _updateQtyTracker();
-  }
-  function close() {
-    _isOpen = false;
-    $('efBackdrop').classList.remove('open');
-    document.body.classList.remove('ef-open');
-    document.body.style.overflow = '';
-    productId = null;
-    mode = null;
-    isEdit = false;
-    batchCount = 0;
-    _threshold = 14;
-    _sallaQty = 0;
-    _usedQty = 0;
-    _userStarted = false;
-    $('btnYes').className = 'ef-toggle-btn';
-    $('btnNo').className = 'ef-toggle-btn';
-    $('panelYes').classList.remove('show');
-    $('panelNo').classList.remove('show');
-    $('efSingleDate').value = '';
-    $('efBatchList').innerHTML = '';
-    $('efSaveBtn').disabled = true;
-    $('efEditBanner').classList.remove('show');
-    var avail = $('efQtyAvail');
-    if (avail) avail.textContent = '—';
-    var warn = $('efQtyWarn');
-    if (warn) warn.style.display = 'none';
-    var err = $('efErrorMsg');
-    if (err) err.style.display = 'none';
-  }
-
-  /* ══════════════════════════════════════════
-     OPEN VARIANTS
-  ══════════════════════════════════════════ */
-  function open(pid, productName) {
-    var threshold = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 14;
-    productId = pid;
-    isEdit = false;
-    _threshold = threshold;
-    var row = document.querySelector("#invBody tr[data-id=\"".concat(pid, "\"]"));
-    _sallaQty = parseInt(row === null || row === void 0 ? void 0 : row.dataset.sallaQty) || 0;
-    _usedQty = 0;
-    _reset(productName);
-    $('efTitle').textContent = 'Add Expiry Date';
-    $('efIcon').className = 'bi bi-calendar-plus';
-    $('efEditBanner').classList.remove('show');
-    _show();
-  }
-  function openSingle(pid, productName, dateValue, batchCode) {
-    var threshold = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 14;
-    productId = pid;
-    isEdit = true;
-    _threshold = threshold;
-    var row = document.querySelector("#invBody tr[data-id=\"".concat(pid, "\"]"));
-    _sallaQty = parseInt(row === null || row === void 0 ? void 0 : row.dataset.sallaQty) || 0;
-    _usedQty = 0;
-    _reset(productName);
-    mode = true;
-    $('efTitle').textContent = 'Edit Expiry Date';
-    $('efIcon').className = 'bi bi-pencil-square';
-    $('efEditBanner').classList.add('show');
-    $('btnYes').className = 'ef-toggle-btn active-yes';
-    $('panelYes').classList.add('show');
-    $('efSingleDate').value = dateValue !== null && dateValue !== void 0 ? dateValue : '';
-    $('efSingleBatchCode').value = batchCode !== null && batchCode !== void 0 ? batchCode : '';
-    validate();
-    _updateSingleStatus();
-    _show();
-  }
-  function openBatch(pid, productName) {
-    var prefillBatches = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
-    var threshold = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 14;
-    productId = pid;
-    isEdit = prefillBatches.length > 0;
-    _threshold = threshold;
-    var row = document.querySelector("#invBody tr[data-id=\"".concat(pid, "\"]"));
-    _sallaQty = parseInt(row === null || row === void 0 ? void 0 : row.dataset.sallaQty) || 0;
-    _usedQty = 0;
-    _reset(productName);
-    mode = false;
-    $('efTitle').textContent = isEdit ? 'Edit Expiry Date' : 'Add Expiry Date';
-    $('efIcon').className = isEdit ? 'bi bi-pencil-square' : 'bi bi-calendar-plus';
-    isEdit ? $('efEditBanner').classList.add('show') : $('efEditBanner').classList.remove('show');
-    $('btnNo').className = 'ef-toggle-btn active-no';
-    $('panelNo').classList.add('show');
-    var list = $('efBatchList');
-    (prefillBatches.length ? prefillBatches : [{}]).forEach(function (b) {
-      return list.appendChild(_buildBatchItem(b));
-    });
-    validate();
-    _show();
-  }
-
-  /* ══════════════════════════════════════════
-     MODE TOGGLE
-  ══════════════════════════════════════════ */
-  function selectMode(isSingle) {
-    mode = isSingle;
-    $('btnYes').className = 'ef-toggle-btn' + (isSingle ? ' active-yes' : '');
-    $('btnNo').className = 'ef-toggle-btn' + (!isSingle ? ' active-no' : '');
-    $('panelYes').classList.toggle('show', isSingle);
-    $('panelNo').classList.toggle('show', !isSingle);
-    if (!isSingle && $('efBatchList').children.length === 0) {
-      $('efBatchList').appendChild(_buildBatchItem());
-    }
-    _updateQtyTracker();
-    validate();
-  }
-
-  /* ══════════════════════════════════════════
-     BATCH MANAGEMENT
-  ══════════════════════════════════════════ */
-  function addBatch() {
-    $('efBatchList').appendChild(_buildBatchItem());
-    _reNumber();
-    _updateQtyTracker();
-    validate();
-  }
-  function removeBatch(idx) {
-    var _$5;
-    (_$5 = $("efBatch-".concat(idx))) === null || _$5 === void 0 ? void 0 : _$5.remove();
-    _reNumber();
-    _updateQtyTracker();
-    validate();
-  }
-
-  /* ══════════════════════════════════════════
-     VALIDATION
-  ══════════════════════════════════════════ */
-  function validate() {
-    var btn = $('efSaveBtn');
-    _updateQtyTracker();
-    if (mode === null && !isEdit) {
-      btn.disabled = true;
-      return;
-    }
-    if (mode === true) {
-      btn.disabled = !$('efSingleDate').value;
-      return;
-    }
-    var batches = _collectBatches();
-    var remaining = _getRemainingQty();
-    if (!batches.length) {
-      btn.disabled = true;
-      return;
-    }
-    if (remaining < 0) {
-      btn.disabled = true;
-      return;
-    }
-    if (remaining > 0) {
-      btn.disabled = true;
-      return;
-    }
-    btn.disabled = false;
-  }
-
-  /* ══════════════════════════════════════════
-     SAVE → API
-  ══════════════════════════════════════════ */
-  function save() {
-    return _save.apply(this, arguments);
-  }
-  /* ══════════════════════════════════════════
-     INLINE ERROR
-  ══════════════════════════════════════════ */
-  function _save() {
-    _save = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-      var btn, collectedBatches, endpoint, payload, _$13, date, res, data, successPayload, _data$message;
-      return _regeneratorRuntime().wrap(function _callee$(_context) {
-        while (1) switch (_context.prev = _context.next) {
-          case 0:
-            btn = $('efSaveBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:ef-spin 0.7s linear infinite"></i> Saving...';
-            collectedBatches = mode === false ? _collectBatches() : [];
-            if (mode === true) {
-              date = $('efSingleDate').value;
-              endpoint = "/inventory/products/".concat(productId, "/expiry");
-              payload = {
-                product_id: productId,
-                same_expiry: true,
-                single_batch: {
-                  expiry_date: date,
-                  batch_code: ((_$13 = $('efSingleBatchCode')) === null || _$13 === void 0 ? void 0 : _$13.value) || null
-                }
-              };
-            } else {
-              endpoint = "/inventory/products/".concat(productId, "/expiry");
-              payload = {
-                product_id: productId,
-                same_expiry: false,
-                batches: collectedBatches.map(function (b) {
-                  return {
-                    expiry_date: b.expiry_date,
-                    quantity: b.qty,
-                    batch_code: b.batch_code || null
-                  };
-                })
-              };
+    /**
+     * حقن التنسيقات الخاصة بجدول الفارييشنز برمجياً
+     * لضمان عدم الحاجة لتعديل ملفات CSS خارجية
+     */
+    function _injectStyles() {
+        if ($('ef-dynamic-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'ef-dynamic-styles';
+        style.innerHTML = `
+            .ef-variants-container {
+                margin-top: 1.5rem;
+                background: rgba(255,255,255,0.02);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 16px;
+                overflow: hidden;
             }
-            _context.prev = 5;
-            _context.next = 8;
-            return fetch(endpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(payload)
+            .ef-global-date-wrapper {
+                padding: 1.5rem;
+                background: rgba(192, 132, 252, 0.05);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .ef-global-date-wrapper label {
+                font-size: 0.9rem;
+                color: #c084fc;
+                font-weight: 700;
+            }
+            .ef-variants-grid {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .ef-variants-grid th {
+                text-align: left;
+                padding: 1rem 1.5rem;
+                font-size: 0.85rem;
+                color: rgba(255,255,255,0.4);
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .ef-variants-grid td {
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid rgba(255,255,255,0.03);
+                vertical-align: middle;
+            }
+            .ef-variants-grid tr:last-child td {
+                border-bottom: none;
+            }
+            .ef-variant-name {
+                font-size: 1rem;
+                color: #fff;
+                font-weight: 500;
+            }
+            .ef-variant-current-qty {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255,255,255,0.1);
+                color: rgba(255,255,255,0.8);
+                border-radius: 8px;
+                min-width: 40px;
+                height: 30px;
+                font-size: 0.85rem;
+                font-weight: 700;
+            }
+            .ef-input-v-qty {
+                width: 100px;
+                background: rgba(0,0,0,0.3);
+                border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 8px;
+                padding: 8px 12px;
+                color: #fff;
+                font-size: 0.95rem;
+                transition: all 0.2s;
+            }
+            .ef-input-v-qty:focus {
+                border-color: #c084fc;
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(192,132,252,0.2);
+            }
+            .ef-loading-variants {
+                padding: 4rem 2rem;
+                text-align: center;
+                color: rgba(255,255,255,0.5);
+            }
+            .ef-spin-icon {
+                font-size: 2rem;
+                color: #c084fc;
+                animation: ef-spin 1s linear infinite;
+                margin-bottom: 1rem;
+                display: inline-block;
+            }
+            @keyframes ef-spin {
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       3. LOGIC & CALCULATIONS (المنطق والحسابات)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * حساب حالة الدفعة بناءً على التاريخ
+     * @param {string} dateStr 
+     * @returns {string|null} 'red', 'yellow', 'green'
+     */
+    function _calcStatus(dateStr) {
+        if (!dateStr) return null;
+        const today = new Date(); 
+        today.setHours(0, 0, 0, 0);
+        
+        const targetDate = new Date(dateStr);
+        const diffTime = targetDate - today;
+        const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (days <= 0) return 'red';
+        if (days <= State.threshold) return 'yellow';
+        return 'green';
+    }
+
+    /**
+     * توليد كود HTML للشارة الملونة
+     * @param {string} status 
+     * @param {number|string} idx 
+     * @returns {string} HTML markup
+     */
+    function _statusBadgeHtml(status, idx) {
+        const map = {
+            green:  { cls: 'ef-s-green',  lbl: 'Safe' },
+            yellow: { cls: 'ef-s-yellow', lbl: 'Approaching' },
+            red:    { cls: 'ef-s-red',    lbl: 'Expired' },
+        };
+        const st = map[status];
+        if (!st) return `<span class="ef-status-badge" id="bStatus-${idx}"></span>`;
+        
+        return `
+            <span class="ef-status-badge ${st.cls}" id="bStatus-${idx}">
+                <i class="bi bi-circle-fill" style="font-size:0.4rem"></i> ${st.lbl}
+            </span>
+        `;
+    }
+
+    /**
+     * تحديث شارة الدفعة في الواجهة (للسيناريو 1)
+     */
+    function updateBadge(idx) {
+        const dateEl = $(`bDate-${idx}`);
+        const badge  = $(`bStatus-${idx}`);
+        if (!dateEl || !badge) return;
+        
+        badge.outerHTML = dateEl.value
+            ? _statusBadgeHtml(_calcStatus(dateEl.value), idx)
+            : `<span class="ef-status-badge" id="bStatus-${idx}"></span>`;
+    }
+
+    /**
+     * تحديث الشارة للنمط الفردي (Single Mode)
+     */
+    function _updateSingleStatus() {
+        const dateEl   = $('efSingleDate');
+        const statusEl = $('efSingleStatus');
+        if (!statusEl) return;
+
+        if (!dateEl || !dateEl.value) {
+            statusEl.className = 'ef-status-badge';
+            statusEl.innerHTML = '';
+            return;
+        }
+
+        const s = _calcStatus(dateEl.value);
+        const map = {
+            green:  ['ef-s-green',  'Safe'],
+            yellow: ['ef-s-yellow', 'Approaching'],
+            red:    ['ef-s-red',    'Expired'],
+        };
+        const [cls, label] = map[s] || ['', ''];
+        statusEl.className = `ef-status-badge ${cls}`;
+        statusEl.innerHTML = `<i class="bi bi-circle-fill" style="font-size:0.4rem"></i> ${label}`;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       4. QUANTITY RECONCILIATION & TRACKING (تسوية ومراقبة الكميات)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * يحسب الكمية المتبقية للتوزيع بناءً على النمط الحالي
+     * @returns {number}
+     */
+    function _getRemainingQty() {
+        let entered = 0;
+        
+        if (State.mode === 'variants' && State.hasVariants) {
+            // Scenario 2: جمع الكميات من حقول الفارييشنز
+            document.querySelectorAll('.v-qty-input').forEach(input => {
+                entered += parseInt(input.value) || 0;
             });
-          case 8:
-            res = _context.sent;
-            _context.next = 11;
-            return res.json();
-          case 11:
-            data = _context.sent;
-            if (res.ok && data.success) {
-              successPayload = mode === true ? {
-                type: 'single',
-                expiry_date: payload.single_batch.expiry_date,
-                batch_code: data.batch_code,
-                status: data.status,
-                quantity: data.quantity
-              } : {
-                type: 'batch',
-                batches: data.batches,
-                status: data.status
-              };
-              Inventory.onSaveSuccess(productId, successPayload, isEdit);
-              close();
+        } else if (State.mode === 'batch') {
+            // Scenario 1: جمع الكميات من الدفعات العادية
+            document.querySelectorAll('#efBatchList .ef-batch-item').forEach(item => {
+                const id = item.id.replace('efBatch-', '');
+                entered += parseInt($(`bQty-${id}`)?.value) || 0;
+            });
+        }
+        
+        return State.sallaQty - State.usedQty - entered;
+    }
+
+    /**
+     * يدير عرض التنبيهات البصرية للكمية المتبقية
+     */
+    function _updateQtyTracker() {
+        const avail = $('efQtyAvail');
+        const warn  = $('efQtyWarn');
+        const msg   = $('efQtyWarnMsg');
+        
+        if (!avail) return;
+
+        // في النمط الفردي لا نحتاج لمراقبة التوزيع
+        if (State.mode === 'single') {
+            avail.textContent = State.sallaQty;
+            if (warn) warn.style.display = 'none';
+            return;
+        }
+
+        const remaining = _getRemainingQty();
+        avail.textContent = remaining >= 0 ? remaining : 0;
+
+        if (!warn || !msg) return;
+
+        if (remaining < 0) {
+            // تجاوز الكمية المتاحة (أحمر)
+            msg.textContent    = `Exceeded by ${Math.abs(remaining)} units — reduce input quantities`;
+            warn.className     = 'ef-qty-warn ef-qty-over';
+            warn.style.display = 'flex';
+        } else if (remaining === 0 && State.userStarted) {
+            // توزيع مكتمل (أخضر)
+            msg.textContent    = '✓ All units perfectly assigned — ready to save';
+            warn.className     = 'ef-qty-warn ef-qty-full';
+            warn.style.display = 'flex';
+        } else if (remaining <= 3 && State.userStarted && remaining > 0) {
+            // كمية قليلة متبقية (أصفر)
+            msg.textContent    = `Only ${remaining} unit${remaining > 1 ? 's' : ''} left to assign`;
+            warn.className     = 'ef-qty-warn ef-qty-low';
+            warn.style.display = 'flex';
+        } else {
+            // الوضع الطبيعي
+            warn.style.display = 'none';
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       5. SCENARIO 2: VARIANTS FETCHING & RENDERING (التعامل مع الخيارات)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * جلب الفارييشنز من السيرفر (السيناريو 2)
+     * إذا لم يجد، يعود للسيناريو 1 العادي بصمت.
+     * @param {string|number} pid 
+     */
+    async function _fetchVariants(pid) {
+        const listContainer = $('efBatchList');
+        if (!listContainer) return;
+
+        // عرض مؤشر التحميل
+        listContainer.innerHTML = `
+            <div class="ef-loading-variants">
+                <i class="bi bi-arrow-repeat ef-spin-icon"></i>
+                <p>Syncing product variants from Salla...</p>
+            </div>
+        `;
+
+        try {
+            // API لجلب الخيارات من الباك إند
+            const response = await fetch(`/inventory/products/${pid}/variants`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (!response.ok) throw new Error('Failed to fetch');
+            const data = await response.json();
+
+            if (data.success && data.variants && data.variants.length > 0) {
+                // تفعيل السيناريو 2: المنتج لديه خيارات مسبقة
+                State.hasVariants = true;
+                State.variantsList = data.variants;
+                State.mode = 'variants';
+                _renderVariantsGrid(data.variants);
             } else {
-              _showError((_data$message = data.message) !== null && _data$message !== void 0 ? _data$message : 'Something went wrong. Please try again.');
+                // تفعيل السيناريو 1: منتج عادي بلا خيارات
+                State.hasVariants = false;
+                State.mode = 'batch';
+                listContainer.innerHTML = '';
+                addBatch();
             }
-            _context.next = 18;
-            break;
-          case 15:
-            _context.prev = 15;
-            _context.t0 = _context["catch"](5);
-            _showError('Network error. Please check your connection and try again.');
-          case 18:
-            _context.prev = 18;
-            btn.disabled = false;
+        } catch (error) {
+            console.error('[Harees Engine] Fetch Variants Error:', error);
+            // Fallback to scenario 1 on error
+            State.hasVariants = false;
+            State.mode = 'batch';
+            listContainer.innerHTML = '';
+            addBatch();
+        }
+        
+        _updateQtyTracker();
+        validate();
+    }
+
+    /**
+     * بناء شبكة الخيارات التفاعلية (الجدول) للسيناريو 2
+     * @param {Array} variants 
+     */
+    function _renderVariantsGrid(variants) {
+        const container = $('efBatchList');
+        
+        let html = `
+            <div class="ef-variants-container">
+                <div class="ef-global-date-wrapper">
+                    <label><i class="bi bi-calendar-event"></i> Global Batch Expiry Date</label>
+                    <input type="date" class="ef-input" id="vGlobalDate" style="width: 100%; max-width: 300px;">
+                </div>
+                <table class="ef-variants-grid">
+                    <thead>
+                        <tr>
+                            <th>Variant Name</th>
+                            <th>Current Qty</th>
+                            <th>New Batch Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        variants.forEach(v => {
+            html += `
+                <tr>
+                    <td>
+                        <div class="ef-variant-name">${v.name}</div>
+                        <div style="font-size:0.75rem; color:rgba(255,255,255,0.3)">SKU: ${v.sku || 'N/A'}</div>
+                    </td>
+                    <td>
+                        <span class="ef-variant-current-qty">${v.quantity}</span>
+                    </td>
+                    <td>
+                        <input type="number" class="ef-input-v-qty v-qty-input" 
+                               data-vid="${v.id}" data-max="${v.quantity}" 
+                               placeholder="0" min="0">
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+
+        // ربط الأحداث للحقول الجديدة
+        const globalDateInput = $('vGlobalDate');
+        if (globalDateInput) {
+            globalDateInput.addEventListener('input', (e) => {
+                State.globalExpiryDate = e.target.value;
+                validate();
+            });
+        }
+
+        document.querySelectorAll('.v-qty-input').forEach(input => {
+            input.addEventListener('input', () => {
+                State.userStarted = true;
+                _updateQtyTracker();
+                validate();
+            });
+        });
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       6. SCENARIO 1: BATCH ITEM BUILDER (بناء دفعات السيناريو الأول)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * بناء عنصر إدخال لدفعة واحدة
+     * @param {Object} prefill 
+     * @returns {HTMLElement}
+     */
+    function _buildBatchItem(prefill = {}) {
+        State.batchCount++;
+        const idx = State.batchCount;
+
+        const status = prefill.status ?? (prefill.expiry ? _calcStatus(prefill.expiry) : null);
+
+        const item = document.createElement('div');
+        item.className = 'ef-batch-item';
+        item.id        = `efBatch-${idx}`;
+
+        const badgeHtml = status
+            ? _statusBadgeHtml(status, idx)
+            : `<span class="ef-status-badge" id="bStatus-${idx}"></span>`;
+
+        item.innerHTML = `
+            <div class="ef-batch-head">
+                <span class="ef-batch-lbl" id="bLbl-${idx}">
+                    <i class="bi bi-layers" style="font-size:0.78rem;color:var(--mauve)"></i>
+                    Batch ${idx} ${badgeHtml}
+                </span>
+                <button class="ef-batch-remove" data-idx="${idx}" title="Remove Batch">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+            <div class="ef-batch-grid">
+                <div>
+                    <label class="ef-label">Quantity</label>
+                    <input type="number" class="ef-input" id="bQty-${idx}" min="1"
+                           value="${prefill.qty ?? ''}" placeholder="0">
+                </div>
+                <div>
+                    <label class="ef-label">Expiry Date</label>
+                    <input type="date" class="ef-input" id="bDate-${idx}"
+                           value="${prefill.expiry ?? ''}">
+                </div>
+            </div>
+            <input type="hidden" id="bCode-${idx}" value="${prefill.batch_code ?? ''}">
+            <input type="hidden" id="bId-${idx}"   value="${prefill.id ?? ''}">
+        `;
+
+        // ربط الأحداث
+        item.querySelector('.ef-batch-remove').addEventListener('click', () => removeBatch(idx));
+        
+        item.querySelector(`#bQty-${idx}`).addEventListener('input', () => { 
+            State.userStarted = true; 
+            _updateQtyTracker(); 
+            validate(); 
+        });
+        
+        item.querySelector(`#bDate-${idx}`).addEventListener('input', () => { 
+            updateBadge(idx); 
+            validate(); 
+        });
+
+        return item;
+    }
+
+    /**
+     * إعادة ترقيم الدفعات بعد الحذف
+     */
+    function _reNumber() {
+        document.querySelectorAll('#efBatchList .ef-batch-item').forEach((item, i) => {
+            const lbl   = item.querySelector('.ef-batch-lbl');
+            const badge = lbl?.querySelector('.ef-status-badge');
+            if (!lbl) return;
+            lbl.innerHTML = `<i class="bi bi-layers" style="font-size:0.78rem;color:var(--mauve)"></i> Batch ${i + 1} `;
+            if (badge) lbl.appendChild(badge);
+        });
+    }
+
+    /**
+     * تجميع بيانات الدفعات للسيناريو 1 لإرسالها
+     * @returns {Array}
+     */
+    function _collectBatches() {
+        const batches = [];
+        document.querySelectorAll('#efBatchList .ef-batch-item').forEach((item) => {
+            const id  = item.id.replace('efBatch-', '');
+            const qty = parseInt($(`bQty-${id}`)?.value) || 0;
+            const dt  = $(`bDate-${id}`)?.value;
+            
+            if (qty > 0 && dt) {
+                batches.push({
+                    id:          $(`bId-${id}`)?.value || null,
+                    qty:         qty,
+                    expiry_date: dt,
+                    batch_code:  $(`bCode-${id}`)?.value || null,
+                    status:      _calcStatus(dt),
+                });
+            }
+        });
+        return batches;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       7. LIFECYCLE & MODAL CONTROLS (إدارة النافذة)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * تفريغ وتصفير المودال بالكامل
+     */
+    function _reset(productName) {
+        State.mode          = null;
+        State.batchCount    = 0;
+        State.userStarted   = false;
+        State.hasVariants   = false;
+        State.variantsList  = [];
+        State.globalExpiryDate = '';
+
+        const nameEl = $('efProductName');
+        if(nameEl) nameEl.textContent = productName ?? '';
+        
+        const btnYes = $('btnYes');
+        const btnNo = $('btnNo');
+        if(btnYes) btnYes.className = 'ef-toggle-btn';
+        if(btnNo) btnNo.className  = 'ef-toggle-btn';
+        
+        const panelYes = $('panelYes');
+        const panelNo = $('panelNo');
+        if(panelYes) panelYes.classList.remove('show');
+        if(panelNo) panelNo.classList.remove('show');
+        
+        if($('efSingleDate')) $('efSingleDate').value = '';
+        if($('efSingleBatchCode')) $('efSingleBatchCode').value = '';
+        
+        const batchList = $('efBatchList');
+        if(batchList) batchList.innerHTML = '';
+        
+        const saveBtn = $('efSaveBtn');
+        if(saveBtn) saveBtn.disabled = true;
+
+        const avail = $('efQtyAvail');
+        if (avail) avail.textContent = State.sallaQty > 0 ? State.sallaQty : '—';
+
+        const warn = $('efQtyWarn');
+        if (warn) warn.style.display = 'none';
+
+        const err = $('efErrorMsg');
+        if (err) err.style.display = 'none';
+        
+        _injectStyles(); // حقن التنسيقات عند التصفير لضمان وجودها
+    }
+
+    /**
+     * إظهار النافذة المنبثقة
+     */
+    function _show() {
+        State.isOpen = true;
+        const backdrop = $('efBackdrop');
+        if(backdrop) backdrop.classList.add('open');
+        document.body.classList.add('ef-open');
+        document.body.style.overflow = 'hidden';
+        _updateQtyTracker();
+    }
+
+    /**
+     * إغلاق النافذة
+     */
+    function close() {
+        State.isOpen = false;
+        const backdrop = $('efBackdrop');
+        if (backdrop) backdrop.classList.remove('open');
+        
+        document.body.classList.remove('ef-open');
+        document.body.style.overflow = '';
+
+        _reset('');
+        
+        const editBanner = $('efEditBanner');
+        if (editBanner) editBanner.classList.remove('show');
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       8. PUBLIC METHODS (الواجهة البرمجية المفتوحة)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    /**
+     * فتح المودال لإضافة دفعة جديدة (نقطة الدخول الرئيسية)
+     */
+    function open(pid, productName, threshold = 14) {
+        State.productId  = pid;
+        State.isEdit     = false;
+        State.threshold  = threshold;
+        
+        const row = document.querySelector(`#invBody tr[data-id="${pid}"]`);
+        State.sallaQty = parseInt(row?.dataset.sallaQty) || 0;
+        State.usedQty  = 0;
+        
+        _reset(productName);
+        
+        const titleEl = $('efTitle');
+        const iconEl = $('efIcon');
+        const editBanner = $('efEditBanner');
+        
+        if(titleEl) titleEl.textContent = 'Add Expiry Date';
+        if(iconEl) iconEl.className    = 'bi bi-calendar-plus';
+        if(editBanner) editBanner.classList.remove('show');
+        
+        _show();
+    }
+
+    /**
+     * فتح المودال في وضع التعديل الفردي
+     */
+    function openSingle(pid, productName, dateValue, batchCode, threshold = 14, batchId = null) {
+        State.productId  = pid;
+        State.isEdit     = true;
+        State.threshold  = threshold;
+        
+        const row = document.querySelector(`#invBody tr[data-id="${pid}"]`);
+        State.sallaQty = parseInt(row?.dataset.sallaQty) || 0;
+        State.usedQty  = 0;
+        
+        _reset(productName);
+        State.mode = 'single'; 
+        
+        if($('efTitle')) $('efTitle').textContent   = 'Edit Expiry Date';
+        if($('efIcon')) $('efIcon').className      = 'bi bi-pencil-square';
+        if($('efEditBanner')) $('efEditBanner').classList.add('show');
+        if($('btnYes')) $('btnYes').className      = 'ef-toggle-btn active-yes';
+        if($('panelYes')) $('panelYes').classList.add('show');
+        
+        if ($('efSingleDate')) $('efSingleDate').value = dateValue ?? '';
+        if ($('efSingleBatchCode')) $('efSingleBatchCode').value = batchCode ?? '';
+        if ($('efSingleBatchId')) $('efSingleBatchId').value = batchId ?? '';
+        
+        validate();
+        _updateSingleStatus();
+        _show();
+    }
+
+    /**
+     * فتح المودال في وضع تعديل الدفعات المتعددة
+     */
+    function openBatch(pid, productName, prefillBatches = [], threshold = 14) {
+        State.productId  = pid;
+        State.isEdit     = prefillBatches.length > 0;
+        State.threshold  = threshold;
+        
+        const row = document.querySelector(`#invBody tr[data-id="${pid}"]`);
+        State.sallaQty = parseInt(row?.dataset.sallaQty) || 0;
+        State.usedQty  = 0;
+        
+        _reset(productName);
+        State.mode = 'batch';
+        
+        if($('efTitle')) $('efTitle').textContent = State.isEdit ? 'Edit Expiry Date' : 'Add Expiry Date';
+        if($('efIcon')) $('efIcon').className    = State.isEdit ? 'bi bi-pencil-square' : 'bi bi-calendar-plus';
+        
+        if ($('efEditBanner')) {
+            State.isEdit ? $('efEditBanner').classList.add('show') : $('efEditBanner').classList.remove('show');
+        }
+        
+        if($('btnNo')) $('btnNo').className = 'ef-toggle-btn active-no';
+        if($('panelNo')) $('panelNo').classList.add('show');
+
+        const list = $('efBatchList');
+        if(list) {
+            if (prefillBatches.length) {
+                prefillBatches.forEach(b => list.appendChild(_buildBatchItem(b)));
+            } else {
+                // تفعيل منطق السيناريو 2 لجلب الخيارات
+                _fetchVariants(pid);
+            }
+        }
+
+        validate();
+        _show();
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       9. ACTIONS & VALIDATION (التفاعلات والتحقق)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    function selectMode(isSingle) {
+        // تحديد النمط بناءً على وجود فارييشنز أو لا
+        State.mode = isSingle ? 'single' : (State.hasVariants ? 'variants' : 'batch');
+        
+        if($('btnYes')) $('btnYes').className = 'ef-toggle-btn' + (isSingle  ? ' active-yes' : '');
+        if($('btnNo')) $('btnNo').className  = 'ef-toggle-btn' + (!isSingle ? ' active-no'  : '');
+        
+        if($('panelYes')) $('panelYes').classList.toggle('show', isSingle);
+        if($('panelNo')) $('panelNo').classList.toggle('show', !isSingle);
+        
+        if (!isSingle) {
+            const listContainer = $('efBatchList');
+            if (listContainer && listContainer.children.length === 0) {
+                _fetchVariants(State.productId);
+            }
+        }
+        
+        _updateQtyTracker();
+        validate();
+    }
+
+    function addBatch() {
+        if (State.mode !== 'batch') return; // منع الإضافة في حالة السيناريو 2
+        const list = $('efBatchList');
+        if(list) list.appendChild(_buildBatchItem());
+        _reNumber();
+        _updateQtyTracker();
+        validate();
+    }
+
+    function removeBatch(idx) {
+        $(`efBatch-${idx}`)?.remove();
+        _reNumber();
+        _updateQtyTracker();
+        validate();
+    }
+
+    function validate() {
+        const btn = $('efSaveBtn');
+        if (!btn) return;
+        
+        _updateQtyTracker();
+
+        if (!State.mode && !State.isEdit) { 
+            btn.disabled = true; 
+            return; 
+        }
+
+        if (State.mode === 'single') {
+            btn.disabled = !$('efSingleDate').value;
+            return;
+        }
+
+        const remaining = _getRemainingQty();
+
+        if (State.mode === 'variants') {
+            const globalDate = $('vGlobalDate')?.value;
+            let hasInput = false;
+            document.querySelectorAll('.v-qty-input').forEach(i => {
+                if (parseInt(i.value) > 0) hasInput = true;
+            });
+            
+            if (!globalDate || !hasInput || remaining < 0) {
+                btn.disabled = true;
+            } else {
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        if (State.mode === 'batch') {
+            const batches = _collectBatches();
+            if (!batches.length || remaining !== 0) { 
+                btn.disabled = true;  
+            } else {
+                btn.disabled = false;
+            }
+            return;
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       10. SERVER COMMUNICATION (التواصل مع السيرفر)
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    async function save() {
+        const btn = $('efSaveBtn');
+        if (!btn) return;
+        
+        btn.disabled  = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat ef-spin"></i> Processing...';
+
+        let endpoint = `/inventory/products/${State.productId}/expiry`;
+        let payload = {
+            product_id:  State.productId,
+            same_expiry: State.mode === 'single',
+            scenario:    State.mode
+        };
+
+        if (State.mode === 'single') {
+            payload.single_batch = {
+                expiry_date: $('efSingleDate').value,
+                batch_code:  $('efSingleBatchCode')?.value || null,
+                batch_id:    $('efSingleBatchId')?.value   || null,
+            };
+        } 
+        else if (State.mode === 'variants') {
+            payload.global_expiry = $('vGlobalDate').value;
+            payload.variants_data = Array.from(document.querySelectorAll('.v-qty-input'))
+                .filter(input => parseInt(input.value) > 0)
+                .map(input => ({
+                    variant_id: input.dataset.vid,
+                    quantity: parseInt(input.value)
+                }));
+        } 
+        else if (State.mode === 'batch') {
+            const collectedBatches = _collectBatches();
+            payload.batches = collectedBatches.map(b => ({
+                id:          b.id || null, 
+                expiry_date: b.expiry_date,
+                quantity:    b.qty,
+                batch_code:  b.batch_code || null,
+            }));
+        }
+
+        try {
+            const res  = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'Accept'      : 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload),
+            });
+            
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (typeof Inventory !== 'undefined' && Inventory.onSaveSuccess) {
+                    const successPayload = (State.mode === 'single')
+                        ? {
+                            type:        'single',
+                            expiry_date: payload.single_batch.expiry_date,
+                            batch_code:  data.batch_code,
+                            status:      data.status,
+                            quantity:    data.quantity,
+                        }
+                        : {
+                            type:    State.mode,
+                            batches: data.batches || [],
+                            status:  data.status,
+                        };
+                        
+                    Inventory.onSaveSuccess(State.productId, successPayload, State.isEdit);
+                }
+                close();
+            } else {
+                _showError(data.message ?? 'Server processing failed.');
+            }
+        } catch (err) {
+            console.error('[Harees] Save Error:', err);
+            _showError('Network error. Please check your connection.');
+        } finally {
+            btn.disabled  = false;
             btn.innerHTML = '<i class="bi bi-floppy"></i> Save Expiry Information';
             validate();
-            return _context.finish(18);
-          case 23:
-          case "end":
-            return _context.stop();
         }
-      }, _callee, null, [[5, 15, 18, 23]]);
-    }));
-    return _save.apply(this, arguments);
-  }
-  function _showError(msg) {
-    var el = $('efErrorMsg');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'efErrorMsg';
-      el.className = 'ef-edit-banner show';
-      el.style.cssText = 'background:hsla(0,70%,50%,0.08);border-color:hsla(0,70%,50%,0.3);color:hsl(0,60%,35%);margin-top:0.75rem;';
-      $('efSaveBtn').insertAdjacentElement('afterend', el);
     }
-    el.innerHTML = "<i class=\"bi bi-exclamation-triangle-fill\"></i> ".concat(msg);
-    el.style.display = 'flex';
-    setTimeout(function () {
-      if (el) el.style.display = 'none';
-    }, 5000);
-  }
 
-  /* ══════════════════════════════════════════
-     EVENT LISTENERS
-  ══════════════════════════════════════════ */
-  function _initListeners() {
-    var _$6, _$7, _$8, _$9, _$10, _$11, _$12;
-    (_$6 = $('efBackdrop')) === null || _$6 === void 0 ? void 0 : _$6.addEventListener('click', function (e) {
-      if (e.target === $('efBackdrop')) close();
-    });
-    (_$7 = $('efCloseBtn')) === null || _$7 === void 0 ? void 0 : _$7.addEventListener('click', close);
-    (_$8 = $('btnYes')) === null || _$8 === void 0 ? void 0 : _$8.addEventListener('click', function () {
-      return selectMode(true);
-    });
-    (_$9 = $('btnNo')) === null || _$9 === void 0 ? void 0 : _$9.addEventListener('click', function () {
-      return selectMode(false);
-    });
-    (_$10 = $('efSingleDate')) === null || _$10 === void 0 ? void 0 : _$10.addEventListener('input', function () {
-      _updateSingleStatus();
-      validate();
-    });
-    (_$11 = $('efAddBatchBtn')) === null || _$11 === void 0 ? void 0 : _$11.addEventListener('click', addBatch);
-    (_$12 = $('efSaveBtn')) === null || _$12 === void 0 ? void 0 : _$12.addEventListener('click', save);
-  }
-  document.addEventListener('DOMContentLoaded', _initListeners);
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && _isOpen) close();
-  });
-  window.addEventListener('pageshow', function (e) {
-    if (e.persisted && _isOpen) close();
-  });
+    function _showError(msg) {
+        let el = $('efErrorMsg');
+        if (!el) {
+            el = document.createElement('div');
+            el.id        = 'efErrorMsg';
+            el.className = 'ef-edit-banner show';
+            el.style.cssText = 'background:hsla(0,70%,50%,0.08);border-color:hsla(0,70%,50%,0.3);color:hsl(0,60%,35%);margin-top:0.75rem;';
+            const btn = $('efSaveBtn');
+            if(btn) btn.insertAdjacentElement('afterend', el);
+        }
+        el.innerHTML     = `<i class="bi bi-exclamation-triangle-fill"></i> ${msg}`;
+        el.style.display = 'flex';
+        setTimeout(() => { if (el) el.style.display = 'none'; }, 6000);
+    }
 
-  /* ── Public API ── */
-  return {
-    open: open,
-    openSingle: openSingle,
-    openBatch: openBatch,
-    close: close,
-    selectMode: selectMode,
-    addBatch: addBatch,
-    removeBatch: removeBatch,
-    updateBadge: updateBadge,
-    validate: validate,
-    save: save
-  };
-}();
-/******/ })()
-;
+    /* ════════════════════════════════════════════════════════════════════════
+       11. INITIALIZATION & EVENT LISTENERS
+    ════════════════════════════════════════════════════════════════════════ */
+    
+    function _initListeners() {
+        $('efBackdrop')?.addEventListener('click', e => { 
+            if (e.target === $('efBackdrop')) close(); 
+        });
+        
+        $('efCloseBtn')?.addEventListener('click', close);
+        
+        $('btnYes')?.addEventListener('click', () => selectMode(true));
+        $('btnNo')?.addEventListener('click',  () => selectMode(false));
+        
+        $('efSingleDate')?.addEventListener('input', () => {
+            _updateSingleStatus();
+            validate();
+        });
+        
+        $('efAddBatchBtn')?.addEventListener('click', addBatch);
+        $('efSaveBtn')?.addEventListener('click', save);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _initListeners);
+    } else {
+        _initListeners();
+    }
+    
+    document.addEventListener('keydown', e => { 
+        if (e.key === 'Escape' && State.isOpen) close(); 
+    });
+
+    window.addEventListener('pageshow', e => {
+        if (e.persisted && State.isOpen) close();
+    });
+
+    /* ════════════════════════════════════════════════════════════════════════
+       12. PUBLIC EXPORTS (تهيئة الواجهة المفتوحة)
+    ════════════════════════════════════════════════════════════════════════ */
+    return { 
+        open, 
+        openSingle, 
+        openBatch, 
+        close, 
+        selectMode, 
+        addBatch, 
+        removeBatch, 
+        updateBadge, 
+        validate, 
+        save 
+    };
+
+})();
