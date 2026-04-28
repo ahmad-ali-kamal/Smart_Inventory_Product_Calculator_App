@@ -68,8 +68,12 @@ class SallaOAuthController extends Controller
 
             Auth::login($merchant);
 
-            return redirect()->route('welcome')
-                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك!');
+            return redirect(
+    session('salla_app_type') === 'calculator'
+        ? '/calculator/dashboard'
+        : '/inventory/dashboard'
+);
+             
 
         } catch (\Exception $e) {
             Log::error('Salla OAuth Error: ' . $e->getMessage());

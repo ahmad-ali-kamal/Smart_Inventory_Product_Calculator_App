@@ -7,6 +7,12 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ThemeProvider } from './Context/ThemeContext';
 import { ProductsProvider } from './Context/ProductsContext';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ErrorBoundary from './Components/Common/ErrorBoundary';
+import { Toaster } from 'react-hot-toast';
+
+const queryClient = new QueryClient();
+
 createInertiaApp({
     title: (title) => `${title}`,
     resolve: (name) =>
@@ -17,11 +23,18 @@ createInertiaApp({
     setup({ el, App, props }) {
          const root = createRoot(el);
     root.render(
-        <ThemeProvider>
-            <ProductsProvider>
-                <App {...props} />
-            </ProductsProvider>
-        </ThemeProvider>);
+        <QueryClientProvider client={queryClient}>
+            <ErrorBoundary>
+                <ThemeProvider>
+                    <ProductsProvider>
+                        <App {...props} />
+                        <Toaster position="top-center" />
+                    </ProductsProvider>
+                </ThemeProvider>
+            </ErrorBoundary>
+        </QueryClientProvider>
+    );
+      
     },
     progress: {
         color: '#E8BCCD',

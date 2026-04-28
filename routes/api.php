@@ -4,7 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApiProductController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
-use App\Http\Controllers\SallaWebhookController;
+//use App\Http\Controllers\SallaWebhookController;
+use App\Http\Controllers\Api\InventoryApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,13 +21,23 @@ use App\Http\Controllers\SallaWebhookController;
  * رابط استقبال بيانات سلة (المنتجات، المبيعات، إلخ)
  * الرابط في مركز الشركاء: https://yourdomain.com/api/webhooks/salla
  */
-Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle']);
+//Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle']);
 
 
 // ====================================================================
 // 2. مسارات محمية (تتطلب تسجيل دخول Merchant عبر Sanctum)
 // ====================================================================
 Route::middleware('auth:sanctum')->group(function () {
+
+Route::prefix('inventory')->group(function () {
+
+        Route::get('/dashboard', [InventoryApiController::class, 'dashboard']);
+        Route::get('/products', [InventoryApiController::class, 'products']);
+        Route::post('/expiry/batch', [InventoryApiController::class, 'storeExpiry']);
+        Route::get('/settings', [InventoryApiController::class, 'settings']);
+        Route::put('/settings/batch', [InventoryApiController::class, 'updateSettings']);
+
+    });
 
     // جلب معلومات المتجر الحالي (Quantix API User)
     Route::get('/user', function (Request $request) {
@@ -50,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
         Route::post('/settings/update',      [ProductCalculatorController::class, 'updateSettings']);
     });
+   
 });
 
 
