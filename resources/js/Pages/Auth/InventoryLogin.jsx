@@ -411,91 +411,19 @@ export default function InventoryLogin({ status, canResetPassword }) {
                                 }}>{status}</div>
                             )}
 
-                            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                                {/* Email */}
-                                <div>
-                                    <label style={{
-                                        display: 'block', marginBottom: '6px',
-                                        fontFamily: "'Almarai', sans-serif",
-                                        fontSize: '0.82rem', fontWeight: '700',
-                                        color: 'rgba(255,255,255,0.5)',
-                                    }}>البريد الإلكتروني</label>
-                                    <input
-                                        type="email"
-                                        className="form-input"
-                                        placeholder="example@store.com"
-                                        value={data.email}
-                                        onChange={e => setData('email', e.target.value)}
-                                        autoComplete="username"
-                                        required
-                                    />
-                                    {errors.email && <div className="error-msg"><span>⚠</span>{errors.email}</div>}
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                        <label style={{
-                                            fontFamily: "'Almarai', sans-serif",
-                                            fontSize: '0.82rem', fontWeight: '700',
-                                            color: 'rgba(255,255,255,0.5)',
-                                        }}>كلمة المرور</label>
-                                        {canResetPassword && (
-                                            <Link href={route('password.request')} style={{
-                                                fontFamily: "'Almarai', sans-serif",
-                                                fontSize: '0.75rem',
-                                                color: 'rgba(192,132,252,0.6)',
-                                                textDecoration: 'none',
-                                                transition: 'color 0.2s',
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
-                                            onMouseLeave={e => e.currentTarget.style.color = 'rgba(192,132,252,0.6)'}
-                                            >
-                                                نسيت كلمة المرور؟
-                                            </Link>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="password"
-                                        className="form-input"
-                                        placeholder="••••••••"
-                                        value={data.password}
-                                        onChange={e => setData('password', e.target.value)}
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                    {errors.password && <div className="error-msg"><span>⚠</span>{errors.password}</div>}
-                                </div>
-
-                                {/* Remember */}
-                                <label style={{
-                                    display: 'flex', alignItems: 'center', gap: '10px',
-                                    cursor: 'pointer',
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={data.remember}
-                                        onChange={e => setData('remember', e.target.checked)}
-                                        style={{
-                                            width: '16px', height: '16px',
-                                            accentColor: '#c084fc', cursor: 'pointer',
-                                        }}
-                                    />
-                                    <span style={{
-                                        fontFamily: "'Almarai', sans-serif",
-                                        fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)',
-                                    }}>تذكرني</span>
-                                </label>
-
-                                {/* Submit */}
-                                <button
-                                    type="submit"
-                                    className="submit-btn"
-                                    disabled={processing}
-                                >
-                                    {processing ? 'جارٍ الدخول...' : 'دخول إلى حريص ←'}
-                                </button>
-                            </form>
+                            <div style={{ marginTop: 30 }}>
+  <a
+    href="/auth/salla?app=management"
+    className="submit-btn"
+    style={{
+      display: "block",
+      textAlign: "center",
+      textDecoration: "none",
+    }}
+  >
+    دخول عبر سلة ←
+  </a>
+</div>
 
                             {/* Divider */}
                             <div style={{
