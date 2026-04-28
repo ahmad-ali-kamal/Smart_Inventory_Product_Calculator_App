@@ -4,6 +4,7 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import LanguageProvider from './Context/LanguageContext';
 import { ThemeProvider } from './Context/ThemeContext';
 import { ProductsProvider } from './Context/ProductsContext';
 
@@ -21,18 +22,20 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.jsx'),
         ),
     setup({ el, App, props }) {
-         const root = createRoot(el);
+          const root = createRoot(el);
     root.render(
-        <QueryClientProvider client={queryClient}>
-            <ErrorBoundary>
-                <ThemeProvider>
-                    <ProductsProvider>
-                        <App {...props} />
-                        <Toaster position="top-center" />
-                    </ProductsProvider>
-                </ThemeProvider>
-            </ErrorBoundary>
-        </QueryClientProvider>
+        <LanguageProvider>
+            <QueryClientProvider client={queryClient}>
+                <ErrorBoundary>
+                    <ThemeProvider>
+                        <ProductsProvider>
+                            <App {...props} />
+                            <Toaster position="top-center" />
+                        </ProductsProvider>
+                    </ThemeProvider>
+                </ErrorBoundary>
+            </QueryClientProvider>
+        </LanguageProvider>
     );
       
     },
