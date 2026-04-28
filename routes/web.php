@@ -3,6 +3,10 @@
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\SallaOAuthController;
 
+Route::get('/dashboard', function () {
+    return Inertia::render('Dashboard');
+});
+
 // الصفحة الرئيسية
 Route::get('/', function () {
     return Inertia::render('Welcome');
