@@ -20,7 +20,10 @@ export default function Header() {
 
     // روابط "حريص" - تأكدي أن البادئة مطابقة لـ web.php
     const inventoryNav = [
+        { label: 'Instructions', href: '/harees/instructions' },
         { label: 'Dashboard', href: '/harees/dashboard' },
+         { label: 'Products', href: '/harees/products' },
+        { label: 'Settings', href: '/harees/settings' },
         // أضيفي روابط حريص هنا لاحقاً
     ];
 
