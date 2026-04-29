@@ -3,8 +3,8 @@ import { X, Percent, CheckCircle, Info } from 'lucide-react';
 
 export default function DiscountModal({ batch, product, onClose, onApply }) {
     const [discountPct, setDiscountPct] = useState(20);
-    const [endDate, setEndDate] = useState('');
-    const [isApplied, setIsApplied] = useState(false);
+    const [endDate, setEndDate]         = useState('');
+    const [isApplied, setIsApplied]     = useState(false);
 
     const handleApply = () => {
         if (!endDate) return;
@@ -21,7 +21,7 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
 
                 {/* Header */}
                 <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--muted)] flex items-center justify-center text-[var(--primary)]">
                         <Percent size={20} />
                     </div>
                     <div className="flex-1 text-left">
@@ -29,12 +29,12 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                         <p className="text-[11px] text-[var(--muted-foreground)]">{product?.name}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors">
-                        <X size={16} />
+                        <X size={16} className="text-[var(--foreground)]" />
                     </button>
                 </div>
 
                 <div className="p-6 space-y-5">
-                    {/* Note - same pattern as Products page banner */}
+                    {/* Note */}
                     <div className="flex items-start gap-2 p-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10">
                         <Info size={14} className="text-[var(--primary)] mt-0.5 shrink-0" />
                         <p className="text-[11px] text-[var(--primary)] leading-relaxed">
@@ -43,8 +43,10 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                     </div>
 
                     {/* Form */}
-                    <div className="p-5 rounded-2xl bg-[var(--accent)]/10 border border-[var(--primary)]/20 space-y-4">
-                        <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wider">Manual Configuration</span>
+                    <div className="p-5 rounded-2xl bg-[var(--muted)]/40 border border-[var(--primary)]/20 space-y-4">
+                        <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wider">
+                            Manual Configuration
+                        </span>
 
                         <div className="grid grid-cols-2 gap-3">
                             {/* Discount % */}
@@ -59,9 +61,21 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                                         max={99}
                                         value={discountPct}
                                         onChange={e => setDiscountPct(e.target.value)}
-                                        className="w-full p-3 pr-7 rounded-xl border border-[var(--border)] bg-white text-sm outline-none focus:border-[var(--primary)] font-bold text-[var(--foreground)]"
+                                        className="
+                                            w-full p-3 pr-7 rounded-xl border
+                                            bg-[var(--muted)]
+                                            border-[var(--primary)]/20
+                                            text-[var(--foreground)]
+                                            text-sm font-bold outline-none
+                                            focus:border-[var(--primary)]/60
+                                            focus:ring-2 focus:ring-[var(--primary)]/15
+                                            transition-all
+                                            placeholder:text-[var(--muted-foreground)]
+                                        "
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs font-bold">%</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs font-bold">
+                                        %
+                                    </span>
                                 </div>
                             </div>
 
@@ -74,7 +88,18 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                                     type="date"
                                     value={endDate}
                                     onChange={e => setEndDate(e.target.value)}
-                                    className="w-full p-3 rounded-xl border border-[var(--border)] bg-white text-sm outline-none focus:border-[var(--primary)] text-[var(--foreground)]"
+                                    className="
+                                        w-full p-3 rounded-xl border
+                                        bg-[var(--muted)]
+                                        border-[var(--primary)]/20
+                                        text-[var(--foreground)]
+                                        text-sm outline-none
+                                        focus:border-[var(--primary)]/60
+                                        focus:ring-2 focus:ring-[var(--primary)]/15
+                                        transition-all
+                                        [color-scheme:light]
+                                        dark:[color-scheme:dark]
+                                    "
                                 />
                             </div>
                         </div>
@@ -87,7 +112,7 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                         disabled={isApplied}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                             isApplied
-                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100'
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100/20'
                                 : 'bg-[var(--primary)] text-white hover:opacity-90'
                         }`}
                     >

@@ -1,112 +1,71 @@
 // resources/js/Pages/Calculator/Instructions.jsx
 import { router } from '@inertiajs/react';
-import Layout from '../../Components/Layout';
-import Card from '../../Components/UI/Card';
-import { Calculator, SlidersHorizontal, ToggleRight, BarChart2 } from 'lucide-react';
+import InstructionsLayout from '../../Components/UI/InstructionsLayout';
+import { SlidersHorizontal, ToggleRight, BarChart2 } from 'lucide-react';
 
-const steps = [
+/* ── Icons ── */
+const SliderIcon = () => (
+    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+    </svg>
+);
+
+const ToggleIcon = () => (
+    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M5 9A4 4 0 1 0 5 17 4 4 0 0 0 5 9zM5 7a6 6 0 1 1 0 12A6 6 0 0 1 5 7zm10 0a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm-4.5 6a4.5 4.5 0 1 0 9 0 4.5 4.5 0 0 0-9 0z" />
+    </svg>
+);
+
+const ChartIcon = () => (
+    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+    </svg>
+);
+
+/* ── Steps data ── */
+const STEPS = [
     {
-        number: 'Step One',
-        title: 'General Settings',
-        description: 'Define your coverage per unit and waste percentage to power the calculation engine.',
-        tags: ['Coverage per unit (m²)', 'Waste percentage (%)'],
-        icon: <SlidersHorizontal className="w-5 h-5 text-[var(--primary)]" />,
-        action: { label: 'Open Settings →', to: '/settings' },
+        number:        '1',
+        title:         'General Settings',
+        desc:          'Define your coverage per unit and waste percentage to power the calculation engine.',
+        badge:         'Coverage per unit (m²) · Waste percentage (%)',
+        badgeIcon:     <SliderIcon />,
+        rotate:        'rotate-12',
+        counterRotate: '-rotate-12',
+        offset:        '',
     },
     {
-        number: 'Step Two',
-        title: 'Activate Products',
-        description: 'Select which products use the smart calculator from your product catalogue.',
-        tags: ['Toggle products on or off', 'Filter by category'],
-        icon: <ToggleRight className="w-5 h-5 text-[var(--primary)]" />,
-        action: { label: 'Go to Products →', to: '/products' },
+        number:        '2',
+        title:         'Activate Products',
+        desc:          'Select which products use the smart calculator from your product catalogue. Toggle products on or off and filter by category.',
+        badge:         'Toggle products on or off',
+        badgeIcon:     <ToggleIcon />,
+        rotate:        '-rotate-12',
+        counterRotate: 'rotate-12',
+        offset:        'md:ml-20',
     },
     {
-        number: 'Step Three',
-        title: 'Daily Management',
-        description: 'Manage active products and edit calculation settings anytime from the dashboard.',
-        tags: ['Live overview from Dashboard', 'Edit settings at any time'],
-        icon: <BarChart2 className="w-5 h-5 text-[var(--primary)]" />,
-        action: { label: 'View Dashboard →', to: '/dashboard' },
+        number:        '3',
+        title:         'Daily Management',
+        desc:          'Manage active products and edit calculation settings anytime from the dashboard. Live overview always available.',
+        badge:         'Live overview from Dashboard',
+        badgeIcon:     <ChartIcon />,
+        rotate:        'rotate-12',
+        counterRotate: '-rotate-12',
+        offset:        '',
     },
 ];
 
 export default function Instructions() {
     return (
-        <Layout>
-            <div className="max-w-2xl mx-auto space-y-6">
-                <div className="rounded-2xl bg-gradient-to-br from-[#5C5A9E] to-[#3D3B7A] p-10 text-white text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center mx-auto mb-5">
-                        <Calculator className="w-7 h-7 text-white" />
-                    </div>
-                    <h1 className="text-3xl font-semibold mb-2">Calculator Tool</h1>
-                    <p className="text-white/70 text-sm max-w-sm mx-auto">
-                        Smart product calculator for e-commerce — built for precision and simplicity.
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-                        {['3 Steps', 'Easy Setup', 'Live Preview'].map((tag) => (
-                            <span key={tag} className="text-xs px-3 py-1 rounded-full bg-white/15 text-white/90 border border-white/20">
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                <Card className="p-5 flex items-start gap-3">
-                    <span className="text-[var(--primary)] mt-0.5">✦</span>
-                    <div>
-                        <p className="text-sm font-semibold text-[var(--foreground)]">Three simple steps to get started</p>
-                        <p className="text-sm text-[var(--muted-foreground)] mt-1">
-                            Turn measurements into instant orders. Set up once and let the smart engine handle all the complex calculations for you.
-                        </p>
-                    </div>
-                </Card>
-
-                {steps.map((step) => (
-                    <Card key={step.number} className="p-6">
-                        <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center flex-shrink-0">
-                                {step.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-4 flex-wrap">
-                                    <div>
-                                        <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--secondary-foreground)]">
-                                            {step.number}
-                                        </span>
-                                        <h3 className="text-base font-semibold text-[var(--foreground)] mt-2">{step.title}</h3>
-                                        <p className="text-sm text-[var(--muted-foreground)] mt-1 max-w-sm">{step.description}</p>
-                                        <div className="flex flex-wrap gap-2 mt-3">
-                                            {step.tags.map((tag) => (
-                                                <span key={tag} className="text-xs px-2.5 py-1 rounded-full border border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]">
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => router.visit(step.action.to)}
-                                        className="text-sm text-[var(--foreground)] border border-[var(--border)] px-4 py-2 rounded-full hover:bg-[var(--accent)] transition-colors whitespace-nowrap flex-shrink-0"
-                                    >
-                                        {step.action.label}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-                ))}
-
-                <button
-                    onClick={() => router.visit('/dashboard')}
-                    className="w-full bg-[var(--primary)] text-white py-3.5 rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                >
-                    Go to Dashboard →
-                </button>
-
-                <p className="text-center text-xs text-[var(--muted-foreground)]">
-                    Quantix Smart Calculator · Set up your rules once and automate product calculations across your store.
-                </p>
-            </div>
-        </Layout>
+        <InstructionsLayout
+            appName="Calculator Tool"
+            subtitle="Smart calculator for e-commerce"
+            description="Turn measurements into instant orders. Set up once and let the smart engine handle all the complex calculations for you — precision built right in."
+            steps={STEPS}
+            ctaLabel="Go to Dashboard"
+            onCta={() => router.visit('/dashboard')}
+            footerNote="Quantix Smart Calculator · Set up your rules once and automate product calculations across your store"
+        />
     );
 }

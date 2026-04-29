@@ -5,7 +5,6 @@
 @tailwind utilities;
 
 :root {
-    /* ألوان عامة للنظام - الوضع الفاتح */
     --background: #FDFCFF;
     --card: #FFFFFF;
     --foreground: #4A4760;
@@ -16,7 +15,6 @@
     --accent: #EDEAFF;
     --border: rgba(168, 162, 212, 0.20);
 
-    /* ألوان الأوركيد (المستخدمة في التنقل) */
     --color-orchid: #E8BCCD;
     --color-orchid-light: #F2D4E2;
     --color-text-muted: #9A97B4;
@@ -24,12 +22,29 @@
 
     --radius: 0.625rem;
     --font-sans: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+
+    /* ── Status Colors - Light Mode ── */
+    --status-expired-text:         #f87171;
+    --status-expired-icon-bg:      rgba(248, 113, 113, 0.15);
+    --status-expired-icon-border:  rgba(248, 113, 113, 0.25);
+    --status-expired-bg:           rgba(248, 113, 113, 0.10);
+    --status-expired-border:       rgba(248, 113, 113, 0.25);
+
+    --status-approaching-text:        #fbbf24;
+    --status-approaching-icon-bg:     rgba(251, 191, 36, 0.15);
+    --status-approaching-icon-border: rgba(251, 191, 36, 0.25);
+    --status-approaching-bg:          rgba(251, 191, 36, 0.10);
+    --status-approaching-border:      rgba(251, 191, 36, 0.25);
+
+    --status-safe-text:         #34d399;
+    --status-safe-icon-bg:      rgba(52, 211, 153, 0.15);
+    --status-safe-icon-border:  rgba(52, 211, 153, 0.25);
+    --status-safe-bg:           rgba(52, 211, 153, 0.10);
+    --status-safe-border:       rgba(52, 211, 153, 0.25);
 }
 
 .dark {
-    /* ألوان عامة للنظام - الوضع المظلم */
     --background: #0F0E17;
-    /* أسود عميق متناسق */
     --card: #17142A;
     --foreground: #E6E1F5;
     --primary: #8884BF;
@@ -38,9 +53,27 @@
     --accent: #272244;
     --border: rgba(120, 112, 175, 0.2);
 
-    /* ألوان الأوركيد في الوضع المظلم */
     --color-orchid: #D4A0B8;
     --color-orchid-light: #E8BCCD;
+
+    /* ── Status Colors - Dark Mode ── */
+    --status-expired-text:         #f87171;
+    --status-expired-icon-bg:      rgba(248, 113, 113, 0.15);
+    --status-expired-icon-border:  rgba(248, 113, 113, 0.25);
+    --status-expired-bg:           rgba(248, 113, 113, 0.15);
+    --status-expired-border:       rgba(248, 113, 113, 0.25);
+
+    --status-approaching-text:        #fbbf24;
+    --status-approaching-icon-bg:     rgba(251, 191, 36, 0.15);
+    --status-approaching-icon-border: rgba(251, 191, 36, 0.25);
+    --status-approaching-bg:          rgba(251, 191, 36, 0.15);
+    --status-approaching-border:      rgba(251, 191, 36, 0.25);
+
+    --status-safe-text:         #34d399;
+    --status-safe-icon-bg:      rgba(52, 211, 153, 0.15);
+    --status-safe-icon-border:  rgba(52, 211, 153, 0.25);
+    --status-safe-bg:           rgba(52, 211, 153, 0.15);
+    --status-safe-border:       rgba(52, 211, 153, 0.25);
 }
 
 body {
@@ -51,16 +84,6 @@ body {
     margin: 0;
 }
 
-/* تحسين السكرول بار ليناسب الثيم */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--background);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--muted);
-    border-radius: 20px;
-}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 20px; }

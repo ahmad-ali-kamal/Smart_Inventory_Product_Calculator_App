@@ -86,9 +86,9 @@ export default function InventoryProducts() {
                 <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10 text-[var(--primary)] text-sm font-medium">
                     <span className="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm text-[var(--primary)] flex-shrink-0">ℹ</span>
                     <span>
-                        اضغط على <strong>"Add Expiry Date"</strong> لبدء تتبع تواريخ انتهاء الصلاحية،
-                        واضغط على <strong>Batch</strong> لعرض تفاصيل كل دفعة.
-                    </span>
+    Click <strong>"Add Expiry Date"</strong> to start tracking expiry dates, 
+    and click <strong>"Batch"</strong> to view each batch's details.
+</span>
                 </div>
 
                 <Card>
@@ -98,9 +98,7 @@ export default function InventoryProducts() {
                         {/* Title + count */}
                         <div className="flex items-center gap-2 mr-auto">
                             <span className="text-sm font-bold text-[var(--foreground)] uppercase tracking-tight">Products</span>
-                            <span className="text-[10px] font-black bg-[var(--muted)] text-[var(--primary)] px-2 py-0.5 rounded-lg">
-                                {filtered.length} ITEMS
-                            </span>
+                            
                         </div>
 
                         {/* Search — no border at all, just accent bg + purple text */}

@@ -1,24 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '../../Components/Layout';
 import { useInventory } from '../../Context/InventoryContext';
 import { AlertCircle, ShieldCheck, Clock, ListFilter } from 'lucide-react';
 import ProductRow from '../../Components/Inventory/ProductRow';
+import StatusFilter from '../../Components/UI/StatusFilter';
 
 export default function InventoryDashboard() {
     const { products, stats } = useInventory();
+    const [filter, setFilter] = useState('all');
+
+    const filteredProducts = filter === 'all'
+        ? products
+        : products.filter(p => p.status === filter);
 
     return (
         <Layout>
             <div className="space-y-10" dir="ltr">
-                {/* Header Section */}
-                <div className="flex justify-between items-end">
-                    <div>
-                        <h1 className="text-3xl font-black text-[var(--foreground)] tracking-tight">Stock Intelligence</h1>
-                        <p className="text-[13px] text-[var(--muted-foreground)] mt-2">
-                            Real-time analysis of product shelf life and active batch monitoring.
-                        </p>
-                    </div>
-                </div>
 
                 {/* 3 Stat Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -52,28 +49,29 @@ export default function InventoryDashboard() {
                             <ListFilter className="w-4 h-4 text-[var(--primary)]" />
                             <h2 className="text-sm font-bold text-[var(--foreground)]">Monitored Products</h2>
                         </div>
+                        <StatusFilter value={filter} onChange={setFilter} />
                     </div>
 
                     <table className="w-full border-collapse">
                         <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
                             <tr className="text-[11px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-                                {/* Product - 25% */}
                                 <th className="p-4 w-[25%]">Product</th>
-
-                                {/* Status - 20% */}
                                 <th className="p-4 text-center w-[20%]">Status</th>
-
-                                {/* Expiry Info - 30% */}
                                 <th className="p-4 text-center w-[30%]">Expiry Info</th>
-
-                                {/* Actions - 25% */}
                                 <th className="p-4 text-center w-[25%]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border)]">
-                            {products.map(product => (
+                            {filteredProducts.map(product => (
                                 <ProductRow key={product.id} product={product} />
                             ))}
+                            {filteredProducts.length === 0 && (
+                                <tr>
+                                    <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
+                                        No products match this filter.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -82,24 +80,56 @@ export default function InventoryDashboard() {
     );
 }
 
+/* ── StatCard ── */
 function StatCard({ label, value, icon, status, sub }) {
-    const styles = {
-        critical: "bg-red-50 text-red-600 border-red-100 shadow-red-100/50",
-        warning: "bg-amber-50 text-amber-600 border-amber-100 shadow-amber-100/50",
-        success: "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-emerald-100/50"
+    const config = {
+        critical: {
+            textVar: 'var(--status-expired-text)',
+            iconBgVar: 'var(--status-expired-icon-bg)',
+            iconBorderVar: 'var(--status-expired-icon-border)',
+        },
+        warning: {
+            textVar: 'var(--status-approaching-text)',
+            iconBgVar: 'var(--status-approaching-icon-bg)',
+            iconBorderVar: 'var(--status-approaching-icon-border)',
+        },
+        success: {
+            textVar: 'var(--status-safe-text)',
+            iconBgVar: 'var(--status-safe-icon-bg)',
+            iconBorderVar: 'var(--status-safe-icon-border)',
+        },
     };
+
+    const c = config[status];
 
     return (
         <div className="p-6 rounded-[22px] bg-[var(--card)] border border-[var(--border)] flex flex-col gap-4 transition-all hover:shadow-md">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm border ${styles[status]}`}>
-                {icon}
-            </div>
-            <div>
-                <p className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">{label}</p>
-                <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-3xl font-black text-[var(--foreground)]">{value}</span>
-                    <span className="text-[10px] text-[var(--muted-foreground)] font-medium">({sub})</span>
+            {/* Icon + Label */}
+            <div className="flex items-center gap-3">
+                <div
+                    style={{
+                        color: c.textVar,
+                        background: c.iconBgVar,
+                        borderColor: c.iconBorderVar,
+                    }}
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border"
+                >
+                    {icon}
                 </div>
+                <span
+                    style={{ color: c.textVar }}
+                    className="text-[13px] font-black uppercase tracking-wide"
+                >
+                    {label}
+                </span>
+            </div>
+
+            {/* Value + sub */}
+            <div>
+                <span className="text-3xl font-black text-[var(--foreground)]">{value}</span>
+                <p className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide mt-1">
+                    {sub}
+                </p>
             </div>
         </div>
     );

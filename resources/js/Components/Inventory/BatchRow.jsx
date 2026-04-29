@@ -10,16 +10,40 @@ export default function BatchRow({ productId, product }) {
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Expired': return { text: 'text-red-500', bg: 'bg-red-50/50', border: 'border-red-100' };
-            case 'Approaching': return { text: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100' };
-            default: return { text: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100' };
+            case 'Expired':
+                return {
+                    style: {
+                        color: 'var(--status-expired-text)',
+                        background: 'var(--status-expired-bg)',
+                        borderColor: 'var(--status-expired-border)',
+                    },
+                    label: 'Expired',
+                };
+            case 'Approaching':
+                return {
+                    style: {
+                        color: 'var(--status-approaching-text)',
+                        background: 'var(--status-approaching-bg)',
+                        borderColor: 'var(--status-approaching-border)',
+                    },
+                    label: 'Approaching',
+                };
+            default:
+                return {
+                    style: {
+                        color: 'var(--status-safe-text)',
+                        background: 'var(--status-safe-bg)',
+                        borderColor: 'var(--status-safe-border)',
+                    },
+                    label: 'Safe',
+                };
         }
     };
 
     return (
         <>
             {productBatches.map(batch => {
-                const style = getStatusStyle(batch.status);
+                const { style, label } = getStatusStyle(batch.status);
                 return (
                     <div key={batch.id} className="flex items-center border-b border-[var(--border)] last:border-0 hover:bg-[var(--accent)]/5 transition-all">
                         {/* Product column - 25% - batch ID */}
@@ -31,8 +55,11 @@ export default function BatchRow({ productId, product }) {
 
                         {/* Status column - 20% - batch status badge */}
                         <div className="w-[20%] py-3 px-4 flex justify-center">
-                            <div className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase ${style.text} ${style.bg} ${style.border}`}>
-                                {batch.status}
+                            <div
+                                style={style}
+                                className="w-[100px] py-1 rounded-full border text-[9px] font-black uppercase text-center tracking-wide"
+                            >
+                                {label}
                             </div>
                         </div>
 
