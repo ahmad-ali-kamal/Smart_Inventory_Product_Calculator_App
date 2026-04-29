@@ -1,24 +1,19 @@
 // resources/js/Pages/Calculator/Dashboard.jsx
 import { useState, useCallback } from 'react';
-import { router } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
-import { useProducts } from '../../Context/ProductsContext'; 
+import { useProducts } from '../../Context/ProductsContext';
 import StatCard from '../../Components/UI/StatCard';
 import ProductRow from '../../Components/Calculator/ProductRow';
 import ProductTable from '../../Components/Calculator/ProductTable';
-
-// استيراد السكيلتونز (تأكدي أن الملفات موجودة فعلاً في هذا المسار)
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 import { ListSkeleton } from '../../Components/Common/ListSkeleton';
-
-import { Package, Zap, SlidersHorizontal } from 'lucide-react';
+import { Package, CheckCircle2, Pencil } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 export default function Dashboard() {
-    // تأكدي أن isLoading يتم تمريره من الـ Context
     const { products, activeProducts, calcRules, toggleProduct, isLoading } = useProducts();
     const [fadingIds, setFadingIds] = useState(new Set());
 
-    // 1. فحص حالة التحميل
     if (isLoading) {
         return (
             <Layout>
@@ -33,7 +28,6 @@ export default function Dashboard() {
         );
     }
 
-    // 2. دالة التبديل (Toggle)
     const handleToggle = useCallback((id) => {
         setFadingIds((prev) => new Set(prev).add(id));
         setTimeout(() => {
@@ -46,32 +40,42 @@ export default function Dashboard() {
         }, 500);
     }, [toggleProduct]);
 
-    // 3. عرض الصفحة الأساسية
     return (
         <Layout>
-            <div className="p-8 space-y-10 animate-in fade-in duration-700">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard 
-                        title="Total Products" 
-                        value={products?.length || 0} 
-                        icon={Package} 
+            <div className="p-8 space-y-10">
+
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <StatCard
+                        label="Total Products"
+                        value={products?.length || 0}
+                        icon={<Package className="w-4 h-4" />}
+                        sub="In your store"
                     />
-                    <StatCard 
-                        title="Active Engines" 
-                        value={activeProducts?.length || 0} 
-                        icon={Zap} 
-                        variant="accent"
+                    <StatCard
+                        label="Activated"
+                        value={activeProducts?.length || 0}
+                        icon={<CheckCircle2 className="w-4 h-4" />}
+                        sub="Live on storefront"
                     />
-                    <StatCard 
-                        title="Active Rules" 
-                        value={calcRules?.length || 0} 
-                        icon={SlidersHorizontal} 
-                    />
+                    <StatCard
+                        type="settings_preview"
+                        rules={calcRules}
+                    >
+                        <Link href="/mustashar/settings">
+                            <Pencil size={15} className="text-[var(--primary)]" strokeWidth={2} />
+                        </Link>
+                    </StatCard>
                 </div>
 
-                <div className="bg-[var(--card)] rounded-[2.5rem] border border-[var(--border)] overflow-hidden">
+                {/* Product Table */}
+                <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] overflow-hidden">
                     <ProductTable
-                        empty={<div className="py-20 text-center opacity-40">No active products.</div>}
+                        empty={
+                            <div className="py-20 text-center text-xs font-bold uppercase tracking-widest opacity-30">
+                                No active products
+                            </div>
+                        }
                     >
                         {activeProducts?.map((product) => (
                             <ProductRow
@@ -83,6 +87,7 @@ export default function Dashboard() {
                         ))}
                     </ProductTable>
                 </div>
+
             </div>
         </Layout>
     );
