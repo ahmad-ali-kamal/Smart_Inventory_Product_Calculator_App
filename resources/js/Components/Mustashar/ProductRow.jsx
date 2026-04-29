@@ -50,7 +50,7 @@ export default function ProductRow({ product, onToggle, fading = false }) {
                         product.active ? "text-emerald-600" : "text-[var(--muted-foreground)]"
                     }`}
                 >
-                    {product.active ? "Running" : "Standby"}
+                    {product.active ? "active" : "Standby"}
                 </span>
             </div>
 

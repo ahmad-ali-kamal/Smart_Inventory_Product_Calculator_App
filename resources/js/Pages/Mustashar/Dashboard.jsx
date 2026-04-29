@@ -1,5 +1,6 @@
 // resources/js/Pages/Calculator/Dashboard.jsx
 import { useState, useCallback } from 'react';
+import { Link } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../hooks/useMustasharGuard';
 import StatCard from '../../Components/UI/StatCard';
@@ -10,7 +11,7 @@ import { useAllProducts, useToggleProduct } from '../../hooks/useProducts';
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 import { ListSkeleton } from '../../Components/Common/ListSkeleton';
 
-import { Package, Zap, SlidersHorizontal } from 'lucide-react';
+import { Package, CheckCircle2, Pencil } from 'lucide-react';
 
 export default function Dashboard() {
     useMustasharGuard();
@@ -23,7 +24,6 @@ export default function Dashboard() {
 
     const [fadingIds, setFadingIds] = useState(new Set());
 
-    // ✅ لازم يكون قبل أي return
     const handleToggle = useCallback((id) => {
         setFadingIds((prev) => new Set(prev).add(id));
 
@@ -38,7 +38,6 @@ export default function Dashboard() {
         }, 500);
     }, [toggleMutation]);
 
-    // ✅ شرط التحميل بعد تعريف الـ hooks
     if (isLoading) {
         return (
             <Layout>
@@ -55,34 +54,37 @@ export default function Dashboard() {
 
     return (
         <Layout>
-            <div className="p-8 space-y-10 animate-in fade-in duration-700">
-                
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard 
-                        title="Total Products" 
-                        value={products.length} 
-                        icon={Package} 
+            <div className="p-8 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <StatCard
+                        label="Total Products"
+                        value={products.length}
+                        icon={<Package className="w-4 h-4" />}
+                        sub="In your store"
                     />
-                    <StatCard 
-                        title="Active Engines" 
-                        value={activeProducts.length} 
-                        icon={Zap} 
-                        variant="accent"
+
+                    <StatCard
+                        label="Activated"
+                        value={activeProducts.length}
+                        icon={<CheckCircle2 className="w-4 h-4" />}
+                        sub="Live on storefront"
                     />
-                    <StatCard 
-                        title="Active Rules" 
-                        value={calcRules.length} 
-                        icon={SlidersHorizontal} 
-                    />
+
+                    <StatCard
+                        type="settings_preview"
+                        rules={calcRules}
+                    >
+                        <Link href="/mustashar/settings">
+                            <Pencil size={15} className="text-[var(--primary)]" strokeWidth={2} />
+                        </Link>
+                    </StatCard>
                 </div>
 
-                {/* Table */}
-                <div className="bg-[var(--card)] rounded-[2.5rem] border border-[var(--border)] overflow-hidden">
+                <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] overflow-hidden">
                     <ProductTable
                         empty={
-                            <div className="py-20 text-center opacity-40">
-                                No active products.
+                            <div className="py-20 text-center text-xs font-bold uppercase tracking-widest opacity-30">
+                                No active products
                             </div>
                         }
                     >
@@ -96,7 +98,6 @@ export default function Dashboard() {
                         ))}
                     </ProductTable>
                 </div>
-
             </div>
         </Layout>
     );
