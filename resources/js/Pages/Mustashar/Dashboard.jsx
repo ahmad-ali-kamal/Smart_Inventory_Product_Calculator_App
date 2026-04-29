@@ -1,14 +1,12 @@
 // resources/js/Pages/Calculator/Dashboard.jsx
 import { useState, useCallback } from 'react';
-import { router } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../Hooks/useMustasharGuard';
-import { useProducts } from '../../Context/ProductsContext'; 
+import useMustasharGuard from '../../hooks/useMustasharGuard';
 import StatCard from '../../Components/UI/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
+import { useAllProducts, useToggleProduct } from '../../hooks/useProducts';
 
-// استيراد السكيلتونز (تأكدي أن الملفات موجودة فعلاً في هذا المسار)
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 import { ListSkeleton } from '../../Components/Common/ListSkeleton';
 
@@ -16,11 +14,31 @@ import { Package, Zap, SlidersHorizontal } from 'lucide-react';
 
 export default function Dashboard() {
     useMustasharGuard();
-    // تأكدي أن isLoading يتم تمريره من الـ Context
-    const { products, activeProducts, calcRules, toggleProduct, isLoading } = useProducts();
+
+    const { products = [], isLoading } = useAllProducts();
+    const toggleMutation = useToggleProduct();
+
+    const activeProducts = products.filter((p) => p.active);
+    const calcRules = [];
+
     const [fadingIds, setFadingIds] = useState(new Set());
 
-    // 1. فحص حالة التحميل
+    // ✅ لازم يكون قبل أي return
+    const handleToggle = useCallback((id) => {
+        setFadingIds((prev) => new Set(prev).add(id));
+
+        setTimeout(() => {
+            toggleMutation.mutate(id);
+
+            setFadingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }, 500);
+    }, [toggleMutation]);
+
+    // ✅ شرط التحميل بعد تعريف الـ hooks
     if (isLoading) {
         return (
             <Layout>
@@ -35,47 +53,40 @@ export default function Dashboard() {
         );
     }
 
-    // 2. دالة التبديل (Toggle)
-    const handleToggle = useCallback((id) => {
-        setFadingIds((prev) => new Set(prev).add(id));
-        setTimeout(() => {
-            toggleProduct(id);
-            setFadingIds((prev) => {
-                const next = new Set(prev);
-                next.delete(id);
-                return next;
-            });
-        }, 500);
-    }, [toggleProduct]);
-
-    // 3. عرض الصفحة الأساسية
     return (
         <Layout>
             <div className="p-8 space-y-10 animate-in fade-in duration-700">
+                
+                {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard 
                         title="Total Products" 
-                        value={products?.length || 0} 
+                        value={products.length} 
                         icon={Package} 
                     />
                     <StatCard 
                         title="Active Engines" 
-                        value={activeProducts?.length || 0} 
+                        value={activeProducts.length} 
                         icon={Zap} 
                         variant="accent"
                     />
                     <StatCard 
                         title="Active Rules" 
-                        value={calcRules?.length || 0} 
+                        value={calcRules.length} 
                         icon={SlidersHorizontal} 
                     />
                 </div>
 
+                {/* Table */}
                 <div className="bg-[var(--card)] rounded-[2.5rem] border border-[var(--border)] overflow-hidden">
                     <ProductTable
-                        empty={<div className="py-20 text-center opacity-40">No active products.</div>}
+                        empty={
+                            <div className="py-20 text-center opacity-40">
+                                No active products.
+                            </div>
+                        }
                     >
-                        {activeProducts?.map((product) => (
+                        {activeProducts.map((product) => (
                             <ProductRow
                                 key={product.id}
                                 product={product}
@@ -85,6 +96,7 @@ export default function Dashboard() {
                         ))}
                     </ProductTable>
                 </div>
+
             </div>
         </Layout>
     );

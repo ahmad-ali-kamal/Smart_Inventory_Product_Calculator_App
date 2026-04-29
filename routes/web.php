@@ -2,6 +2,8 @@
 
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\SallaOAuthController;
+use App\Http\Controllers\Calculator\ProductCalculatorController;
+use App\Http\Controllers\Calculator\CalculatorSettingsController;
 
 
 
@@ -15,12 +17,22 @@ Route::get('/', function () {
 })->name('home');
 
 // --- Mustashar (Calculator App) ---
-Route::prefix('mustashar')->group(function () {
-    Route::get('/login', fn() => inertia('Mustashar/Login'))->name('mustashar.login');
+// Mustashar Login بدون حماية
+Route::get('/mustashar/login', fn() => inertia('Mustashar/Login'))
+    ->name('mustashar.login');
+
+Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::get('/instructions', fn() => inertia('Mustashar/Instructions'))->name('mustashar.instructions');
-    Route::get('/dashboard',    fn() => inertia('Mustashar/Dashboard'))->name('mustashar.dashboard');
-    Route::get('/products',     fn() => inertia('Mustashar/Products'))->name('mustashar.products');
-    Route::get('/settings',     fn() => inertia('Mustashar/Settings'))->name('mustashar.settings');
+    Route::get('/dashboard', fn() => inertia('Mustashar/Dashboard'))->name('mustashar.dashboard');
+    Route::get('/products', fn() => inertia('Mustashar/Products'))->name('mustashar.products');
+    Route::get('/settings', fn() => inertia('Mustashar/Settings'))->name('mustashar.settings');
+
+    // API للواجهة
+    Route::get('/api/products', [ProductCalculatorController::class, 'index']);
+    Route::post('/api/products/{id}/toggle', [ProductCalculatorController::class, 'toggle']);
+
+    Route::get('/api/calculator-settings', [CalculatorSettingsController::class, 'show']);
+    Route::post('/api/calculator-settings', [CalculatorSettingsController::class, 'store']);
 });
 
 // --- Harees (Inventory App) ---

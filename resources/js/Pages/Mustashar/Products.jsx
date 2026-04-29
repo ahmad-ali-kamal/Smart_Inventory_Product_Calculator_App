@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../Hooks/useMustasharGuard';
+import useMustasharGuard from '../../hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
@@ -14,61 +14,47 @@ import { Search, ChevronDown } from 'lucide-react';
 
 export default function Products() {
     useMustasharGuard();
-    // داخل صفحة Products.jsx
-const { products, isLoading, isError, error, refetch } = useAllProducts();
 
-if (isLoading) return <LoadingState />;
-    
-   // داخل ملف Products.jsx
+    const { products = [], isLoading, isError, error, refetch } = useAllProducts();
+    const toggleMutation = useToggleProduct();
 
-if (isError) return (
-    <Layout>
-        <div className="p-6">
-            <Card>
-                <ErrorState 
-                    error={error} // نمرر الخطأ كاملاً هنا
-                    onRetry={() => refetch()} 
-                />
-            </Card>
-        </div>
-    </Layout>
-);
-
-    const [filter, setFilter]             = useState('all');
+    const [filter, setFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('All');
-    const [search, setSearch]             = useState('');
+    const [search, setSearch] = useState('');
 
-    // ── Derived counts (based on raw products before status filter) ──────────
-    const activeCount   = useMemo(() => products.filter((p) => p.active).length, [products]);
-    const inactiveCount = products.length - activeCount;
-
-    const categories = useMemo(
-        () => ['All', ...new Set(products.map((p) => p.category))],
+    const activeCount = useMemo(
+        () => products.filter((p) => p.active).length,
         [products]
     );
 
-    /**
-     * sorted — filtered + sorted list:
-     *  1. Apply status / category / search filters.
-     *  2. Active products always float to the top.
-     */
-    const sorted = useMemo(() => {
-        return [...products]
-            .filter((p) => {
-                const matchFilter =
-                    filter === 'all' ||
-                    (filter === 'active' ? p.active : !p.active);
-                const matchCat =
-                    categoryFilter === 'All' || p.category === categoryFilter;
-                const matchSearch =
-                    search === '' ||
-                    p.name.toLowerCase().includes(search.toLowerCase()) ||
-                    p.sku.toLowerCase().includes(search.toLowerCase());
-                return matchFilter && matchCat && matchSearch;
-            })
-            .sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
-    }, [products, filter, categoryFilter, search]);
+    const inactiveCount = products.length - activeCount;
 
+    const categories = useMemo(
+        () => ['All', ...new Set(products.map((p) => p.category || 'Uncategorized'))],
+        [products]
+    );
+    const sorted = useMemo(() => {
+    return [...products]
+        .filter((p) => {
+            const matchFilter =
+                filter === 'all' ||
+                (filter === 'active' ? p.active : !p.active);
+
+            const matchCat =
+                categoryFilter === 'All' || p.category === categoryFilter;
+
+            const name = p.name || '';
+            const sku = p.sku || '';
+
+            const matchSearch =
+                search === '' ||
+                name.toLowerCase().includes(search.toLowerCase()) ||
+                sku.toLowerCase().includes(search.toLowerCase());
+
+            return matchFilter && matchCat && matchSearch;
+        })
+        .sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
+}, [products, filter, categoryFilter, search]);
     // ── Toggle handler with toast feedback ───────────────────────────────────
     // Mirrors the legacy showToast + optimistic updateRow pattern.
     // The optimistic update lives in useToggleProduct (onMutate).
@@ -201,8 +187,8 @@ if (isError) return (
                             <div
                                 key={product.id}
                                 className={`transition-opacity duration-500 ${
-                                    product.active ? 'opacity-100' : 'opacity-40'
-                                }`}
+    product.active ? 'opacity-100' : 'opacity-70'
+}`}
                             >
                                 <ProductRow
                                     product={product}

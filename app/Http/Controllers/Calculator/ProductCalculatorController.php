@@ -125,21 +125,31 @@ class ProductCalculatorController extends Controller
      * عرض قائمة المنتجات في لوحة تحكم المستشار
      */
     public function index(Request $request)
-    {
-        $merchant = Auth::user();
+{
+    $merchant = Auth::user();
 
-        // جلب المنتجات مع البحث إذا وجد
-        $query = Product::where('merchant_id', $merchant->id)
-                        ->with(['calculator']);
+    $products = Product::where('merchant_id', $merchant->id)
+        ->with(['calculator', 'mainImage'])
+        ->orderBy('name')
+        ->get()
+        ->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'salla_product_id' => $product->salla_product_id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'price' => (float) $product->price,
+                'quantity' => $product->quantity,
+                'category' => $product->category ?? 'Uncategorized',
+                'image' => $product->image_url,
+                'active' => (bool) optional($product->calculator)->is_enabled,
+            ];
+        });
 
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
-
-        $products = $query->orderBy('name')->paginate(20);
-
-        return view('calculator.products', compact('products'));
-    }
+    return response()->json([
+        'data' => $products,
+    ]);
+}
 
     /**
      * ✅ إصلاح: تفعيل/إيقاف الآلة الحاسبة (Toggle) بأسلوب آمن

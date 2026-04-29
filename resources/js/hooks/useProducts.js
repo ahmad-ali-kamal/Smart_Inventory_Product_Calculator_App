@@ -42,7 +42,7 @@ const api = axios.create({
  * }
  */
 async function fetchProducts() {
-    const { data } = await axios.get("/mustashar/api-proxy/products");
+    const { data } = await axios.get('/mustashar/api/products')
     return data.data || data;
 }
 
@@ -58,7 +58,7 @@ async function fetchProducts() {
  * }
  */
 async function toggleProductApi(productId) {
-    const { data } = await api.post(`/api/products/${productId}/toggle`);
+    const { data } = await axios.post(`/mustashar/api/products/${productId}/toggle`)
 
     if (!data.success) {
         // Surface the server's own error message when available,
@@ -101,9 +101,9 @@ function useProductsData() {
 // ─────────────────────────────────────────────────────────────────────────────
 export function useAllProducts() {
     const { data, isLoading, isError, error } = useProductsData();
+
     return {
-        products: data?.data ?? [],
-        calcRules: data?.meta?.calcRules ?? { coverage: 0, waste: 0 },
+        products: data ?? [],
         isLoading,
         isError,
         error,
@@ -116,7 +116,7 @@ export function useAllProducts() {
 export function useActiveProducts() {
     const { data, isLoading, isError, error } = useProductsData();
 
-    const allProducts = data?.data ?? [];
+    const allProducts = data ?? [];
     const activeProducts = allProducts.filter((p) => p.active);
 
     return {
@@ -160,14 +160,12 @@ export function useToggleProduct() {
 
             // 3. Optimistically flip the product's active flag in the cache
             queryClient.setQueryData(QUERY_KEYS.products, (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    data: old.data.map((p) =>
-                        p.id === productId ? { ...p, active: !p.active } : p,
-                    ),
-                };
-            });
+    if (!old) return old;
+
+    return old.map((p) =>
+        p.id === productId ? { ...p, active: !p.active } : p
+    );
+});
 
             // 4. Return snapshot so onError can restore it
             return { previous };
