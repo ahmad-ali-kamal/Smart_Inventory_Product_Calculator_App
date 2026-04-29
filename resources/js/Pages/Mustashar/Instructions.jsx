@@ -1,4 +1,4 @@
-// resources/js/Pages/Calculator/Instructions.jsx
+// resources/js/Pages/Mustashar/Instructions.jsx
 import { router } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
 import Card from '../../Components/UI/Card';
@@ -11,7 +11,7 @@ const steps = [
         description: 'Define your coverage per unit and waste percentage to power the calculation engine.',
         tags: ['Coverage per unit (m²)', 'Waste percentage (%)'],
         icon: <SlidersHorizontal className="w-5 h-5 text-[var(--primary)]" />,
-        action: { label: 'Open Settings →', to: '/settings' },
+        action: { label: 'Open Settings →', to: '/mustashar/settings' },
     },
     {
         number: 'Step Two',
@@ -19,7 +19,7 @@ const steps = [
         description: 'Select which products use the smart calculator from your product catalogue.',
         tags: ['Toggle products on or off', 'Filter by category'],
         icon: <ToggleRight className="w-5 h-5 text-[var(--primary)]" />,
-        action: { label: 'Go to Products →', to: '/products' },
+        action: { label: 'Go to Products →', to: '/mustashar/products' },
     },
     {
         number: 'Step Three',
@@ -27,11 +27,16 @@ const steps = [
         description: 'Manage active products and edit calculation settings anytime from the dashboard.',
         tags: ['Live overview from Dashboard', 'Edit settings at any time'],
         icon: <BarChart2 className="w-5 h-5 text-[var(--primary)]" />,
-        action: { label: 'View Dashboard →', to: '/dashboard' },
+        action: { label: 'View Dashboard →', to: '/mustashar/dashboard' },
     },
 ];
 
 export default function Instructions() {
+    const handleProceed = () => {
+        localStorage.setItem('mustashar_seen_instructions', 'true');
+        router.visit('/mustashar/dashboard');
+    };
+
     return (
         <Layout>
             <div className="max-w-2xl mx-auto space-y-6">
@@ -39,7 +44,7 @@ export default function Instructions() {
                     <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center mx-auto mb-5">
                         <Calculator className="w-7 h-7 text-white" />
                     </div>
-                    <h1 className="text-3xl font-semibold mb-2">Calculator Tool</h1>
+                    <h1 className="text-3xl font-semibold mb-2">Mustashar Calculator</h1>
                     <p className="text-white/70 text-sm max-w-sm mx-auto">
                         Smart product calculator for e-commerce — built for precision and simplicity.
                     </p>
@@ -97,14 +102,14 @@ export default function Instructions() {
                 ))}
 
                 <button
-                    onClick={() => router.visit('/dashboard')}
+                    onClick={handleProceed}
                     className="w-full bg-[var(--primary)] text-white py-3.5 rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
                     Go to Dashboard →
                 </button>
 
                 <p className="text-center text-xs text-[var(--muted-foreground)]">
-                    Quantix Smart Calculator · Set up your rules once and automate product calculations across your store.
+                    Quantix Mustashar · Set up your rules once and automate product calculations across your store.
                 </p>
             </div>
         </Layout>

@@ -1,10 +1,13 @@
 // resources/js/Pages/Calculator/Settings.jsx
 import { useState, useMemo } from 'react';
 import Layout from '../../Components/Layout';
+import useMustasharGuard from '../../hooks/useMustasharGuard';
+import Card from '../../Components/UI/Card';
 import { useProducts } from '../../Context/ProductsContext';
 import { SlidersHorizontal, Calculator, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function Settings() {
+    useMustasharGuard();
     const { calcRules, updateCalcRules } = useProducts();
     
     const [coverage, setCoverage] = useState(calcRules?.coverage || 8);

@@ -5,12 +5,21 @@ import { useProducts } from '../../Context/ProductsContext';
 import StatCard from '../../Components/UI/StatCard';
 import ProductRow from '../../Components/Calculator/ProductRow';
 import ProductTable from '../../Components/Calculator/ProductTable';
+import useMustasharGuard from '../../hooks/useMustasharGuard';
+import { useProducts } from '../../Context/ProductsContext'; 
+import StatCard from '../../Components/UI/StatCard';
+import ProductRow from '../../Components/Mustashar/ProductRow';
+import ProductTable from '../../Components/Mustashar/ProductTable';
+
+// استيراد السكيلتونز (تأكدي أن الملفات موجودة فعلاً في هذا المسار)
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 import { ListSkeleton } from '../../Components/Common/ListSkeleton';
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 
 export default function Dashboard() {
+    useMustasharGuard();
+    // تأكدي أن isLoading يتم تمريره من الـ Context
     const { products, activeProducts, calcRules, toggleProduct, isLoading } = useProducts();
     const [fadingIds, setFadingIds] = useState(new Set());
 

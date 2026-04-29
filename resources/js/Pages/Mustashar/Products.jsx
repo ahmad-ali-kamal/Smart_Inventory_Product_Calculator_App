@@ -2,16 +2,18 @@
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Layout from '../../Components/Layout';
+import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
-import ProductRow from '../../Components/Calculator/ProductRow';
-import ProductTable from '../../Components/Calculator/ProductTable';
+import ProductRow from '../../Components/Mustashar/ProductRow';
+import ProductTable from '../../Components/Mustashar/ProductTable';
 import { useAllProducts, useToggleProduct } from '../../hooks/useProducts';
-import LoadingState from '../../Components/Common/LoadingState'; // Fixed Path
-import ErrorState from '../../Components/Common/ErrorState';     // Fixed Path
+import LoadingState from '../../Components/Common/LoadingState';
+import ErrorState from '../../Components/Common/ErrorState';
 
 import { Search, ChevronDown } from 'lucide-react';
 
 export default function Products() {
+    useMustasharGuard();
     // داخل صفحة Products.jsx
 const { products, isLoading, isError, error, refetch } = useAllProducts();
 

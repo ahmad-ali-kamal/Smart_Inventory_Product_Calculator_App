@@ -387,8 +387,8 @@ export default function Welcome() {
     }, []);
 
     const applications = [
-        { data: t.app1, loginUrl: '/inventory/login' },
-        { data: t.app2, loginUrl: '/calculator/login' },
+        { data: t.app1, loginUrl: '/harees/login' },
+        { data: t.app2, loginUrl: '/mustashar/login' },
     ];
 
     return (

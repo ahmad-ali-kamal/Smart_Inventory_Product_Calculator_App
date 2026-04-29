@@ -1,11 +1,13 @@
 import React from 'react';
 import Layout from '../../Components/Layout';
-import { useInventory } from '../../Context/InventoryContext';
+import useHareesGuard from '../../Hooks/useHareesGuard';
+import { useHarees } from '../../Context/HareesContext';
 import { AlertCircle, ShieldCheck, Clock, ListFilter } from 'lucide-react';
-import ProductRow from '../../Components/Inventory/ProductRow';
+import ProductRow from '../../Components/Harees/ProductRow';
 
-export default function InventoryDashboard() {
-    const { products, stats } = useInventory();
+export default function Dashboard() {
+    useHareesGuard();
+    const { products, stats } = useHarees();
 
     return (
         <Layout>

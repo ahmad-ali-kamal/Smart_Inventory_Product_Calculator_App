@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, SlidersHorizontal, RefreshCw, ChevronDown } from "lucide-react";
 import Layout from '../../Components/Layout';
+import useHareesGuard from '../../Hooks/useHareesGuard';
 import Card from '../../Components/UI/Card';
-import InventoryProductRow from '../../Components/Inventory/InventoryProductRow';
-import ExpiryModal from '../../Components/Inventory/ExpiryModal';
+import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
+import ExpiryModal from '../../Components/Harees/ExpiryModal';
 
 const MOCK_PRODUCTS = [
     {
@@ -52,7 +53,8 @@ const FILTER_OPTIONS = [
     { value: 'long',   label: 'Long'   },
 ];
 
-export default function InventoryProducts() {
+export default function Products() {
+    useHareesGuard();
     const [search, setSearch]             = useState("");
     const [filter, setFilter]             = useState('all');
     const [filterOpen, setFilterOpen]     = useState(false);
