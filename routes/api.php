@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ApiProductController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
 //use App\Http\Controllers\SallaWebhookController;
 use App\Http\Controllers\Api\InventoryApiController;
+use App\Http\Controllers\Calculator\CalculatorSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,7 @@ Route::prefix('inventory')->group(function () {
         Route::get('/settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
         Route::post('/settings/update',      [ProductCalculatorController::class, 'updateSettings']);
     });
+
    
 });
 

@@ -70,8 +70,8 @@ class SallaOAuthController extends Controller
 
             return redirect(
     session('salla_app_type') === 'calculator'
-        ? '/calculator/dashboard'
-        : '/inventory/dashboard'
+        ? '/mustashar/dashboard'
+        : '/harees/dashboard'
 );
              
 

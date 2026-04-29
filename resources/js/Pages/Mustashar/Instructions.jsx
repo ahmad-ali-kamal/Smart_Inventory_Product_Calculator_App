@@ -1,4 +1,4 @@
-// resources/js/Pages/Calculator/Instructions.jsx
+// resources/js/Pages/Mustashar/Instructions.jsx
 import { router } from '@inertiajs/react';
 import InstructionsLayout from '../../Components/UI/InstructionsLayout';
 import { SlidersHorizontal, ToggleRight, BarChart2 } from 'lucide-react';
@@ -57,6 +57,11 @@ const STEPS = [
 ];
 
 export default function Instructions() {
+    const handleProceed = () => {
+        localStorage.setItem('mustashar_seen_instructions', 'true');
+        router.visit('/mustashar/dashboard');
+    };
+
     return (
         <InstructionsLayout
             appName="Calculator Tool"

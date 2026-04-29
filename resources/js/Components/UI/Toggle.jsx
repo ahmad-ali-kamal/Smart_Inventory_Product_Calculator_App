@@ -3,7 +3,7 @@ export default function Toggle({ checked, onChange, disabled = false }) {
     <button
       role="switch"
       aria-checked={checked}
-      onClick={() => !disabled && onChange(!checked)}
+      onClick={() => !disabled && onChange()}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
         checked
           ? "bg-[var(--primary)]"

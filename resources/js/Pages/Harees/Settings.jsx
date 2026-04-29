@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Settings2, Tag, Zap, Save, EyeOff, BadgePercent, Bell, Lightbulb } from "lucide-react";
-
 import Layout from '../../Components/Layout';
+import useHareesGuard from '../../Hooks/useHareesGuard';
 import Card from '../../Components/UI/Card'; 
 import Toggle from '../../Components/UI/Toggle'; 
 
@@ -63,7 +63,8 @@ function BucketColumn({ config, thresholdValue, categories, onDrop, onDragOver, 
 
 const handleDragOver = (e) => e.preventDefault();
 
-export default function InventorySettings() {
+export default function Settings() {
+    useHareesGuard();
   const [thresholds, setThresholds] = useState({ short: 10, medium: 10, long: 10 });
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
   const [automation, setAutomation] = useState({

@@ -91,7 +91,7 @@ function Step({ icon, title, desc, active, done, ff }) {
 }
 
 /* ─── Page ─────────────────────────────────────────────── */
-export default function CalculatorLogin({ status }) {
+export default function Login({ status }) {
     const { lang, toggle, isAr, dir, ff } = useLang();
     const t = T[lang];
     const [activeStep, setActiveStep] = useState(0);
@@ -388,7 +388,7 @@ export default function CalculatorLogin({ status }) {
                             <div style={{ marginTop:'1.5rem', textAlign:'center',
                                 fontFamily: ff, fontSize:'0.8rem', color:'rgba(255,255,255,0.22)' }}>
                                 {t.switchText}{' '}
-                                <Link href="/inventory/login" style={{
+                                <Link href="/harees/login" style={{
                                     color:`${accent}99`, textDecoration:'none', transition:'color 0.2s',
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.color = accent}

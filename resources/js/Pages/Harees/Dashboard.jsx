@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import Layout from '../../Components/Layout';
-import { useInventory } from '../../Context/InventoryContext';
+import useHareesGuard from '../../hooks/useHareesGuard';
+import { useHarees } from '../../Context/HareesContext';
 import { AlertCircle, ShieldCheck, Clock, ListFilter } from 'lucide-react';
-import ProductRow from '../../Components/Inventory/ProductRow';
-import StatusFilter from '../../Components/UI/StatusFilter';
+import ProductRow from '../../Components/Harees/ProductRow';
 
-export default function InventoryDashboard() {
-    const { products, stats } = useInventory();
-    const [filter, setFilter] = useState('all');
-
-    const filteredProducts = filter === 'all'
-        ? products
-        : products.filter(p => p.status === filter);
+export default function Dashboard() {
+    useHareesGuard();
+    const { products, stats } = useHarees();
 
     return (
         <Layout>
