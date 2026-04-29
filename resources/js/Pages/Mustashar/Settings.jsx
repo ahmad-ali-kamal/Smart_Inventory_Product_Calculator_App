@@ -5,14 +5,13 @@ import useMustasharGuard from '../../hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
 import { useCalculatorSettings, useUpdateCalculatorSettings } from '../../hooks/useProducts';
 import { SlidersHorizontal, Calculator, AlertCircle, CheckCircle2 } from 'lucide-react';
-
-
+import { FormSkeleton } from '../../Components/Common/FormSkeleton';
+import ErrorState from '../../Components/Common/ErrorState';
 export default function Settings() {
     useMustasharGuard();
 
-    const { data: settings, isLoading } = useCalculatorSettings();
+    const { data: settings, isLoading, isError, error, refetch } = useCalculatorSettings();
     const updateSettings = useUpdateCalculatorSettings();
-
     const [coverage, setCoverage] = useState(8);
     const [waste, setWaste] = useState(10);
     const [saved, setSaved] = useState(false);
@@ -59,8 +58,22 @@ export default function Settings() {
 
     if (isLoading) {
         return (
+              <Layout>
+                <div className="p-8 max-w-4xl mx-auto">
+                    <FormSkeleton />
+                </div>
+            </Layout>
+              
+        );
+    };
+
+    if (isError) {
+        return (
             <Layout>
-                <div className="p-8">Loading settings...</div>
+                <ErrorState 
+                    message={error?.message || "Could not load settings"} 
+                    onRetry={() => refetch()} 
+                />
             </Layout>
         );
     };

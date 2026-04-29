@@ -6,7 +6,6 @@ export default function ProductRow({ product, onToggle, fading = false }) {
         <div
             className={`
                 grid grid-cols-[1.5fr_1fr_1fr_120px] gap-4 px-8 py-4 items-center
-                transition-all duration-500 ease-in-out
                 ${fading ? "opacity-0 -translate-y-1 pointer-events-none" : "opacity-100 translate-y-0"}
             `}
         >
@@ -50,7 +49,7 @@ export default function ProductRow({ product, onToggle, fading = false }) {
                         product.active ? "text-emerald-600" : "text-[var(--muted-foreground)]"
                     }`}
                 >
-                    {product.active ? "active" : "Standby"}
+                    {product.active ? "active" : "inactive"}
                 </span>
             </div>
 

@@ -1,89 +1,58 @@
 // resources/js/Pages/Calculator/Products.jsx
 import { useState, useMemo } from 'react';
-import toast from 'react-hot-toast';
 import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import { useAllProducts, useToggleProduct } from '../../hooks/useProducts';
+import { useAllProducts } from '../../hooks/useProducts';
+import { useToggleWithToast } from '../../hooks/useToggleWithToast';  // ← الهوك الموحد
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
-
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown } from 'lucide-react';
 
 export default function Products() {
     useMustasharGuard();
 
     const { products = [], isLoading, isError, error, refetch } = useAllProducts();
-    const toggleMutation = useToggleProduct();
+
+    // ← هوك موحد — حذفنا useToggleProduct و handleToggle المحلي
+    const { handleToggle, isPending, variables } = useToggleWithToast(products);
 
     const [filter, setFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [search, setSearch] = useState('');
 
-    const activeCount = useMemo(
-        () => products.filter((p) => p.active).length,
-        [products]
-    );
-
+    const activeCount   = useMemo(() => products.filter((p) => p.active).length, [products]);
     const inactiveCount = products.length - activeCount;
 
     const categories = useMemo(
         () => ['All', ...new Set(products.map((p) => p.category || 'Uncategorized'))],
         [products]
     );
+
     const sorted = useMemo(() => {
-    return [...products]
-        .filter((p) => {
-            const matchFilter =
-                filter === 'all' ||
-                (filter === 'active' ? p.active : !p.active);
-
-            const matchCat =
-                categoryFilter === 'All' || p.category === categoryFilter;
-
-            const name = p.name || '';
-            const sku = p.sku || '';
-
-            const matchSearch =
-                search === '' ||
-                name.toLowerCase().includes(search.toLowerCase()) ||
-                sku.toLowerCase().includes(search.toLowerCase());
-
-            return matchFilter && matchCat && matchSearch;
-        })
-        .sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
-}, [products, filter, categoryFilter, search]);
-    // ── Toggle handler with toast feedback ───────────────────────────────────
-    // Mirrors the legacy showToast + optimistic updateRow pattern.
-    // The optimistic update lives in useToggleProduct (onMutate).
-    // Here we only fire the mutation and react to the settled state.
-    function handleToggle(productId) {
-        // Derive what the product's CURRENT state is before the flip
-        const product = products.find((p) => p.id === productId);
-        const willBeActive = product ? !product.active : false;
-
-        toggleMutation.mutate(productId, {
-            onSuccess: (data) => {
-                // data.is_enabled mirrors the legacy API response shape
-                const isEnabled = data?.is_enabled ?? willBeActive;
-                toast.success(
-                    isEnabled ? 'Product activated' : 'Product deactivated',
-                    { duration: 3000 }
-                );
-            },
-            onError: () => {
-                toast.error('Something went wrong. Please try again.', {
-                    duration: 3000,
-                });
-            },
-        });
-    }
+        return [...products]
+            .filter((p) => {
+                const matchFilter =
+                    filter === 'all' || (filter === 'active' ? p.active : !p.active);
+                const matchCat =
+                    categoryFilter === 'All' || p.category === categoryFilter;
+                const name = p.name || '';
+                const sku  = p.sku  || '';
+                const matchSearch =
+                    search === '' ||
+                    name.toLowerCase().includes(search.toLowerCase()) ||
+                    sku.toLowerCase().includes(search.toLowerCase());
+                return matchFilter && matchCat && matchSearch;
+            })
+            .sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
+    }, [products, filter, categoryFilter, search]);
 
     // ── Loading / Error guards ────────────────────────────────────────────────
     if (isLoading) return <Layout><LoadingState message="Loading products…" /></Layout>;
-    if (isError)   return <Layout><ErrorState message={error?.message ?? 'Failed to load products.'} /></Layout>;
+    if (isError)   return <Layout><ErrorState message={error?.message ?? 'Failed to load products.'} onRetry={refetch} /></Layout>;
 
     return (
         <Layout>
@@ -176,33 +145,30 @@ export default function Products() {
 
                 {/* ── Products Table ───────────────────────────────── */}
                 <Card>
-                    <ProductTable
-                        empty={
-                            <div className="py-16 text-center text-sm text-[var(--muted-foreground)] uppercase font-black tracking-widest opacity-40">
-                                No products match your filters.
-                            </div>
-                        }
-                    >
-                        {sorted.map((product) => (
-                            <div
-                                key={product.id}
-                                className={`transition-opacity duration-500 ${
-    product.active ? 'opacity-100' : 'opacity-70'
-}`}
-                            >
-                                <ProductRow
-                                    product={product}
-                                    onToggle={handleToggle}
-                                    // Pass loading state so Toggle can show a spinner
-                                    // while this specific product's mutation is in-flight
-                                    loading={
-                                        toggleMutation.isPending &&
-                                        toggleMutation.variables === product.id
-                                    }
-                                    fading={false}
-                                />
-                            </div>
-                        ))}
+                    <ProductTable empty="All products are inactive. Activate products to include them in calculations.">
+                        <AnimatePresence mode="popLayout">
+                            {sorted.map((product) => (
+                                <motion.div
+                                    key={product.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 300,
+                                        damping: 30,
+                                        opacity: { duration: 0.2 }
+                                    }}
+                                >
+                                    <ProductRow
+                                        product={product}
+                                        onToggle={handleToggle}
+                                        loading={isPending && variables === product.id}
+                                    />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </ProductTable>
                 </Card>
 

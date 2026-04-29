@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import Header from './Header';
 
+
 export default function Layout({ children }) {
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">

@@ -4,7 +4,7 @@
  * يستخدم Header مباشرة
  */
 
-import { Settings, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Header from "../Header";
 
 const DOTS = [
@@ -122,7 +122,7 @@ export default function InstructionsLayout({
                     border: "1px solid rgba(148,144,200,0.35)",
                   }}
                 >
-                  <Settings className="w-5 h-5 text-white/70" />
+                 
                   {ctaLabel}
                   <ArrowRight className="w-4 h-4 text-white/70 group-hover:translate-x-1 transition-transform duration-200" />
                 </button>

@@ -1,12 +1,5 @@
-// resources/js/Components/Calculator/ProductTable.jsx
+// resources/js/Components/Mustashar/ProductTable.jsx
 
-/**
- * ProductTable — renders the grid header and wraps rows in a divided list.
- *
- * Props:
- *  - children : React nodes (ProductRow components)
- *  - empty    : ReactNode — rendered when there are no children
- */
 export default function ProductTable({ children, empty }) {
     const hasChildren = Array.isArray(children)
         ? children.some(Boolean)
@@ -14,10 +7,10 @@ export default function ProductTable({ children, empty }) {
 
     return (
         <div className="w-full">
-            {/* ── Synchronized Grid Header ────────────────────── */}
+            {/* ── Grid Header — always visible ────────────────── */}
             <div className="hidden md:grid grid-cols-[1.5fr_1fr_1fr_120px] gap-4 px-8 py-3 bg-[var(--muted)]/40 border-b border-[var(--border)]">
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-left">
-                    Engine Identity
+                    Product
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
                     Category
@@ -35,11 +28,9 @@ export default function ProductTable({ children, empty }) {
                 {hasChildren ? (
                     children
                 ) : (
-                    empty ?? (
-                        <div className="py-20 text-center text-sm text-[var(--muted-foreground)] uppercase font-black tracking-widest opacity-40">
-                            No engines found.
-                        </div>
-                    )
+                    <div className="py-20 text-center text-sm text-[var(--muted-foreground)] uppercase font-black tracking-widest opacity-40">
+                        {empty ?? 'No products found.'}
+                    </div>
                 )}
             </div>
         </div>
