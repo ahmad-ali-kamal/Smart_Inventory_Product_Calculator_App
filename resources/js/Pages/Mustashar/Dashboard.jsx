@@ -6,7 +6,7 @@ import useMustasharGuard from '../../hooks/useMustasharGuard';
 import StatCard from '../../Components/UI/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import { useAllProducts, useToggleProduct } from '../../hooks/useProducts';
+import { useAllProducts, useToggleProduct, useCalculatorSettings } from '../../hooks/useProducts';
 
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 import { ListSkeleton } from '../../Components/Common/ListSkeleton';
@@ -17,10 +17,16 @@ export default function Dashboard() {
     useMustasharGuard();
 
     const { products = [], isLoading } = useAllProducts();
+    const { data: settings } = useCalculatorSettings();
     const toggleMutation = useToggleProduct();
 
     const activeProducts = products.filter((p) => p.active);
-    const calcRules = [];
+    const calcRules = settings
+    ? [
+        { label: 'Coverage', value: `${Number(settings.coverage).toFixed(2)} m²` },
+        { label: 'Waste', value: `${Number(settings.waste).toFixed(0)}% waste` },
+    ]
+    : [];
 
     const [fadingIds, setFadingIds] = useState(new Set());
 

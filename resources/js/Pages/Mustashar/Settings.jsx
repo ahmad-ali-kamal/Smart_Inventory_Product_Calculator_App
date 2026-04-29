@@ -1,19 +1,36 @@
 // resources/js/Pages/Calculator/Settings.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
-import { useProducts } from '../../Context/ProductsContext';
+import { useCalculatorSettings, useUpdateCalculatorSettings } from '../../hooks/useProducts';
 import { SlidersHorizontal, Calculator, AlertCircle, CheckCircle2 } from 'lucide-react';
+
 
 export default function Settings() {
     useMustasharGuard();
-    const { calcRules, updateCalcRules } = useProducts();
-    
-    const [coverage, setCoverage] = useState(calcRules?.coverage || 8);
-    const [waste, setWaste] = useState(calcRules?.waste || 10);
+
+    const { data: settings, isLoading } = useCalculatorSettings();
+    const updateSettings = useUpdateCalculatorSettings();
+
+    const [coverage, setCoverage] = useState(8);
+    const [waste, setWaste] = useState(10);
     const [saved, setSaved] = useState(false);
     const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        if (settings) {
+            setCoverage(settings.coverage ?? 8);
+            setWaste(settings.waste ?? 10);
+        }
+    }, [settings]);
+
+    const preview = useMemo(() => {
+        const area = 25;
+        const base = Math.ceil(area / (parseFloat(coverage) || 1));
+        const withWaste = Math.ceil(base * (1 + (parseFloat(waste) || 0) / 100));
+        return { base, withWaste };
+    }, [coverage, waste]);
 
     const validate = () => {
         let newErrors = {};
@@ -23,22 +40,29 @@ export default function Settings() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const preview = useMemo(() => {
-        const area = 25; 
-        const base = Math.ceil(area / (parseFloat(coverage) || 1));
-        const withWaste = Math.ceil(base * (1 + (parseFloat(waste) || 0) / 100));
-        return { base, withWaste };
-    }, [coverage, waste]);
-
     const handleSave = () => {
         if (validate()) {
-            updateCalcRules({ 
-                coverage: parseFloat(coverage), 
-                waste: parseFloat(waste) 
-            });
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
+            updateSettings.mutate(
+                {
+                    coverage: parseFloat(coverage),
+                    waste: parseFloat(waste),
+                },
+                {
+                    onSuccess: () => {
+                        setSaved(true);
+                        setTimeout(() => setSaved(false), 2000);
+                    },
+                }
+            );
         }
+    };
+
+    if (isLoading) {
+        return (
+            <Layout>
+                <div className="p-8">Loading settings...</div>
+            </Layout>
+        );
     };
 
     return (

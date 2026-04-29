@@ -208,3 +208,35 @@ export function useUpdateCalcRules() {
         },
     });
 }
+export function useCalculatorSettings() {
+    return useQuery({
+        queryKey: ['calculator-settings'],
+        queryFn: async () => {
+            const { data } = await axios.get('/mustashar/api/calculator-settings');
+            return data;
+        },
+    });
+}
+
+export function useUpdateCalculatorSettings() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ coverage, waste }) => {
+            const { data } = await axios.post('/mustashar/api/calculator-settings', {
+                coverage_per_unit: coverage,
+                waste_percentage: waste,
+            });
+
+            return data;
+        },
+        onSuccess: (data) => {
+            queryClient.setQueryData(['calculator-settings'], {
+                coverage: data.coverage,
+                waste: data.waste,
+            });
+
+            queryClient.invalidateQueries({ queryKey: ['calculator-settings'] });
+        },
+    });
+}

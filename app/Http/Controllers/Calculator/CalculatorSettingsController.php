@@ -58,8 +58,11 @@ class CalculatorSettingsController extends Controller
 
         // 3. التوجيه لصفحة الداشبورد
         // لأن المستخدم عادة يضبط الإعدادات ثم يريد استخدام الحاسبة
-        return redirect()->route('calculator.dashboard')
-            ->with('success', 'تم حفظ إعدادات الحاسبة بنجاح! يمكنك الآن تفعيل المنتجات.');
+        return response()->json([
+    'success' => true,
+    'coverage' => (float) $validated['coverage_per_unit'],
+    'waste' => (float) $validated['waste_percentage'],
+]);
     }
     /**
  * API عام: يُستدعى من سنيبت سلة
@@ -135,5 +138,23 @@ public function  getSettingsForStore($salla_product_id)
             'waste_percentage' => $waste,
         ],
     ])->header('Access-Control-Allow-Origin', '*');
+}
+
+public function show()
+{
+    $merchant = Auth::user();
+
+    $settings = CalculatorSetting::firstOrCreate(
+        ['merchant_id' => $merchant->id],
+        [
+            'coverage_per_unit' => 8,
+            'waste_percentage' => 10,
+        ]
+    );
+
+    return response()->json([
+        'coverage' => (float) $settings->coverage_per_unit,
+        'waste' => (float) $settings->waste_percentage,
+    ]);
 }
 }

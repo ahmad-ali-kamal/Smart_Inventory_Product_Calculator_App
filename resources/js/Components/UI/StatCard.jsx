@@ -74,9 +74,20 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <p style={labelStyle}>Calculator Logic</p>
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            <PurpleBadge>{rules?.coverage || '8.00'} m²</PurpleBadge>
-                            <PurpleBadge>{rules?.waste || '10'}% waste</PurpleBadge>
-                        </div>
+    {rules?.length
+        ? rules.map((rule) => (
+            <PurpleBadge key={rule.label}>
+                {rule.value}
+            </PurpleBadge>
+        ))
+        : (
+            <>
+                <PurpleBadge>8.00 m²</PurpleBadge>
+                <PurpleBadge>10% waste</PurpleBadge>
+            </>
+        )
+    }
+</div>
                     </div>
                     {children && <div>{children}</div>}
                 </div>
