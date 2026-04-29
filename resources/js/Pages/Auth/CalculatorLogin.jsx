@@ -231,14 +231,7 @@ export default function CalculatorLogin({ status }) {
                         fontSize:'1.25rem', fontWeight:'700', letterSpacing:'0.1em',
                     }}>QUANTIX</span>
 
-                    {/* ✅ زر اللغة دائماً موجود */}
-                    <button
-                        className="lang-btn"
-                        onClick={toggle}
-                        style={{ fontFamily: isAr ? "'Cormorant Garamond', serif" : "'Almarai', sans-serif" }}
-                    >
-                        {t.langBtn}
-                    </button>
+                    {/* Language switcher removed from login page; language is controlled globally on the homepage */}
                 </header>
 
                 {/* ── Body ── */}

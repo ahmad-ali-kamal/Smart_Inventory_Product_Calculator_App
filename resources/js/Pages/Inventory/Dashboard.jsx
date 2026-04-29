@@ -2,7 +2,7 @@ import React from 'react';
 import Layout from '../../Components/Layout';
 import { useInventory } from '../../Context/InventoryContext';
 import { AlertCircle, ShieldCheck, Clock, ListFilter } from 'lucide-react';
-import ProductRow from '../../Components/Inventory/ProductRow'; 
+import ProductRow from '../../Components/Inventory/ProductRow';
 
 export default function InventoryDashboard() {
     const { products, stats } = useInventory();
@@ -10,7 +10,6 @@ export default function InventoryDashboard() {
     return (
         <Layout>
             <div className="space-y-10" dir="ltr">
-                
                 {/* Header Section */}
                 <div className="flex justify-between items-end">
                     <div>
@@ -21,32 +20,32 @@ export default function InventoryDashboard() {
                     </div>
                 </div>
 
-                {/* 3 Stat Cards Only */}
+                {/* 3 Stat Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <StatCard 
-                        label="Expired" 
-                        value={stats.expiredCount || 0} 
-                        icon={<AlertCircle className="w-5 h-5" />} 
-                        status="critical" 
+                    <StatCard
+                        label="Expired"
+                        value={stats.expiredCount || 0}
+                        icon={<AlertCircle className="w-5 h-5" />}
+                        status="critical"
                         sub="Requires immediate action"
                     />
-                    <StatCard 
-                        label="Approaching" 
-                        value={stats.expiringSoon} 
-                        icon={<Clock className="w-5 h-5" />} 
+                    <StatCard
+                        label="Approaching"
+                        value={stats.expiringSoon}
+                        icon={<Clock className="w-5 h-5" />}
                         status="warning"
                         sub="Under close monitoring"
                     />
-                    <StatCard 
-                        label="Safe" 
-                        value={stats.validCount || 0} 
-                        icon={<ShieldCheck className="w-5 h-5" />} 
+                    <StatCard
+                        label="Safe"
+                        value={stats.validCount || 0}
+                        icon={<ShieldCheck className="w-5 h-5" />}
                         status="success"
                         sub="Stable inventory"
                     />
                 </div>
 
-                {/* Refined Table Header */}
+                {/* Table */}
                 <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm overflow-hidden">
                     <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--background)]/30">
                         <div className="flex items-center gap-2">
@@ -57,17 +56,20 @@ export default function InventoryDashboard() {
 
                     <table className="w-full border-collapse">
                         <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
-    <tr className="text-[11px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-        {/* نعطي المنتج مساحة أكبر (مثلاً 50%) لتقليل الفراغ في المنتصف */}
-        <th className="p-4 w-[50%]">Product Info</th>
-        
-        {/* الريسك ليفل في المنتصف بعرض محدد */}
-        <th className="p-4 text-center w-[25%]">Risk Level</th>
-        
-        {/* الأكشنز في النهاية بعرض محدد */}
-        <th className="p-4 text-center w-[25%]">Actions</th>
-    </tr>
-</thead>
+                            <tr className="text-[11px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
+                                {/* Product - 25% */}
+                                <th className="p-4 w-[25%]">Product</th>
+
+                                {/* Status - 20% */}
+                                <th className="p-4 text-center w-[20%]">Status</th>
+
+                                {/* Expiry Info - 30% */}
+                                <th className="p-4 text-center w-[30%]">Expiry Info</th>
+
+                                {/* Actions - 25% */}
+                                <th className="p-4 text-center w-[25%]">Actions</th>
+                            </tr>
+                        </thead>
                         <tbody className="divide-y divide-[var(--border)]">
                             {products.map(product => (
                                 <ProductRow key={product.id} product={product} />
@@ -83,8 +85,8 @@ export default function InventoryDashboard() {
 function StatCard({ label, value, icon, status, sub }) {
     const styles = {
         critical: "bg-red-50 text-red-600 border-red-100 shadow-red-100/50",
-        warning:  "bg-amber-50 text-amber-600 border-amber-100 shadow-amber-100/50",
-        success:  "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-emerald-100/50"
+        warning: "bg-amber-50 text-amber-600 border-amber-100 shadow-amber-100/50",
+        success: "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-emerald-100/50"
     };
 
     return (

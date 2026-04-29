@@ -1,20 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
+import { useLang } from '@/Hooks/useLang';
+import LanguageSwitcher from '@/Components/LanguageSwitcher';
 
-/**
- * ─── QUANTIX CORE NAVIGATION LOGIC ──────────────────────────────────────────
- * نظام إدارة الحالة للغات وتنسيق المحتوى التفاعلي.
- */
-function useLang() {
-    const [lang, setLang] = useState('ar');
-    const toggle = () => setLang(prev => (prev === 'ar' ? 'en' : 'ar'));
-    
-    return { 
-        lang, 
-        toggle, 
-        isAr: lang === 'ar' 
-    };
-}
+// Language state is managed by the shared hook (useLang).
 
 /**
  * ─── PROFESSIONAL COPYWRITING & TRANSLATIONS ───────────────────────────────
@@ -344,10 +333,8 @@ function AppCard({ data, loginUrl, isAr }) {
 /** * ─── MAIN QUANTIX WELCOME COMPONENT ──────────────────────────────────────
  */
 export default function Welcome() {
-    const { lang, toggle, isAr } = useLang();
+    const { lang, toggle, isAr, dir, ff } = useLang();
     const t = T[lang];
-    const dir = isAr ? 'rtl' : 'ltr';
-    const ff   = isAr ? "'IBM Plex Sans Arabic', sans-serif" : "'Inter', sans-serif";
     const ffEn = "'Inter', sans-serif";
     const canvasRef = useRef(null);
 
@@ -506,11 +493,9 @@ export default function Welcome() {
                     maxWidth: '1800px', margin: '0 auto', width: '100%', padding: '0 8rem',
                     display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', direction: 'ltr'
                 }}>
-                    {/* LANG SWITCH (LEFT) */}
+                    {/* LANG SWITCH (LEFT) - moved to dedicated component for homepage only */}
                     <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                        <button className="quantix-lang-switch" onClick={toggle} style={{ fontFamily: isAr ? ffEn : ff }}>
-                            {t.langBtn}
-                        </button>
+                        <LanguageSwitcher />
                     </div>
 
                     {/* MAIN NAV (CENTER) */}
