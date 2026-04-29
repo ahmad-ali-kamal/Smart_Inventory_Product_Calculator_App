@@ -1,6 +1,7 @@
 // resources/js/Pages/Calculator/Settings.jsx
 import { useState } from 'react';
 import Layout from '../../Components/Layout';
+import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
 import { useProducts } from '../../Context/ProductsContext';
 import { SlidersHorizontal } from 'lucide-react';
@@ -12,6 +13,7 @@ function calcUnits(area, coverage, waste) {
 }
 
 export default function Settings() {
+    useMustasharGuard();
     const { calcRules, updateCalcRules } = useProducts();
     const [coverage, setCoverage] = useState(calcRules.coverage);
     const [waste, setWaste]       = useState(calcRules.waste);

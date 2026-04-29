@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useInventory } from '../../Context/InventoryContext';
+import { useHarees } from '../../Context/HareesContext';
 import { Tag, Calendar, Percent } from 'lucide-react';
-import DiscountModal from '../../Components/Inventory/DiscountModal';
+import DiscountModal from './DiscountModal';
 
 export default function BatchRow({ productId, product }) {
-    const { batches } = useInventory();
+    const { batches } = useHarees();
     const productBatches = batches.filter(b => b.productId === productId);
     const [selectedBatch, setSelectedBatch] = useState(null);
 

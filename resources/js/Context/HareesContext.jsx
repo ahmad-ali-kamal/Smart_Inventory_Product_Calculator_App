@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from 'react';
 
 const InventoryContext = createContext();
 
-export const InventoryProvider = ({ children }) => {
+export const HareesProvider = ({ children }) => {
     // بيانات افتراضية (Mock Data) تشبه الصور التي أرسلتِها
     const [products, setProducts] = useState([
         { id: 1, name: 'خيوط قطنية - أحمر', sku: 'INV-001', stock: 150, category: 'منسوجات' },
@@ -29,4 +29,4 @@ export const InventoryProvider = ({ children }) => {
     );
 };
 
-export const useInventory = () => useContext(InventoryContext);
+export const useHarees = () => useContext(InventoryContext);

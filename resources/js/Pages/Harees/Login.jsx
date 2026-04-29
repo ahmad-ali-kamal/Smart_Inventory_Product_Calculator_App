@@ -90,7 +90,7 @@ function Step({ icon, title, desc, active, done, ff }) {
 }
 
 /* ─── Page ─────────────────────────────────────────────── */
-export default function InventoryLogin({ status }) {
+export default function Login({ status }) {
     const { lang, toggle, isAr, dir, ff } = useLang();
     const t = T[lang];
     const [activeStep, setActiveStep] = useState(0);
@@ -411,7 +411,7 @@ export default function InventoryLogin({ status }) {
                             <div style={{ marginTop:'1.5rem', textAlign:'center',
                                 fontFamily: ff, fontSize:'0.8rem', color:'rgba(255,255,255,0.25)' }}>
                                 {t.switchText}{' '}
-                                <Link href="/calculator/login" style={{
+                                <Link href="/mustashar/login" style={{
                                     color:'rgba(192,132,252,0.6)', textDecoration:'none', transition:'color 0.2s',
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
