@@ -7,6 +7,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import LanguageProvider from './Context/LanguageContext';
 import { ThemeProvider } from './Context/ThemeContext';
 import { ProductsProvider } from './Context/ProductsContext';
+import { InventoryProvider } from './Context/InventoryContext';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './Components/Common/ErrorBoundary';
@@ -29,7 +30,9 @@ createInertiaApp({
                 <ErrorBoundary>
                     <ThemeProvider>
                         <ProductsProvider>
+                          <InventoryProvider>
                             <App {...props} />
+                            </InventoryProvider>
                             <Toaster position="top-center" />
                         </ProductsProvider>
                     </ThemeProvider>
