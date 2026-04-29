@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Navbar from '../Components/Dashboard/Navbar';
 import StatCard from '../Components/Dashboard/StatCard';
-import ProductTable from '../Components/Dashboard/ProductTable';
+import ProductTable from '../Components/Calculator/ProductTable';
 import EmptyState from '../Components/Dashboard/EmptyState';
 
 const MOCK_SETTINGS = {

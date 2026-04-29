@@ -1,34 +1,21 @@
-import Card from "./Card";
+// resources/js/Components/UI/StatCard.jsx
 
-export default function StatCard({ icon, label, value, sub, subHighlight, action, onAction }) {
-  return (
-    <Card className="p-6 flex flex-col gap-4">
-      {action && (
-        <div className="flex justify-end">
-          <button
-            onClick={onAction}
-            className="text-xs text-[var(--muted-foreground)] flex items-center gap-1 hover:text-[var(--foreground)] transition-colors"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Edit
-          </button>
+export default function StatCard({ title, value, icon: Icon, variant = 'default' }) {
+    return (
+        <div className="bg-[var(--card)] p-8 rounded-[2rem] border border-[var(--border)]">
+            <div className="flex justify-between items-start mb-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--muted-foreground)]">
+                    {title}
+                </span>
+                {/* تأكدي من استدعائها كـ Component بـ حرف كبير Icon */}
+                {Icon && <Icon className="w-5 h-5 text-[var(--primary)]" />}
+            </div>
+            
+            <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-[var(--foreground)]">
+                    {value}
+                </span>
+            </div>
         </div>
-      )}
-      <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm text-[var(--muted-foreground)] mb-1">{label}</p>
-        <p className="text-3xl font-semibold text-[var(--foreground)]">{value}</p>
-        {sub && (
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">{sub}</p>
-        )}
-        {subHighlight && (
-          <p className="text-sm text-emerald-500 mt-1 font-medium">{subHighlight}</p>
-        )}
-      </div>
-    </Card>
-  );
+    );
 }

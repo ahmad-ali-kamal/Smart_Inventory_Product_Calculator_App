@@ -2,35 +2,51 @@ import { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useTheme } from '../Context/ThemeContext';
 import { Sun, Moon, User, LayoutGrid, ChevronDown, Globe, LogOut } from 'lucide-react';
+import LangToggle from '../Components/LangToggle';
 
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
     const { url } = usePage();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isAr, setIsAr] = useState(false);
 
-    const navItems = [
-        { label: 'Instructions', href: '/instructions' },
-        { label: 'Dashboard',    href: '/dashboard' },
-        { label: 'Products',     href: '/products' },
-        { label: 'Settings',     href: '/settings' },
+    // روابط "المستشار" - تأكدي أن البادئة مطابقة لـ web.php
+    const calculatorNav = [
+        { label: 'Instructions', href: '/mustashar/instructions' },
+        { label: 'Dashboard',    href: '/mustashar/dashboard' },
+        { label: 'Products',     href: '/mustashar/products' },
+        { label: 'Settings',     href: '/mustashar/settings' },
     ];
+
+    // روابط "حريص" - تأكدي أن البادئة مطابقة لـ web.php
+    const inventoryNav = [
+        { label: 'Dashboard', href: '/harees/dashboard' },
+        // أضيفي روابط حريص هنا لاحقاً
+    ];
+
+    // المنطق الجديد: الفحص بناءً على الأسماء التي اخترتيها (harees)
+    const isInventory = url.startsWith('/harees');
+    const navItems = isInventory ? inventoryNav : calculatorNav;
+    const appName = isInventory ? 'حريص' : 'المستشار';
 
     return (
         <header className="sticky top-0 z-50 bg-[var(--background)] border-b border-[var(--border)] transition-colors duration-300">
             <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
 
-                {/* 1. Logo */}
+                {/* 1. Logo & App Name */}
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[var(--primary)] flex items-center justify-center shadow-sm">
                         <LayoutGrid className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-semibold text-[var(--foreground)] text-base tracking-tight">Quantix</span>
+                    {/* اسم التطبيق سيتغير الآن بشكل صحيح */}
+                    <span className="font-semibold text-[var(--foreground)] text-base tracking-tight">{appName}</span>
                 </div>
 
                 {/* 2. Desktop Navigation */}
                 <nav className="hidden md:flex items-center gap-1">
                     {navItems.map((item) => {
-                        const isActive = url.startsWith(item.href);
+                        // استخدام startsWith للـ active عشان لو كنتي في صفحة فرعية يفضل الزر منور
+                        const isActive = url === item.href || url.startsWith(item.href);
                         return (
                             <Link
                                 key={item.href}
@@ -47,75 +63,50 @@ export default function Header() {
                     })}
                 </nav>
 
-                {/* 3. Actions Area */}
+                {/* باقي الهيدر (الثيم، القائمة، إلخ) يبقى كما هو بنفس ستايله */}
                 <div className="flex items-center gap-3">
-                    
-                    {/* Theme Toggle */}
-                    <div className="flex items-center bg-[var(--muted)] rounded-full p-1 gap-1 border border-[var(--border)]">
-                        <button
-                            onClick={() => toggleTheme()}
-                            className="p-1.5 rounded-full transition-all duration-300 flex items-center justify-center"
-                        >
-                            {theme === 'light' ? (
-                                <Sun className="w-3.5 h-3.5 text-[var(--primary)]" />
-                            ) : (
-                                <Moon className="w-3.5 h-3.5 text-[var(--primary)]" />
-                            )}
+                    <div className="flex items-center bg-[var(--muted)] rounded-full p-1 border border-[var(--border)]">
+                        <button onClick={toggleTheme} className="p-1.5 rounded-full flex items-center justify-center">
+                            {theme === 'light' ? <Sun className="w-3.5 h-3.5 text-[var(--primary)]" /> : <Moon className="w-3.5 h-3.5 text-[var(--primary)]" />}
                         </button>
                     </div>
 
-                    {/* User Dropdown */}
                     <div className="relative">
                         <button 
-                            onClick={(e) => {
-                                e.preventDefault();
-                                setIsUserMenuOpen(!isUserMenuOpen);
-                            }}
-                            className="flex items-center gap-1.5 p-0.5 pr-2 rounded-full border border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--accent)] transition-all bg-[var(--card)]"
+                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                            className="flex items-center gap-1.5 p-0.5 pr-2 rounded-full border border-[var(--border)] hover:border-[var(--primary)] bg-[var(--card)]"
                         >
-                            <div className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center text-white shrink-0 shadow-sm">
+                            <div className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center text-white shrink-0">
                                 <User className="w-4 h-4" />
                             </div>
                             <ChevronDown className={`w-3.5 h-3.5 text-[var(--muted-foreground)] transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {/* Dropdown Logic */}
                         {isUserMenuOpen && (
                             <>
-                                {/* Click-outside Overlay */}
-                                <div 
-                                    className="fixed inset-0 z-[60]" 
-                                    onClick={() => setIsUserMenuOpen(false)}
-                                ></div>
-                                
-                                {/* The Menu */}
-                                <div className="absolute end-0 mt-2 w-48 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl z-[70] overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
-                                    
-                                    {/* User Info Section */}
+                                <div className="fixed inset-0 z-[60]" onClick={() => setIsUserMenuOpen(false)}></div>
+                                <div className="absolute end-0 mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl z-[70] overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
                                     <div className="px-3 py-2.5 border-b border-[var(--border)] bg-[var(--accent)]/10">
-                                        <p className="text-[13px] font-bold text-[var(--foreground)] truncate">User Name</p>
-                                        <p className="text-[11px] text-[var(--muted-foreground)] truncate">user@example.com</p>
+                                        <p className="text-[12px] font-bold text-[var(--foreground)] truncate">User Name</p>
+                                        <p className="text-[10px] text-[var(--muted-foreground)] truncate">user@example.com</p>
                                     </div>
 
-                                    {/* Menu Actions */}
                                     <div className="p-1">
-                                        <button 
-                                            className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[12px] text-[var(--foreground)] hover:bg-[var(--accent)] rounded-lg transition-colors group"
-                                        >
-                                            <Globe className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
-                                            <div className="flex flex-col items-start leading-none">
-                                                <span className="font-medium">Language</span>
-                                                <span className="text-[9px] text-[var(--muted-foreground)] mt-0.5">Switch to Arabic</span>
+                                        <div className="flex items-center justify-between px-2 py-1.5 hover:bg-[var(--accent)] rounded-lg transition-colors group">
+                                            <div className="flex items-center gap-2">
+                                                <Globe className="w-3.5 h-3.5 opacity-60" />
+                                                <span className="text-[11px] font-medium">Language</span>
                                             </div>
-                                        </button>
-
+                                            <LangToggle 
+                                                isAr={isAr} 
+                                                toggle={() => setIsAr(!isAr)} 
+                                                style={{ fontSize: '8px', padding: '2px 6px' }} 
+                                            />
+                                        </div>
                                         <div className="h-px bg-[var(--border)] my-1 mx-2 opacity-40" />
-
-                                        <button 
-                                            className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[12px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors group"
-                                        >
-                                            <LogOut className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
-                                            <span className="font-medium">Sign Out</span>
+                                        <button className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[11px] text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                            <LogOut className="w-3.5 h-3.5" />
+                                            <span className="font-bold uppercase">Sign Out</span>
                                         </button>
                                     </div>
                                 </div>
@@ -125,24 +116,19 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* 4. Mobile Navigation Bar */}
+            {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto border-t border-[var(--border)] pt-2 mt-1 scrollbar-hide">
-                {navItems.map((item) => {
-                    const isActive = url.startsWith(item.href);
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`px-3 py-1 rounded-full text-[13px] whitespace-nowrap transition-colors ${
-                                isActive
-                                    ? 'bg-[var(--primary)] text-white font-medium'
-                                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
-                            }`}
-                        >
-                            {item.label}
-                        </Link>
-                    );
-                })}
+                {navItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`px-3 py-1 rounded-full text-[12px] whitespace-nowrap ${
+                            url === item.href ? 'bg-[var(--primary)] text-white' : 'text-[var(--muted-foreground)]'
+                        }`}
+                    >
+                        {item.label}
+                    </Link>
+                ))}
             </div>
         </header>
     );
