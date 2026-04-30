@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\BatchSetting;
 use App\Models\CategoryMapping;
 use Illuminate\Http\Request;
+use App\Jobs\FetchProductsJob;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
@@ -16,6 +17,19 @@ use Illuminate\Support\Facades\Cache;
 
 class InventoryApiController extends Controller
 {
+    public function syncProducts(Request $request)
+{
+    $merchant = Auth::user();
+
+    FetchProductsJob::dispatch($merchant);
+
+    Cache::forget("inventory_dashboard_api_{$merchant->id}");
+
+    return response()->json([
+        'success' => true,
+        'message' => 'بدأت مزامنة المنتجات من سلة',
+    ]);
+}
     public function dashboard(Request $request)
     {
         $merchant = Auth::user();
@@ -174,17 +188,33 @@ class InventoryApiController extends Controller
     $mappings = CategoryMapping::where('merchant_id', $merchant->id)
         ->get()
         ->groupBy('bucket')
-        ->map(fn ($items) => $items->pluck('category_name')->values())
+        ->map(fn ($items) => $items->pluck('category_name')->values()->toArray())
         ->toArray();
 
+    // كل تصنيفات منتجات المتجر
+    $allCategories = Product::where('merchant_id', $merchant->id)
+        ->whereNotNull('category')
+        ->where('category', '!=', '')
+        ->distinct()
+        ->pluck('category')
+        ->values()
+        ->toArray();
+
+    // التصنيفات اللي سبق توزيعها
+    $mappedCategories = collect($mappings)->flatten()->toArray();
+
+    // التصنيفات الجديدة غير الموزعة
+    $unmappedCategories = array_values(array_diff($allCategories, $mappedCategories));
+
     return response()->json([
-        'settings' => $settings,
-        'category_mapping' => [
-            'short' => $mappings['short'] ?? [],
-            'medium' => $mappings['medium'] ?? [],
-            'long' => $mappings['long'] ?? [],
-        ],
-    ]);
+    'settings' => $settings,
+    'category_mapping' => [
+        'short' => $mappings['short'] ?? [],
+        'medium' => $mappings['medium'] ?? [],
+        'long' => $mappings['long'] ?? [],
+    ],
+    'unassigned_categories' => $unmappedCategories, 
+]);
 }
     public function updateSettings(Request $request)
 {

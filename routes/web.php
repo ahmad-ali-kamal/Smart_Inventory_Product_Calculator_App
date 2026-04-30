@@ -49,6 +49,7 @@ Route::prefix('harees')->middleware('auth')->group(function () {
     Route::get('/api/settings', [\App\Http\Controllers\Api\InventoryApiController::class, 'settings']);
     Route::put('/api/settings', [\App\Http\Controllers\Api\InventoryApiController::class, 'updateSettings']);
     Route::put('/api/settings', [InventoryApiController::class, 'updateSettings']);
+    Route::post('/api/products/sync', [InventoryApiController::class, 'syncProducts']);
 });
 
 Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');

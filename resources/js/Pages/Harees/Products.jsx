@@ -61,6 +61,28 @@ export default function Products() {
     const [expiryTarget, setExpiryTarget] = useState(null);
     const filterRef                       = useRef(null);
 
+    const handleSync = async () => {
+    try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        const res = await fetch('/harees/api/products/sync', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+        });
+
+        if (!res.ok) throw new Error('Sync failed');
+
+        window.location.reload();
+    } catch (err) {
+        console.error('Sync error:', err);
+        alert('فشل مزامنة المنتجات');
+    }
+};
     useEffect(() => {
         function handleClick(e) {
             if (filterRef.current && !filterRef.current.contains(e.target)) {
@@ -174,9 +196,12 @@ useEffect(() => {
                         </div>
 
                         {/* Refresh */}
-                        <button className="p-2 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity">
-                            <RefreshCw size={14} />
-                        </button>
+                        <button
+    onClick={handleSync}
+    className="p-2 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity"
+>
+    <RefreshCw size={14} />
+</button>
                     </div>
 
                     {/* ── Table ── */}
