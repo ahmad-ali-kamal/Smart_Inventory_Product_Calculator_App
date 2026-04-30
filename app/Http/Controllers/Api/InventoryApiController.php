@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Inventory\ProductExpiryController;
 use App\Models\Batch;
+use App\Models\BatchItem;
 use App\Models\Product;
 use App\Models\BatchSetting;
 use App\Models\CategoryMapping;
@@ -217,7 +218,7 @@ class InventoryApiController extends Controller
 ]);
 }
     public function updateSettings(Request $request)
-{
+    {
     $merchant = Auth::user();
 
     $validated = $request->validate([
@@ -252,6 +253,66 @@ class InventoryApiController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * Reconcile stock between BatchItems and Product quantity (FIFO-lite)
+     */
+    public function reconcile(Request $request)
+    {
+        $merchant = Auth::user();
+        $productId = $request->input('product_id');
+        $query = Product::where('merchant_id', $merchant->id);
+        if ($productId) {
+            $query = $query->where('id', $productId);
+        }
+        $products = $query->get();
+
+        $results = [];
+        foreach ($products as $product) {
+            $batchItems = $product->batchItems()->with('batch')->get();
+            $batchTotal = $batchItems->sum('quantity');
+            $diff = $product->quantity - $batchTotal;
+            $changed = 0;
+            if ($diff != 0) {
+                if ($diff > 0) {
+                    $newBatch = Batch::create([
+                        'merchant_id' => $merchant->id,
+                        'batch_code' => 'REC-'.now()->format('YmdHis'),
+                        'name' => 'Reconciled Batch',
+                        'status' => 'green',
+                        'days_until_expiry' => 60,
+                    ]);
+                    BatchItem::create([
+                        'batch_id' => $newBatch->id,
+                        'product_id' => $product->id,
+                        'quantity' => $diff,
+                    ]);
+                    $changed = $diff;
+                } else {
+                    $toRemove = -$diff;
+                    foreach ($batchItems as $bi) {
+                        if ($toRemove <= 0) break;
+                        $rem = min($bi->quantity, $toRemove);
+                        if ($rem > 0) {
+                            $bi->quantity -= $rem;
+                            $bi->save();
+                            $toRemove -= $rem;
+                            $changed += $rem;
+                        }
+                    }
+                }
+            }
+            $newBatchTotal = $product->batchItems()->sum('quantity');
+            $results[] = [
+                'product_id' => $product->id,
+                'adjusted_by' => $changed,
+                'new_total_batch' => $newBatchTotal,
+                'final_quantity' => $product->quantity,
+            ];
+        }
+
+        return response()->json(['success' => true, 'results' => $results]);
     }
 
     return response()->json([
