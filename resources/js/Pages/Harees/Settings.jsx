@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Settings2, Tag, Zap, Save, EyeOff, BadgePercent, Bell, Lightbulb } from "lucide-react";
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import Card from '../../Components/UI/Card'; 
 import Toggle from '../../Components/UI/Toggle'; 
 
@@ -75,6 +75,38 @@ export default function Settings() {
   const [saved, setSaved]     = useState(false);
   const [saving, setSaving]   = useState(false);
 
+  useEffect(() => {
+  fetch('/harees/api/settings', {
+    headers: { Accept: 'application/json' },
+    credentials: 'include',
+  })
+    .then(res => res.json())
+    .then(data => {
+      const settings = data.settings || data;
+
+      setThresholds({
+        short: settings.short_term_days ?? 10,
+        medium: settings.medium_term_days ?? 10,
+        long: settings.long_term_days ?? 10,
+      });
+
+      setAutomation({
+        autoHide: Boolean(settings.auto_hide_expired),
+        autoDiscount: Boolean(settings.discount_auto),
+        enableNotifications: Boolean(settings.notifications_enabled ?? true),
+      });
+
+      if (data.mappings) {
+        setCategories({
+          short: data.mappings.short || [],
+          medium: data.mappings.medium || [],
+          long: data.mappings.long || [],
+        });
+      }
+    })
+    .catch(err => console.error('Settings fetch error:', err));
+}, []);
+
   const handleDragStart = (e, label, fromBucket) => {
     e.dataTransfer.setData("label", label);
     e.dataTransfer.setData("from", fromBucket);
@@ -92,14 +124,41 @@ export default function Settings() {
     }));
   };
 
-  const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    }, 600);
-  };
+  const handleSave = async () => {
+  setSaving(true);
+
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    const res = await fetch('/harees/api/settings', {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        short_term_days: thresholds.short,
+        medium_term_days: thresholds.medium,
+        long_term_days: thresholds.long,
+        discount_auto: automation.autoDiscount,
+        category_mapping: categories,
+      }),
+    });
+
+    if (!res.ok) throw new Error('Save failed');
+
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  } catch (err) {
+    console.error('Settings save error:', err);
+    alert('فشل حفظ الإعدادات');
+  } finally {
+    setSaving(false);
+  }
+};
 
   const AUTOMATION_ITEMS = [
     {

@@ -4,6 +4,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Auth\SallaOAuthController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
 use App\Http\Controllers\Calculator\CalculatorSettingsController;
+use App\Http\Controllers\Api\InventoryApiController;
 
 
 
@@ -41,6 +42,13 @@ Route::prefix('harees')->middleware('auth')->group(function () {
     Route::get('/dashboard',   fn() => inertia('Harees/Dashboard'))->name('harees.dashboard');
     Route::get('/settings',   fn() => inertia('Harees/Settings'))->name('harees.settings');
     Route::get('/products',   fn() => inertia('Harees/Products'))->name('harees.products');
+
+    Route::get('/api/products', [\App\Http\Controllers\Api\InventoryApiController::class, 'products']);
+    Route::get('/api/dashboard', [\App\Http\Controllers\Api\InventoryApiController::class, 'dashboard']);
+
+    Route::get('/api/settings', [\App\Http\Controllers\Api\InventoryApiController::class, 'settings']);
+    Route::put('/api/settings', [\App\Http\Controllers\Api\InventoryApiController::class, 'updateSettings']);
+    Route::put('/api/settings', [InventoryApiController::class, 'updateSettings']);
 });
 
 Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');

@@ -206,7 +206,7 @@ class InventoryApiController extends Controller
             'medium_term_days' => $validated['medium_term_days'],
             'long_term_days' => $validated['long_term_days'],
             'discount_auto' => $validated['discount_auto'] ?? false,
-            'fixed_discount_percentage' => $validated['fixed_discount_percentage'] ?? 20,
+            
         ]
     );
 

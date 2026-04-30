@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, SlidersHorizontal, RefreshCw, ChevronDown } from "lucide-react";
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import Card from '../../Components/UI/Card';
 import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
@@ -71,12 +71,37 @@ export default function Products() {
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    const products = MOCK_PRODUCTS;
+    const [products, setProducts] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+    fetch('/harees/api/products',  {
+        headers: {
+            Accept: 'application/json',
+        },
+        credentials: 'include',
+    })
+        .then(res => res.json())
+        .then(data => {
+            setProducts(data.products || data.data || []);
+        })
+        .catch(err => console.error('Products fetch error:', err))
+        .finally(() => setLoading(false));
+}, []);
 
     const filtered = products.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.sku.toLowerCase().includes(search.toLowerCase())
     );
+    if (loading) {
+    return (
+        <Layout>
+            <div className="p-10 text-center text-sm text-[var(--muted-foreground)]">
+                Loading products...
+            </div>
+        </Layout>
+    );
+}
 
     const activeLabel = FILTER_OPTIONS.find(o => o.value === filter)?.label ?? 'All';
 
