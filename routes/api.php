@@ -30,7 +30,7 @@ use App\Http\Controllers\Calculator\CalculatorSettingsController;
 // ====================================================================
 Route::middleware('auth:sanctum')->group(function () {
 
-Route::prefix('inventory')->group(function () {
+    Route::prefix('inventory')->group(function () {
 
         Route::get('/dashboard', [InventoryApiController::class, 'dashboard']);
         Route::get('/products', [InventoryApiController::class, 'products']);
@@ -55,6 +55,9 @@ Route::prefix('inventory')->group(function () {
     Route::prefix('products')->group(function () {
         Route::get('/',             [ApiProductController::class, 'index']);   // عرض كل المنتجات
         Route::get('/{product_id}', [ApiProductController::class, 'show']);    // عرض منتج محدد
+        Route::get('/{product_id}/variants', [ApiProductController::class, 'variants']); // List Variants
+        Route::put('/variants/{variant}', [ApiProductController::class, 'updateVariant']); // Update Variant
+        Route::post('/{product_id}/variants', [ApiProductController::class, 'createVariant']); // Create Variant
     });
 
     // إعدادات الحاسبة الذكية (المستشار)
@@ -62,6 +65,9 @@ Route::prefix('inventory')->group(function () {
         Route::get('/settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
         Route::post('/settings/update',      [ProductCalculatorController::class, 'updateSettings']);
     });
+
+    // Reconcile stock (FIFO-lite) for scenarios 4
+    Route::post('/inventory/reconcile', [\App\Http\Controllers\Api\InventoryApiController::class, 'reconcile']);
 
    
 });
