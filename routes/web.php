@@ -20,7 +20,7 @@ Route::get('/', function () {
 // Mustashar Login بدون حماية
 Route::get('/mustashar/login', fn() => inertia('Mustashar/Login'))
     ->name('mustashar.login');
-
+  Route::get('/harees/login',      fn() => inertia('Harees/Login'))->name('harees.login');
 Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::get('/instructions', fn() => inertia('Mustashar/Instructions'))->name('mustashar.instructions');
     Route::get('/dashboard', fn() => inertia('Mustashar/Dashboard'))->name('mustashar.dashboard');
@@ -30,14 +30,13 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
     // API للواجهة
     Route::get('/api/products', [ProductCalculatorController::class, 'index']);
     Route::post('/api/products/{id}/toggle', [ProductCalculatorController::class, 'toggle']);
-
     Route::get('/api/calculator-settings', [CalculatorSettingsController::class, 'show']);
     Route::post('/api/calculator-settings', [CalculatorSettingsController::class, 'store']);
 });
 
 // --- Harees (Inventory App) ---
-Route::prefix('harees')->group(function () {
-    Route::get('/login',      fn() => inertia('Harees/Login'))->name('harees.login');
+Route::prefix('harees')->middleware('auth')->group(function () {
+  
     Route::get('/instructions',   fn() => inertia('Harees/Instructions'))->name('harees.instructions');
     Route::get('/dashboard',   fn() => inertia('Harees/Dashboard'))->name('harees.dashboard');
     Route::get('/settings',   fn() => inertia('Harees/Settings'))->name('harees.settings');

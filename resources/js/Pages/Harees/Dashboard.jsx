@@ -45,7 +45,6 @@ export default function Dashboard() {
                             <ListFilter className="w-4 h-4 text-[var(--primary)]" />
                             <h2 className="text-sm font-bold text-[var(--foreground)]">Monitored Products</h2>
                         </div>
-                        <StatusFilter value={filter} onChange={setFilter} />
                     </div>
 
                     <table className="w-full border-collapse">
@@ -58,10 +57,10 @@ export default function Dashboard() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border)]">
-                            {filteredProducts.map(product => (
+                            {products.map(product => (
                                 <ProductRow key={product.id} product={product} />
                             ))}
-                            {filteredProducts.length === 0 && (
+                            {products.length === 0 && (
                                 <tr>
                                     <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
                                         No products match this filter.

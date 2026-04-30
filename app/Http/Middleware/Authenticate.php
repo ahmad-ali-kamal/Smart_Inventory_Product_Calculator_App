@@ -18,6 +18,6 @@ class Authenticate extends Middleware
         return null;
     }
 
-    return route('inventory.login');
+    return route('harees.login');
 }
 }

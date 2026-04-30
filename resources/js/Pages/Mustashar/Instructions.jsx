@@ -69,7 +69,7 @@ export default function Instructions() {
             description="Turn measurements into instant orders. Set up once and let the smart engine handle all the complex calculations for you — precision built right in."
             steps={STEPS}
             ctaLabel="Go to Dashboard"
-            onCta={() => router.visit('/mustashar/dashboard')}
+            onCta={handleProceed}
             footerNote="Quantix Smart Calculator · Set up your rules once and automate product calculations across your store"
         />
     );

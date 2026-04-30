@@ -51,7 +51,22 @@ export default function InventoryProductRow({ product, onExpiry }) {
                 {/* معلومات المنتج الرئيسي */}
                 <td className="p-4">
                     <div className="flex items-center gap-3">
-                        <img src={product.image} alt="" className="w-10 h-10 rounded-lg object-cover border border-[var(--border)]" />
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] shrink-0 flex items-center justify-center">
+                            {product.image
+                                ? <img
+                                    src={product.image}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                                  />
+                                : null}
+                            <span
+                                className="w-full h-full flex items-center justify-center text-[10px] font-black text-[var(--muted-foreground)] uppercase"
+                                style={{ display: product.image ? 'none' : 'flex' }}
+                            >
+                                {product.name?.charAt(0) ?? '?'}
+                            </span>
+                        </div>
                         <div className="flex flex-col">
                             <span className="text-sm font-bold text-[var(--foreground)]">{product.name}</span>
                             <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">{product.sku}</span>

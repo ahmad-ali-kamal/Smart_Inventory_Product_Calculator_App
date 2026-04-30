@@ -38,7 +38,7 @@ export default function InstructionsLayout({
       <div className="relative overflow-hidden bg-[var(--background)]">
 
         {/* ── Atmospheric BG ── */}
-        <div className="fixed inset-0 pointer-events-none select-none -z-0">
+        <div className="fixed inset-0 pointer-events-none select-none -z-10">
           <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full"
             style={{ background: "radial-gradient(circle, rgba(148,144,200,0.18) 0%, transparent 70%)" }} />
           <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] rounded-full"

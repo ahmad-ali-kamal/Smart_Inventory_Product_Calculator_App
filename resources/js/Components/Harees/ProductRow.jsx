@@ -11,8 +11,21 @@ export default function ProductRow({ product }) {
                 {/* Product - 25% */}
                 <td className="p-4 w-[25%]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--muted)] border border-[var(--border)] shrink-0">
-                            <img src={product.image || '/placeholder.png'} className="w-full h-full object-cover" alt={product.name} />
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--muted)] border border-[var(--border)] shrink-0 flex items-center justify-center">
+                            {product.image
+                                ? <img
+                                    src={product.image}
+                                    className="w-full h-full object-cover"
+                                    alt={product.name}
+                                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                                  />
+                                : null}
+                            <span
+                                className="w-full h-full flex items-center justify-center text-[10px] font-black text-[var(--muted-foreground)] uppercase"
+                                style={{ display: product.image ? 'none' : 'flex' }}
+                            >
+                                {product.name?.charAt(0) ?? '?'}
+                            </span>
                         </div>
                         <div className="flex flex-col">
                             <span className="font-bold text-[var(--foreground)] text-[13px]">{product.name}</span>
