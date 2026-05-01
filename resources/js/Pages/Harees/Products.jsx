@@ -5,7 +5,8 @@ import useHareesGuard from '../../hooks/useHareesGuard';
 import Card from '../../Components/UI/Card';
 import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
-
+import LoadingState from '../../Components/Common/LoadingState';
+import ErrorState from '../../Components/Common/ErrorState';
 const MOCK_PRODUCTS = [
     {
         id: 'PRD-001',
@@ -95,6 +96,27 @@ export default function Products() {
 
     const [products, setProducts] = useState([]);
 const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null); // إضافة حالة الخطأ
+const fetchProducts = () => {
+        setLoading(true);
+        setError(null);
+        fetch('/harees/api/products',  {
+            headers: { Accept: 'application/json' },
+            credentials: 'include',
+        })
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load products');
+                return res.json();
+            })
+            .then(data => {
+                setProducts(data.products || data.data || []);
+            })
+            .catch(err => {
+                console.error('Products fetch error:', err);
+                setError(err.message);
+            })
+            .finally(() => setLoading(false));
+    };
 
 useEffect(() => {
     fetch('/harees/api/products',  {
@@ -117,13 +139,19 @@ useEffect(() => {
     );
     if (loading) {
     return (
-        <Layout>
-            <div className="p-10 text-center text-sm text-[var(--muted-foreground)]">
-                Loading products...
-            </div>
-        </Layout>
+         <Layout>
+                <LoadingState />
+            </Layout>
     );
 }
+
+if (error) {
+        return (
+            <Layout>
+                <ErrorState message={error} onRetry={fetchProducts} />
+            </Layout>
+        );
+    }
 
     const activeLabel = FILTER_OPTIONS.find(o => o.value === filter)?.label ?? 'All';
 
@@ -141,80 +169,85 @@ useEffect(() => {
                 </div>
 
                 <Card>
-                    {/* ── Toolbar ── */}
-                    <div className="flex items-center gap-2 p-4 border-b border-[var(--border)]">
+      {/* ── Toolbar ── */}
+<div className="flex items-center gap-2 p-4 border-b border-[var(--border)]">
+    
+    <div className="flex-1" />
 
-                        {/* Title + count */}
-                        <div className="flex items-center gap-2 mr-auto">
-                            <span className="text-sm font-bold text-[var(--foreground)] uppercase tracking-tight">Products</span>
-                            
-                        </div>
+    {/* 1. البحث - تم توحيد الارتفاع h-9 ليطابق الأزرار */}
+    <div className="flex items-center gap-2 px-3 h-9 rounded-xl bg-[var(--accent)] w-40 sm:w-48 border border-[var(--primary)]/5 focus-within:border-[var(--primary)]/20 transition-all">
+        <Search size={14} className="text-[var(--primary)]/60 flex-shrink-0" />
+        <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="bg-transparent text-xs text-[var(--primary)] outline-none border-none focus:ring-0 w-full placeholder:text-[var(--primary)]/40 caret-[var(--primary)] p-0" 
+        />
+    </div>
 
-                        {/* Search — no border at all, just accent bg + purple text */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--accent)] w-60">
-                            <Search size={14} className="text-[var(--primary)] flex-shrink-0" />
-                            <input
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Quick find product..."
-                                className="bg-transparent text-xs text-[var(--primary)] focus:outline-none w-full placeholder:text-[var(--primary)]/50 caret-[var(--primary)]"
-                            />
-                        </div>
+    {/* 2. الفلتر - تم تعديل العرض ليكون ثابتاً */}
+<div className="relative" ref={filterRef}>
+    <button
+        onClick={() => setFilterOpen(o => !o)}
+        className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all justify-between border 
+            /* هنا التعديل الأساسي: العرض الثابت */
+            w-[115px] 
+            ${
+            filterOpen || filter !== 'all'
+                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                : 'bg-[var(--accent)] text-[var(--primary)] border-[var(--primary)]/5'
+        }`}
+    >
+        {/* نستخدم flex-1 و truncate لضمان عدم تحرك العناصر الداخلية */}
+        <div className="flex items-center gap-1.5 overflow-hidden">
+            <SlidersHorizontal size={13} className="flex-shrink-0" />
+            <span className="truncate">{activeLabel}</span>
+        </div>
+        <ChevronDown 
+            size={12} 
+            className={`flex-shrink-0 transition-transform duration-200 ${filterOpen ? 'rotate-180' : ''}`} 
+        />
+    </button>
 
-                        {/* Filter dropdown */}
-                        <div className="relative" ref={filterRef}>
-                            <button
-                                onClick={() => setFilterOpen(o => !o)}
-                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                                    filterOpen || filter !== 'all'
-                                        ? 'bg-[var(--primary)] text-white'
-                                        : 'bg-[var(--accent)] text-[var(--primary)]'
-                                }`}
-                            >
-                                <SlidersHorizontal size={13} />
-                                {activeLabel}
-                                <ChevronDown size={12} className={`transition-transform duration-200 ${filterOpen ? 'rotate-180' : ''}`} />
-                            </button>
+    {/* القائمة المنسدلة - يفضل جعل عرضها مطابقاً للزر */}
+    {filterOpen && (
+        <div className="absolute right-0 mt-2 w-full bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden">
+            {FILTER_OPTIONS.map(opt => (
+                <button
+                    key={opt.value}
+                    onClick={() => { setFilter(opt.value); setFilterOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors ${
+                        filter === opt.value
+                            ? 'bg-[var(--accent)] text-[var(--primary)]'
+                            : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)]/50'
+                    }`}
+                >
+                    {opt.label}
+                </button>
+            ))}
+        </div>
+    )}
+</div>
 
-                            {filterOpen && (
-                                <div className="absolute right-0 mt-2 w-36 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden">
-                                    {FILTER_OPTIONS.map(opt => (
-                                        <button
-                                            key={opt.value}
-                                            onClick={() => { setFilter(opt.value); setFilterOpen(false); }}
-                                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors ${
-                                                filter === opt.value
-                                                    ? 'bg-[var(--accent)] text-[var(--primary)]'
-                                                    : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)]/50 hover:text-[var(--foreground)]'
-                                            }`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Refresh */}
-                        <button
-    onClick={handleSync}
-    className="p-2 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity"
->
-    <RefreshCw size={14} />
-</button>
-                    </div>
-
+    {/* 3. زر المزامنة - هو بالفعل h-9 (أي 36px) */}
+    <button
+        onClick={handleSync}
+        className="h-9 w-9 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity flex items-center justify-center border border-[var(--primary)]/5 flex-shrink-0"
+    >
+        <RefreshCw size={14} />
+    </button>
+</div>
                     {/* ── Table ── */}
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse min-w-[700px]">
                             <thead>
                                 <tr className="border-b border-[var(--border)] bg-[var(--muted)]/20">
-                                    <th className="p-4 w-[25%] text-left   text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Product</th>
-                                    <th className="p-4 w-[15%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Category</th>
-                                    <th className="p-4 w-[15%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Status</th>
-                                    <th className="p-4 w-[15%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Qty</th>
-                                    <th className="p-4 w-[15%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Expiry Info</th>
-                                    <th className="p-4 w-[15%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Action</th>
+                                    <th className="p-4 w-[16%] text-left   text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Product</th>
+                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Category</th>
+                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Status</th>
+                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Qty</th>
+                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Expiry Info</th>
+                                    <th className="p-4 w-[20%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
 

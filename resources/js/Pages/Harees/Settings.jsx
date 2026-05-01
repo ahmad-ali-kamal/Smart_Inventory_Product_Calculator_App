@@ -4,6 +4,9 @@ import Layout from '../../Components/Layout';
 import useHareesGuard from '../../hooks/useHareesGuard';
 import Card from '../../Components/UI/Card'; 
 import Toggle from '../../Components/UI/Toggle'; 
+// استيراد المكونات المطلوبة
+import { FormSkeleton } from '../../Components/Common/FormSkeleton';
+import ErrorState from '../../Components/Common/ErrorState';
 
 const INITIAL_CATEGORIES = {
   short: [],
@@ -73,13 +76,21 @@ export default function Settings() {
   });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+    
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const fetchSettings = () => {
+    setLoading(true);
+    setError(null);
     fetch('/harees/api/settings', {
       headers: { Accept: 'application/json' },
       credentials: 'include',
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch settings');
+        return res.json();
+      })
       .then(data => {
         const settings = data.settings || data;
 
@@ -107,7 +118,15 @@ export default function Settings() {
           setUnassigned(data.unassigned_categories);
         }
       })
-      .catch(err => console.error('Settings fetch error:', err));
+      .catch(err => {
+        console.error('Settings fetch error:', err);
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchSettings();
   }, []);
 
   const handleDragStart = (e, label, fromBucket) => {
@@ -124,7 +143,6 @@ export default function Settings() {
 
     if (from === "unassigned") {
       setUnassigned((prev) => prev.filter((c) => c !== label));
-
       setCategories((prev) => ({
         ...prev,
         [toBucket]: [...prev[toBucket], label],
@@ -140,10 +158,8 @@ export default function Settings() {
 
   const handleSave = async () => {
     setSaving(true);
-
     try {
       const token = document.querySelector('meta[name="csrf-token"]')?.content;
-
       const res = await fetch('/harees/api/settings', {
         method: 'PUT',
         headers: {
@@ -173,6 +189,27 @@ export default function Settings() {
       setSaving(false);
     }
   };
+
+  // عرض الهيكل العظمي أثناء التحميل
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto space-y-5 py-10">
+          <FormSkeleton />
+          <FormSkeleton />
+        </div>
+      </Layout>
+    );
+  }
+
+  // عرض واجهة الخطأ في حال فشل الجلب
+  if (error) {
+    return (
+      <Layout>
+        <ErrorState message={error} onRetry={fetchSettings} />
+      </Layout>
+    );
+  }
 
   const AUTOMATION_ITEMS = [
     {
@@ -299,7 +336,8 @@ export default function Settings() {
               <div className="flex-shrink-0 mt-0.5">
                 <Toggle
                   checked={automation[key]}
-                  onChange={(val) => setAutomation((p) => ({ ...p, [key]: val }))}
+                 // نقوم بعكس الحالة السابقة للمفتاح المحدد مباشرة
+onChange={() => setAutomation((p) => ({ ...p, [key]: !p[key] }))}
                 />
               </div>
             </div>

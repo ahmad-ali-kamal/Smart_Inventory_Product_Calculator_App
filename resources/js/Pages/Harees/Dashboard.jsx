@@ -3,7 +3,10 @@ import Layout from '../../Components/Layout';
 import useHareesGuard from '../../hooks/useHareesGuard';
 import { AlertCircle, ShieldCheck, Clock, ListFilter } from 'lucide-react';
 import ProductRow from '../../Components/Harees/ProductRow';
-
+import ErrorBoundary from '../../Components/Common/ErrorBoundary';
+import LoadingState from '../../Components/Common/LoadingState';
+import ErrorState from '../../Components/Common/ErrorState';
+import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 export default function Dashboard() {
     useHareesGuard();
 
@@ -14,27 +17,46 @@ export default function Dashboard() {
         validCount: 0,
     });
     const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
+ const [error, setError] = useState(null); // إضافة حالة الخطأ
+   const fetchDashboardData = () => {
+        setLoading(true);
+        setError(null);
         fetch('/harees/api/dashboard', {
             headers: { Accept: 'application/json' },
             credentials: 'include',
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch data');
+                return res.json();
+            })
             .then(data => {
                 setProducts(data.products || []);
                 setStats(data.stats || {});
             })
-            .catch(err => console.error('Dashboard fetch error:', err))
+            .catch(err => {
+                console.error('Dashboard fetch error:', err);
+                setError(err.message);
+            })
             .finally(() => setLoading(false));
+    };
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
 
-    if (loading) {
+   if (loading) {
         return (
             <Layout>
-                <div className="p-10 text-center text-sm text-[var(--muted-foreground)]">
-                    Loading dashboard...
+                <div className="space-y-10 p-6">
+                    <StatsSkeleton cards={3} />
+                    <LoadingState />
                 </div>
+            </Layout>
+        );
+    }
+  if (error) {
+        return (
+            <Layout>
+                <ErrorState message={error} onRetry={fetchDashboardData} />
             </Layout>
         );
     }

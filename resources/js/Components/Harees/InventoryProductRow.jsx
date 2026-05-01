@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, EyeOff, Pencil, PlusCircle } from 'lucide-react';
 
 // ── شكل البادج ──
 const PILL =
@@ -37,7 +37,7 @@ const getStatusConfig = (status) => {
   return config[status] || config.Valid;
 };
 
-export default function InventoryProductRow({ product }) {
+export default function InventoryProductRow({ product, onExpiry }) {
   const [showBatches, setShowBatches] = useState(false);
 
   // ✅ نحول حالة الباك (red/yellow/green)
@@ -56,16 +56,17 @@ export default function InventoryProductRow({ product }) {
 
   // ✅ نستخدم الباتشات الحقيقية فقط
   const batches = product.batches || [];
+  const hasBatches = batches.length > 0;
 
   return (
     <>
       <tr className="border-b border-[var(--border)] hover:bg-[var(--accent)]/5 transition-colors group">
-        
+
         {/* Product */}
         <td className="p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] flex items-center justify-center">
-              
+
               {(product.image_url || product.image) ? (
                 <img
                   src={product.image_url || product.image}
@@ -86,16 +87,17 @@ export default function InventoryProductRow({ product }) {
             </div>
 
             <div>
-              <div className="text-sm font-bold">{product.name}</div>
-              <div className="text-[10px] text-[var(--muted-foreground)]">{product.sku}</div>
-            </div>
+  <div className="text-sm font-bold">{product.name}</div>
+  <div className="text-[10px] text-[var(--muted-foreground)]">{product.sku}</div>
+  <div className="text-[10px] text-[var(--muted-foreground)]/70">#{product.id}</div>
+</div>
           </div>
         </td>
 
         {/* Category */}
-        <td className="p-4 text-center">
-          {product.category}
-        </td>
+        <td className="p-4 text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
+  {product.category}
+</td>
 
         {/* Status */}
         <td className="p-4 text-center">
@@ -118,36 +120,62 @@ export default function InventoryProductRow({ product }) {
           </span>
         </td>
 
-        {/* Expiry */}
-        <td className="p-4 text-center text-[11px] text-[var(--muted-foreground)]">
-          {batches.length > 0 ? 'Multiple Batches' : 'No Expiry'}
+        {/* Expiry Info */}
+        <td className="p-4 text-center">
+          {hasBatches ? (
+            <button
+              onClick={() => setShowBatches(!showBatches)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-bold border border-[var(--primary)]/20 hover:opacity-80 transition-opacity"
+            >
+              {showBatches ? <EyeOff size={12} /> : <Eye size={12} />}
+              {batches.length} {batches.length === 1 ? 'Batch' : 'Batch'}
+            </button>
+          ) : (
+            <span className="text-[11px] text-[var(--muted-foreground)]">-</span>
+          )}
         </td>
 
         {/* Action */}
         <td className="p-4 text-center">
-          <button onClick={() => setShowBatches(!showBatches)}>
-            <Eye size={16} />
-          </button>
+          {hasBatches ? (
+            <button
+              onClick={() => onExpiry(product)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-black uppercase tracking-wide hover:opacity-80 transition-opacity border border-[var(--primary)]/20"
+            >
+              <Pencil size={11} />
+              Edit Expiry Date
+            </button>
+          ) : (
+            <button
+              onClick={() => onExpiry(product)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-black uppercase tracking-wide hover:opacity-80 transition-opacity border border-[var(--primary)]/20"
+            >
+              <PlusCircle size={11} />
+              Add Expiry Date
+            </button>
+          )}
         </td>
       </tr>
 
-      {/* Batches */}
+      {/* Batches — تظهر فقط عند الضغط على زر الـ Expiry Info */}
       {showBatches &&
         batches.map((batch) => {
           const status = normalizeStatus(batch.status);
           const config = getStatusConfig(status);
 
           return (
-            <tr key={batch.id}>
-              <td className="pl-10 text-[11px]">Batch: {batch.code}</td>
-              <td className="text-center">{product.category}</td>
+            <tr key={batch.id} className="bg-[var(--accent)]/5 border-b border-[var(--border)]">
+              <td className="pl-10 py-3 text-[11px] text-[var(--muted-foreground)]">
+                <span className="font-bold text-[var(--foreground)]">Batch:</span> {batch.code}
+              </td>
+              <td className="text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">{product.category}</td>
               <td className="text-center">
                 <span className={PILL} style={config.style}>
                   {config.label}
                 </span>
               </td>
-              <td className="text-center">{batch.qty}</td>
-              <td className="text-center">{batch.expiryDate}</td>
+              <td className="text-center text-[11px]">{batch.qty}</td>
+              <td className="text-center text-[11px] text-[var(--muted-foreground)]">{batch.expiryDate}</td>
               <td />
             </tr>
           );

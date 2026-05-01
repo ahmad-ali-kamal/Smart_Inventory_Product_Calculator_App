@@ -217,6 +217,7 @@ class InventoryApiController extends Controller
     'unassigned_categories' => $unmappedCategories, 
 ]);
 }
+
     public function updateSettings(Request $request)
     {
     $merchant = Auth::user();
@@ -254,6 +255,12 @@ class InventoryApiController extends Controller
             }
         }
     }
+
+    return response()->json([
+        'success' => true,
+        'settings' => $settings,
+    ]);
+}
 
     /**
      * Reconcile stock between BatchItems and Product quantity (FIFO-lite)
@@ -314,10 +321,4 @@ class InventoryApiController extends Controller
 
         return response()->json(['success' => true, 'results' => $results]);
     }
-
-    return response()->json([
-        'success' => true,
-        'settings' => $settings,
-    ]);
-}
 }
