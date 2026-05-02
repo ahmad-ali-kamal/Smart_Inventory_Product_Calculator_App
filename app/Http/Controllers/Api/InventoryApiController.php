@@ -176,6 +176,11 @@ class InventoryApiController extends Controller
     return app(ProductExpiryController::class)->store($request);
 }
 
+    public function destroyExpiry($id)
+    {
+        return app(ProductExpiryController::class)->destroy($id);
+    }
+
     public function settings()
 {
     $merchant = Auth::user();

@@ -33,14 +33,12 @@ const getStatusConfig = (status) => {
       label: 'Safe',
     },
   };
-
   return config[status] || config.Valid;
 };
 
 export default function InventoryProductRow({ product, onExpiry }) {
   const [showBatches, setShowBatches] = useState(false);
 
-  // ✅ نحول حالة الباك (red/yellow/green)
   const normalizeStatus = (status) => {
     const map = {
       red: 'Expired',
@@ -50,13 +48,36 @@ export default function InventoryProductRow({ product, onExpiry }) {
       approaching: 'Approaching',
       valid: 'Valid',
     };
-
     return map[status?.toLowerCase()] || 'Valid';
   };
 
-  // ✅ نستخدم الباتشات الحقيقية فقط
-  const batches = product.batches || [];
+  // الـ API يُرجع batches بحقل batch_code و quantity و expiry_date و status
+  const batches = (product.batches || []).map(b => ({
+    id: b.id,
+    code: b.batch_code || b.code || '-',
+    qty: b.quantity ?? b.qty ?? 0,
+    expiryDate: b.expiry_date || b.expiryDate || '-',
+    status: b.status || 'green',
+  }));
+
   const hasBatches = batches.length > 0;
+
+  // الكمية الكلية من الداتابيس
+  const totalQty = product.quantity ?? product.dbQty ?? 0;
+
+  // الكمية المخصصة للباتشات (مجموع الباتشات)
+  const assignedQty = batches.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
+
+  // أسوأ حالة للمنتج ككل
+  const worstStatus = (() => {
+    if (!hasBatches) return 'Valid';
+    const priorities = { red: 3, yellow: 2, green: 1 };
+    const worst = batches.reduce((acc, b) => {
+      const p = priorities[b.status?.toLowerCase()] || 1;
+      return p > (priorities[acc] || 1) ? b.status : acc;
+    }, 'green');
+    return normalizeStatus(worst);
+  })();
 
   return (
     <>
@@ -66,7 +87,6 @@ export default function InventoryProductRow({ product, onExpiry }) {
         <td className="p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--muted)] flex items-center justify-center">
-
               {(product.image_url || product.image) ? (
                 <img
                   src={product.image_url || product.image}
@@ -77,7 +97,6 @@ export default function InventoryProductRow({ product, onExpiry }) {
                   }}
                 />
               ) : null}
-
               <span
                 className="w-full h-full flex items-center justify-center text-[10px] font-black text-[var(--muted-foreground)] uppercase"
                 style={{ display: (product.image_url || product.image) ? 'none' : 'flex' }}
@@ -85,26 +104,23 @@ export default function InventoryProductRow({ product, onExpiry }) {
                 {product.name?.charAt(0) ?? '?'}
               </span>
             </div>
-
             <div>
-  <div className="text-sm font-bold">{product.name}</div>
-  <div className="text-[10px] text-[var(--muted-foreground)]">{product.sku}</div>
-  <div className="text-[10px] text-[var(--muted-foreground)]/70">#{product.id}</div>
-</div>
+              <div className="text-sm font-bold">{product.name}</div>
+              <div className="text-[10px] text-[var(--muted-foreground)]">{product.sku}</div>
+              <div className="text-[10px] text-[var(--muted-foreground)]/70">#{product.id}</div>
+            </div>
           </div>
         </td>
 
         {/* Category */}
         <td className="p-4 text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
-  {product.category}
-</td>
+          {product.category}
+        </td>
 
         {/* Status */}
         <td className="p-4 text-center">
           {(() => {
-            const status = normalizeStatus(batches[0]?.status);
-            const config = getStatusConfig(status);
-
+            const config = getStatusConfig(worstStatus);
             return (
               <span className={PILL} style={config.style}>
                 {config.label}
@@ -115,8 +131,11 @@ export default function InventoryProductRow({ product, onExpiry }) {
 
         {/* Qty */}
         <td className="p-4 text-center">
-          <span className="px-4 py-1 rounded-full bg-[var(--accent)] text-[var(--primary)] text-[11px] font-bold border">
-            {product.quantity ?? product.dbQty ?? 0}
+          <span className="px-3 py-0.5 rounded-full bg-[var(--accent)] text-[var(--primary)] text-[11px] font-bold border tabular-nums">
+            {totalQty}
+            {hasBatches && (
+              <><span className="text-[var(--primary)]/50 mx-0.5">/</span>{assignedQty}</>
+            )}
           </span>
         </td>
 
@@ -157,18 +176,19 @@ export default function InventoryProductRow({ product, onExpiry }) {
         </td>
       </tr>
 
-      {/* Batches — تظهر فقط عند الضغط على زر الـ Expiry Info */}
+      {/* Batches — تظهر عند الضغط على زر Expiry Info */}
       {showBatches &&
         batches.map((batch) => {
           const status = normalizeStatus(batch.status);
           const config = getStatusConfig(status);
-
           return (
             <tr key={batch.id} className="bg-[var(--accent)]/5 border-b border-[var(--border)]">
               <td className="pl-10 py-3 text-[11px] text-[var(--muted-foreground)]">
                 <span className="font-bold text-[var(--foreground)]">Batch:</span> {batch.code}
               </td>
-              <td className="text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">{product.category}</td>
+              <td className="text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
+                {product.category}
+              </td>
               <td className="text-center">
                 <span className={PILL} style={config.style}>
                   {config.label}

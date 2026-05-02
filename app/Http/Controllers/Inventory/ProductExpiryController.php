@@ -179,6 +179,9 @@ class ProductExpiryController extends Controller
                 'type'       => $request->same_expiry ? 'single' : 'batch',
                 'batch_code' => $savedBatchCode,
                 'batch_id'   => $savedBatchId,
+                'expiry_date' => $request->same_expiry
+        ? ($freshProduct->batchItems->first()?->batch?->expiry_date?->format('Y-m-d'))
+        : null,
                 'status'     => $worstStatus,
                 'quantity'   => $product->quantity ?? 0,
                 'batches'    => $freshBatches,
