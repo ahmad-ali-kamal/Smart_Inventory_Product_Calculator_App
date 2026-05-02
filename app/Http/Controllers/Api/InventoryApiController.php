@@ -79,14 +79,19 @@ class InventoryApiController extends Controller
                         ->first();
 
                     return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'image_url' => $product->image_url,
-                        'status' => $criticalBatchItem?->batch->status ?? 'green',
-                        'expiry_date' => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
-                        'batches_count' => $product->batchItems->count(),
-                        'has_active_discount' => $product->discounts->isNotEmpty(),
-                    ];
+    'id' => $product->id,
+    'name' => $product->name,
+    'image_url' => $product->image_url,
+    'status' => $criticalBatchItem?->batch->status ?? 'green',
+    'expiry_date' => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
+    'batches' => $product->batchItems->map(fn($item) => [
+        'id'          => $item->batch?->id,
+        'batch_code'  => $item->batch?->batch_code,
+        'expiry_date' => $item->batch?->expiry_date?->format('Y-m-d'),
+        'status'      => $item->batch?->status ?? 'green',
+    ]),
+    'has_active_discount' => $product->discounts->isNotEmpty(),
+];
                 })
                 ->sortBy(function ($product) {
                     $order = ['red' => 1, 'yellow' => 2, 'green' => 3];

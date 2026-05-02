@@ -158,6 +158,7 @@ class ProductExpiryController extends Controller
             }
 
             Cache::forget("inventory_dashboard_{$merchant->id}");
+            Cache::forget("inventory_dashboard_api_{$merchant->id}");
             ActivityLog::log(
                 $merchant->id, 'expiry_added',
                 "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}", $product
@@ -217,7 +218,8 @@ class ProductExpiryController extends Controller
             }
 
             DB::commit();
-            Cache::forget("inventory_dashboard_{$merchant->id}");
+           Cache::forget("inventory_dashboard_{$merchant->id}");
+           Cache::forget("inventory_dashboard_api_{$merchant->id}");
             ActivityLog::log($merchant->id, 'expiry_deleted',
                 "تم حذف تواريخ الانتهاء للمنتج: {$product->name}", $product);
 
