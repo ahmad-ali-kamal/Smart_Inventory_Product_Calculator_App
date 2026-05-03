@@ -280,8 +280,16 @@ class ProductExpiryController extends Controller
             'quantity'   => $product->quantity ?? 0,
             'unit_cost'  => $product->price ?? 0,
         ]);
+        
+if ($batch->status === 'yellow' && empty($batch->salla_variant_id)) {
+    try {
+        $batch->createSallaVariant();
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error("[Controller] فشل إنشاء الفارينت: " . $e->getMessage());
+    }
+}
 
-        return $batch;
+return $batch;
     }
 
     /**
@@ -306,7 +314,15 @@ class ProductExpiryController extends Controller
                 'unit_cost'  => $product->price ?? 0,
             ]);
 
-            $created[] = $batch;
+            if ($batch->status === 'yellow' && empty($batch->salla_variant_id)) {
+    try {
+        $batch->createSallaVariant();
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error("[Controller] فشل إنشاء الفارينت: " . $e->getMessage());
+    }
+}
+
+$created[] = $batch;
         }
         return $created;
     }

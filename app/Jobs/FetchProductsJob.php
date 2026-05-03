@@ -111,7 +111,8 @@ class FetchProductsJob implements ShouldQueue
             ],
             [
                 'name'      => $p['name'],
-                'price'     => $p['price']['amount'] ?? 0,
+                'price'         => $p['price']['amount'] ?? 0,
+        'regular_price' => $p['regular_price']['amount'] ?? $p['price']['amount'] ?? 0,
                 'sku'       => $p['sku'] ?? null,
                 'category'  => $categoryName,
                 'status'    => (string) ($p['status'] ?? 'active'),

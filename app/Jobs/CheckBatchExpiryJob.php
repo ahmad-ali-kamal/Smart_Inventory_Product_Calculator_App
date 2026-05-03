@@ -42,12 +42,22 @@ class CheckBatchExpiryJob implements ShouldQueue
                     $batch->save();
 
                     // إرسال التنبيهات في حال تغيرت الحالة للأصفر أو الأحمر
-                    if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
-                        $merchant->notify(new \App\Notifications\BatchExpiryNotification(
-                            $batch,
-                            $batch->status
-                        ));
-                    }
+                  if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
+    
+    // إنشاء فارينت إذا تحوّل لأصفر لأول مرة
+    if ($batch->status === 'yellow' && empty($batch->salla_variant_id)) {
+        try {
+            $batch->createSallaVariant();
+        } catch (\Throwable $e) {
+            Log::error("[Job] فشل إنشاء الفارينت للدفعة {$batch->id}: " . $e->getMessage());
+        }
+    }
+
+    $merchant->notify(new \App\Notifications\BatchExpiryNotification(
+        $batch,
+        $batch->status
+    ));
+}
 
                     // التحقق من وجود المنتج المرتبط
                     $product = $batch->products()->first();

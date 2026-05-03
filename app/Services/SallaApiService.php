@@ -203,4 +203,9 @@ class SallaApiService
             'name' => $value
         ]);
     }
+
+    public function deleteProductOption($product_id, $option_id)
+{
+    return $this->request('delete', "/products/{$product_id}/options/{$option_id}");
+}
 }
