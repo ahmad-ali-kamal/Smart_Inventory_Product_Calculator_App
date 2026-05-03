@@ -10,11 +10,12 @@ use App\Models\Product;
 use Illuminate\Support\Str;
 use App\Services\SallaApiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ApiProductController extends Controller
 {
     /**
-     * عرض جميع المنتجات من قاعدة البيانات
+     * عرض جميع المنتجات من قاعدة البيانات لتاجر محدد
      */
     public function index(Request $request)
     {
@@ -32,20 +33,19 @@ class ApiProductController extends Controller
     }
 
     /**
-     * عرض منتج واحد
+     * عرض تفاصيل منتج واحد
      */
     public function show(Request $request, Product $product)
     {
-        // التحقق من أن المنتج يتبع للتاجر
         if ($product->merchant_id !== $request->user()->id) {
-            return response()->json(['message' => 'غير مصرح'], 403);
+            return response()->json(['message' => 'غير مصرح للوصول لهذا المنتج'], 403);
         }
 
         return new ProductResource($product->load(['images', 'batchItems.batch']));
     }
 
     /**
-     * List Variants for a Product
+     * قائمة الـ Variants المخزنة في قاعدة بيانات "حريص" للمنتج
      */
     public function variants(Request $request, $product_id)
     {
@@ -55,135 +55,180 @@ class ApiProductController extends Controller
             ->firstOrFail();
 
         $variants = $product->batchItems()->with('batch')->get()->map(function ($bi) use ($product) {
-            $price = $product->price ?? 0;
             return [
                 'id' => $bi->id,
-                'price' => ['amount' => (float) $price, 'currency' => 'SAR'],
-                'regular_price' => ['amount' => 0, 'currency' => 'SAR'],
-                'sale_price' => ['amount' => 0, 'currency' => 'SAR'],
+                'price' => ['amount' => (float) $product->price, 'currency' => 'SAR'],
                 'stock_quantity' => (int) $bi->quantity,
-                'barcode' => $bi->batch?->batch_code ?? '',
                 'sku' => $bi->batch?->batch_code ?? $product->sku,
-                'related_option_values' => [],
-                'weight' => 0,
-                'weight_type' => '',
-                'weight_label' => '',
+                'batch_info' => [
+                    'code' => $bi->batch?->batch_code,
+                    'expiry' => $bi->batch?->expiry_date?->format('Y-m-d'),
+                    'status' => $bi->batch?->status
+                ]
             ];
         })->values();
-
-        $pagination = [
-            'count' => $variants->count(),
-            'total' => $variants->count(),
-            'perPage' => 60,
-            'currentPage' => 1,
-            'totalPages' => 1,
-            'links' => [],
-        ];
 
         return response()->json([
             'status' => 200,
             'success' => true,
             'data' => $variants,
-            'pagination' => $pagination,
         ]);
     }
 
     /**
-     * Update a Product Variant
-     */
-    public function updateVariant(Request $request, $variant)
-    {
-        $merchant = $request->user();
-        $variantItem = BatchItem::findOrFail($variant);
-        $product = $variantItem->product;
-        if ($product->merchant_id !== $merchant->id) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
-        }
-
-        $payload = $request->only(['sku','barcode','price','sale_price','cost_price','stock_quantity','weight','weight_type','mpn','gtin','quantities']);
-
-        // Update product basic fields if provided
-        if (!empty($payload['sku'])) {
-            $product->sku = $payload['sku'];
-            $product->save();
-        }
-        if (!empty($payload['price']) && is_array($payload['price']) && isset($payload['price']['amount'])) {
-            $product->price = $payload['price']['amount'];
-            $product->save();
-        }
-        // Update variant stock for this batch item
-        if (isset($payload['stock_quantity'])) {
-            $variantItem->quantity = (int) $payload['stock_quantity'];
-            $variantItem->save();
-        }
-
-        // Multi-branch quantities (optional)
-        if (isset($payload['quantities']) && is_array($payload['quantities'])) {
-            foreach ($payload['quantities'] as $q) {
-                $branch = $q['branch'] ?? null;
-                $qty = $q['quantity'] ?? null;
-                if (!$branch || $qty === null) continue;
-                $bi = BatchItem::where('batch_id', $branch)
-                    ->where('product_id', $product->id)
-                    ->first();
-                if ($bi) {
-                    $bi->quantity = (int) $qty;
-                    $bi->save();
-                }
-            }
-        }
-
-        $updated = $variantItem->load('batch')->toArray();
-        return response()->json(['success' => true, 'data' => $updated]);
-    }
-
-    /**
-     * مزامنة المنتجات من سلة يدوياً
+     * مزامنة يدوية للمنتجات من سلة
      */
     public function sync(Request $request)
     {
         $merchant = $request->user();
-
         try {
             $service = SallaApiService::for($merchant);
-            $result = $service->syncProducts();
+            $result = $service->syncProducts(); // تأكد أن هذه الدالة موجودة في SallaApiService
 
             return response()->json([
                 'success' => true,
                 'message' => "تمت المزامنة بنجاح",
-                'synced'  => $result['synced'],
-                'errors'  => $result['errors'],
+                'synced_count' => count($result['synced'] ?? []),
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'فشلت المزامنة: ' . $e->getMessage(),
-            ], 500);
+            Log::error('[Sync Error] ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'فشلت المزامنة'], 500);
         }
     }
 
-
-    /** Create a new Variant for a Product (Scenario 1) */
-    public function createVariant(Request $request, $product_id)
+    // ====================================================================
+    // السيناريو 1: تحويل منتج "بسيط" إلى منتج "بدفعات"
+    // ====================================================================
+    public function convertToVariantProduct(Request $request, $product_id)
     {
         $merchant = $request->user();
         $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
 
+        if (!$product->salla_product_id) {
+            return response()->json(['success' => false, 'message' => 'المنتج غير مرتبط بسلة'], 400);
+        }
+
         $expiryDate = $request->input('expiry_date');
-        $qty = (int) ($request->input('stock_quantity') ?? 0);
+        $quantity = (int) ($request->input('quantity', $product->quantity ?? 0));
+        $batchCode = $request->input('batch_code', 'B-' . Str::upper(Str::random(6)));
 
-        $batch = Batch::create([
-            'merchant_id' => $merchant->id,
-            'batch_code' => 'B-'.Str::random(6),
-            'name' => 'Generated Batch',
-            'status' => 'green',
-            'days_until_expiry' => 30,
-            'expiry_date' => $expiryDate ? \Carbon\Carbon::parse($expiryDate) : null,
-        ]);
+        try {
+            $sallaApi = SallaApiService::for($merchant);
 
-        $bi = BatchItem::create(['batch_id'=>$batch->id, 'product_id'=>$product->id, 'quantity'=>$qty]);
+            // 1. إنشاء خيار "تاريخ الانتهاء" في سلة
+            $optionResult = $sallaApi->createProductOption(
+                $product->salla_product_id,
+                'تاريخ الانتهاء',
+                $expiryDate
+            );
 
-        return response()->json(['success'=>true,'variant'=>[ 'id'=>$bi->id, 'batch_id'=>$batch->id, 'quantity'=>$bi->quantity]]);
+            if (!$optionResult || !isset($optionResult['data'])) {
+                return response()->json(['success' => false, 'message' => 'فشل إنشاء خيار التاريخ في سلة'], 500);
+            }
+
+            $optionValueId = $optionResult['data']['values'][0]['id'] ?? null;
+
+            // 2. إنشاء الـ Variant المرتبط بالتاريخ
+            $variantResult = $sallaApi->createVariant($product->salla_product_id, [
+                'price' => $product->price ?? 0,
+                'stock_quantity' => $quantity,
+                'sku' => $batchCode,
+                'related_option_values' => [$optionValueId],
+            ]);
+
+            // 3. تحديث قاعدة البيانات المحلية
+            $batch = Batch::create([
+                'merchant_id' => $merchant->id,
+                'salla_variant_id' => $variantResult['data']['id'] ?? null,
+                'batch_code' => $batchCode,
+                'name' => 'دفعة: ' . $product->name,
+                'expiry_date' => \Carbon\Carbon::parse($expiryDate),
+                'status' => 'green',
+                'days_until_expiry' => (int) now()->diffInDays(\Carbon\Carbon::parse($expiryDate), false),
+            ]);
+
+            BatchItem::create([
+                'batch_id' => $batch->id,
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحويل المنتج وإضافة الدفعة الأولى بنجاح',
+                'batch' => $batch
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('[Scenario 1 Error] ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ====================================================================
+    // السيناريو 2: دمج الدفعة مع خيارات موجودة (الخيار المتعدد)
+    // ====================================================================
+    public function mergeBatchWithOptions(Request $request, $product_id)
+    {
+        $merchant = $request->user();
+        $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
+        $expiryDate = $request->input('expiry_date');
+        $variantsInput = $request->input('variants', []);
+
+        try {
+            $sallaApi = SallaApiService::for($merchant);
+            
+            // البحث عن خيار "تاريخ الانتهاء" أو إنشاؤه لضمان وجود حقل للتاريخ
+            $options = $sallaApi->getProductOptions($product->salla_product_id);
+            $batchOption = collect($options['data'] ?? [])->firstWhere('name', 'تاريخ الانتهاء');
+            
+            if (!$batchOption) {
+                $optionRes = $sallaApi->createProductOption($product->salla_product_id, 'تاريخ الانتهاء', $expiryDate);
+                $optionValueId = $optionRes['data']['values'][0]['id'];
+            } else {
+                $valRes = $sallaApi->addValueToOption($batchOption['id'], $expiryDate);
+                $optionValueId = $valRes['data']['id'];
+            }
+
+            foreach ($variantsInput as $vInput) {
+                if ((int)$vInput['quantity'] <= 0) continue;
+
+                // إنشاء Variant جديد يجمع الخيار القديم + تاريخ الانتهاء
+                $sallaVariant = $sallaApi->createVariant($product->salla_product_id, [
+                    'price' => $product->price,
+                    'stock_quantity' => $vInput['quantity'],
+                    'sku' => $vInput['sku'] ?? 'B-'.Str::random(5),
+                    'related_option_values' => array_filter([$vInput['old_value_id'] ?? null, $optionValueId])
+                ]);
+
+                // تسجيل في قاعدة البيانات
+                $batch = Batch::create([
+                    'merchant_id' => $merchant->id,
+                    'salla_variant_id' => $sallaVariant['data']['id'] ?? null,
+                    'batch_code' => $vInput['sku'] ?? 'B-'.Str::random(5),
+                    'expiry_date' => $expiryDate,
+                    'status' => 'green'
+                ]);
+
+                BatchItem::create([
+                    'batch_id' => $batch->id,
+                    'product_id' => $product->id,
+                    'quantity' => $vInput['quantity']
+                ]);
+            }
+
+            return response()->json(['success' => true, 'message' => 'تم دمج الدفعات بنجاح']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ====================================================================
+    // السيناريو 3: التحديث الجزئي (Partial Batch Update)
+    // ====================================================================
+    public function partialBatchUpdate(Request $request, $product_id)
+    {
+        // نستخدم نفس منطق الدمج ولكن للفارييشنز المختارة فقط
+        return $this->mergeBatchWithOptions($request, $product_id);
     }
 }

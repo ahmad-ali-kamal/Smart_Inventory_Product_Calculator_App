@@ -25,77 +25,84 @@ class CheckBatchExpiryJob implements ShouldQueue
         Merchant::all()->each(function ($merchant) {
             Log::info("[Merchant] معالجة تاجر: " . ($merchant->name ?? $merchant->id));
 
-            $sallaApi    = SallaApiService::for($merchant);
-            $syncService = new BatchSyncService($sallaApi);
+            try {
+                $sallaApi    = SallaApiService::for($merchant);
+                $syncService = new BatchSyncService($sallaApi);
 
-            // 1. معالجة الدفعات
-            $batches = Batch::where('merchant_id', $merchant->id)
-                ->whereNotNull('expiry_date')
-                ->get();
+                // 1. معالجة الدفعات
+                $batches = Batch::where('merchant_id', $merchant->id)
+                    ->whereNotNull('expiry_date')
+                    ->get();
 
-            Log::info("[Merchant] عدد Batches: " . $batches->count());
+                Log::info("[Merchant] عدد Batches: " . $batches->count());
 
-            foreach ($batches as $batch) {
-                // تحديث الحالة داخلياً أولاً
-                $oldStatus = $batch->status; // نخزن الحالة القديمة أول
+                foreach ($batches as $batch) {
+                    // تحديث الحالة داخلياً أولاً
+                    $oldStatus = $batch->status; // نخزن الحالة القديمة أول
 
-$batch->calculateStatus();   // نحسب الجديدة
-$batch->save();
+                    $batch->calculateStatus();   // نحسب الجديدة
+                    $batch->save();
 
-if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
-    $merchant->notify(new \App\Notifications\BatchExpiryNotification(
-        $batch,
-        $batch->status
-    ));
-}
-                $batch->save();
+                    if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
+                        $merchant->notify(new \App\Notifications\BatchExpiryNotification(
+                            $batch,
+                            $batch->status
+                        ));
+                    }
+                    $batch->save();
 
-                // التحقق من وجود المنتج المرتبط (تجنب خطأ first() on null)
-                $product = $batch->products()->first();
-                if (!$product) {
-                    Log::warning("[Batch] باتش يتيم بدون منتج مرتبط! ID: {$batch->id}");
-                    continue; 
-                }
+                    // التحقق من وجود المنتج المرتبط (تجنب خطأ first() on null)
+                    $product = $batch->products()->first();
+                    if (!$product) {
+                        Log::warning("[Batch] باتش يتيم بدون منتج مرتبط! ID: {$batch->id}");
+                        continue; 
+                    }
 
-                $variantName = ($batch->batch_code ?? 'Batch') . ' - ' . $batch->expiry_date->format('Y-m-d');
+                    $variantName = ($batch->batch_code ?? 'Batch') . ' - ' . $batch->expiry_date->format('Y-m-d');
 
-                // الحالة الحمراء: تصفير الكمية في سلة
-                if ($batch->status === 'red') {
-                    if ($batch->salla_variant_id) {
-                        Log::info('[Batch] باتش أحمر — تصفير الكمية', ['batch_id' => $batch->id]);
+                    // الحالة الحمراء: تصفير الكمية في سلة
+                    if ($batch->status === 'red') {
+                        if ($batch->salla_variant_id) {
+                            Log::info('[Batch] باتش أحمر — تصفير الكمية', ['batch_id' => $batch->id]);
+                            $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+                                'sku'            => $batch->batch_code ?? 'B-' . $batch->id,
+                                'stock_quantity' => 0,
+                                'sale_price'     => 0,
+                            ]);
+                        }
+                        continue;
+                    }
+
+                    // الحالة الخضراء والصفراء: مزامنة كاملة
+                    if (!$batch->salla_variant_id) {
+                        $syncService->syncBatch($batch, $product);
+                    } else {
                         $sallaApi->updateBatchVariant($batch->salla_variant_id, [
                             'sku'            => $batch->batch_code ?? 'B-' . $batch->id,
-                            'stock_quantity' => 0,
-                            'sale_price'     => 0,
+                            'stock_quantity' => (int) $batch->batchItems()->sum('quantity'),
+                            'sale_price'     => ($batch->status === 'yellow')
+                                                ? round($batch->price * 0.7, 2)
+                                                : 0,
                         ]);
                     }
-                    continue;
-                }
 
-                // الحالة الخضراء والصفراء: مزامنة كاملة
-                if (!$batch->salla_variant_id) {
-                    $syncService->syncBatch($batch, $product);
-                } else {
-                    $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                        'sku'            => $batch->batch_code ?? 'B-' . $batch->id,
-                        'stock_quantity' => (int) $batch->batchItems()->sum('quantity'),
-                        'sale_price'     => ($batch->status === 'yellow')
-                                            ? round($batch->price * 0.7, 2)
-                                            : 0,
-                    ]);
-                }
-
-                // التوافق الدوري (Reconciliation)
-                if ($batch->salla_variant_id) {
-                    $result = $syncService->reconcileQuantity($batch, $product, true);
-                    if ($result['status'] === 'conflict' || $result['status'] === 'fixed') {
-                        Log::warning('[Reconcile] فرق في الكمية', array_merge(['batch_id' => $batch->id], $result));
+                    // التوافق الدوري (Reconciliation)
+                    if ($batch->salla_variant_id) {
+                        $result = $syncService->reconcileQuantity($batch, $product, true);
+                        if ($result['status'] === 'conflict' || $result['status'] === 'fixed') {
+                            Log::warning('[Reconcile] فرق في الكمية', array_merge(['batch_id' => $batch->id], $result));
+                        }
                     }
                 }
-            }
 
-            // 2. مزامنة ظهور المنتجات
-            $this->reconcileVisibility($sallaApi, $merchant);
+                // 2. مزامنة ظهور المنتجات
+                $this->reconcileVisibility($sallaApi, $merchant);
+
+            } catch (\Throwable $e) {
+                // استخدام \Throwable هنا تضمن التقاط أي خطأ حرفياً، مهما كان نوعه، لكي لا يتوقف الـ Job
+                Log::warning("[Merchant] تم تخطي التاجر " . ($merchant->name ?? $merchant->id) . " بسبب خطأ: " . $e->getMessage());
+                return; // تقوم مقام continue داخل دالة each() للمرور للتاجر التالي
+            }
         });
     }
 
