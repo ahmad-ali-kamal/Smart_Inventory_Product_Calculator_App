@@ -43,9 +43,9 @@ public function store(Request $request)
             ->except('category_mapping')
             ->toArray();
 
-        $dataToSave['auto_hide_expired']    = (int) $request->input('auto_hide_expired',    0);
-        $dataToSave['enable_notifications'] = (int) $request->input('enable_notifications', 0);
-        $dataToSave['auto_discounts']       = (int) $request->input('auto_discounts',       0);
+       $dataToSave['auto_hide_expired']    = $request->boolean('auto_hide_expired');
+$dataToSave['enable_notifications'] = $request->boolean('enable_notifications');
+$dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
 
         // 4. Save settings (unchanged)
         BatchSetting::updateOrCreate(
@@ -92,7 +92,10 @@ public function store(Request $request)
 
     Cache::forget("inventory_dashboard_{$merchant->id}");
 
-    return back()->with('success', 'تم حفظ الإعدادات بنجاح.');
+    return response()->json([
+    'success' => true,
+    'message' => 'تم حفظ الإعدادات بنجاح.',
+]);
 }
     /**
      * إعادة تعيين الإعدادات للقيم الافتراضية

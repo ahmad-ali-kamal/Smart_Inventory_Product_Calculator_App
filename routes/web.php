@@ -5,7 +5,7 @@ use App\Http\Controllers\Auth\SallaOAuthController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
 use App\Http\Controllers\Calculator\CalculatorSettingsController;
 use App\Http\Controllers\Api\InventoryApiController;
-
+use App\Http\Controllers\Inventory\NotificationController;
 
 
 Route::get('/login', function () {
@@ -58,6 +58,12 @@ Route::prefix('harees')->middleware('auth')->group(function () {
     // DELETE /harees/api/expiry/{id}    → حذف كل باتشات المنتج وإعادته لـ sale
     Route::post('/api/expiry',         [InventoryApiController::class, 'storeExpiry']);
     Route::delete('/api/expiry/{id}',  [InventoryApiController::class, 'destroyExpiry']);
+    
+    // Notifications API
+Route::get('/api/notifications', [NotificationController::class, 'index']);
+Route::post('/api/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+
 });
 
 Route::get('/auth/salla',          [SallaOAuthController::class, 'redirect'])->name('auth.salla');

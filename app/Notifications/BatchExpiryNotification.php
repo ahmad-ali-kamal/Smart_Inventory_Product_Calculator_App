@@ -18,7 +18,7 @@ class BatchExpiryNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['mail'];
+        return ['database'];
     }
 
     public function toMail($notifiable): MailMessage
