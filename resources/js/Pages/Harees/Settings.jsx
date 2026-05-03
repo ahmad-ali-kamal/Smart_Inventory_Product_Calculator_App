@@ -100,11 +100,11 @@ export default function Settings() {
           long: settings.long_term_days ?? 10,
         });
 
-        setAutomation({
-          autoHide: Boolean(settings.auto_hide_expired),
-          autoDiscount: Boolean(settings.discount_auto),
-          enableNotifications: Boolean(settings.notifications_enabled ?? true),
-        });
+       setAutomation({
+  autoHide: Boolean(settings.auto_hide_expired),
+  autoDiscount: Boolean(settings.auto_discounts),
+  enableNotifications: Boolean(settings.enable_notifications),
+});
 
         if (data.category_mapping) {
           setCategories({
@@ -170,12 +170,16 @@ export default function Settings() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          short_term_days: thresholds.short,
-          medium_term_days: thresholds.medium,
-          long_term_days: thresholds.long,
-          discount_auto: automation.autoDiscount,
-          category_mapping: categories,
-        }),
+  short_term_days: thresholds.short,
+  medium_term_days: thresholds.medium,
+  long_term_days: thresholds.long,
+
+  auto_hide_expired: automation.autoHide ? 1 : 0,
+auto_discounts: automation.autoDiscount ? 1 : 0,
+enable_notifications: automation.enableNotifications ? 1 : 0,
+
+  category_mapping: categories,
+})
       });
 
       if (!res.ok) throw new Error('Save failed');

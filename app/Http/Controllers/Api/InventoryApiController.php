@@ -236,22 +236,25 @@ class InventoryApiController extends Controller
         'short_term_days' => 'required|integer|min:1',
         'medium_term_days' => 'required|integer|min:1',
         'long_term_days' => 'required|integer|min:1',
-        'discount_auto' => 'nullable|boolean',
+        'auto_hide_expired' => 'nullable|boolean',
+'auto_discounts' => 'nullable|boolean',
+'enable_notifications' => 'nullable|boolean',
         'fixed_discount_percentage' => 'nullable|integer|min:1|max:90',
         'category_mapping' => 'nullable|array',
     ]);
 
-    $settings = BatchSetting::updateOrCreate(
-        ['merchant_id' => $merchant->id],
-        [
-            'short_term_days' => $validated['short_term_days'],
-            'medium_term_days' => $validated['medium_term_days'],
-            'long_term_days' => $validated['long_term_days'],
-            'discount_auto' => $validated['discount_auto'] ?? false,
-            
-        ]
-    );
+   $settings = BatchSetting::updateOrCreate(
+    ['merchant_id' => $merchant->id],
+    [
+        'short_term_days' => $validated['short_term_days'],
+        'medium_term_days' => $validated['medium_term_days'],
+        'long_term_days' => $validated['long_term_days'],
 
+        'auto_hide_expired' => $request->boolean('auto_hide_expired'),
+        'enable_notifications' => $request->boolean('enable_notifications'),
+        'auto_discounts' => $request->boolean('auto_discounts'),
+    ]
+);
     if (isset($validated['category_mapping'])) {
         CategoryMapping::where('merchant_id', $merchant->id)->delete();
 

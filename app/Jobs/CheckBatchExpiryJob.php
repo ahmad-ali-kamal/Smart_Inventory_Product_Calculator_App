@@ -37,7 +37,17 @@ class CheckBatchExpiryJob implements ShouldQueue
 
             foreach ($batches as $batch) {
                 // تحديث الحالة داخلياً أولاً
-                $batch->calculateStatus();
+                $oldStatus = $batch->status; // نخزن الحالة القديمة أول
+
+$batch->calculateStatus();   // نحسب الجديدة
+$batch->save();
+
+if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
+    $merchant->notify(new \App\Notifications\BatchExpiryNotification(
+        $batch,
+        $batch->status
+    ));
+}
                 $batch->save();
 
                 // التحقق من وجود المنتج المرتبط (تجنب خطأ first() on null)

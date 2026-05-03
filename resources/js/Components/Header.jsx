@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useTheme } from '../Context/ThemeContext';
 import { Sun, Moon, User, LayoutGrid, ChevronDown, Globe, LogOut, BellRing, CheckCheck } from 'lucide-react';
@@ -14,7 +14,39 @@ export default function Header() {
     const [isAr, setIsAr] = useState(false);
 
     const [isNotifOpen, setIsNotifOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(3);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [notifications, setNotifications] = useState([]);
+
+    const isInventory = url.startsWith('/harees');
+
+const fetchNotifications = () => {
+    if (!isInventory) return;
+
+    fetch('/harees/api/notifications', {
+        headers: { Accept: 'application/json' },
+        credentials: 'include',
+    })
+        .then(res => res.json())
+        .then(data => {
+            setNotifications(data);
+            setUnreadCount(data.filter(n => !n.read_at).length);
+        })
+        .catch(err => console.error('Notifications error:', err));
+};
+
+useEffect(() => {
+    if (!isInventory) return;
+
+    fetchNotifications();
+
+    if (!isNotifOpen) return;
+
+    const interval = setInterval(() => {
+        fetchNotifications();
+    }, 5000);
+
+    return () => clearInterval(interval);
+}, [isInventory, isNotifOpen]);
 
     const calculatorNav = [
         { label: 'Instructions', href: '/mustashar/instructions' },
@@ -30,7 +62,7 @@ export default function Header() {
         { label: 'Settings',     href: '/harees/settings' },
     ];
 
-    const isInventory = url.startsWith('/harees');
+    
     const navItems = isInventory ? inventoryNav : calculatorNav;
     const appName = isInventory ? 'حريص' : 'المستشار';
 
@@ -109,7 +141,20 @@ export default function Header() {
                             <span className="text-xs font-bold text-[var(--foreground)]">التنبيهات</span>
                         </div>
                         <button 
-                            onClick={() => setUnreadCount(0)}
+                           onClick={() => {
+    fetch('/harees/api/notifications/read-all', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'include',
+    }).then(() => {
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
+    });
+}}
                             className="flex items-center gap-1 text-[10px] font-bold text-[var(--primary)] hover:underline"
                         >
                             <CheckCheck className="w-3 h-3" />
@@ -118,16 +163,20 @@ export default function Header() {
                     </div>
 
                     <div className="max-h-64 overflow-y-auto p-1 text-right" dir="rtl">
-                        <NotificationItem 
-                            title="منتج منتهي!" 
-                            msg="دفعة #101 من علب الصلصة انتهت صلاحيتها اليوم." 
-                            color="text-[#f87171]"
-                        />
-                        <NotificationItem 
-                            title="تنبيه اقتراب انتهاء" 
-                            msg="منتج 'حليب نادك' شارف على الانتهاء (3 أيام)." 
-                            color="text-[#fbbf24]"
-                        />
+                        {notifications.length === 0 ? (
+    <div className="p-4 text-center text-[11px] text-[var(--muted-foreground)]">
+        لا توجد تنبيهات
+    </div>
+) : (
+    notifications.map((n) => (
+        <NotificationItem
+            key={n.id}
+            title={n.data?.status === 'red' ? 'منتج منتهي!' : 'تنبيه اقتراب انتهاء'}
+            msg={`دفعة ${n.data?.batch_code ?? ''} ${n.data?.status === 'red' ? 'انتهت صلاحيتها' : 'تقترب من الانتهاء'}.`}
+            color={n.data?.status === 'red' ? 'text-[#f87171]' : 'text-[#fbbf24]'}
+        />
+    ))
+)}
                     </div>
                 </div>
             </>
