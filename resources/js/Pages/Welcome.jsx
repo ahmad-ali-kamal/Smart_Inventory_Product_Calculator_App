@@ -1,671 +1,629 @@
 import { Head, Link } from '@inertiajs/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
 
-// Language state is managed by the shared hook (useLang).
-
 /**
- * ─── PROFESSIONAL COPYWRITING & TRANSLATIONS ───────────────────────────────
- * مصفوفة النصوص المطورة بأسلوب تسويقي احترافي.
+ * ─── QUANTIX CORE INTERFACE V4.0 ────────────────────────────────────────────
+ * المشروع: منصة كوانتيكس (QUANTIX) - الحل الذكي لتجار سلة.
+ * المطور المسؤول: المهندس أحمد علي كمال (Developer A).
+ * * التحديثات الحالية:
+ * - حذف شارة المنصة ونصوص الهيدر.
+ * - تصغير مقاسات الخطوط لكامل الصفحة.
+ * - توحيد خطوط أزرار اللغة (Cairo / Plus Jakarta Sans).
+ * - شفافية كاملة للأشرطة العلوية والسفلية لدمجها مع النجوم.
  */
+
+/* ─── مصفوفة النصوص والترجمات (CLEAN TRANSLATION ENGINE) ─── */
 const T = {
     ar: {
         brand:      'QUANTIX',
-        nav:        ['الرؤية', 'منظومة التطبيقات', 'الدعم الفني'],
-        badge:      'المنظومة المتكاملة للنمو الذكي لمتاجر سلة',
-        heroLine1:  'حلول تجارية ذكية',
-        heroLine2:  'بأبعاد تقنية متقدمة',
-        heroSub:    'منصة محورية تجمع بين ذكاء إدارة المخزون ودقة الحسابات المؤتمتة، صُممت خصيصاً لنخبة تجار سلة الساعين نحو التميز التشغيلي وتعظيم الأرباح.',
-        scrollHint: 'استكشف آفاق كوانتيكس',
-        appsLabel:  'منظومة التطبيقات المتكاملة',
-        bottomNote: 'كل حل تقني يعمل باستقلالية تامة لضمان خصوصية البيانات وتشفيرها العالي.',
+        brandAr:    'كوانتيكس',
+        welcome:    'أهلاً بك في كوانتيكس.. نظامك الذكي لإدارة متجرك في سلة.',
+        slogan:     'لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.',
+        intro:      "في كوانتيكس، نحن ندرك حجم الخسائر التي يسببها المخزون المهدر والحسابات اليدوية المرهقة. لذلك، صممنا لك أدوات واقعية؛ 'حريص' ليحمي أرباحك من تواريخ الانتهاء، و'مستشار' ليؤتمت حساباتك المعقدة بدقة متناهية. نحن نتولى إدارة أدق تفاصيل عملياتك، لتتفرغ أنت لما يهم فعلياً: توسيع تجارتك.",
+        nav:        ['الرؤية الاستراتيجية', 'منظومة التطبيقات', 'مركز الدعم'],
+        appsLabel:  'منظومة التطبيقات الذكية',
+        bottomNote: 'تشفير بيانات بمعايير مؤسسية عالمية • خصوصية مطلقة لكافة العمليات',
         footer:     'جميع الحقوق محفوظة لمنصة كوانتيكس الرقمية',
         langBtn:    'ENGLISH',
 
         app1: {
-            badge:    'حريص',
+            badge:    'حريص | HAREES',
             title:    'نظام حريص لإدارة المخزون',
-            tagline:  'الأمان الكامل لمخزونك وتواريخ صلاحيتك',
-            desc:     'نظام متقدم لمراقبة تواريخ الصلاحية، يقوم بتنظيم المخزون بناءً على الدفعات (Batches)، مع تطبيق ذكي للخصومات التلقائية للمنتجات القريبة من الانتهاء؛ وذلك لضمان استمرارية أرباحك وتقليل الهدر التشغيلي بنسبة تصل إلى 40%.',
+            tagline:  'نظام لمراقبة تواريخ الانتهاء يقوم بتنظيم المخزون حسب الدفعة وتطبيق خصومات للمنتجات الوشيكة الانتهاء لتأمين أرباحك وتقليل الهدر.',
+            desc:     'نظام متقدم لمراقبة تواريخ الصلاحية، يقوم بتنظيم المخزون بناءً على الدفعات (Batches)، مع تطبيق ذكي للخصومات التلقائية للمنتجات القريبة من الانتهاء؛ وذلك لضمان استمرارية أرباحك وتقليل الهدر التشغيلي.',
             stats: [
-                { v: '+٥٠٠', l: 'منتج يتم تتبعه' }, 
-                { v: '٤٨س', l: 'إنذار مبكر' }, 
-                { v: '١٠٠٪', l: 'أتمتة كاملة' }
+                { v: '+٥٠٠', l: 'منتج مُراقب' }, 
+                { v: '٤٨س', l: 'تنبيه استباقي' }, 
+                { v: '١٠٠٪', l: 'مزامنة آلية' }
             ],
             features: [
-                'تتبع دقيق للمخزون بنظام الدفعات (Batch Tracking)', 
-                'إطلاق خصومات آلية للمنتجات القريبة من الانتهاء', 
-                'حماية الأرباح عبر تقليل الفاقد السنوي', 
-                'مزامنة فورية مع لوحة تحكم متجر سلة'
+                'تتبع دقيق للمخزون بنظام الدفعات الرقمية المستقلة', 
+                'نظام الخصومات الآلية الذكي للمنتجات وشيكة الانتهاء', 
+                'حماية الأرباح الصافية عبر تقليل الفاقد السنوي للمتجر', 
+                'ربط مباشر وفوري مع مخازن منصة سلة'
             ],
-            cta: 'ابدأ مع حريص الآن',
+            cta: 'ابدأ تجربتك مع حريص',
         },
         app2: {
-            badge:    'مستشار',
+            badge:    'مستشار | MUSTASHAR',
             title:    'أداة مستشار للحساب الذكي',
-            tagline:  'القرار الحسابي الصحيح في كل ثانية',
-            desc:     'أداة حسابية ذكية تساعدك في حساب الكميات المثلى لعملائك آلياً بناءً على قواعد الحساب الخاصة بمتجرك؛ مما يقلل من أخطاء الطلبات البشرية ويزيد من كفاءة التوريد والدقة المحاسبية.',
+            tagline:  'أداة حساب ذكية تساعدك على حساب الكمية الصحيحة للعميل تلقائياً بناءً على قواعد الحساب الخاصة بك.',
+            desc:     'أداة حسابية ذكية تساعدك في حساب الكميات المثلى لعملائك آلياً بناءً على قواعد الحساب الخاصة بمتجرك؛ مما يقلل من أخطاء الطلبات البشرية ويزيد من كفاءة الدقة المحاسبية.',
             stats: [
-                { v: '+٢٠٠', l: 'تاجر يعتمدها' }, 
+                { v: '+٢٠٠', l: 'تاجر نشط' }, 
                 { v: '٩٩٪', l: 'دقة حسابية' }, 
-                { v: '٣ث', l: 'سرعة التنفيذ' }
+                { v: '٣ث', l: 'سرعة القرار' }
             ],
             features: [
-                'حساب الكميات المثلى بناءً على سلوك العميل', 
-                'تخصيص قواعد الحساب لكل صنف تجاري', 
-                'دعم كامل للعملات الخليجية والعالمية', 
-                'تقارير تحليلية للتنبؤ بالطلبات المستقبلية'
+                'أتمتة كاملة لمنطق حساب الكميات المخصصة لكل عميل', 
+                'إمكانية تخصيص قواعد حساب مستقلة لكل صنف تجاري', 
+                'دعم تقني كامل لجميع العملات والوحدات العالمية', 
+                'تقارير تحليلية متقدمة للتنبؤ بحجم الطلبات المستقبلية'
             ],
-            cta: 'فعل مستشار بمتجرك',
+            cta: 'فعل أداة مستشار بمتجرك',
         },
         statsBar: [
-            { v: 700,   s: '+',  l: 'شريك تجاري نشط' },
-            { v: 15000, s: '+',  l: 'عملية تتبع يومية' },
-            { v: 98,    s: '٪', l: 'معدل الدقة والثقة' },
-            { v: 24,    s: '/7', l: 'مركز مساعدة تقني' },
+            { v: 700,   s: '+',  l: 'شريك نجاح يعتمدنا' },
+            { v: 15000, s: '+',  l: 'منتج يتم تتبعه لحظياً' },
+            { v: 98,    s: '٪', l: 'معدل رضا المستخدمين' },
+            { v: 24,    s: '/7', l: 'مركز دعم تقني متواصل' },
         ],
     },
     en: {
         brand:      'QUANTIX',
-        nav:        ['Our Vision', 'App Ecosystem', 'Support'],
-        badge:      'The Integrated Ecosystem for Smart Salla Growth',
-        heroLine1:  'Smart Business Tools',
-        heroLine2:  'With Real Intelligence',
-        heroSub:    'An all-in-one pivotal platform combining smart inventory management and an intelligent calculation tool — built for Salla merchants who want smarter decisions and higher profits.',
-        scrollHint: 'Explore Quantix Horizons',
-        appsLabel:  'Our Integrated Application Suite',
-        bottomNote: 'Each application operates independently to ensure data privacy and high-level encryption.',
+        brandAr:    'كوانتيكس',
+        welcome:    'Welcome to Quantix.. Your intelligent system for Salla management.',
+        slogan:     'Because successful commerce relies on numbers, not expectations.',
+        intro:      "At Quantix, we understand the scale of losses caused by wasted inventory and tedious manual calculations. We designed realistic tools; 'Harees' to protect your profits from expiry dates, and 'Mustashar' to automate your complex calculations with extreme precision. We manage your details so you focus on expanding your business.",
+        nav:        ['Strategic Vision', 'App Ecosystem', 'Growth Support'],
+        appsLabel:  'Smart Tools Ecosystem',
+        bottomNote: 'Data Security is a Priority • Enterprise-Grade Encryption',
         footer:     'All rights reserved to Quantix Digital Platform',
         langBtn:    'العربية',
 
         app1: {
-            badge:    'HAREES',
+            badge:    'HAREES | Inventory',
             title:    'Harees Expiry Monitoring',
-            tagline:  'Securing profits and reducing waste',
-            desc:     'An expiry date monitoring system that organizes inventory by batch and apply discounts for near-expiry products to secure your profits and reduce waste effectively by up to 40%.',
+            tagline:  'An expiry date monitoring system that organizes inventory by batch and apply discounts for near-expiry products to secure your profits and reduce waste.',
+            desc:     'An advanced expiry date monitoring system that organizes stock by batches and applies smart automatic discounts to near-expiry items to secure your revenue.',
             stats: [
-                { v: '500+', l: 'Tracked Products' }, 
-                { v: '48h', l: 'Early Warning' }, 
-                { v: '100%', l: 'Full Automation' }
+                { v: '500+', l: 'Tracked Items' }, 
+                { v: '48h', l: 'Early Alerts' }, 
+                { v: '100%', l: 'Automated' }
             ],
             features: [
-                'Precision batch-level inventory tracking', 
-                'Automated discounts for near-expiry stocks', 
-                'Smart profit protection and waste reduction', 
-                'Instant synchronization with Salla dashboard'
+                'Full automation for expiry tracking logic workflows', 
+                'Smart discounting for near-expiry stock items', 
+                'Record-breaking annual waste reduction metrics', 
+                'Instant sync with Salla warehouse systems'
             ],
-            cta: 'Get Started with Harees',
+            cta: 'Activate Harees Now',
         },
         app2: {
-            badge:    'MUSTASHAR',
+            badge:    'MUSTASHAR | Calc',
             title:    'Mustashar Smart Calculator',
-            tagline:  'Optimal quantities for every customer',
-            desc:     'A smart calculation tool helps you automatically calculate the right quantity for customer based on your own calculation rules, ensuring order accuracy and supply chain efficiency.',
+            tagline:  'A smart calculation tool helps you automatically calculate the right quantity for customer based on your own calculation rules.',
+            desc:     'An AI-driven tool that calculates optimal quantities for customers automatically based on your store rules, eliminating human errors and increasing efficiency.',
             stats: [
                 { v: '200+', l: 'Active Merchants' }, 
-                { v: '99%', l: 'Calculation Accuracy' }, 
-                { v: '3s', l: 'Execution Time' }
+                { v: '99%', l: 'Calc Accuracy' }, 
+                { v: '3s', l: 'Decision Speed' }
             ],
             features: [
-                'AI-driven optimal quantity calculation', 
-                'Customizable calculation rules per product', 
-                'Multi-currency and unit support across Salla', 
-                'Detailed analytics for purchase prediction'
+                'Automated customer quantity logic workflows', 
+                'Customizable calculation rules per individual product', 
+                'Full multi-currency & unit support across Salla', 
+                'Advanced predictive analytics for demand'
             ],
             cta: 'Activate Mustashar Now',
         },
         statsBar: [
-            { v: 700,   s: '+',  l: 'Active Merchants' },
+            { v: 700,   s: '+',  l: 'Active Partners' },
             { v: 15000, s: '+',  l: 'Daily Tracked Items' },
-            { v: 98,    s: '%',  l: 'Trust & Accuracy Rate' },
-            { v: 24,    s: '/7', l: 'Technical Support' },
+            { v: 98,    s: '%',  l: 'Client Satisfaction' },
+            { v: 24,    s: '/7', l: 'Technical Help' },
         ],
     },
 };
 
-/** * ─── ANIMATED COUNTER COMPONENT ──────────────────────────────────────────
+/* ─── المكونات المساعدة (UI COMPONENTS) ─── */
+
+/**
+ * مكون العداد الرقمي
  */
 function Counter({ end, suffix }) {
-    const [n, setN] = useState(0);
+    const [num, setNum] = useState(0);
     useEffect(() => {
         let current = 0;
-        const duration = 2000;
-        const frameRate = 30;
-        const totalFrames = duration / frameRate;
-        const increment = end / totalFrames;
-        
+        const duration = 2500; 
+        const step = end / (duration / 25);
         const timer = setInterval(() => {
-            current += increment;
+            current += step;
             if (current >= end) {
-                setN(end);
+                setNum(end);
                 clearInterval(timer);
             } else {
-                setN(Math.floor(current));
+                setNum(Math.floor(current));
             }
-        }, frameRate);
-        
+        }, 25);
         return () => clearInterval(timer);
     }, [end]);
-    
-    return <>{n.toLocaleString()}{suffix}</>;
+    return <>{num.toLocaleString()}{suffix}</>;
 }
 
-/** * ─── PREMIUM APP CARD COMPONENT ──────────────────────────────────────────
+/**
+ * مكون بطاقة التطبيق (Premium Component) - تم تصغير الخطوط كما طلب المهندس
  */
-function AppCard({ data, loginUrl, isAr }) {
+function AppCard({ data, loginUrl, isAr, ff }) {
     const [isHovered, setIsHovered] = useState(false);
-    const ff = isAr ? "'IBM Plex Sans Arabic', sans-serif" : "'Inter', sans-serif";
-    const ffNum = "'Inter', sans-serif";
-
+    
     const cardStyles = {
-        background: isHovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${isHovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)'}`,
-        borderRadius: '30px',
-        padding: '3rem',
-        backdropFilter: 'blur(40px)',
-        WebkitBackdropFilter: 'blur(40px)',
-        transition: 'all 0.6s cubic-bezier(0.2, 1, 0.3, 1)',
-        transform: isHovered ? 'translateY(-15px)' : 'translateY(0)',
-        boxShadow: isHovered 
-            ? '0 50px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05) inset' 
-            : '0 15px 45px rgba(0,0,0,0.3)',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%'
+        container: {
+            background: isHovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)'}`,
+            borderRadius: '40px',
+            padding: '3.5rem',
+            backdropFilter: 'blur(50px)',
+            WebkitBackdropFilter: 'blur(50px)',
+            transition: 'all 0.75s cubic-bezier(0.16, 1, 0.3, 1)',
+            transform: isHovered ? 'translateY(-20px)' : 'translateY(0)',
+            boxShadow: isHovered 
+                ? '0 60px 120px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.05) inset' 
+                : '0 20px 50px rgba(0,0,0,0.4)',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            cursor: 'default'
+        },
+        glow: {
+            position: 'absolute',
+            top: '-100px',
+            right: '-100px',
+            width: '400px',
+            height: '400px',
+            background: 'radial-gradient(circle at center, rgba(160,100,255,0.22), transparent 75%)',
+            opacity: isHovered ? 1 : 0.35,
+            transition: 'opacity 1s ease-in-out',
+            pointerEvents: 'none'
+        },
+        badge: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '12px',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '100px',
+            padding: '10px 24px',
+            fontFamily: ff,
+            fontSize: '0.85rem',
+            fontWeight: '900',
+            color: '#fff',
+            marginBottom: '2.5rem',
+            width: 'fit-content',
+            textTransform: 'uppercase'
+        },
+        dot: {
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #c084fc, #60a5fa)',
+            boxShadow: '0 0 12px rgba(192,132,252,1)'
+        },
+        title: {
+            fontFamily: ff,
+            fontSize: '2.1rem', // تصغير مقاس خط العنوان
+            fontWeight: '900',
+            color: '#fff',
+            margin: '0 0 1rem',
+            lineHeight: 1.1,
+            letterSpacing: '-0.04em'
+        },
+        tagline: {
+            fontFamily: ff,
+            fontSize: '0.95rem', // تصغير التاج لاين
+            color: '#c084fc',
+            margin: '0 0 2rem',
+            fontWeight: '800',
+            lineHeight: 1.6,
+            opacity: 0.95
+        },
+        desc: {
+            fontFamily: ff,
+            fontSize: '1.05rem', // تصغير مقاس الوصف
+            color: 'rgba(255,255,255,0.7)',
+            lineHeight: 1.9,
+            margin: '0 0 3.5rem',
+            fontWeight: '600',
+            flexGrow: 1
+        },
+        statVal: {
+            fontFamily: ff,
+            fontSize: '1.8rem',
+            fontWeight: '900',
+            color: '#fff',
+            lineHeight: 1
+        },
+        btn: {
+            width: '100%',
+            padding: '1.6rem',
+            background: isHovered ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            borderRadius: '24px',
+            color: '#fff',
+            fontFamily: ff,
+            fontSize: '1.2rem',
+            fontWeight: '900',
+            cursor: 'pointer',
+            transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '20px',
+            boxShadow: '0 15px 35px rgba(0,0,0,0.3)'
+        }
     };
 
     return (
-        <div
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            style={cardStyles}
-        >
-            <div style={{
-                position: 'absolute',
-                top: '-50px',
-                right: '-50px',
-                width: '350px',
-                height: '350px',
-                background: 'radial-gradient(circle at center, rgba(160,100,255,0.2), transparent 75%)',
-                opacity: isHovered ? 1 : 0.5,
-                transition: 'opacity 0.8s ease',
-                pointerEvents: 'none',
-            }} />
-
-            <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '12px',
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '100px',
-                padding: '8px 20px',
-                fontFamily: ff,
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                color: '#fff',
-                marginBottom: '2rem',
-                width: 'fit-content'
-            }}>
-                <span style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #c084fc, #60a5fa)',
-                    boxShadow: '0 0 15px rgba(192,132,252,0.9)',
-                }} />
+        <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} style={cardStyles.container}>
+            <div style={cardStyles.glow} />
+            <div style={cardStyles.badge}>
+                <div style={cardStyles.dot} />
                 {data.badge}
             </div>
+            <h3 style={cardStyles.title}>{data.title}</h3>
+            <p style={cardStyles.tagline}>{data.tagline}</p>
+            <p style={cardStyles.desc}>{data.desc}</p>
 
-            <h3 style={{
-                fontFamily: ff,
-                fontSize: isAr ? '2.4rem' : '2.6rem',
-                fontWeight: '800',
-                color: '#fff',
-                margin: '0 0 0.8rem',
-                lineHeight: 1.1,
-                letterSpacing: '-0.02em',
-            }}>{data.title}</h3>
-
-            <p style={{
-                fontFamily: ff,
-                fontSize: '1.15rem',
-                color: '#c084fc',
-                margin: '0 0 1.8rem',
-                fontWeight: '500'
-            }}>{data.tagline}</p>
-
-            <p style={{
-                fontFamily: ff,
-                fontSize: '1.05rem',
-                color: 'rgba(255,255,255,0.65)',
-                lineHeight: 1.9,
-                margin: '0 0 2.5rem',
-                flexGrow: 1
-            }}>{data.desc}</p>
-
-            <div style={{
-                display: 'flex',
-                gap: '3rem',
-                paddingBottom: '2.5rem',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                marginBottom: '2.5rem',
-            }}>
-                {data.stats.map((stat, idx) => (
+            <div style={{ display: 'flex', gap: '3.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.12)', marginBottom: '2.5rem' }}>
+                {data.stats.map((item, idx) => (
                     <div key={idx}>
-                        <div style={{
-                            fontFamily: ffNum,
-                            fontSize: '2.2rem',
-                            fontWeight: '700',
-                            color: '#fff',
-                            lineHeight: 1
-                        }}>{stat.v}</div>
-                        <div style={{
-                            fontFamily: ff,
-                            fontSize: '0.8rem',
-                            color: 'rgba(255,255,255,0.4)',
-                            marginTop: '8px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.1em'
-                        }}>{stat.l}</div>
+                        <div style={cardStyles.statVal}>{item.v}</div>
+                        <div style={{ fontFamily: ff, fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)', marginTop: '8px', fontWeight: '800', textTransform: 'uppercase' }}>{item.l}</div>
                     </div>
                 ))}
             </div>
 
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 3rem' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 4rem' }}>
                 {data.features.map((feat, idx) => (
-                    <li key={idx} style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '15px',
-                        fontFamily: ff,
-                        fontSize: '1.05rem',
-                        color: 'rgba(255,255,255,0.75)',
-                        marginBottom: '1.2rem',
-                    }}>
-                        <div style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: '#c084fc',
-                            marginTop: '10px',
-                            flexShrink: 0
-                        }} />
+                    <li key={idx} style={{ display: 'flex', gap: '15px', marginBottom: '1.2rem', color: 'rgba(255,255,255,0.9)', fontWeight: '700', fontSize: '1rem' }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c084fc', marginTop: '10px', flexShrink: 0 }} />
                         {feat}
                     </li>
                 ))}
             </ul>
 
             <Link href={loginUrl} style={{ textDecoration: 'none' }}>
-                <button style={{
-                    width: '100%',
-                    padding: '1.4rem',
-                    background: isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '20px',
-                    color: '#fff',
-                    fontFamily: ff,
-                    fontSize: '1.2rem',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    transition: 'all 0.4s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '15px',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-                }}>
-                    {data.cta}
-                    <span style={{ 
-                        display: 'inline-block',
-                        transform: isAr ? 'rotate(180deg)' : 'none',
-                        fontSize: '1.4rem'
-                    }}>→</span>
+                <button style={cardStyles.btn}>
+                    {data.cta} <span style={{ transform: isAr ? 'rotate(180deg)' : 'none', fontSize: '1.6rem' }}>→</span>
                 </button>
             </Link>
         </div>
     );
 }
 
-/** * ─── MAIN QUANTIX WELCOME COMPONENT ──────────────────────────────────────
- */
+/* ─── المكون الرئيسي للصفحة (MAIN ARCHITECTURE) ─── */
+
 export default function Welcome() {
-    const { lang, toggle, isAr, dir, ff } = useLang();
+    const { lang, toggle, isAr, dir } = useLang();
     const t = T[lang];
-    const ffEn = "'Inter', sans-serif";
+    
+    // توحيد الخطوط المعتمدة (Cairo للعربي و Plus Jakarta Sans للإنجليزي)
+    const ff = isAr ? "'Cairo', sans-serif" : "'Plus Jakarta Sans', sans-serif";
+    const bgPrimary = '#000000'; // اللون الأسود الموحد المتناغم مع النجوم
+
     const canvasRef = useRef(null);
+    const [scrollY, setScrollY] = useState(0);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // تتبع التمرير لتعديل شفافية الخلفية
+    useEffect(() => {
+        const onScroll = () => setScrollY(window.scrollY);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        setIsMounted(true);
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     /**
-     * تأثير الجزيئات المتفاعلة مع الخلفية الهادئة
+     * محرك النجوم (Galaxy Canvas Engine)
      */
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         
-        const resize = () => {
+        const setCanvasSize = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         };
-        resize();
+        setCanvasSize();
 
-        const particles = Array.from({ length: 80 }, () => ({
+        const stars = Array.from({ length: 220 }, () => ({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            r: Math.random() * 2 + 0.5,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.3,
-            op: Math.random() * 0.4 + 0.1
+            size: Math.random() * 2 + 0.1,
+            speed: Math.random() * 0.4 + 0.05,
+            opacity: Math.random()
         }));
 
-        let anim;
-        const loop = () => {
+        let animationFrame;
+        const animate = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-                
+            stars.forEach(s => {
+                s.y -= s.speed;
+                if (s.y < 0) s.y = canvas.height;
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${p.op})`;
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
                 ctx.fill();
             });
-            anim = requestAnimationFrame(loop);
+            animationFrame = requestAnimationFrame(animate);
         };
-        loop();
+        animate();
 
-        window.addEventListener('resize', resize);
+        window.addEventListener('resize', setCanvasSize);
         return () => {
-            cancelAnimationFrame(anim);
-            window.removeEventListener('resize', resize);
+            cancelAnimationFrame(animationFrame);
+            window.removeEventListener('resize', setCanvasSize);
         };
     }, []);
 
-    const applications = [
+    const suites = useMemo(() => [
         { data: t.app1, loginUrl: '/harees/login' },
         { data: t.app2, loginUrl: '/mustashar/login' },
-    ];
+    ], [t]);
+
+    const dynamicOpacity = Math.min(scrollY / 1500, 0.98);
 
     return (
         <>
-            <Head title="Quantix | Smart Commerce Ecosystem" />
+            <Head title="Quantix | Smart Merchant Suite" />
 
+            {/* تعريف الأنماط لضمان توحيد الخطوط والمقاسات الصغيرة المطلوبة */}
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap');
 
-                *, *::before, *::after { 
-                    box-sizing: border-box; 
-                    margin: 0; 
-                    padding: 0; 
-                }
+                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+                html { scroll-behavior: smooth; background-color: ${bgPrimary}; }
                 
-                html { 
-                    scroll-behavior: smooth; 
-                }
-
                 body { 
-                    background: #000; 
+                    background: ${bgPrimary}; 
                     color: #fff; 
                     overflow-x: hidden; 
                     font-family: ${ff};
                     -webkit-font-smoothing: antialiased;
                 }
 
-                @keyframes scrollBounce { 
-                    0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); } 
-                    40% { transform: translateY(-20px) translateX(-50%); } 
-                    60% { transform: translateY(-10px) translateX(-50%); } 
+                @keyframes revealUp { 
+                    from { opacity: 0; transform: translateY(60px); filter: blur(30px); } 
+                    to { opacity: 1; transform: translateY(0); filter: blur(0); } 
                 }
-                
-                @keyframes masterShimmer { 
+
+                @keyframes brandShimmer { 
                     0% { background-position: 0% 50%; } 
                     50% { background-position: 100% 50%; } 
                     100% { background-position: 0% 50%; } 
                 }
 
-                .quantix-nav-item { 
-                    font-size: 1.25rem; 
-                    color: rgba(255,255,255,0.45); 
+                .quantix-nav-link { 
+                    font-size: 1.2rem; // تصغير خط الروابط
+                    color: rgba(255,255,255,0.7); 
                     text-decoration: none; 
-                    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); 
-                    white-space: nowrap; 
-                    font-weight: 500;
+                    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); 
+                    font-weight: 900;
+                    letter-spacing: 0.01em;
                 }
-                .quantix-nav-item:hover { 
+                .quantix-nav-link:hover { 
                     color: #fff; 
                     transform: translateY(-5px); 
-                    text-shadow: 0 0 30px rgba(255,255,255,0.6);
+                    text-shadow: 0 0 40px rgba(192,132,252,1);
                 }
 
-                .quantix-lang-switch {
-                    background: rgba(255,255,255,0.08); 
-                    border: 1px solid rgba(255,255,255,0.2);
-                    border-radius: 18px; 
-                    padding: 14px 35px; 
-                    color: #fff;
-                    font-size: 1.1rem; 
-                    font-weight: 700; 
-                    cursor: pointer; 
-                    transition: all 0.4s ease;
-                    backdrop-filter: blur(15px);
-                }
-                .quantix-lang-switch:hover { 
-                    background: rgba(255,255,255,0.18); 
-                    border-color: #fff; 
-                    transform: scale(1.05) translateY(-2px);
-                    box-shadow: 0 10px 40px rgba(255,255,255,0.1);
-                }
-
-                .quantix-hero-gradient {
-                    background: linear-gradient(90deg, #c084fc, #6366f1, #0ea5e9, #10b981, #f59e0b, #c084fc);
-                    background-size: 300% auto; 
+                .shimmer-text {
+                    background: linear-gradient(90deg, #fff, #c084fc, #6366f1, #fff);
+                    background-size: 200% auto; 
                     -webkit-background-clip: text; 
                     -webkit-text-fill-color: transparent;
-                    animation: masterShimmer 8s linear infinite;
+                    animation: brandShimmer 10s linear infinite;
                 }
 
-                ::-webkit-scrollbar { width: 8px; }
-                ::-webkit-scrollbar-track { background: #000; }
-                ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 20px; }
+                /* توحيد خطوط أزرار تبديل اللغة داخل المكون */
+                [data-language-switcher] button {
+                    font-family: ${ff} !important;
+                    font-weight: 900 !important;
+                    font-size: 1.05rem !important;
+                }
 
-                @media (max-width: 1100px) {
-                    .quantix-nav-desktop { display: none !important; }
-                    .quantix-header-grid { grid-template-columns: 1fr auto !important; padding: 0 2.5rem !important; }
+                ::-webkit-scrollbar { width: 12px; }
+                ::-webkit-scrollbar-track { background: ${bgPrimary}; }
+                ::-webkit-scrollbar-thumb { 
+                    background: rgba(255,255,255,0.12); 
+                    border-radius: 20px; 
+                    border: 4px solid ${bgPrimary};
+                }
+
+                @media (max-width: 1200px) {
+                    .quantix-desktop-nav { display: none !important; }
+                    .quantix-header-grid { grid-template-columns: 1fr auto !important; padding: 0 3rem !important; }
                 }
             `}</style>
 
+            {/* نظام الخلفية الموحد */}
             <canvas ref={canvasRef} style={{
                 position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+                background: `radial-gradient(circle at 50% 50%, #080315 0%, #000 100%)`
+            }} />
+            
+            {/* طبقة التدرج لعمق المحتوى */}
+            <div style={{
+                position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none',
+                background: `linear-gradient(to bottom, transparent, rgba(0,0,0,${dynamicOpacity}))`,
+                transition: 'background 0.7s ease-out'
             }} />
 
-            {/* ══ HEADER: THE CONTROL BAR ══ */}
+            {/* ══ الهيدر الرئيسي (HEADER) - شفاف ونظيف كما طلبت ══ */}
             <header style={{
-                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '110px',
-                backdropFilter: 'blur(40px)', background: 'rgba(0,0,0,0.6)',
-                borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center'
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '100px',
+                backdropFilter: 'blur(15px)', background: 'rgba(0,0,0,0.1)',
+                borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center'
             }}>
                 <div className="quantix-header-grid" style={{
-                    maxWidth: '1800px', margin: '0 auto', width: '100%', padding: '0 8rem',
-                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', direction: 'ltr'
+                    maxWidth: '1900px', margin: '0 auto', width: '100%', padding: '0 8rem',
+                    display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', alignItems: 'center', direction: 'ltr'
                 }}>
-                    {/* LANG SWITCH (LEFT) - moved to dedicated component for homepage only */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }} data-language-switcher>
                         <LanguageSwitcher />
                     </div>
 
-                    {/* MAIN NAV (CENTER) */}
-                    <nav className="quantix-nav-desktop" style={{ display: 'flex', gap: '6.5rem', justifyContent: 'center', direction: dir }}>
-                        {t.nav.map((label, i) => (
-                            <a key={i} className="quantix-nav-item" href={`#${['about','apps','contact'][i]}`} style={{ fontFamily: ff }}>
-                                {label}
-                            </a>
+                    <nav className="quantix-desktop-nav" style={{ display: 'flex', gap: '6rem', justifyContent: 'center', direction: dir }}>
+                        {t.nav.map((item, idx) => (
+                            <a key={idx} className="quantix-nav-link" href={`#${['vis','aps','help'][idx]}`} style={{ fontFamily: ff }}>{item}</a>
                         ))}
                     </nav>
 
-                    {/* EMPTY BALANCER (RIGHT) */}
-                    <div />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {/* تم مسح نصوص كوانتيكس من هنا والاكتفاء بالشعار */}
+                        <Link href="/">
+                            <img src="/images/Quantix_logo.png" alt="Quantix Logo" style={{ 
+                                height: '55px', width: 'auto', 
+                                filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.2))' 
+                            }} />
+                        </Link>
+                    </div>
                 </div>
             </header>
 
-            {/* ══ SECTION 1: THE VISUAL EXPERIENCE (GIF ONLY) ══ */}
-            <section style={{
-                height: '100vh', width: '100%', position: 'relative', overflow: 'hidden',
-                backgroundImage: 'url(/images/hero-visual.gif)', 
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#000'
-            }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
+            {/* ══ طبقات المحتوى (MAIN CONTENT) ══ */}
+            <main style={{ position: 'relative', zIndex: 2, direction: dir }}>
                 
-                {/* SCROLL HINT */}
-                <div style={{
-                    position: 'absolute', bottom: '80px', left: '50%',
-                    textAlign: 'center', animation: 'scrollBounce 3s infinite', cursor: 'default'
+                {/* القسم الأول: تم حذف الشارة (Badge) وتصغير الخط */}
+                <section id="vis" style={{ 
+                    height: '100vh', display: 'flex', flexDirection: 'column', 
+                    justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '0 12%' 
                 }}>
-                    <p style={{ 
-                        fontFamily: ff, fontSize: '1rem', color: 'rgba(255,255,255,0.7)', 
-                        letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '25px' 
-                    }}>
-                        {t.scrollHint}
-                    </p>
                     <div style={{ 
-                        width: '2px', height: '80px', 
-                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.8), transparent)', 
-                        margin: '0 auto' 
-                    }} />
-                </div>
-            </section>
-
-            {/* ══ SECTION 2: THE KNOWLEDGE BASE & APPS ══ */}
-            <main style={{ 
-                position: 'relative', zIndex: 2, direction: dir,
-                backgroundImage: 'url(/images/content-bg.jpg)', 
-                backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed'
-            }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: -1 }} />
-
-                {/* THE HERO MESSAGE */}
-                <section id="about" style={{ maxWidth: '1200px', margin: '0 auto', padding: '18rem 3rem 12rem', textAlign: 'center' }}>
-                    <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '18px', background: 'rgba(255,255,255,0.08)',
-                        border: '1px solid rgba(255,255,255,0.2)', borderRadius: '100px', padding: '16px 45px',
-                        marginBottom: '5.5rem', fontFamily: ff, fontSize: '1.05rem', color: '#fff',
-                        backdropFilter: 'blur(15px)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                        animation: 'revealUp 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        opacity: isMounted ? 1 : 0 
                     }}>
-                        <div style={{ 
-                            width: '12px', height: '12px', borderRadius: '50%', 
-                            background: '#c084fc', boxShadow: '0 0 30px #c084fc' 
-                        }} />
-                        {t.badge}
+                        <h1 style={{ 
+                            fontFamily: ff, fontSize: 'clamp(1.8rem, 4.5vw, 2.8rem)', // تصغير مقاس الخط الرئيسي
+                            fontWeight: '900', color: '#fff', lineHeight: 1.3, 
+                            marginBottom: '3rem', maxWidth: '1100px' 
+                        }}>
+                            <span className="shimmer-text">{t.welcome}</span> 
+                            <br /> 
+                            {t.slogan}
+                        </h1>
+
+                        <p style={{ 
+                            fontFamily: ff, fontSize: 'clamp(0.95rem, 1.4vw, 1.15rem)', // تصغير الوصف
+                            fontWeight: '700', lineHeight: 2.1, 
+                            color: 'rgba(255,255,255,0.8)', maxWidth: '850px', margin: '0 auto' 
+                        }}>
+                            {t.intro}
+                        </p>
                     </div>
-
-                    <h1 style={{
-                        fontFamily: ff, 
-                        fontSize: isAr ? 'clamp(4.5rem, 12vw, 8.5rem)' : 'clamp(5rem, 13vw, 9.5rem)',
-                        fontWeight: '800', color: '#fff', lineHeight: 1.0, 
-                        marginBottom: '4rem', letterSpacing: '-0.05em'
-                    }}>
-                        {t.heroLine1} <br />
-                        <span className="quantix-hero-gradient">{t.heroLine2}</span>
-                    </h1>
-
-                    <p style={{
-                        fontFamily: ff, fontSize: '1.6rem', fontWeight: '300', lineHeight: 2.1,
-                        color: 'rgba(255,255,255,0.7)', maxWidth: '900px', margin: '0 auto'
-                    }}>
-                        {t.heroSub}
-                    </p>
                 </section>
 
-                {/* THE APPLICATION GRID */}
-                <section id="apps" style={{ maxWidth: '1600px', margin: '0 auto', padding: '8rem 4rem 20rem' }}>
-                    <div style={{ 
-                        display: 'flex', alignItems: 'center', gap: '2.5rem', marginBottom: '8rem' 
-                    }}>
-                        <div style={{ 
-                            flex: 1, height: '1px', 
-                            background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent)' 
-                        }} />
+                {/* القسم الثاني: منظومة التطبيقات */}
+                <section id="aps" style={{ maxWidth: '1700px', margin: '0 auto', padding: '8rem 8rem 18rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3.5rem', marginBottom: '10rem' }}>
+                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(192,132,252,0.3), transparent)' }} />
                         <span style={{ 
-                            fontFamily: ff, fontSize: '0.9rem', color: 'rgba(255,255,255,0.3)', 
-                            letterSpacing: '0.4em', textTransform: 'uppercase', fontWeight: '600'
+                            fontFamily: ff, fontSize: '0.95rem', color: 'rgba(255,255,255,0.4)', 
+                            letterSpacing: '0.6em', textTransform: 'uppercase', fontWeight: '900' 
                         }}>{t.appsLabel}</span>
-                        <div style={{ 
-                            flex: 1, height: '1px', 
-                            background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent)' 
-                        }} />
+                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(192,132,252,0.3), transparent)' }} />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6rem' }}>
-                        {applications.map((app, i) => (
-                            <AppCard key={i} data={app.data} loginUrl={app.loginUrl} isAr={isAr} />
+                        {suites.map((suite, idx) => (
+                            <AppCard key={idx} data={suite.data} loginUrl={suite.loginUrl} isAr={isAr} ff={ff} />
                         ))}
                     </div>
-
-                    <p style={{ 
-                        textAlign: 'center', fontFamily: ff, fontSize: '1.2rem', 
-                        color: 'rgba(255,255,255,0.35)', marginTop: '10rem', letterSpacing: '0.05em' 
-                    }}>
-                        {t.bottomNote}
-                    </p>
                 </section>
 
-                {/* BIG STATS DIVIDER */}
+                {/* القسم الثالث: الإحصائيات - أكثر شفافية */}
                 <div style={{ 
-                    borderTop: '1px solid rgba(255,255,255,0.2)', 
-                    borderBottom: '1px solid rgba(255,255,255,0.2)', 
-                    background: 'rgba(0,0,0,0.85)', 
-                    backdropFilter: 'blur(50px)', 
-                    padding: '12rem 4rem' 
+                    background: 'rgba(11, 14, 43, 0.35)', 
+                    backdropFilter: 'blur(80px)', 
+                    padding: '16rem 8rem', 
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)'
                 }}>
                     <div style={{ 
-                        maxWidth: '1500px', margin: '0 auto', 
+                        maxWidth: '1600px', margin: '0 auto', 
                         display: 'flex', justifyContent: 'space-around', 
-                        gap: '8rem', flexWrap: 'wrap', textAlign: 'center' 
+                        gap: '10rem', flexWrap: 'wrap', textAlign: 'center' 
                     }}>
-                        {t.statsBar.map((item, i) => (
-                            <div key={i}>
+                        {t.statsBar.map((item, idx) => (
+                            <div key={idx}>
                                 <div style={{ 
-                                    fontFamily: ffEn, fontSize: '6rem', fontWeight: '800', 
-                                    color: '#fff', lineHeight: 1, textShadow: '0 20px 50px rgba(0,0,0,0.8)' 
+                                    fontFamily: ff, fontSize: '6.5rem', fontWeight: '900', // تصغير أرقام الإحصائيات
+                                    color: '#fff', lineHeight: 1, textShadow: '0 40px 80px rgba(0,0,0,0.8)' 
                                 }}>
                                     <Counter end={item.v} suffix={item.s} />
                                 </div>
                                 <div style={{ 
-                                    fontFamily: ff, fontSize: '1.3rem', 
-                                    color: '#c084fc', marginTop: '30px', 
-                                    textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: '600'
+                                    fontFamily: ff, fontSize: '1.4rem', color: '#c084fc', 
+                                    marginTop: '35px', textTransform: 'uppercase', 
+                                    letterSpacing: '0.25em', fontWeight: '900' 
                                 }}>{item.l}</div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* THE FINAL CONTACT FOOTER */}
-                <footer id="contact" style={{ 
-                    padding: '12rem 4rem', display: 'flex', alignItems: 'center', 
-                    justifyContent: 'center', gap: '50px', background: '#000' 
+                {/* ══ الشريط السفلي (FOOTER) - نصوص كوانتيكس باللغتين هنا فقط ══ */}
+                <footer id="help" style={{ 
+                    padding: '12rem 8rem', display: 'flex', flexDirection: 'column', 
+                    alignItems: 'center', justifyContent: 'center', gap: '60px', 
+                    background: 'transparent' // شفاف تماماً لدمجه مع النجوم
                 }}>
-                    <span style={{ 
-                        fontFamily: ffEn, fontSize: '2.2rem', fontWeight: '900', 
-                        color: 'rgba(255,255,255,0.4)', letterSpacing: '0.4em' 
-                    }}>QUANTIX</span>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
+                        <img 
+                            src="/images/Quantix_logo.png" 
+                            alt="Quantix Final Logo" 
+                            style={{ height: '85px', opacity: 1, filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.2))' }} 
+                        />
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: '10px',
+                            borderRight: isAr ? '4px solid rgba(255,255,255,0.15)' : 'none',
+                            borderLeft: !isAr ? '4px solid rgba(255,255,255,0.15)' : 'none',
+                            paddingRight: isAr ? '45px' : '0',
+                            paddingLeft: !isAr ? '45px' : '0'
+                        }}>
+                            <span style={{ 
+                                fontFamily: "'Cairo', sans-serif", fontSize: '2.4rem', // تصغير خط الشريط السفلي
+                                fontWeight: '900', color: '#fff', letterSpacing: '1px', lineHeight: 1 
+                            }}>كوانتيكس</span>
+                            <span style={{ 
+                                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '2.4rem', 
+                                fontWeight: '900', color: '#fff', letterSpacing: '6px', lineHeight: 1 
+                            }}>QUANTIX</span>
+                        </div>
+                    </div>
                     
                     <div style={{ 
-                        width: '12px', height: '12px', borderRadius: '50%', 
-                        background: 'rgba(255,255,255,0.3)' 
+                        width: '180px', height: '1px', 
+                        background: 'linear-gradient(to right, transparent, rgba(192,132,252,0.5), transparent)' 
                     }} />
                     
                     <span style={{ 
                         fontFamily: ff, fontSize: '1.2rem', 
-                        color: 'rgba(255,255,255,0.35)', fontWeight: '500' 
+                        color: 'rgba(255,255,255,0.4)', fontWeight: '800', letterSpacing: '0.04em'
                     }}>
                         © {new Date().getFullYear()} {t.footer}
                     </span>
+
                 </footer>
+
             </main>
         </>
     );
