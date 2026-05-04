@@ -1,4 +1,4 @@
-import { router } from "@inertiajs/react";
+import { useEffect } from "react";
 import InstructionsLayout from "../../Components/UI/InstructionsLayout";
 
 /* ── Icons ── */
@@ -56,20 +56,18 @@ const STEPS = [
 
 /* ── Page ── */
 export default function Instructions() {
-    const handleProceed = () => {
-        localStorage.setItem('harees_seen_instructions', 'true');
-        router.visit('/harees/dashboard');
-    };
+ // Save the flag as soon as the user views the page — no need to click a button
+  useEffect(() => {
+    localStorage.setItem("harees_seen_instructions", "true");
+  }, []);
 
   return (
     <InstructionsLayout
-      appName="MerchantTools"
+      appName="Harees"
       subtitle="Three simple steps to get started"
       description="Track product expiry dates intelligently. Set up categories once and let the system monitor everything and set your own discounts with one click, while the system auto-hides products when all its batches have fully expired."
       steps={STEPS}
-      ctaLabel="Go to Settings"
-        onCta={handleProceed}
-      footerNote="MerchantTools · All Channels · All Products"
+      footerNote="Harees · All Channels · All Products"
     />
   );
 }
