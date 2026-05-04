@@ -52,44 +52,45 @@ class Batch extends Model
         });
 
         static::saved(function ($batch) {
-            Log::info("--- [Batch Hook] Notification Triggered for ID: {$batch->id} ---");
+    $oldStatus = $batch->getOriginal('status');
+    $newStatus = $batch->status;
 
-            $oldStatus = $batch->getOriginal('status');
-            $newStatus = $batch->status;
+    if ($oldStatus === $newStatus) {
+        return;
+    }
 
-            // ✅ إصلاح 1: لا نُرسل notification إذا لم يتغيّر الوضع
-            if ($oldStatus === $newStatus) {
-                return;
-            }
+    if (!in_array($newStatus, ['yellow', 'red'])) {
+        return;
+    }
 
-            // ✅ إصلاح 2: لا نُرسل إلا للحالات الحرجة
-            if (!in_array($newStatus, ['yellow', 'red'])) {
-                return;
-            }
+    $merchant = $batch->merchant;
+    if (!$merchant) {
+        Log::warning("[Batch Hook] لا يوجد تاجر للدفعة ID: {$batch->id}");
+        return;
+    }
 
-            $merchant = $batch->merchant;
-            if (!$merchant) {
-                Log::warning("[Batch Hook] لا يوجد تاجر للدفعة ID: {$batch->id}");
-                return;
-            }
+    $hasProduct = $batch->batchItems()->exists();
+    if (!$hasProduct) {
+        Log::info("[Batch Hook] الدفعة {$batch->id} ليس لها منتج بعد — تم تأجيل الـ notification");
+        return;
+    }
 
-            // ✅ إصلاح 3: التحقق من وجود منتج مرتبط قبل إرسال الـ notification
-            // عند إنشاء Batch جديد، البيانات تُحفظ قبل BatchItem بفارق صغير
-            // لذلك نتحقق بدلاً من إطلاق exception
-            $hasProduct = $batch->batchItems()->exists();
+    // ✅ إنشاء Variant في سلة إذا تحولت لأصفر لأول مرة
+    if ($newStatus === 'yellow' && empty($batch->salla_variant_id)) {
+        try {
+            $batch->createSallaVariant();
+        } catch (\Throwable $e) {
+            Log::error("[Batch Hook] فشل إنشاء الفارينت: " . $e->getMessage());
+        }
+    }
 
-            if (!$hasProduct) {
-                Log::info("[Batch Hook] الدفعة {$batch->id} ليس لها منتج بعد — تم تأجيل الـ notification");
-                return;
-            }
-
-            try {
-                $merchant->notify(new \App\Notifications\BatchExpiryNotification($batch, $newStatus));
-                Log::info("[Batch Hook] تم إرسال notification للتاجر: {$merchant->id}");
-            } catch (\Throwable $e) {
-                Log::error("[Batch Hook] فشل إرسال notification: " . $e->getMessage());
-            }
-        });
+    // إرسال notification
+    try {
+        $merchant->notify(new \App\Notifications\BatchExpiryNotification($batch, $newStatus));
+    } catch (\Throwable $e) {
+        Log::error("[Batch Hook] فشل إرسال notification: " . $e->getMessage());
+    }
+});
     }
 
     // ====================================================================
@@ -209,6 +210,82 @@ class Batch extends Model
         $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
         return (int) ($settings?->medium_term_days ?? 14);
     }
+
+    /**
+ * ينشئ Variant في سلة ويحفظ salla_variant_id على الباتش
+ */
+public function createSallaVariant(): void
+{
+    $merchant = $this->merchant;
+    $product  = $this->products()->first();
+
+    if (!$product || !$product->salla_product_id) {
+        Log::warning("[Batch] لا يوجد salla_product_id — تخطي إنشاء الفارينت");
+        return;
+    }
+
+    $sallaApi    = \App\Services\SallaApiService::for($merchant);
+    $variantName = $this->batch_code . ' - ' . $this->expiry_date->format('Y-m-d');
+
+    Log::info("[Batch] إنشاء Variant للدفعة", [
+        'batch_id'     => $this->id,
+        'variant_name' => $variantName,
+    ]);
+
+    // ✅ إذا الخيار موجود مسبقاً — أضف قيمة جديدة فقط
+    if (!empty($product->salla_expiry_option_id)) {
+        $res           = $sallaApi->addValueToOption($product->salla_expiry_option_id, $variantName);
+        $optionValueId = $res['data']['id'] ?? null;
+        $skus          = $res['data']['skus'] ?? [];
+    } else {
+        // ✅ أنشئ الخيار لأول مرة
+        $res           = $sallaApi->createProductOption(
+            $product->salla_product_id,
+            'تاريخ الانتهاء',
+            $variantName
+        );
+        $optionValueId = $res['data']['values'][0]['id'] ?? null;
+        $skus          = $res['data']['skus'] ?? [];
+
+        // احفظ option_id في المنتج
+        $optionId = $res['data']['id'] ?? null;
+        if ($optionId) {
+            \Illuminate\Support\Facades\DB::table('products')
+                ->where('id', $product->id)
+                ->update(['salla_expiry_option_id' => $optionId]);
+        }
+    }
+
+    if (!$optionValueId) {
+        Log::error("[Batch] لم نجد option value ID", ['batch_id' => $this->id]);
+        return;
+    }
+
+    // ابحث عن SKU مرتبط بهذا الـ option value
+    $sallaVariantId = null;
+    foreach ($skus as $sku) {
+        if (in_array($optionValueId, $sku['related_option_values'] ?? [])) {
+            $sallaVariantId = $sku['id'];
+            break;
+        }
+    }
+
+    if (!$sallaVariantId) {
+        Log::error("[Batch] لم نجد SKU مرتبط", ['batch_id' => $this->id, 'option_value_id' => $optionValueId]);
+        return;
+    }
+
+    \Illuminate\Support\Facades\DB::table('batches')
+        ->where('id', $this->id)
+        ->update(['salla_variant_id' => $sallaVariantId]);
+
+    $this->salla_variant_id = $sallaVariantId;
+
+    Log::info("[Batch] تم حفظ salla_variant_id بنجاح", [
+        'batch_id'   => $this->id,
+        'variant_id' => $sallaVariantId,
+    ]);
+}
 
     /**
      * إرسال notification يدوياً بعد ربط المنتج (يُستدعى من Controller)
