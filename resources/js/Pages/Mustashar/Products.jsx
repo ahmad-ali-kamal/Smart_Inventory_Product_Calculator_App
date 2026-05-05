@@ -1,12 +1,12 @@
 // resources/js/Pages/Calculator/Products.jsx
 import { useState, useMemo } from 'react';
 import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../hooks/useMustasharGuard';
+import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import { useAllProducts } from '../../hooks/useProducts';
-import { useToggleWithToast } from '../../hooks/useToggleWithToast';  // ← الهوك الموحد
+import { useAllProducts } from '../../Hooks/useProducts';
+import { useToggleWithToast } from '../../Hooks/useToggleWithToast';  // ← الهوك الموحد
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
 import { motion, AnimatePresence } from 'framer-motion';

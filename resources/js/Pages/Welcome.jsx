@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect, useMemo } from 'react';
-import { useLang } from '@/hooks/useLang';
+import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import GuestLayout from '@/Layouts/GuestLayout';
 

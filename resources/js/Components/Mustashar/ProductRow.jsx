@@ -24,7 +24,7 @@ export default function ProductRow({ product, onToggle, fading = false }) {
                         {product.name}
                     </p>
                     <p className="text-[10px] text-[var(--muted-foreground)] font-mono uppercase">
-                        {product.sku}
+                       #{product.id}
                     </p>
                 </div>
             </div>

@@ -415,7 +415,8 @@ class InventoryApiController extends Controller
             'auto_hide_expired' => 'nullable|boolean',
             'auto_discounts' => 'nullable|boolean',
             'enable_notifications' => 'nullable|boolean',
-            'fixed_discount_percentage' => 'nullable|integer|min:1|max:90',
+            'auto_discount_percent'       => 'nullable|integer|min:1|max:99', 
+            'auto_discount_duration_days' => 'nullable|integer|min:1', 
             'category_mapping' => 'nullable|array',
         ]);
 
@@ -428,6 +429,8 @@ class InventoryApiController extends Controller
                 'auto_hide_expired' => $request->boolean('auto_hide_expired'),
                 'enable_notifications' => $request->boolean('enable_notifications'),
                 'auto_discounts' => $request->boolean('auto_discounts'),
+                'auto_discount_percent'       => $validated['auto_discount_percent'] ?? null,       
+                'auto_discount_duration_days' => $validated['auto_discount_duration_days'] ?? null, 
             ]
         );
 

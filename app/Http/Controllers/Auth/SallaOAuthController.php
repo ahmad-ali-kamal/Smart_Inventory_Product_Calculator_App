@@ -48,39 +48,37 @@ class SallaOAuthController extends Controller
     /**
      * معالجة الـCallback وجلب التوكن ومعلومات التاجر
      */
-    public function callback(Request $request)
-    {
-        if ($request->state !== session('oauth_state')) {
-            return redirect()->route('login')->with('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
-        }
-
-        if (!$request->has('code')) {
-            return redirect()->route('login')->with('error', 'لم يتم الحصول على رمز التفويض.');
-        }
-
-        try {
-            $config = $this->getAppConfig();
-
-            $tokenData = $this->getAccessToken($request->code, $config);
-            $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
-
-            $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData, $config);
-
-            Auth::login($merchant);
-
-            return redirect(
-    session('salla_app_type') === 'calculator'
-        ? '/mustashar/dashboard'
-        : '/harees/dashboard'
-);
-             
-
-        } catch (\Exception $e) {
-            Log::error('Salla OAuth Error: ' . $e->getMessage());
-            return redirect()->route('login')->with('error', 'خطأ في الربط: ' . $e->getMessage());
-        }
+  public function callback(Request $request)
+{
+    if ($request->state !== session('oauth_state')) {
+        $route = session('salla_app_type') === 'calculator' ? 'mustashar.login' : 'harees.login';
+        return redirect()->route($route)->with('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
     }
 
+    if (!$request->has('code')) {
+        $route = session('salla_app_type') === 'calculator' ? 'mustashar.login' : 'harees.login';
+        return redirect()->route($route)->with('error', 'لم يتم الحصول على رمز التفويض.');
+    }
+
+    try {
+        $config = $this->getAppConfig();
+        $tokenData = $this->getAccessToken($request->code, $config);
+        $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
+        $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData, $config);
+        Auth::login($merchant);
+
+        return redirect(
+            session('salla_app_type') === 'calculator'
+                ? '/mustashar/dashboard'
+                : '/harees/dashboard'
+        );
+
+    } catch (\Exception $e) {
+        Log::error('Salla OAuth Error: ' . $e->getMessage());
+        $route = session('salla_app_type') === 'calculator' ? 'mustashar.login' : 'harees.login';
+        return redirect()->route($route)->with('error', 'خطأ في الربط: ' . $e->getMessage());
+    }
+}
     /**
      * تحديث بيانات التاجر وحفظ التوكنات
      */
@@ -149,9 +147,14 @@ class SallaOAuthController extends Controller
     }
 
     private function getMerchantInfo(string $accessToken): array
-    {
-        $response = Http::withToken($accessToken)->get('https://accounts.salla.sa/oauth2/user/info');
-        if ($response->failed()) throw new \Exception('فشل جلب بيانات التاجر.');
-        return $response->json()['data'];
+{
+    $response = Http::withToken($accessToken)
+        ->get('https://api.salla.dev/admin/v2/oauth2/user/info');
+    
+    if ($response->failed()) {
+        throw new \Exception('فشل جلب بيانات التاجر. Status: ' . $response->status() . ' Body: ' . $response->body());
     }
+    
+    return $response->json()['data'];
+}
 }

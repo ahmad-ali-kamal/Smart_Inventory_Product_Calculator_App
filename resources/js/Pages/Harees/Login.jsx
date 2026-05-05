@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
-import { useLang } from '@/hooks/useLang';
+import { useLang } from '@/Hooks/useLang';
 import GuestLayout from '@/Layouts/GuestLayout';
 
 /* ─── Translations ─────────────────────────────────────── */
@@ -118,10 +118,6 @@ export default function HareesLogin({ status }) {
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Cormorant+Garamond:wght@700;900&display=swap');
 
-                /*
-                 * ✅ لا نُعيد تعريف الخلفية هنا — GuestLayout يتولى ذلك
-                 * هذا يمنع أي تعارض أو وميض ناتج عن إعادة تعريف background
-                 */
                 body { color: #E6E1F5; font-family: ${ff}; overflow-x: hidden; margin: 0; }
 
                 .iri-text {
@@ -167,7 +163,6 @@ export default function HareesLogin({ status }) {
                 @media (max-width: 860px) { .inv-left { display: none !important; } .inv-grid { grid-template-columns: 1fr !important; } }
             `}</style>
 
-            {/* ✅ لا يوجد هنا LiquidEther — الخلفية موجودة في GuestLayout */}
 
             <div style={{ direction: dir, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
@@ -265,9 +260,5 @@ export default function HareesLogin({ status }) {
     );
 }
 
-/*
- * ✅ PERSISTENT LAYOUT
- * نفس الـ GuestLayout المستخدم في Welcome.jsx
- * Inertia تكتشف أن الـ layout متطابق ← لا تُعيد mount ← الخلفية تستمر
- */
+
 HareesLogin.layout = page => <GuestLayout>{page}</GuestLayout>;

@@ -1,18 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CalendarPlus, Trash2, PlusCircle, CheckCircle, AlertCircle, Package } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+// ── Toast style ──
+const toastStyle = {
+    borderRadius: '12px',
+    background: 'var(--card)',
+    color: 'var(--foreground)',
+    border: '1px solid var(--border)',
+    fontSize: '12px',
+    fontWeight: 'bold',
+};
+
+
+const dateInputStyle = `
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.3);
+    opacity: 1;
+    cursor: pointer;
+  }
+  :root[class~="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 1;
+  }
+`;
 
 export default function ExpiryModal({ product, onClose, onSave }) {
     const [selection, setSelection] = useState(null); // 'yes' or 'no'
     const [singleDate, setSingleDate] = useState('');
     const [batches, setBatches] = useState([{ id: Date.now(), qty: '', date: '' }]);
-    const [isSaving, setIsSaving]   = useState(false);
-    const [isSaved, setIsSaved]     = useState(false);
-    const [error, setError]         = useState(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [isSaving, setIsSaving]       = useState(false);
+    const [error, setError]             = useState(null);
+    const [isDeleting, setIsDeleting]   = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const totalQty   = product.quantity ?? product.dbQty ?? 0;
     const hasBatches = product.batches && product.batches.length > 0;
+
+    const today = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
         if (!hasBatches) return;
@@ -30,10 +57,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         }
     }, [hasBatches, product.batches]);
 
-    const usedQty        = batches.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
-    const remainingQty   = totalQty - usedQty;
-    const allDistributed = remainingQty === 0 && usedQty > 0;
-    const isOverLimit    = usedQty > totalQty;
+    const usedQty = batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0);
+    const remainingQty    = totalQty - usedQty;
+    const allDistributed  = remainingQty === 0 && usedQty > 0;
+    const isOverLimit     = usedQty > totalQty;
     const progressPercent = totalQty > 0 ? Math.min((usedQty / totalQty) * 100, 100) : 0;
 
     const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content;
@@ -57,8 +84,11 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 setIsDeleting(false);
                 return;
             }
+
             onSave(product.id, { reset: true });
             if (closeAfter) onClose();
+            toast.success('All batches deleted successfully', { duration: 3000, style: toastStyle });
+
         } catch {
             setError('Connection failed');
             setIsDeleting(false);
@@ -67,18 +97,33 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
     const validate = () => {
         if (!selection) return 'Please select an option first';
+
         if (selection === 'yes') {
             if (!singleDate) return 'Please enter the expiry date';
+
+            if (singleDate < today) return 'Expiry date cannot be in the past';
+
         } else {
             if (batches.length === 0) return 'Add at least one batch';
+            const errors = {};
             for (let i = 0; i < batches.length; i++) {
-                if (!batches[i].qty || parseInt(batches[i].qty) < 1)
-                    return `Enter a valid quantity for Batch ${i + 1}`;
-                if (!batches[i].date)
-                    return `Enter the expiry date for Batch ${i + 1}`;
+                const qty = parseInt(batches[i].qty);
+                if (!batches[i].qty || isNaN(qty) || qty <= 0) {
+                    errors[batches[i].id] = 'Quantity must be greater than 0';
+                }
+                if (!batches[i].date) {
+                    errors[batches[i].id + '_date'] = 'required';
+
+                } else if (batches[i].date < today) {
+                    errors[batches[i].id + '_date'] = 'past';
+                }
+            }
+            if (Object.keys(errors).length > 0) {
+                setFieldErrors(errors);
+                return 'Please fix the highlighted fields';
             }
             if (isOverLimit)
-                return `Total (${usedQty}) exceeds available stock (${totalQty})`;
+                return `Exceeds available stock (${totalQty}).`;
             if (usedQty < totalQty)
                 return `${totalQty - usedQty} unit(s) unassigned — all stock must be distributed`;
         }
@@ -127,25 +172,43 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 return;
             }
 
-            setIsSaved(true);
             if (selection === 'yes' && !data.expiry_date) {
                 data.expiry_date = singleDate;
             }
-            setTimeout(() => { onSave(product.id, data); onClose(); }, 1400);
+
+            onSave(product.id, data);
+            onClose();
+            toast.success(
+                hasBatches ? 'Expiry date updated successfully' : 'Expiry date added successfully',
+                { duration: 3000, style: toastStyle }
+            );
+
         } catch {
             setError('Connection failed');
             setIsSaving(false);
         }
     };
 
-    const updateBatch = (id, field, value) => {
-        setError(null);
-        setBatches(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
-    };
+    // ── updateBatch: أرقام فقط للـ qty + مسح field error ──
+   const updateBatch = (id, field, value) => {
+    setError(null);
+   let clean = field === 'qty' ? value.replace(/[^0-9]/g, '') : value;
+
+    if (field === 'qty' && clean.length > 6) {
+        return; 
+    }
+
+    setFieldErrors(prev => ({
+        ...prev,
+        [id]: undefined,
+        [id + '_date']: undefined,
+    }));
+    setBatches(prev => prev.map(b => b.id === id ? { ...b, [field]: clean } : b));
+};
 
     return createPortal(
-        // الـ Portal يرسم الـ modal مباشرة على document.body — يتجاوز أي overflow أو transform في الـ parents
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <style>{dateInputStyle}</style>
             <div className="relative w-full max-w-[500px] bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
 
                 {/* ── Header ── */}
@@ -173,7 +236,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => { setSelection('yes'); setError(null); }}
+                            onClick={() => { setSelection('yes'); setError(null); setFieldErrors({}); }}
                             className={`flex-1 py-3 rounded-2xl border text-xs font-bold transition-all ${
                                 selection === 'yes'
                                     ? 'border-[var(--primary)] bg-[var(--accent)] text-[var(--primary)]'
@@ -183,7 +246,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             Yes — Single Batch
                         </button>
                         <button
-                            onClick={() => { setSelection('no'); setError(null); }}
+                            onClick={() => { setSelection('no'); setError(null); setFieldErrors({}); }}
                             className={`flex-1 py-3 rounded-2xl border text-xs font-bold transition-all ${
                                 selection === 'no'
                                     ? 'border-[var(--primary)] bg-[var(--accent)] text-[var(--primary)]'
@@ -204,13 +267,13 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         </div>
                     )}
 
-                    {/* Progress bar - استخدام متغيرات الـ Status */}
+                    {/* Progress bar */}
                     {selection === 'no' && (
                         <div className="space-y-3">
                             <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--border)] space-y-2">
                                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wide">
                                     <span className={
-                                        isOverLimit     ? 'text-[var(--status-expired-text)]'
+                                        isOverLimit      ? 'text-[var(--status-expired-text)]'
                                         : allDistributed ? 'text-[var(--status-safe-text)]'
                                         : 'text-[var(--primary)]'
                                     }>
@@ -258,6 +321,8 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                 <input
                                     type="date"
                                     value={singleDate}
+                                   
+                                    min={today}
                                     onChange={e => { setSingleDate(e.target.value); setError(null); }}
                                     className="w-full p-3 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm outline-none focus:border-[var(--primary)] transition-colors"
                                 />
@@ -276,10 +341,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                             onClick={async () => {
                                                 setBatches([]);
                                                 setError(null);
+                                                setFieldErrors({});
                                                 if (hasBatches) await handleDeleteAll(false);
                                             }}
                                             disabled={isDeleting}
-                                            // تعديل زر Clear All
                                             className="text-[10px] font-bold text-[var(--status-expired-text)] bg-[var(--status-expired-bg)] px-2 py-1 rounded-lg hover:brightness-95 transition-all"
                                         >
                                             {isDeleting ? 'Clearing...' : 'Clear All'}
@@ -295,44 +360,94 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             </div>
 
                             {batches.map((batch, idx) => (
-                                <div key={batch.id} className="p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] space-y-3">
+                                <div
+                                    key={batch.id}
+                                    className={`p-4 rounded-xl border bg-[var(--card)] space-y-3 transition-colors ${
+                                        (fieldErrors[batch.id] || fieldErrors[batch.id + '_date'])
+                                            ? 'border-[var(--status-expired-text)] ring-1 ring-[var(--status-expired-text)]/20'
+                                            : 'border-[var(--border)]'
+                                    }`}
+                                >
                                     <div className="flex justify-between items-center">
                                         <span className="text-[11px] font-bold text-[var(--foreground)]">Batch {idx + 1}</span>
                                         <button
-                                            onClick={() => { setBatches(prev => prev.filter(b => b.id !== batch.id)); setError(null); }}
+                                            onClick={() => {
+                                                setBatches(prev => prev.filter(b => b.id !== batch.id));
+                                                setFieldErrors(prev => {
+                                                    const next = { ...prev };
+                                                    delete next[batch.id];
+                                                    delete next[batch.id + '_date'];
+                                                    return next;
+                                                });
+                                                setError(null);
+                                            }}
                                             className="p-1 rounded-lg hover:bg-[var(--status-expired-bg)] transition-colors group"
                                         >
                                             <Trash2 size={13} className="text-[var(--status-expired-text)] opacity-70 group-hover:opacity-100" />
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
+
+                                        {/* Quantity */}
                                         <div className="space-y-1">
                                             <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-wide">Quantity</label>
                                             <input
                                                 type="number"
                                                 placeholder="0"
                                                 min="1"
+                                                maxLength={6} 
                                                 value={batch.qty}
                                                 onChange={e => updateBatch(batch.id, 'qty', e.target.value)}
-                                                className="w-full p-2.5 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] rounded-xl text-xs font-bold outline-none focus:border-[var(--primary)] transition-colors"
+                                                onKeyDown={e => {
+                                                    if (['-', '+', 'e', 'E', '.'].includes(e.key)) e.preventDefault();
+                                                }}
+                                                className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none transition-colors border
+                                                    bg-[var(--background)] text-[var(--foreground)]
+                                                    ${fieldErrors[batch.id]
+                                                        ? 'border-[var(--status-expired-text)] bg-[var(--status-expired-bg)] ring-1 ring-[var(--status-expired-text)]/30'
+                                                        : 'border-[var(--border)] focus:border-[var(--primary)]'
+                                                    }`}
                                             />
+                                            {fieldErrors[batch.id] && (
+                                                <p className="text-[9px] font-bold text-[var(--status-expired-text)] mt-0.5">
+                                                    {fieldErrors[batch.id]}
+                                                </p>
+                                            )}
                                         </div>
+
+                                        {/* Expiry Date */}
                                         <div className="space-y-1">
                                             <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-wide">Expiry Date</label>
                                             <input
                                                 type="date"
                                                 value={batch.date}
+                                               
+                                                min={today}
                                                 onChange={e => updateBatch(batch.id, 'date', e.target.value)}
-                                                className="w-full p-2.5 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] rounded-xl text-xs outline-none focus:border-[var(--primary)] transition-colors"
+                                                className={`w-full p-2.5 rounded-xl text-xs outline-none transition-colors border
+                                                    bg-[var(--background)] text-[var(--foreground)]
+                                                    ${fieldErrors[batch.id + '_date']
+                                                        ? 'border-[var(--status-expired-text)] bg-[var(--status-expired-bg)] ring-1 ring-[var(--status-expired-text)]/30'
+                                                        : 'border-[var(--border)] focus:border-[var(--primary)]'
+                                                    }`}
                                             />
+                                            {fieldErrors[batch.id + '_date'] && (
+                                                <p className="text-[9px] font-bold text-[var(--status-expired-text)] mt-0.5">
+                                                    
+                                                    {fieldErrors[batch.id + '_date'] === 'past'
+                                                        ? 'Date is in the past'
+                                                        : 'Required'}
+                                                </p>
+                                            )}
                                         </div>
+
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {/* Error Alert Box - باستخدام متغيرات الـ Status */}
+                    {/* Error Alert Box */}
                     {error && (
                         <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--status-expired-bg)] border border-[var(--status-expired-border)] text-[var(--status-expired-text)] text-[11px] font-bold">
                             <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
@@ -345,20 +460,17 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 <div className="p-5 border-t border-[var(--border)] bg-[var(--card)]">
                     <button
                         onClick={handleSave}
-                        disabled={isSaving || isSaved || !selection}
+                      
+                        disabled={isSaving || !selection}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                            isSaved
-                                ? 'bg-[var(--status-safe-text)] text-white'
-                                : isSaving
-                                    ? 'bg-[var(--primary)]/60 text-white cursor-wait'
-                                    : !selection
-                                        ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
-                                        : 'bg-[var(--primary)] text-white hover:opacity-90 active:scale-[0.98]'
+                            isSaving
+                                ? 'bg-[var(--primary)]/60 text-white cursor-wait'
+                                : !selection
+                                    ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
+                                    : 'bg-[var(--primary)] text-white hover:opacity-90 active:scale-[0.98]'
                         }`}
                     >
-                        {isSaved ? (
-                            <><CheckCircle size={16} /> Saved Successfully</>
-                        ) : isSaving ? (
+                        {isSaving ? (
                             <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving...</>
                         ) : (
                             hasBatches ? 'Update Expiry Date' : 'Save Expiry Information'

@@ -35,7 +35,7 @@ class CalculatorSettingsController extends Controller
         // 1. التحقق من صحة البيانات
         $validated = $request->validate([
             'coverage_per_unit' => 'required|numeric|min:0.01', // التغطية (متر مربع للكرتون)
-            'waste_percentage'  => 'required|numeric|min:0|max:100', // نسبة الهدر %
+            'waste_percentage'  => 'required|numeric|min:0|max:50', // نسبة الهدر %
         ], [
             'coverage_per_unit.required' => 'حقل التغطية (Coverage) مطلوب.',
             'coverage_per_unit.numeric'  => 'يجب أن تكون التغطية رقماً.',
@@ -43,7 +43,7 @@ class CalculatorSettingsController extends Controller
             'waste_percentage.required'  => 'حقل نسبة الهدر مطلوب.',
             'waste_percentage.numeric'   => 'نسبة الهدر يجب أن تكون رقماً.',
             'waste_percentage.min'       => 'نسبة الهدر لا يمكن أن تكون سالبة.',
-            'waste_percentage.max'       => 'نسبة الهدر لا يمكن أن تتجاوز 100%.',
+            'waste_percentage.max'       => 'نسبة الهدر لا يمكن أن تتجاوز %50',
         ]);
 
         // 2. الحفظ في قاعدة البيانات (Create Or Update)
