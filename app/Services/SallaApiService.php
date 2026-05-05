@@ -3,15 +3,17 @@
 namespace App\Services;
 
 use App\Models\Merchant;
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class SallaApiService
 {
     protected Merchant $merchant;
-    protected string $baseUrl = 'https://api.salla.dev/admin/v2';
+    protected string $baseUrl  = 'https://api.salla.dev/admin/v2';
     protected string $oauthUrl = 'https://accounts.salla.sa/oauth2/token';
+
+    public const BATCH_OPTION_NAME = 'بيانات الدفعة';
 
     public function __construct(Merchant $merchant)
     {
@@ -23,184 +25,275 @@ class SallaApiService
         return new self($merchant);
     }
 
-    // ==============================================================================
-    // 1. نظام إدارة وتجديد التوكن (Refresh Token Handling)
-    // ==============================================================================
+    // ================================================================
+    // Token Management
+    // ================================================================
 
-    /**
-     * جلب التوكن الحالي من قاعدة البيانات
-     */
     protected function getAccessToken(): string
     {
-        // بناءً على رسائل الخطأ السابقة، التوكن محفوظ في علاقة sallaApps
-        $sallaApp = $this->merchant->sallaApp ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
-        
+        $sallaApp = $this->merchant->sallaApp
+            ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
+
         if (!$sallaApp || empty($sallaApp->access_token)) {
-            throw new Exception("SallaApp or access_token not found for merchant {$this->merchant->id}");
+            throw new Exception("لم يتم العثور على access_token للتاجر {$this->merchant->id}");
         }
-        
-        return $sallaApp->access_token;
+
+        return (string) $sallaApp->access_token;
     }
 
-    /**
-     * جلب الريفريش توكن من قاعدة البيانات
-     */
     protected function getRefreshToken(): string
     {
-        $sallaApp = $this->merchant->sallaApp ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
-        return $sallaApp->refresh_token ?? '';
+        $sallaApp = $this->merchant->sallaApp
+            ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
+
+        return (string) ($sallaApp->refresh_token ?? '');
     }
 
-    /**
-     * تحديث التوكنات الجديدة في قاعدة البيانات بعد التجديد
-     */
-    protected function updateTokensInDb($accessToken, $refreshToken, $expiresIn): void
+    protected function updateTokensInDb(string $accessToken, string $refreshToken, $expiresIn): void
     {
-        $sallaApp = $this->merchant->sallaApp ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
-        
+        $sallaApp = $this->merchant->sallaApp
+            ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
+
         if ($sallaApp) {
             $sallaApp->update([
                 'access_token'  => $accessToken,
                 'refresh_token' => $refreshToken,
                 'expires_in'    => $expiresIn,
             ]);
-        } else {
-            // كخيار احتياطي في حال كان مخزناً في جدول التاجر نفسه
-            $this->merchant->update([
-                'access_token'  => $accessToken,
-                'refresh_token' => $refreshToken,
-            ]);
+            return;
         }
+
+        $this->merchant->update([
+            'access_token'  => $accessToken,
+            'refresh_token' => $refreshToken,
+        ]);
     }
 
-    /**
-     * دالة التجديد الفعلي بالتخاطب مع سلة
-     */
     protected function refreshAccessToken(): ?string
     {
         $refreshToken = $this->getRefreshToken();
 
-        if (empty($refreshToken)) {
-            Log::error("[SallaApiService] لا يوجد Refresh Token متاح للتاجر {$this->merchant->id}");
+        if ($refreshToken === '') {
+            Log::error("[SallaApiService] لا يوجد Refresh Token للتاجر {$this->merchant->id}");
             return null;
         }
 
         $response = Http::asForm()->post($this->oauthUrl, [
             'grant_type'    => 'refresh_token',
             'refresh_token' => $refreshToken,
-            'client_id'     => env('SALLA_CLIENT_ID', config('services.salla.client_id')),
+            'client_id'     => env('SALLA_CLIENT_ID',     config('services.salla.client_id')),
             'client_secret' => env('SALLA_CLIENT_SECRET', config('services.salla.client_secret')),
         ]);
 
         if ($response->successful()) {
-            $data = $response->json();
-            $this->updateTokensInDb($data['access_token'], $data['refresh_token'], $data['expires_in'] ?? null);
-            return $data['access_token'];
-        }
-
-        Log::error("[SallaApiService] فشل الاتصال برابط التجديد: " . $response->body());
-        return null;
-    }
-
-    // ==============================================================================
-    // 2. المحرك الأساسي للطلبات (Interceptor)
-    // ==============================================================================
-
-    /**
-     * يرسل الطلب، وإذا واجه 401، يقوم بتجديد التوكن وإعادة المحاولة تلقائياً
-     */
-    protected function request(string $method, string $endpoint, array $data = [])
-    {
-        $token = $this->getAccessToken();
-        $url = $this->baseUrl . $endpoint;
-
-        $response = Http::withToken($token)
-            ->withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])
-            ->$method($url, $data);
-
-        // إذا كان التوكن منتهي الصلاحية (التعامل مع الرفريش توكن)
-        if ($response->status() === 401) {
-            Log::warning("[SallaApiService] انتهت صلاحية التوكن للتاجر {$this->merchant->id} (401). جاري محاولة التجديد...");
-
-            $newToken = $this->refreshAccessToken();
-
-            if ($newToken) {
-                Log::info("[SallaApiService] تم تجديد التوكن بنجاح. سيتم إعادة المحاولة للطلب الأصلي...");
-                
-                // إعادة إرسال الطلب الأصلي بالتوكن الجديد
-                $retryResponse = Http::withToken($newToken)
-                    ->withHeaders([
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                    ])
-                    ->$method($url, $data);
-
-                if (!$retryResponse->successful()) {
-                    Log::error("[SallaApiService] فشل الطلب حتى بعد تجديد التوكن: " . $retryResponse->body());
-                    throw new Exception("فشل الطلب بعد تجديد التوكن: " . $retryResponse->body());
-                }
-
-                return $retryResponse->json();
-            } else {
-                throw new Exception("انتهى التوكن وفشلت عملية التجديد (Refresh Token) للتاجر {$this->merchant->id}");
+            $data = $response->json() ?? [];
+            if (!empty($data['access_token'])) {
+                $this->updateTokensInDb(
+                    (string) $data['access_token'],
+                    (string) ($data['refresh_token'] ?? $refreshToken),
+                    $data['expires_in'] ?? null
+                );
+                return (string) $data['access_token'];
             }
         }
 
-        // معالجة باقي أنواع الأخطاء (غير الـ 401)
-        if (!$response->successful()) {
-            Log::error("[SallaApiService] خطأ سلة ({$response->status()}): " . $response->body());
-            throw new Exception("خطأ في الاتصال بسلة: " . $response->body());
+        Log::error('[SallaApiService] فشل تجديد التوكن: ' . $response->body());
+        return null;
+    }
+
+    // ================================================================
+    // Core Request Engine — auto-refresh on 401
+    // ================================================================
+
+    protected function request(string $method, string $endpoint, array $data = []): array
+    {
+        $token = $this->getAccessToken();
+        $url   = $this->baseUrl . '/' . ltrim($endpoint, '/');
+
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json', 'Content-Type' => 'application/json'])
+            ->$method($url, $data);
+
+        if ($response->status() === 401) {
+            Log::warning("[SallaApiService] 401 للتاجر {$this->merchant->id} — جاري التجديد");
+            $newToken = $this->refreshAccessToken();
+
+            if (!$newToken) {
+                throw new Exception("فشل تجديد التوكن للتاجر {$this->merchant->id}");
+            }
+
+            $response = Http::withToken($newToken)
+                ->withHeaders(['Accept' => 'application/json', 'Content-Type' => 'application/json'])
+                ->$method($url, $data);
         }
 
-        return $response->json();
+        if (!$response->successful()) {
+            Log::error("[SallaApiService] خطأ ({$response->status()}): " . $response->body(), [
+                'endpoint' => $endpoint,
+                'method'   => strtoupper($method),
+                'payload'  => $data,
+            ]);
+            throw new Exception("خطأ سلة [{$response->status()}]: " . $response->body());
+        }
+
+        return $response->json() ?? [];
     }
 
-    // ==============================================================================
-    // 3. دوال التخاطب مع سلة (Endpoints) - متبقية كما هي تماماً بدون تغيير
-    // ==============================================================================
+    // ================================================================
+    // Products API
+    // ================================================================
 
-    public function getProductDetails($salla_product_id)
+    public function getProductDetails(string $sallaProductId): array
     {
-        return $this->request('get', "/products/{$salla_product_id}");
+        return $this->request('get', "products/{$sallaProductId}");
     }
 
-    public function getProductOptions($salla_product_id)
+    public function getProductOptions(string $sallaProductId): array
     {
-        return $this->request('get', "/products/{$salla_product_id}/options");
+        $response = $this->getProductDetails($sallaProductId);
+        return [
+            'success' => $response['success'] ?? true,
+            'data'    => $response['data']['options'] ?? [],
+        ];
     }
 
-    public function getProductVariants($salla_product_id)
+    /**
+     * جلب الـ Variants من endpoint منفصل (أكثر دقة)
+     * GET /products/{product}/variants
+     */
+    public function getProductVariants(string $sallaProductId): array
     {
-        return $this->request('get', "/products/{$salla_product_id}/variants");
+        $response = $this->request('get', "products/{$sallaProductId}/variants");
+        return [
+            'success' => $response['success'] ?? true,
+            'data'    => $response['data'] ?? [],
+        ];
     }
 
-    public function updateBatchVariant($variant_id, array $data)
+    public function updateProductStatusOnly(string $sallaProductId, string $status): array
     {
-        return $this->request('put', "/products/variants/{$variant_id}", $data);
-    }
-
-    public function updateProductStatusOnly($product_id, $status)
-    {
-        return $this->request('put', "/products/{$product_id}/status", ['status' => $status]);
-    }
-
-    public function createProductOption($product_id, $name, $value)
-    {
-        return $this->request('post', "/products/{$product_id}/options", [
-            'name' => $name,
-            'values' => [
-                ['name' => $value]
-            ]
+        return $this->request('post', "products/{$sallaProductId}/status", [
+            'status' => $status,
         ]);
     }
 
-    public function addValueToOption($option_id, $value)
+    // ================================================================
+    // Variants API
+    // ================================================================
+
+    /**
+     * جلب تفاصيل Variant محدد
+     * GET /products/variants/{variant}
+     */
+    public function getVariantDetails(string $variantId): array
     {
-        return $this->request('post', "/products/options/{$option_id}/values", [
-            'name' => $value
+        return $this->request('get', "products/variants/{$variantId}");
+    }
+
+    /**
+     * تحديث بيانات Variant موجود
+     * PUT /products/variants/{variant}
+     *
+     * ✅ قواعد سلة الصارمة (من التوثيق):
+     * - يجب إرسال جميع الحقول المطلوبة من الـ OpenAPI
+     * - الحقول المطلوبة: sku, barcode, price, sale_price, cost_price, stock_quantity, weight, mpn, gtin
+     */
+    public function updateBatchVariant(string $variantId, array $data): array
+    {
+        if (!isset($data['sku'])) {
+            throw new Exception('SKU مطلوب لتحديث الـvariant');
+        }
+        if (!isset($data['price'])) {
+            throw new Exception('السعر الأصلي (price) مطلوب');
+        }
+        if (!isset($data['stock_quantity'])) {
+            throw new Exception('الكمية (stock_quantity) مطلوبة');
+        }
+
+        // ✅ إرسال جميع الحقول المطلوبة حسب توثيق سلة
+        $payload = [
+            'sku'            => $data['sku'],
+            'barcode'        => $data['barcode'] ?? null,
+            'price'          => (float) $data['price'],
+            'sale_price'     => isset($data['sale_price']) ? (float) $data['sale_price'] : null,
+            'cost_price'     => (float) ($data['cost_price'] ?? $data['price'] ?? 0),
+            'stock_quantity' => (int) $data['stock_quantity'],
+            'weight'         => (int) ($data['weight'] ?? 0),
+            'mpn'            => $data['mpn'] ?? null,
+            'gtin'           => $data['gtin'] ?? null,
+        ];
+
+        Log::info('[Variant Update] ✅ إرسال ALL الحقول المطلوبة:', $payload);
+
+        $response = $this->request('put', "products/variants/{$variantId}", $payload);
+
+        Log::info('[Variant Update] ✅ الاستجابة:', $response);
+
+        return $response;
+    }
+
+    /**
+     * إنشاء Variant جديد للمنتج
+     * POST /products/{product}/variants
+     */
+    public function createVariant(
+        string $sallaProductId,
+        array  $relatedValues,
+        float  $price,
+        int    $stockQuantity,
+        string $sku = ''
+    ): array {
+        $payload = [
+            'related_option_values' => $relatedValues,
+            'price'                 => $price,
+            'stock_quantity'        => $stockQuantity,
+        ];
+
+        if ($sku !== '') {
+            $payload['sku'] = $sku;
+        }
+
+        return $this->request('post', "products/{$sallaProductId}/variants", $payload);
+    }
+
+    // ================================================================
+    // Options API
+    // ================================================================
+
+    /**
+     * إنشاء خيار جديد للمنتج مع قيمه
+     * POST /products/{product}/options
+     *
+     * ✅ display_type: "text" فقط — "dropdown" يسبب 422
+     */
+    public function createProductOption(string $sallaProductId, string $name, array $valuesArray): array
+    {
+        return $this->request('post', "products/{$sallaProductId}/options", [
+            'name'         => $name,
+            'display_type' => 'text',
+            'required'     => false,
+            'values'       => array_values($valuesArray),
         ]);
+    }
+
+    /**
+     * تحديث خيار موجود (القيم + الاسم)
+     * PUT /products/options/{option}
+     */
+    public function updateProductOption(string $optionId, string $name, array $valuesArray): array
+    {
+        return $this->request('put', "products/options/{$optionId}", [
+            'name'   => $name,
+            'values' => array_values($valuesArray),
+        ]);
+    }
+
+    /**
+     * حذف خيار كامل من المنتج
+     * DELETE /products/options/{option}
+     */
+    public function deleteProductOption(string $optionId): array
+    {
+        return $this->request('delete', "products/options/{$optionId}");
     }
 }

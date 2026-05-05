@@ -136,9 +136,41 @@ class DiscountController extends Controller
             $originalPrice  = (float) ($batchItem?->unit_cost ?? $product->price ?? 0);
             $salePrice      = round($originalPrice * (1 - $discountPct / 100), 2);
 
-            // ✅ تحديث sale_price مباشرةً على الـ Variant في سلة
+            // ✅ جلب جميع بيانات الـ Variant من سلة
+            $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
+            $variantData    = $variantDetails['data'] ?? [];
+            $currentSku     = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+            $currentPrice   = (float) ($variantData['price']['amount'] ?? $originalPrice);
+            // ✅ جلب الكمية من جدول Product (حقل quantity)
+            $currentStock   = (int) ($product->quantity ?? 0);
+
+            // ✅ جلب باقي البيانات من variant
+            $barcode     = $variantData['barcode'] ?? null;
+            $costPrice  = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
+            $weight     = (int) ($variantData['weight'] ?? 0);
+            $mpn        = $variantData['mpn'] ?? null;
+            $gtin       = $variantData['gtin'] ?? null;
+
+            Log::info('[Discount] بيانات الإرسال:', [
+                'variant_id'     => $batch->salla_variant_id,
+                'sku'            => $currentSku,
+                'price'          => $currentPrice,
+                'sale_price'     => $salePrice,
+                'stock_quantity' => $currentStock,
+                'cost_price'     => $costPrice,
+            ]);
+
+            // ✅ تحديث كامل للـ Variant согласно توثيق سلة (جميع الحقول المطلوبة)
             $variantRes = $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                'sale_price' => $salePrice,
+                'sku'            => $currentSku,
+                'barcode'        => $barcode,
+                'price'          => $currentPrice,
+                'sale_price'     => $salePrice,
+                'cost_price'     => $costPrice,
+                'stock_quantity' => $currentStock,
+                'weight'         => $weight,
+                'mpn'            => $mpn,
+                'gtin'           => $gtin,
             ]);
 
             if (!$variantRes) {
@@ -239,8 +271,31 @@ class DiscountController extends Controller
             $originalPrice = (float) ($item->unit_cost ?? $product->price ?? 0);
             $salePrice     = round($originalPrice * (1 - $discountPct / 100), 2);
 
+            // ✅ جلب جميع بيانات الـ Variant من سلة
+            $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
+            $variantData   = $variantDetails['data'] ?? [];
+            $currentSku    = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+            $currentPrice  = (float) ($variantData['price']['amount'] ?? $originalPrice);
+            $currentStock  = (int) ($product->quantity ?? 0);
+
+            // ✅ جلب باقي البيانات من variant
+            $barcode     = $variantData['barcode'] ?? null;
+            $costPrice  = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
+            $weight     = (int) ($variantData['weight'] ?? 0);
+            $mpn        = $variantData['mpn'] ?? null;
+            $gtin       = $variantData['gtin'] ?? null;
+
+            // ✅ تحديث كامل للـ Variant согласно توثيق سلة (جميع الحقول المطلوبة)
             $res = $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                'sale_price' => $salePrice,
+                'sku'            => $currentSku,
+                'barcode'        => $barcode,
+                'price'          => $currentPrice,
+                'sale_price'     => $salePrice,
+                'cost_price'     => $costPrice,
+                'stock_quantity' => $currentStock,
+                'weight'         => $weight,
+                'mpn'            => $mpn,
+                'gtin'           => $gtin,
             ]);
 
             if ($res) {
@@ -290,9 +345,32 @@ class DiscountController extends Controller
 
             if ($discount->applied_to_salla && $batch?->salla_variant_id) {
                 $sallaApi = SallaApiService::for($discount->product->merchant);
-                // ✅ تصفير sale_price في سلة — 0 يعني لا يوجد سعر مخفض
+
+                // ✅ جلب جميع بيانات الـ Variant من سلة
+                $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
+                $variantData    = $variantDetails['data'] ?? [];
+                $currentSku     = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+                $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
+                $currentStock   = (int) ($variantData['stock_quantity'] ?? 0);
+
+                // ✅ جلب باقي البيانات من variant
+                $barcode     = $variantData['barcode'] ?? null;
+                $costPrice  = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
+                $weight     = (int) ($variantData['weight'] ?? 0);
+                $mpn        = $variantData['mpn'] ?? null;
+                $gtin       = $variantData['gtin'] ?? null;
+
+                // ✅ تصفير sale_price مع إرسال جميع البيانات للحفاظ على المخزون
                 $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                    'sale_price' => 0,
+                    'sku'            => $currentSku,
+                    'barcode'        => $barcode,
+                    'price'          => $currentPrice,
+                    'sale_price'     => null, // إزالة الخصم
+                    'cost_price'     => $costPrice,
+                    'stock_quantity' => $currentStock,
+                    'weight'         => $weight,
+                    'mpn'            => $mpn,
+                    'gtin'           => $gtin,
                 ]);
             }
 

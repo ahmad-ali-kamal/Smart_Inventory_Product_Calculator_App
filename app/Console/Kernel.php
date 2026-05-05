@@ -32,7 +32,7 @@ class Kernel extends ConsoleKernel
          * 3. إخفاء المنتج تماماً في حال كانت كافة الباتشات المرتبطة به "حمراء".
          */
         $schedule->job(new \App\Jobs\CheckBatchExpiryJob())
-                 ->dailyAt('08:00')
+                 ->dailyAt('00:00')
                  ->withoutOverlapping();
     }
 
