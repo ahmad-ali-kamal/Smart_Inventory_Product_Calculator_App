@@ -1,515 +1,672 @@
 import { Head, Link } from '@inertiajs/react';
-import { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Settings2, Clock, TrendingUp, CheckCircle2, ShoppingBag } from 'lucide-react';
 import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import GuestLayout from '@/Layouts/GuestLayout';
 
-/* ─── TRANSLATION ENGINE ─── */
+/* ─── TRANSLATIONS ─── */
 const T = {
-    ar: {
-        brand:      'QUANTIX',
-        brandAr:    'كوانتيكس',
-        welcome:    'أهلاً بك في كوانتيكس.. نظامك الذكي لإدارة متجرك في سلة.',
-        slogan:     'لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.',
-        intro:      "في كوانتيكس، نحن ندرك حجم الخسائر التي يسببها المخزون المهدر والحسابات اليدوية المرهقة. لذلك، صممنا لك أدوات واقعية؛ 'حريص' ليحمي أرباحك من تواريخ الانتهاء، و'مستشار' ليؤتمت حساباتك المعقدة بدقة متناهية. نحن نتولى إدارة أدق تفاصيل عملياتك، لتتفرغ أنت لما يهم فعلياً: توسيع تجارتك.",
-        nav:        ['الرؤية الاستراتيجية', 'منظومة التطبيقات', 'مركز الدعم'],
-        appsLabel:  'منظومة التطبيقات الذكية',
-        bottomNote: 'تشفير بيانات بمعايير مؤسسية عالمية • خصوصية مطلقة لكافة العمليات',
-        footer:     'جميع الحقوق محفوظة لمنصة كوانتيكس الرقمية',
-        langBtn:    'ENGLISH',
-        app1: {
-            badge:    'حريص | HAREES',
-            title:    'نظام حريص لإدارة المخزون',
-            tagline:  'نظام لمراقبة تواريخ الانتهاء يقوم بتنظيم المخزون حسب الدفعة وتطبيق خصومات للمنتجات الوشيكة الانتهاء لتأمين أرباحك وتقليل الهدر.',
-            desc:     'نظام متقدم لمراقبة تواريخ الصلاحية، يقوم بتنظيم المخزون بناءً على الدفعات (Batches)، مع تطبيق ذكي للخصومات التلقائية للمنتجات القريبة من الانتهاء؛ وذلك لضمان استمرارية أرباحك وتقليل الهدر التشغيلي.',
-            stats: [
-                { v: '+٥٠٠', l: 'منتج مُراقب' },
-                { v: '٤٨س',  l: 'تنبيه استباقي' },
-                { v: '١٠٠٪', l: 'مزامنة آلية' },
-            ],
-            features: [
-                'تتبع دقيق للمخزون بنظام الدفعات الرقمية المستقلة',
-                'نظام الخصومات الآلية الذكي للمنتجات وشيكة الانتهاء',
-                'حماية الأرباح الصافية عبر تقليل الفاقد السنوي للمتجر',
-                'ربط مباشر وفوري مع مخازن منصة سلة',
-            ],
-            cta: 'ابدأ تجربتك مع حريص',
-        },
-        app2: {
-            badge:    'مستشار | MUSTASHAR',
-            title:    'أداة مستشار للحساب الذكي',
-            tagline:  'أداة حساب ذكية تساعدك على حساب الكمية الصحيحة للعميل تلقائياً بناءً على قواعد الحساب الخاصة بك.',
-            desc:     'أداة حسابية ذكية تساعدك في حساب الكميات المثلى لعملائك آلياً بناءً على قواعد الحساب بمتجرك؛ مما يقلل من أخطاء الطلبات البشرية ويزيد من كفاءة الدقة المحاسبية.',
-            stats: [
-                { v: '+٢٠٠', l: 'تاجر نشط' },
-                { v: '٩٩٪',  l: 'دقة حسابية' },
-                { v: '٣ث',   l: 'سرعة القرار' },
-            ],
-            features: [
-                'أتمتة كاملة لمنطق حساب الكميات المخصصة لكل عميل',
-                'إمكانية تخصيص قواعد حساب مستقلة لكل صنف تجاري',
-                'دعم تقني كامل لجميع العملات والوحدات العالمية',
-                'تقارير تحليلية متقدمة للتنبؤ بحجم الطلبات المستقبلية',
-            ],
-            cta: 'فعل أداة مستشار بمتجرك',
-        },
-        statsBar: [
-            { v: 700,   s: '+',  l: 'شريك نجاح يعتمدنا' },
-            { v: 15000, s: '+',  l: 'منتج يتم تتبعه لحظياً' },
-            { v: 98,    s: '٪', l: 'معدل رضا المستخدمين' },
-            { v: 24,    s: '/7', l: 'مركز دعم تقني متواصل' },
-        ],
-    },
     en: {
-        brand:      'QUANTIX',
-        brandAr:    'كوانتيكس',
-        welcome:    'Welcome to Quantix.. Your intelligent system for Salla management.',
-        slogan:     'Because successful commerce relies on numbers, not expectations.',
-        intro:      "At Quantix, we understand the scale of losses caused by wasted inventory and tedious manual calculations. We designed realistic tools; 'Harees' to protect your profits from expiry dates, and 'Mustashar' to automate your complex calculations with extreme precision. We manage your details so you focus on expanding your business.",
-        nav:        ['Strategic Vision', 'App Ecosystem', 'Growth Support'],
-        appsLabel:  'Smart Tools Ecosystem',
-        bottomNote: 'Data Security is a Priority • Enterprise-Grade Encryption',
-        footer:     'All rights reserved to Quantix Digital Platform',
-        langBtn:    'العربية',
-        app1: {
-            badge:    'HAREES | Inventory',
-            title:    'Harees Expiry Monitoring',
-            tagline:  'An expiry date monitoring system that organizes inventory by batch and applies discounts for near-expiry products to secure your profits and reduce waste.',
-            desc:     'An advanced expiry date monitoring system that organizes stock by batches and applies smart automatic discounts to near-expiry items to secure your revenue.',
-            stats: [
-                { v: '500+', l: 'Tracked Items' },
-                { v: '48h',  l: 'Early Alerts' },
-                { v: '100%', l: 'Automated' },
-            ],
-            features: [
-                'Full automation for expiry tracking logic workflows',
-                'Smart discounting for near-expiry stock items',
-                'Record-breaking annual waste reduction metrics',
-                'Instant sync with Salla warehouse systems',
-            ],
-            cta: 'Activate Harees Now',
-        },
-        app2: {
-            badge:    'MUSTASHAR | Calc',
-            title:    'Mustashar Smart Calculator',
-            tagline:  'A smart calculation tool helps you automatically calculate the right quantity for customers based on your own calculation rules.',
-            desc:     'An AI-driven tool that calculates optimal quantities for customers automatically based on your store rules, eliminating human errors and increasing efficiency.',
-            stats: [
-                { v: '200+', l: 'Active Merchants' },
-                { v: '99%',  l: 'Calc Accuracy' },
-                { v: '3s',   l: 'Decision Speed' },
-            ],
-            features: [
-                'Automated customer quantity logic workflows',
-                'Customizable calculation rules per individual product',
-                'Full multi-currency & unit support across Salla',
-                'Advanced predictive analytics for demand',
-            ],
-            cta: 'Activate Mustashar Now',
-        },
-        statsBar: [
-            { v: 700,   s: '+',  l: 'Active Partners' },
-            { v: 15000, s: '+',  l: 'Daily Tracked Items' },
-            { v: 98,    s: '%',  l: 'Client Satisfaction' },
-            { v: 24,    s: '/7', l: 'Technical Help' },
+        nav: ['Features', 'Platforms', 'Stats'],
+        heroSub: 'Welcome to Quantix.. Your Intelligent system for Salla management. Because successful come numbers, not expectations',
+        exploreCta: 'Explore more',
+        platformsCta: 'Our Platforms',
+        featuresLabel: 'OUR KEY FEATURE',
+        features: [
+            {
+                title: 'Precision-Driven Calculations',
+                desc: 'Advanced algorithms deliver exact quantity and cost calculations, eliminating guesswork and manual errors from every transaction to ensure complete accuracy across your Salla store.',
+            },
+            {
+                title: 'Expiry-Aware Inventory Control',
+                desc: "Monitor every product's shelf life automatically with proactive alerts before items approach their expiry date, reducing waste and protecting your revenue streams effectively.",
+            },
+            {
+                title: 'Maximized Profitability',
+                desc: 'Smart pricing strategies and real-time margin analysis ensure every transaction contributes to your bottom line, with intelligent insights driving measurable business growth.',
+            },
         ],
+        pillarsLabel: 'THE TWO PILLARS',
+        pillarsTitle: 'Two Platforms. One Ecosystem.',
+        pillarsDesc: 'Quantix delivers two specialized sub-platforms designed to handle every dimension of your Salla store.',
+        harees: {
+            name: 'HAREES',
+            desc: "Harees Expiry Monitoring brings intelligent tracking of every product's shelf life — automatically flagging approaching expiry dates to reduce waste and protect your revenue.",
+            features: [
+                'Smart discounting on near-expiry items',
+                'Instant sync with Salla catalog',
+                'Multi-batch expiry tracking',
+                'Automated alert notifications',
+            ],
+            cta: 'Explore Harees',
+        },
+        mustashar: {
+            name: 'MUSTASHAR',
+            desc: 'Mustashar Smart Calculator embeds a professional calculator directly in your Salla product pages — eliminating human errors and delivering accurate area, quantity, and cost calculations instantly.',
+            features: [
+                'Customizable calculation rules',
+                'Area & cost formula engine',
+                'Embeddable product page snippet',
+                'VAT-inclusive live pricing',
+            ],
+            cta: 'Explore Mustashar',
+        },
+        footer: {
+            desc: 'Your intelligent system for Salla management. Because successful commerce relies on numbers, not expectations.',
+            product: { label: 'PRODUCT', links: ['Harees', 'Mustashar', 'Integrations', 'Pricing'] },
+            company: { label: 'COMPANY', links: ['About', 'Blog', 'Careers', 'Press Kit'] },
+            support: { label: 'SUPPORT', links: ['Documentation', 'API Reference', 'Contact Us', 'Status'] },
+            copyright: 'All rights reserved to Quantix Digital Platform © 2026',
+        },
+        statusLabels: { safe: 'Safe', approaching: 'Approaching', expired: 'Expired' },
+    },
+    ar: {
+        nav: ['المميزات', 'المنصات', 'الإحصاء'],
+        heroSub: 'أهلاً بك في كوانتيكس.. نظامك الذكي لإدارة متجرك في سلة. لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.',
+        exploreCta: 'استكشف المزيد',
+        platformsCta: 'منصاتنا',
+        featuresLabel: 'مميزاتنا الرئيسية',
+        features: [
+            {
+                title: 'حسابات دقيقة بدقة متناهية',
+                desc: 'خوارزميات متقدمة تُقدّم حسابات دقيقة للكمية والتكلفة، تُزيل التخمين والأخطاء اليدوية من كل معاملة لضمان الدقة التامة في متجرك.',
+            },
+            {
+                title: 'مراقبة المخزون بوعي تام',
+                desc: 'راقب صلاحية كل منتج تلقائياً مع تنبيهات استباقية قبل اقتراب تاريخ الانتهاء، لتقليل الهدر وحماية إيراداتك بفعالية.',
+            },
+            {
+                title: 'تعظيم الربحية',
+                desc: 'استراتيجيات تسعير ذكية وتحليل هامش فوري يضمنان مساهمة كل معاملة في أرباحك، مع رؤى ذكية تدفع نمواً تجارياً ملموساً.',
+            },
+        ],
+        pillarsLabel: 'الركيزتان الأساسيتان',
+        pillarsTitle: 'منصتان. منظومة واحدة.',
+        pillarsDesc: 'كوانتيكس تقدم منصتين فرعيتين متخصصتين مصممتين للتعامل مع كل أبعاد متجرك في سلة.',
+        harees: {
+            name: 'حريص',
+            desc: 'نظام حريص لمراقبة الصلاحية يتتبع بذكاء صلاحية كل منتج — ويُبلّغ تلقائياً عن تواريخ الانتهاء المقتربة لتقليل الهدر وحماية إيراداتك.',
+            features: [
+                'خصومات ذكية للمنتجات قرب الانتهاء',
+                'مزامنة فورية مع كتالوج سلة',
+                'تتبع متعدد الدفعات',
+                'إشعارات تنبيه تلقائية',
+            ],
+            cta: 'استكشف حريص',
+        },
+        mustashar: {
+            name: 'مستشار',
+            desc: 'حاسبة مستشار الذكية تُدمج آلة حساب احترافية مباشرة في صفحات منتجاتك في سلة — للقضاء على الأخطاء البشرية وتقديم حسابات دقيقة للمساحة والكمية والتكلفة فوراً.',
+            features: [
+                'قواعد حساب قابلة للتخصيص',
+                'محرك معادلات المساحة والتكلفة',
+                'مقتطع قابل للتضمين في صفحة المنتج',
+                'تسعير حي شامل للضريبة',
+            ],
+            cta: 'استكشف مستشار',
+        },
+        footer: {
+            desc: 'نظامك الذكي لإدارة متجرك في سلة. لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.',
+            product: { label: 'المنتجات', links: ['حريص', 'مستشار', 'التكاملات', 'الأسعار'] },
+            company: { label: 'الشركة', links: ['من نحن', 'المدونة', 'الوظائف', 'الصحافة'] },
+            support: { label: 'الدعم', links: ['التوثيق', 'مرجع API', 'تواصل معنا', 'الحالة'] },
+            copyright: 'جميع الحقوق محفوظة لمنصة كوانتيكس الرقمية © 2026',
+        },
+        statusLabels: { safe: 'آمن', approaching: 'يقترب', expired: 'منتهي' },
     },
 };
 
-/* ─── COUNTER COMPONENT ─── */
-function Counter({ end, suffix }) {
-    const [num, setNum] = useState(0);
-    useEffect(() => {
-        let current = 0;
-        const duration = 2500;
-        const step = end / (duration / 25);
-        const timer = setInterval(() => {
-            current += step;
-            if (current >= end) { setNum(end); clearInterval(timer); }
-            else { setNum(Math.floor(current)); }
-        }, 25);
-        return () => clearInterval(timer);
-    }, [end]);
-    return <>{num.toLocaleString()}{suffix}</>;
+/* ─── STATUS PILL ─── */
+const statusConfig = {
+    safe:        { bg: '#DCFCE7', color: '#15803D', dot: '#22C55E' },
+    approaching: { bg: '#FEF3C7', color: '#B45309', dot: '#F59E0B' },
+    expired:     { bg: '#FEE2E2', color: '#B91C1C', dot: '#EF4444' },
+};
+
+function StatusPill({ status, label }) {
+    const cfg = statusConfig[status];
+    return (
+        <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: cfg.bg, color: cfg.color,
+            borderRadius: 999, padding: '3px 10px',
+            fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+        }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+            {label}
+        </span>
+    );
 }
 
-/* ─── APP CARD COMPONENT ─── */
-function AppCard({ data, loginUrl, isAr, ff, ffSub }) {
-    const [hovered, setHovered] = useState(false);
-
+/* ─── STATUS CARD ─── */
+function StatusCard({ status, label, delay }) {
     return (
-        <div
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
+        <motion.div
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay }}
             style={{
-                background: hovered ? 'rgba(23, 20, 42, 0.85)' : 'rgba(23, 20, 42, 0.6)',
-                border: `1px solid ${hovered ? 'rgba(120, 112, 175, 0.4)' : 'rgba(120, 112, 175, 0.15)'}`,
-                borderRadius: '32px',
-                padding: '3.5rem',
-                backdropFilter: 'blur(20px)',
-                transition: 'all 0.4s ease',
-                transform: hovered ? 'translateY(-4px)' : 'none',
-                boxShadow: hovered ? '0 30px 80px rgba(82, 39, 255, 0.15)' : 'none',
+                background: 'white', borderRadius: 16, padding: '10px 14px',
+                width: 210, boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+                display: 'flex', alignItems: 'center', gap: 10,
             }}
         >
-            {/* Badge */}
             <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '5px 14px',
-                background: 'rgba(196, 181, 253, 0.08)',
-                border: '1px solid rgba(196, 181, 253, 0.2)',
-                borderRadius: '20px',
-                marginBottom: '1.8rem',
+                width: 32, height: 32, borderRadius: 9, background: '#EDE9FE',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c4b5fd', opacity: 0.8, flexShrink: 0 }} />
-                <span style={{ fontFamily: ffSub, fontSize: '0.72rem', color: '#c4b5fd', letterSpacing: '0.1em', fontWeight: '700' }}>
-                    {data.badge}
-                </span>
+                <ShoppingBag size={16} color="#7C3AED" />
             </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ height: 7, background: '#E5E7EB', borderRadius: 4, marginBottom: 5, width: '80%' }} />
+                <div style={{ height: 5, background: '#F3F4F6', borderRadius: 4, width: '60%' }} />
+            </div>
+            <StatusPill status={status} label={label} />
+        </motion.div>
+    );
+}
 
-            {/* Title */}
-            <h3 style={{
-                fontFamily: ff,
-                fontSize: 'clamp(1.4rem, 2.5vw, 1.9rem)',
-                fontWeight: '800',
-                color: '#fff',
-                marginBottom: '1rem',
-                lineHeight: 1.25,
+/* ─── SCAN CARD ─── */
+function ScanCard({ delay }) {
+    return (
+        <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay }}
+            style={{
+                background: 'white', borderRadius: 13, padding: '9px 12px',
+                width: 194, boxShadow: '0 6px 20px rgba(0,0,0,0.10)',
+                display: 'flex', alignItems: 'center', gap: 9,
+            }}
+        >
+            <div style={{
+                width: 29, height: 29, borderRadius: 7, background: '#EFF6FF',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-                {data.title}
-            </h3>
+                <ShoppingBag size={14} color="#3B82F6" />
+            </div>
+            <div style={{ flex: 1 }}>
+                <div style={{ height: 6, background: '#E5E7EB', borderRadius: 4, marginBottom: 4, width: '75%' }} />
+                <div style={{ height: 5, background: '#F3F4F6', borderRadius: 4, width: '55%' }} />
+            </div>
+        </motion.div>
+    );
+}
 
-            {/* Tagline */}
-            <p style={{
-                fontFamily: ffSub,
-                fontSize: '0.9rem',
-                color: 'rgba(255,255,255,0.55)',
-                lineHeight: 1.8,
-                marginBottom: '2rem',
+/* ─── CALCULATOR 3D — purple/mauve theme ─── */
+function Calculator3D() {
+    const rows = [
+        [{ l: 'C', t: 'clear' }, { l: '±', t: 'fn' }, { l: '%', t: 'fn' }, { l: '÷', t: 'op' }],
+        [{ l: '7', t: 'num' }, { l: '8', t: 'num' }, { l: '9', t: 'num' }, { l: '×', t: 'op' }],
+        [{ l: '4', t: 'num' }, { l: '5', t: 'num' }, { l: '6', t: 'num' }, { l: '-', t: 'op' }],
+        [{ l: '1', t: 'num' }, { l: '2', t: 'num' }, { l: '3', t: 'num' }, { l: '+', t: 'op' }],
+    ];
+
+    /* Purple/mauve palette */
+    const btnColor = (type) => {
+        if (type === 'op')    return '#A855F7';   /* light purple — operators  */
+        if (type === 'clear') return '#5B21B6';   /* dark purple  — clear      */
+        if (type === 'fn')    return '#6D28D9';   /* mid purple   — ±/%        */
+        return '#7C3AED';                         /* base purple  — digits     */
+    };
+
+    return (
+        <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+            style={{ position: 'relative', transform: 'perspective(500px) rotateX(8deg) rotateY(-15deg)' }}
+        >
+            {/* 3D depth */}
+            <div style={{
+                position: 'absolute', top: 10, left: 10, right: -10, bottom: -10,
+                background: '#3B0D82', borderRadius: 22, zIndex: 0,
+            }} />
+            {/* Body — purple gradient */}
+            <div style={{
+                position: 'relative', zIndex: 1,
+                background: 'linear-gradient(155deg, #6D28D9 0%, #9333EA 100%)',
+                borderRadius: 22, padding: 11, width: 162,
+                boxShadow: '0 20px 50px rgba(76,29,149,0.45)',
             }}>
-                {data.tagline}
-            </p>
-
-            {/* Stats */}
-            <div style={{ display: 'flex', gap: '2rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
-                {data.stats.map((s, i) => (
-                    <div key={i} style={{ textAlign: isAr ? 'right' : 'left' }}>
-                        <div style={{ fontFamily: ff, fontSize: '1.8rem', fontWeight: '900', color: '#c4b5fd', lineHeight: 1 }}>
-                            {s.v}
-                        </div>
-                        <div style={{ fontFamily: ffSub, fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px', letterSpacing: '0.05em' }}>
-                            {s.l}
-                        </div>
+                {/* Display */}
+                <div style={{ background: '#3B0764', borderRadius: 11, padding: '7px 11px', marginBottom: 9 }}>
+                    <div style={{ fontSize: 10, color: 'rgba(233,213,255,0.45)', marginBottom: 2, textAlign: 'right' }}>10 سم</div>
+                    <div style={{ fontSize: 26, color: '#E9D5FF', fontWeight: 700, textAlign: 'right', lineHeight: 1 }}>12</div>
+                </div>
+                {/* Digit + operator rows */}
+                {rows.map((row, ri) => (
+                    <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 4 }}>
+                        {row.map((btn, bi) => (
+                            <div key={bi} style={{
+                                background: btnColor(btn.t), borderRadius: 7, height: 28,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'white', fontSize: 11, fontWeight: 700,
+                            }}>
+                                {btn.l}
+                            </div>
+                        ))}
                     </div>
                 ))}
+                {/* Last row: 0, ., = */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 4 }}>
+                    {[{ l: '0', t: 'num' }, { l: '.', t: 'num' }, { l: '=', t: 'op' }].map((btn, bi) => (
+                        <div key={bi} style={{
+                            background: btnColor(btn.t), borderRadius: 7, height: 28,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'white', fontSize: 11, fontWeight: 700,
+                        }}>
+                            {btn.l}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+/* ─── HERO RIGHT COLUMN ─── */
+function HeroRight({ t }) {
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: 22,
+            justifyContent: 'center', padding: '1.5rem 0',
+        }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <ScanCard delay={0.3} />
+                <StatusCard status="safe"        label={t.statusLabels.safe}        delay={0} />
+                <StatusCard status="approaching" label={t.statusLabels.approaching} delay={0.8} />
+                <StatusCard status="expired"     label={t.statusLabels.expired}     delay={1.6} />
+            </div>
+            <div style={{ flexShrink: 0, paddingTop: '1.5rem' }}>
+                <Calculator3D />
+            </div>
+        </div>
+    );
+}
+
+/* ─── FEATURES SECTION ─── */
+const featureIcons = [
+    { Icon: Settings2,  iconBg: '#EDE9FE', iconColor: '#7C3AED' },
+    { Icon: Clock,      iconBg: '#CCFBF1', iconColor: '#0D9488' },
+    { Icon: TrendingUp, iconBg: '#DCFCE7', iconColor: '#15803D' },
+];
+
+function FeaturesSection({ t, ff, bodyFont }) {
+    return (
+        <section id="features" style={{ background: '#FFFFFF', padding: '4rem 1.5rem' }}>
+            <div style={{ maxWidth: 960, margin: '0 auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
+                    <p style={{ fontFamily: ff, fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.18em', color: '#6B7280', marginBottom: '0.5rem' }}>
+                        {t.featuresLabel}
+                    </p>
+                    <div style={{ width: 50, height: 3, background: 'linear-gradient(90deg, #7C3AED, #A855F7)', borderRadius: 2, margin: '0 auto' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
+                    {t.features.map((feat, i) => {
+                        const { Icon, iconBg, iconColor } = featureIcons[i];
+                        return (
+                            <div key={i} style={{
+                                border: '1px solid #F3F4F6', borderRadius: 18,
+                                padding: '1.75rem 1.5rem',
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                            }}>
+                                <div style={{
+                                    width: 46, height: 46, borderRadius: 12, background: iconBg,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    marginBottom: '1rem',
+                                }}>
+                                    <Icon size={22} color={iconColor} />
+                                </div>
+                                <h3 style={{ fontFamily: ff, fontSize: '1rem', fontWeight: 800, color: '#111827', marginBottom: '0.5rem' }}>
+                                    {feat.title}
+                                </h3>
+                                <p style={{ fontFamily: bodyFont, fontSize: '0.84rem', color: '#6B7280', lineHeight: 1.7 }}>
+                                    {feat.desc}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </section>
+    );
+}
+
+/* ─── PLATFORM CARD ─── */
+function PlatformCard({ data, imgSrc, accentColor, loginUrl, ff, bodyFont }) {
+    return (
+        <div style={{ border: '1px solid #E5E7EB', borderRadius: 18, background: 'white', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+                <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: accentColor + '18',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <ShoppingBag size={18} color={accentColor} />
+                </div>
+                <h3 style={{ fontFamily: ff, fontSize: '1.2rem', fontWeight: 800, color: accentColor }}>
+                    {data.name}
+                </h3>
             </div>
 
-            {/* Divider */}
-            <div style={{ height: '1px', background: 'rgba(120, 112, 175, 0.15)', marginBottom: '2rem' }} />
+            <p style={{ fontFamily: bodyFont, fontSize: '0.84rem', color: '#6B7280', lineHeight: 1.7, marginBottom: '1rem' }}>
+                {data.desc}
+            </p>
 
-            {/* Features */}
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2.5rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {data.features.map((f, i) => (
-                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontFamily: ffSub, fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
-                        <span style={{ color: '#a5f3fc', flexShrink: 0, marginTop: '2px' }}>✦</span>
-                        {f}
+            <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                <img src={imgSrc} alt={data.name} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+            </div>
+
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.25rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {data.features.map((feat, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: bodyFont, fontSize: '0.84rem', color: '#374151' }}>
+                        <CheckCircle2 size={15} color={accentColor} style={{ flexShrink: 0 }} />
+                        {feat}
                     </li>
                 ))}
             </ul>
 
-            {/* CTA */}
             <Link
                 href={loginUrl}
                 style={{
-                    display: 'block',
-                    textAlign: 'center',
-                    padding: '0.9rem 2rem',
-                    background: hovered
-                        ? 'linear-gradient(135deg, #6b52ff 0%, #9f7aea 100%)'
-                        : 'rgba(136, 132, 191, 0.15)',
-                    border: `1px solid ${hovered ? 'transparent' : 'rgba(136, 132, 191, 0.3)'}`,
-                    borderRadius: '14px',
-                    color: '#fff',
-                    fontFamily: ff,
-                    fontSize: '0.9rem',
-                    fontWeight: '700',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '0.65rem 1.25rem',
+                    background: accentColor, color: 'white',
+                    borderRadius: 9, fontFamily: ff, fontSize: '0.85rem', fontWeight: 700,
                     textDecoration: 'none',
-                    transition: 'all 0.3s ease',
-                    letterSpacing: '0.02em',
                 }}
             >
-                {data.cta}
+                {data.cta} →
             </Link>
         </div>
     );
 }
 
-/* ─── PAGE ─── */
+/* ─── PLATFORMS SECTION ─── */
+function PlatformsSection({ t, ff, bodyFont }) {
+    return (
+        <section id="platforms" style={{ background: '#F9FAFB', padding: '4rem 1.5rem' }}>
+            <div style={{ maxWidth: 960, margin: '0 auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                    <div style={{ flex: 1, height: 1, background: '#D1D5DB', maxWidth: 160 }} />
+                    <span style={{ fontFamily: ff, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.2em', color: '#7C3AED', whiteSpace: 'nowrap' }}>
+                        — {t.pillarsLabel} —
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: '#D1D5DB', maxWidth: 160 }} />
+                </div>
+
+                <h2 style={{ textAlign: 'center', fontFamily: ff, fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', fontWeight: 800, color: '#111827', marginBottom: '0.75rem' }}>
+                    {t.pillarsTitle}
+                </h2>
+                <p style={{ textAlign: 'center', fontFamily: bodyFont, fontSize: '0.9rem', color: '#6B7280', maxWidth: 500, margin: '0 auto 2.75rem' }}>
+                    {t.pillarsDesc}
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                    <PlatformCard
+                        data={t.harees}
+                        imgSrc="/images/hareesDashboard.png"
+                        accentColor="#7C3AED"
+                        loginUrl="/harees/login"
+                        ff={ff}
+                        bodyFont={bodyFont}
+                    />
+                    <PlatformCard
+                        data={t.mustashar}
+                        imgSrc="/images/mustasharSettings.png"
+                        accentColor="#7C3AED"
+                        loginUrl="/mustashar/login"
+                        ff={ff}
+                        bodyFont={bodyFont}
+                    />
+                </div>
+            </div>
+        </section>
+    );
+}
+
+/* ─── FOOTER — white background, dark text ─── */
+function Footer({ t, ff, bodyFont }) {
+    const { desc, product, company, support, copyright } = t.footer;
+    const cols = [product, company, support];
+
+    return (
+        <footer id="stats" style={{
+            background: '#ffffff',
+            borderTop: '1px solid #E5E7EB',
+            padding: '3rem 1.5rem 1.75rem',
+            color: '#1A1A1A',
+        }}>
+            <div style={{ maxWidth: 960, margin: '0 auto' }}>
+                {/* Top grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 220px) 1fr 1fr 1fr', gap: '2rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
+                    {/* Brand */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: '0.75rem', direction: 'ltr' }}>
+                            <img src="/images/Quantix_logo.png" alt="Quantix" style={{ height: 36 }} />
+                            <span style={{ fontFamily: "'Changa', sans-serif", fontSize: '1.15rem', fontWeight: 800, letterSpacing: '0.08em', color: '#1A1A1A' }}>
+                                QUANTIX
+                            </span>
+                        </div>
+                        <p style={{ fontFamily: bodyFont, fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.7 }}>
+                            {desc}
+                        </p>
+                    </div>
+
+                    {/* Nav columns */}
+                    {cols.map((col, i) => (
+                        <div key={i}>
+                            <h4 style={{ fontFamily: ff, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.14em', color: '#9CA3AF', marginBottom: '1rem' }}>
+                                {col.label}
+                            </h4>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                {col.links.map((link, li) => (
+                                    <li key={li}>
+                                        <a href="#" style={{ fontFamily: bodyFont, fontSize: '0.84rem', color: '#4B5563', textDecoration: 'none' }}>
+                                            {link}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: '#E5E7EB', marginBottom: '1.25rem' }} />
+
+                {/* Copyright */}
+                <p style={{ textAlign: 'center', fontFamily: bodyFont, fontSize: '0.78rem', color: '#9CA3AF' }}>
+                    {copyright}
+                </p>
+            </div>
+        </footer>
+    );
+}
+
+/* ─── MAIN WELCOME COMPONENT ─── */
 export default function Welcome() {
     const { lang, isAr, dir } = useLang();
     const t = T[lang];
-    const [isMounted, setIsMounted] = useState(false);
 
-    // ✅ نفس الخطوط الأصلية من الكود القديم — Cairo للعربي، Plus Jakarta Sans للإنجليزي
-    const ff    = isAr ? "'Cairo', sans-serif"             : "'Plus Jakarta Sans', sans-serif";
-    const ffSub = isAr ? "'Cairo', sans-serif"             : "'Plus Jakarta Sans', sans-serif";
+    const ff       = isAr ? "'Cairo', sans-serif"  : "'Changa', sans-serif";
+    const bodyFont = "'Cairo', sans-serif";
 
-    useEffect(() => {
-        const t = setTimeout(() => setIsMounted(true), 100);
-        return () => clearTimeout(t);
-    }, []);
-
-    const suites = useMemo(() => [
-        { data: t.app1, loginUrl: '/harees/login' },
-        { data: t.app2, loginUrl: '/mustashar/login' },
-    ], [t]);
+    /* Navbar height — used for hero padding-top offset */
+    const NAV_H = 58;
 
     return (
         <>
             <Head title="QUANTIX — منصة إدارة المتاجر الذكية" />
+
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Changa:wght@700;800&family=Cairo:wght@400;600;700;800&display=swap');
+                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+                body { overflow-x: hidden; }
 
-                /*
-                 * ✅ لا نحتاج لتعريف خلفية هنا — GuestLayout يتولى ذلك
-                 * body يرث #0F0E17 من app.css مباشرة
-                 */
-                body { color: #E6E1F5; font-family: ${ff}; overflow-x: hidden; margin: 0; }
-
-                .quantix-brand-gradient {
-                    background: linear-gradient(120deg, #fff 0%, #ddd6fe 18%, #a5f3fc 36%, #fde68a 54%, #f9a8d4 72%, #c4b5fd 90%, #fff 100%);
-                    background-size: 280% 280%;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    animation: iridescent 6s ease infinite;
+                @media (max-width: 960px) {
+                    .q-hero-grid   { grid-template-columns: 1fr !important; }
+                    .q-hero-visual { display: none !important; }
+                    .q-hero-text   { align-items: center !important; text-align: center !important; }
+                    .q-hero-btns   { justify-content: center !important; }
                 }
-
-                .shimmer-text {
-                    background: linear-gradient(120deg, #fff 0%, #e0d7ff 25%, #fff 50%, #c4b5fd 75%, #fff 100%);
-                    background-size: 250% 100%;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    animation: shimmer 4s ease infinite;
+                @media (max-width: 680px) {
+                    .q-footer-grid  { grid-template-columns: 1fr 1fr !important; }
+                    .q-footer-brand { grid-column: span 2 !important; }
                 }
-
-                @keyframes iridescent {
-                    0%   { background-position: 0% 50%; }
-                    50%  { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-
-                @keyframes shimmer {
-                    0%   { background-position: 100% 0; }
-                    100% { background-position: -100% 0; }
-                }
-
-                @keyframes revealUp {
-                    from { opacity: 0; transform: translateY(40px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-
-                .quantix-nav-link {
-                    color: rgba(255,255,255,0.55);
-                    text-decoration: none;
-                    font-size: 0.88rem;
-                    font-weight: 600;
-                    letter-spacing: 0.03em;
-                    transition: color 0.2s;
-                    font-family: ${ff};
-                }
-                .quantix-nav-link:hover { color: rgba(255,255,255,0.95); }
-
-                @media (max-width: 900px) {
-                    .quantix-desktop-nav { display: none !important; }
-                    .quantix-header-grid { grid-template-columns: 1fr 1fr !important; padding: 0 2rem !important; }
+                @media (max-width: 400px) {
+                    .q-footer-grid  { grid-template-columns: 1fr !important; }
+                    .q-footer-brand { grid-column: auto !important; }
                 }
             `}</style>
 
-            {/* ══ HEADER ══ */}
+            {/* ══ NAVBAR ══ */}
             <header style={{
-                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, height: '90px',
-                backdropFilter: 'blur(20px)', background: 'rgba(15, 14, 23, 0.7)',
-                borderBottom: '1px solid rgba(120, 112, 175, 0.1)',
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+                height: NAV_H,
+                backdropFilter: 'blur(20px)',
+                background: 'rgba(10, 5, 30, 0.65)',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
                 display: 'flex', alignItems: 'center',
             }}>
-                <div className="quantix-header-grid" style={{
-                    maxWidth: '1900px', margin: '0 auto', width: '100%', padding: '0 8rem',
-                    display: 'grid', gridTemplateColumns: '1fr 2fr 1fr',
-                    alignItems: 'center', direction: 'ltr',
+                <div style={{
+                    maxWidth: 1100, margin: '0 auto', width: '100%', padding: '0 1.5rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    direction: 'ltr',
                 }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                        <LanguageSwitcher />
-                    </div>
+                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+                        <img src="/images/Quantix_logo.png" alt="Quantix" style={{ height: 30 }} />
+                        <span style={{ fontFamily: "'Changa', sans-serif", fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.08em', color: 'white' }}>
+                            QUANTIX
+                        </span>
+                    </Link>
 
-                    <nav className="quantix-desktop-nav" style={{
-                        display: 'flex', gap: '6rem', justifyContent: 'center', direction: dir,
+                    <nav style={{
+                        display: 'flex', alignItems: 'center',
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 999, padding: '3px',
+                        direction: dir,
                     }}>
-                        {t.nav.map((item, idx) => (
-                            <a key={idx} className="quantix-nav-link" href={`#${['vis', 'aps', 'help'][idx]}`}>
+                        {t.nav.map((item, i) => (
+                            <a key={i}
+                                href={['#features', '#platforms', '#stats'][i]}
+                                style={{
+                                    padding: '6px 16px',
+                                    color: i === 0 ? 'white' : 'rgba(255,255,255,0.5)',
+                                    textDecoration: 'none',
+                                    fontFamily: bodyFont,
+                                    fontSize: '0.82rem',
+                                    fontWeight: 600,
+                                    borderRadius: 999,
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    background: i === 0 ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                }}
+                            >
+                                {i === 0 && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A855F7', flexShrink: 0 }} />}
                                 {item}
                             </a>
                         ))}
                     </nav>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '14px' }}>
-                        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '14px', textDecoration: 'none' }}>
-                            <img
-                                src="/images/Quantix_logo.png"
-                                alt="Quantix Logo"
-                                style={{ height: '50px', width: 'auto', filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.2))' }}
-                            />
-                            <span className="quantix-brand-gradient" style={{
-                                fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: '1.6rem', fontWeight: '900', letterSpacing: '0.12em',
-                            }}>
-                                QUANTIX
-                            </span>
-                        </Link>
-                    </div>
+                    <LanguageSwitcher />
                 </div>
             </header>
 
-            {/* ══ MAIN CONTENT ══ */}
-            <main style={{ position: 'relative', direction: dir }}>
+            {/* ══ MAIN ══ */}
+            <main dir={dir}>
 
-                {/* § Hero / Vision */}
-                <section id="vis" style={{
-                    height: '100vh', display: 'flex', flexDirection: 'column',
-                    justifyContent: 'center', alignItems: 'center',
-                    textAlign: 'center', padding: '0 12%',
+                {/* § HERO — with smooth curved arc at bottom */}
+                <section style={{
+                    background: 'linear-gradient(155deg, #110330 0%, #2A0868 38%, #3B0F90 62%, #1C0445 100%)',
+                    minHeight: '100vh',
+                    paddingTop: NAV_H,
+                    display: 'flex',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                    position: 'relative',
                 }}>
-                    <div style={{
-                        animation: 'revealUp 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        opacity: isMounted ? 1 : 0,
-                    }}>
-                        <h1 style={{
-                            fontFamily: ff,
-                            fontSize: 'clamp(1.8rem, 4.5vw, 2.8rem)',
-                            fontWeight: '800', color: '#fff',
-                            lineHeight: 1.3, marginBottom: '3rem',
-                            maxWidth: '1100px',
-                        }}>
-                            <span className="shimmer-text">{t.welcome}</span>
-                            <br />
-                            {t.slogan}
-                        </h1>
-                        <p style={{
-                            fontFamily: ffSub,
-                            fontSize: 'clamp(0.95rem, 1.4vw, 1.15rem)',
-                            fontWeight: '600', lineHeight: 2.1,
-                            color: 'rgba(255,255,255,0.8)',
-                            maxWidth: '850px', margin: '0 auto',
-                        }}>
-                            {t.intro}
-                        </p>
-                    </div>
-                </section>
+                    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2.5rem 1.5rem 5rem', width: '100%' }}>
+                        <div className="q-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'center' }}>
 
-                {/* § App Ecosystem */}
-                <section id="aps" style={{
-                    maxWidth: '1700px', margin: '0 auto',
-                    padding: '8rem 8rem 18rem',
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3.5rem', marginBottom: '10rem' }}>
-                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(192,132,252,0.3), transparent)' }} />
-                        <span style={{
-                            fontFamily: ffSub, fontSize: '0.95rem',
-                            color: 'rgba(255,255,255,0.4)',
-                            letterSpacing: '0.6em', textTransform: 'uppercase', fontWeight: '900',
-                        }}>
-                            {t.appsLabel}
-                        </span>
-                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(192,132,252,0.3), transparent)' }} />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6rem' }}>
-                        {suites.map((suite, idx) => (
-                            <AppCard key={idx} data={suite.data} loginUrl={suite.loginUrl} isAr={isAr} ff={ff} ffSub={ffSub} />
-                        ))}
-                    </div>
-                </section>
-
-                {/* § Stats Bar */}
-                <div style={{
-                    background: 'rgba(15, 14, 23, 0.2)',
-                    backdropFilter: 'blur(30px)',
-                    padding: '16rem 8rem',
-                    borderTop: '1px solid rgba(255,255,255,0.06)',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                }}>
-                    <div style={{
-                        maxWidth: '1600px', margin: '0 auto',
-                        display: 'flex', justifyContent: 'space-around',
-                        gap: '10rem', flexWrap: 'wrap', textAlign: 'center',
-                    }}>
-                        {t.statsBar.map((item, idx) => (
-                            <div key={idx}>
-                                <div style={{
-                                    fontFamily: ff, fontSize: '6.5rem', fontWeight: '900',
-                                    color: '#fff', lineHeight: 1,
-                                    textShadow: '0 40px 80px rgba(0,0,0,0.5)',
+                            {/* Left */}
+                            <div className="q-hero-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <h1 style={{
+                                    fontFamily: "'Changa', sans-serif",
+                                    fontSize: 'clamp(3rem, 7vw, 6rem)',
+                                    fontWeight: 800,
+                                    color: 'white',
+                                    letterSpacing: '0.06em',
+                                    lineHeight: 1,
+                                    marginBottom: '1.25rem',
+                                    direction: 'ltr',
                                 }}>
-                                    <Counter end={item.v} suffix={item.s} />
-                                </div>
-                                <div style={{
-                                    fontFamily: ffSub, fontSize: '1.4rem',
-                                    color: '#c084fc', marginTop: '35px',
-                                    textTransform: 'uppercase', letterSpacing: '0.25em', fontWeight: '900',
+                                    QUANTIX
+                                </h1>
+
+                                <p style={{
+                                    fontFamily: bodyFont,
+                                    fontSize: 'clamp(0.85rem, 1.3vw, 0.98rem)',
+                                    color: 'rgba(255,255,255,0.62)',
+                                    lineHeight: 1.8,
+                                    marginBottom: '2rem',
+                                    maxWidth: 420,
                                 }}>
-                                    {item.l}
+                                    {t.heroSub}
+                                </p>
+
+                                <div className="q-hero-btns" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                 
+                                    <a href="#platforms" style={{
+                                        padding: '0.75rem 1.75rem',
+                                        background: '#0F0E17',
+                                        color: 'white',
+                                        borderRadius: 9,
+                                        fontFamily: ff,
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        textDecoration: 'none',
+                                        border: '1px solid rgba(255,255,255,0.12)',
+                                    }}>
+                                        {t.platformsCta}
+                                    </a>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </div>
 
-                {/* § Footer */}
-                <footer id="help" style={{
-                    padding: '12rem 8rem',
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    gap: '60px',
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-                        <img
-                            src="/images/Quantix_logo.png" alt="Quantix Logo"
-                            style={{ height: '85px', opacity: 1, filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.2))' }}
-                        />
-                        <div style={{
-                            display: 'flex', flexDirection: 'column', gap: '10px',
-                            borderRight: isAr ? '4px solid rgba(255,255,255,0.15)' : 'none',
-                            borderLeft: !isAr ? '4px solid rgba(255,255,255,0.15)' : 'none',
-                            paddingRight: isAr ? '45px' : '0',
-                            paddingLeft: !isAr ? '45px' : '0',
-                        }}>
-                            <span style={{ fontFamily: ffSub, fontSize: '2.4rem', fontWeight: '900', color: '#fff', letterSpacing: '1px', lineHeight: 1 }}>كوانتيكس</span>
-                            <span style={{ fontFamily: ff, fontSize: '2.4rem', fontWeight: '900', color: '#fff', letterSpacing: '6px', lineHeight: 1 }}>QUANTIX</span>
+                            {/* Right */}
+                            <div className="q-hero-visual">
+                                <HeroRight t={t} />
+                            </div>
                         </div>
                     </div>
-                    <div style={{ width: '180px', height: '1px', background: 'linear-gradient(to right, transparent, rgba(192,132,252,0.5), transparent)' }} />
-                    <span style={{ fontFamily: ffSub, fontSize: '1.2rem', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '0.04em' }}>
-                        © {new Date().getFullYear()} {t.footer}
-                    </span>
-                    <p style={{ fontFamily: ffSub, fontSize: '0.9rem', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
-                        {t.bottomNote}
-                    </p>
-                </footer>
+
+                    {/* ── Smooth curved arc — transitions hero into the white section below ── */}
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        lineHeight: 0, zIndex: 2, pointerEvents: 'none',
+                    }}>
+                        <svg
+                            viewBox="0 0 1440 72"
+                            preserveAspectRatio="none"
+                            style={{ display: 'block', width: '100%', height: 72 }}
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path d="M0,72 Q720,0 1440,72 L1440,72 L0,72 Z" fill="#ffffff" />
+                        </svg>
+                    </div>
+                </section>
+
+                {/* § FEATURES */}
+                <FeaturesSection t={t} ff={ff} bodyFont={bodyFont} />
+
+                {/* § PLATFORMS */}
+                <PlatformsSection t={t} ff={ff} bodyFont={bodyFont} />
+
+                {/* § FOOTER */}
+                <Footer t={t} ff={ff} bodyFont={bodyFont} />
+
             </main>
         </>
     );
 }
 
-/*
- * ✅ PERSISTENT LAYOUT — الجزء الأساسي لمنع إعادة mount الخلفية
- *
- * بدلاً من تغليف المحتوى داخل GuestLayout في الـ return،
- * نستخدم خاصية .layout الخاصة بـ Inertia.
- *
- * هذا يعني:
- * - عند الانتقال من Welcome → Login، GuestLayout لا تُعاد إنشاؤها
- * - LiquidEther تظل تعمل بدون انقطاع ← لا وميض ← لا إعادة تحميل
- * - فقط محتوى الصفحة (الـ children) يتغير
- */
 Welcome.layout = page => <GuestLayout>{page}</GuestLayout>;
