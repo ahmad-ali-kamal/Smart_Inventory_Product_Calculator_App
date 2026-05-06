@@ -29,7 +29,7 @@
  * color-scheme: dark يُخبر المتصفح فوراً بالوضع الداكن
  */
 html {
-    background-color: #0F0E17 !important;
+    background-color:  #ffffff;
     color-scheme: dark;
 }
 
@@ -121,7 +121,7 @@ html {
  */
 body {
     font-family: var(--font-sans);
-    background-color: #0F0E17;
+    background-color: #ffffff;
     color: var(--foreground);
     margin: 0;
 }
@@ -167,7 +167,7 @@ canvas {
  * حتى في اللحظة القصيرة بين unmount القديم و mount الجديد
  */
 #app {
-    background-color: #0F0E17;
+    background-color: #ffffff;
     min-height: 100vh;
 }
 

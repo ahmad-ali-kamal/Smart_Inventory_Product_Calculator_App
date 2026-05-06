@@ -1,5 +1,5 @@
 // resources/js/Pages/Calculator/Products.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import Card from '../../Components/UI/Card';
@@ -10,7 +10,7 @@ import { useToggleWithToast } from '../../Hooks/useToggleWithToast';  // ← ا�
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown, SlidersHorizontal } from 'lucide-react';
 
 export default function Products() {
     useMustasharGuard();
@@ -22,7 +22,19 @@ export default function Products() {
 
     const [filter, setFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('All');
+    const [categoryOpen, setCategoryOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const categoryRef = useRef(null);
+
+    useEffect(() => {
+        function handleClick(e) {
+            if (categoryRef.current && !categoryRef.current.contains(e.target)) {
+                setCategoryOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
 
     const activeCount   = useMemo(() => products.filter((p) => p.active).length, [products]);
     const inactiveCount = products.length - activeCount;
@@ -40,11 +52,11 @@ export default function Products() {
                 const matchCat =
                     categoryFilter === 'All' || p.category === categoryFilter;
                 const name = p.name || '';
-                const sku  = p.sku  || '';
+                const product_id = p.salla_product_id || '';
                 const matchSearch =
                     search === '' ||
                     name.toLowerCase().includes(search.toLowerCase()) ||
-                    sku.toLowerCase().includes(search.toLowerCase());
+                    product_id.toLowerCase().includes(search.toLowerCase());
                 return matchFilter && matchCat && matchSearch;
             })
             .sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
@@ -129,17 +141,42 @@ export default function Products() {
                     </div>
 
                     {/* Category filter */}
-                    <div className="relative">
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            className="appearance-none pl-3 pr-8 py-2 text-sm bg-[var(--card)] border border-[var(--border)] rounded-full text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer"
+                    <div className="relative" ref={categoryRef}>
+                        <button
+                            onClick={() => setCategoryOpen(o => !o)}
+                            className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all justify-between border w-[130px] ${
+                                categoryOpen || categoryFilter !== 'All'
+                                    ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                                    : 'bg-[var(--accent)] text-[var(--primary)] border-[var(--primary)]/5'
+                            }`}
                         >
-                            {categories.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted-foreground)] pointer-events-none" />
+                            <div className="flex items-center gap-1.5 overflow-hidden">
+                                <SlidersHorizontal size={13} className="flex-shrink-0" />
+                                <span className="truncate">{categoryFilter}</span>
+                            </div>
+                            <ChevronDown
+                                size={12}
+                                className={`flex-shrink-0 transition-transform duration-200 ${categoryOpen ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+
+                        {categoryOpen && (
+                            <div className="absolute right-0 mt-2 w-full bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden">
+                                {categories.map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => { setCategoryFilter(c); setCategoryOpen(false); }}
+                                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors ${
+                                            categoryFilter === c
+                                                ? 'bg-[var(--accent)] text-[var(--primary)]'
+                                                : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)]/50'
+                                        }`}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

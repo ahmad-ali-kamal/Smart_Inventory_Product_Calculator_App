@@ -69,7 +69,7 @@ export default function ProductRow({ product }) {
                         <div className="flex flex-col gap-0">
                             {/* تصغير الخط إلى 10px ليطابق صف الباتشات */}
                             <span className="font-bold text-[var(--foreground)] text-[10px] leading-tight">{product.name}</span>
-                            <span className="text-[9px] text-[var(--muted-foreground)] font-mono opacity-80">#{product.id}</span>
+                            <span className="text-[9px] text-[var(--muted-foreground)] font-mono opacity-80">{product.salla_product_id}</span>
                         </div>
                     </div>
                 </td>

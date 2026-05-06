@@ -88,6 +88,7 @@ class InventoryApiController extends Controller
 
                     return [
                         'id' => $product->id,
+                        'salla_product_id' => $product->salla_product_id,
                         'name' => $product->name,
                         'image_url' => $product->image_url,
                         'status' => $criticalBatchItem?->batch->status ?? 'green',
@@ -168,6 +169,7 @@ class InventoryApiController extends Controller
 
                 return [
                     'id' => $product->id,
+                    'salla_product_id' => $product->salla_product_id,
                     'name' => $product->name,
                     'category' => $product->category,
                     'bucket_type' => $bucket,

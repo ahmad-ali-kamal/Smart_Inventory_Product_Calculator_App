@@ -129,7 +129,7 @@ export default function Products() {
     const filtered = products.filter(p => {
     const matchesSearch = 
         p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase());
+       p.salla_product_id?.toString().toLowerCase().includes(search.toLowerCase());
 
     const matchesFilter = filter === 'all' || p.bucket_type === filter;
 

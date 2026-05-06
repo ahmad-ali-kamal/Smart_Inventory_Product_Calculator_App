@@ -112,7 +112,7 @@ export default function Dashboard() {
                     <StatCard label="Safe"        value={stats.validCount}   icon={<ShieldCheck className="w-5 h-5" />} status="success"  sub="Stable inventory"         />
                 </div>
 
-                <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm overflow-hidden">
+                <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--background)]/30">
                         <div className="flex items-center gap-2">
@@ -160,6 +160,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    <div className="overflow-hidden rounded-b-[20px]">
                     <ErrorBoundary>
                         <table className="w-full border-collapse">
                             <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
@@ -191,6 +192,7 @@ export default function Dashboard() {
                             </tbody>
                         </table>
                     </ErrorBoundary>
+                    </div>
                 </div>
             </div>
         </Layout>

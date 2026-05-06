@@ -6,8 +6,6 @@ import { createRoot } from 'react-dom/client';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import LanguageProvider from './Context/LanguageContext';
 import { ThemeProvider } from './Context/ThemeContext';
-import { ProductsProvider } from './Context/ProductsContext';
-import { HareesProvider } from './Context/HareesContext';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './Components/Common/ErrorBoundary';
@@ -60,12 +58,8 @@ createInertiaApp({
                 <QueryClientProvider client={queryClient}>
                     <ErrorBoundary>
                         <ThemeProvider>
-                            <ProductsProvider>
-                                <HareesProvider>
                                     <App {...props} />
-                                </HareesProvider>
                                 <Toaster position="top-center" />
-                            </ProductsProvider>
                         </ThemeProvider>
                     </ErrorBoundary>
                 </QueryClientProvider>
