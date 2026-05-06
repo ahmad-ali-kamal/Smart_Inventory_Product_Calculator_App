@@ -194,42 +194,71 @@ class SallaApiService
      * تحديث بيانات Variant موجود
      * PUT /products/variants/{variant}
      *
-     * ✅ قواعد سلة الصارمة (من التوثيق):
-     * - يجب إرسال جميع الحقول المطلوبة من الـ OpenAPI
-     * - الحقول المطلوبة: sku, barcode, price, sale_price, cost_price, stock_quantity, weight, mpn, gtin
+     * ملاحظة: إذا كان SKU مكرر، نرسل بدون SKU
      */
     public function updateBatchVariant(string $variantId, array $data): array
     {
-        if (!isset($data['sku'])) {
-            throw new Exception('SKU مطلوب لتحديث الـvariant');
-        }
         if (!isset($data['price'])) {
             throw new Exception('السعر الأصلي (price) مطلوب');
         }
+
         if (!isset($data['stock_quantity'])) {
             throw new Exception('الكمية (stock_quantity) مطلوبة');
         }
 
-        // ✅ إرسال جميع الحقول المطلوبة حسب توثيق سلة
+        // بناء payload
         $payload = [
-            'sku'            => $data['sku'],
-            'barcode'        => $data['barcode'] ?? null,
             'price'          => (float) $data['price'],
-            'sale_price'     => isset($data['sale_price']) ? (float) $data['sale_price'] : null,
-            'cost_price'     => (float) ($data['cost_price'] ?? $data['price'] ?? 0),
             'stock_quantity' => (int) $data['stock_quantity'],
-            'weight'         => (int) ($data['weight'] ?? 0),
-            'mpn'            => $data['mpn'] ?? null,
-            'gtin'           => $data['gtin'] ?? null,
         ];
+
+        // SKU: نرسله فقط إذا كان موجوداً وليس null
+        if (isset($data['sku']) && $data['sku'] !== null && $data['sku'] !== '') {
+            $payload['sku'] = $data['sku'];
+        }
+
+        if (isset($data['barcode'])) {
+            $payload['barcode'] = $data['barcode'];
+        }
+        if (isset($data['sale_price'])) {
+            $payload['sale_price'] = ($data['sale_price'] === null || $data['sale_price'] === 0)
+                ? null
+                : (float) $data['sale_price'];
+        }
+        if (isset($data['cost_price'])) {
+            $payload['cost_price'] = (float) $data['cost_price'];
+        }
+        if (isset($data['weight'])) {
+            $payload['weight'] = (int) $data['weight'];
+        }
+        if (isset($data['mpn'])) {
+            $payload['mpn'] = $data['mpn'];
+        }
+        if (isset($data['gtin'])) {
+            $payload['gtin'] = $data['gtin'];
+        }
 
         Log::info('[Variant Update] ✅ إرسال ALL الحقول المطلوبة:', $payload);
 
-        $response = $this->request('put', "products/variants/{$variantId}", $payload);
-
-        Log::info('[Variant Update] ✅ الاستجابة:', $response);
-
-        return $response;
+        try {
+            $response = $this->request('put', "products/variants/{$variantId}", $payload);
+            Log::info('[Variant Update] ✅ الاستجابة:', $response);
+            return $response;
+        } catch (\Exception $e) {
+            // إذا كان SKU مكرر، نعيد المحاولة بدون SKU
+            if (strpos($e->getMessage(), '422') !== false || strpos($e->getMessage(), 'invalid_fields') !== false) {
+                Log::warning('[Variant Update] SKU مكرر - إعادة المحاولة بدون SKU');
+                
+                // إنشاء payload بدون SKU
+                $payloadWithoutSku = $payload;
+                unset($payloadWithoutSku['sku']);
+                
+                $response = $this->request('put', "products/variants/{$variantId}", $payloadWithoutSku);
+                Log::info('[Variant Update] ✅ الاستجابة بدون SKU:', $response);
+                return $response;
+            }
+            throw $e;
+        }
     }
 
     /**

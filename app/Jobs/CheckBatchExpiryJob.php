@@ -239,12 +239,99 @@ class CheckBatchExpiryJob implements ShouldQueue
             $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
             $variantData = $variantDetails['data'] ?? [];
 
-            // جلب بيانات المنتج والدفعة
+            Log::info('[Discount] استجابة الـ Variant الكاملة:', $variantData);
+
+// جلب بيانات المنتج والدفعة
             $batchItem = $batch->batchItems()->first();
             $product = $batchItem?->product;
 
-            // الـ SKU من سلة أو من كود الدفعة
-            $currentSKU = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+            // ✅ استخدام SKU من batch_code (كما كان يعمل في 2026-05-05)
+            $currentSKU = $batch->batch_code ?? ('B-' . $batch->id);
+
+            // السعر من variant
+            $currentPrice = (float) ($variantData['price']['amount'] ?? $batch->price ?? 0);
+
+            // الكمية من variant نفسه (كما كان يعمل)
+            $currentStock = (int) ($variantData['stock_quantity'] ?? $batchItem?->quantity ?? 0);
+
+            Log::info('[Discount] بيانات الجلب:', [
+                'variant_id'       => $batch->salla_variant_id,
+                'sku'              => $currentSKU,
+                'price'            => $currentPrice,
+                'stock_quantity'   => $currentStock,
+                'variant_stock'     => $variantData['stock_quantity'] ?? 'null',
+            ]);
+
+            if ($currentPrice <= 0) {
+                Log::warning("[Discount] سعر الـvariant {$batch->salla_variant_id} = 0 - تم التجاوز");
+                return;
+            }
+
+            // حساب نسبة الخصم
+            $discountPercent = $this->calculateDiscountPercentage($batch, $settings);
+
+            if ($discountPercent <= 0) {
+                // لا خصم → إزالة sale_price (إذا كان موجوداً)
+                if (isset($variantData['sale_price']['amount']) && $variantData['sale_price']['amount'] > 0) {
+                    $barcode = $variantData['barcode'] ?? null;
+                    $costPrice = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
+                    $weight = (int) ($variantData['weight'] ?? 0);
+                    $mpn = $variantData['mpn'] ?? null;
+                    $gtin = $variantData['gtin'] ?? null;
+
+                    $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+                        'sku'            => $currentSKU,
+                        'barcode'        => $barcode,
+                        'price'          => $currentPrice,
+                        'cost_price'     => $costPrice,
+                        'stock_quantity' => $currentStock,
+                        'weight'         => $weight,
+                        'mpn'            => $mpn,
+                        'gtin'           => $gtin,
+                        'sale_price'     => null,
+                    ]);
+                    $batch->update(['applied_sale_price' => null]);
+                    Log::info("[Discount] ❌ إزالة الخصم من الباتش {$batch->id}");
+                }
+                return;
+            }
+
+            // حساب السعر بعد الخصم
+            $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
+
+            // التحقق من أن السعر المخفض أقل من الأصلي
+            if ($salePrice >= $currentPrice) {
+                Log::warning("[Discount] سعر الخصم ({$salePrice}) >= الأصلي ({$currentPrice})!");
+                return;
+            }
+
+            // تطبيق الخصم - جلب باقي البيانات من variant
+            $barcode = $variantData['barcode'] ?? null;
+            $costPrice = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
+            $weight = (int) ($variantData['weight'] ?? 0);
+            $mpn = $variantData['mpn'] ?? null;
+            $gtin = $variantData['gtin'] ?? null;
+
+            Log::info('[Discount] ✅ إرسال ALL الحقول:', [
+                'variant_id'     => $batch->salla_variant_id,
+                'sku'            => $currentSKU,
+                'price'          => $currentPrice,
+                'sale_price'     => $salePrice,
+                'stock_quantity' => $currentStock,
+            ]);
+
+            // إرسال التحديث بدون SKU (لتجنب مشكلة التكرار)
+            $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+                'sku'            => null, // لا نرسل SKU في التحديث
+                'barcode'        => $barcode,
+                'price'          => $currentPrice,
+                'sale_price'     => $salePrice,
+                'cost_price'     => $costPrice,
+                'stock_quantity' => $currentStock,
+                'weight'         => $weight,
+                'mpn'            => $mpn,
+                'gtin'           => $gtin,
+            ]);
 
             // السعر: من سلة أو من المنتج
             $currentPrice = (float) ($variantData['price']['amount'] ?? $product?->price ?? $batch->price ?? 0);
@@ -320,11 +407,12 @@ class CheckBatchExpiryJob implements ShouldQueue
             $mpn = $variantData['mpn'] ?? null;
             $gtin = $variantData['gtin'] ?? null;
 
-            Log::info('[Discount] ✅ إرسال ALL الحقول:', [
+Log::info('[Discount] ✅ إرسال ALL الحقول:', [
                 'variant_id'     => $batch->salla_variant_id,
                 'sku'            => $currentSKU,
                 'barcode'        => $barcode,
                 'price'          => $currentPrice,
+                'regular_price'  => $currentPrice,
                 'sale_price'     => $salePrice,
                 'cost_price'     => $costPrice,
                 'stock_quantity' => $currentStock,
@@ -333,17 +421,54 @@ class CheckBatchExpiryJob implements ShouldQueue
                 'gtin'           => $gtin,
             ]);
 
-            $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                'sku'            => $currentSKU,
-                'barcode'        => $barcode,
-                'price'          => $currentPrice,
-                'sale_price'     => $salePrice,
-                'cost_price'     => $costPrice,
-                'stock_quantity' => $currentStock,
-                'weight'         => $weight,
-                'mpn'            => $mpn,
-                'gtin'           => $gtin,
-            ]);
+            // للتطبيق: نرسل price + sale_price معاً لتظهر في المتجر
+            // إذا كان unlimited_quantity، نحتاج نرسل stock_quantity بوضوح
+            $isUnlimited = $variantData['unlimited_quantity'] ?? false;
+            $stockQty = $isUnlimited ? $currentStock : $currentStock;
+
+            try {
+                $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+                    'sku'            => $currentSKU,
+                    'barcode'        => $barcode,
+                    'price'          => $currentPrice,
+                    'sale_price'     => $salePrice,
+                    'cost_price'     => $costPrice,
+                    'stock_quantity' => $stockQty,
+                    'weight'         => $weight,
+                    'mpn'            => $mpn,
+                    'gtin'           => $gtin,
+                ]);
+            } catch (\Exception $e) {
+                // إذا كان الخطأ 422 (خاصة SKU مكرر)، نعيد المحاولة بدون SKU
+                if (strpos($e->getMessage(), '422') !== false || strpos($e->getMessage(), 'invalid_fields') !== false) {
+                    Log::warning("[Discount] SKU مكرر أو خطأ 422 - إعادة المحاولة بدون SKU");
+
+                    // جلب تفاصيل الـ variant لمعرفة وضع المخزون
+                    $variantCheck = $sallaApi->getVariantDetails($batch->salla_variant_id);
+                    $variantCheckData = $variantCheck['data'] ?? [];
+                    $unlimited = $variantCheckData['unlimited_quantity'] ?? false;
+
+                    if ($unlimited) {
+                        Log::warning("[Discount] Variant في وضع unlimited - تحديث بدون stock_quantity");
+                        $sallaApi->updateBatchVariantWithoutSku($batch->salla_variant_id, [
+                            'price'          => $currentPrice,
+                            'sale_price'     => $salePrice,
+                            'cost_price'     => $costPrice,
+                            'weight'         => $weight,
+                        ]);
+                    } else {
+                        $sallaApi->updateBatchVariantWithoutSku($batch->salla_variant_id, [
+                            'price'          => $currentPrice,
+                            'sale_price'     => $salePrice,
+                            'cost_price'     => $costPrice,
+                            'stock_quantity' => $currentStock,
+                            'weight'         => $weight,
+                        ]);
+                    }
+                } else {
+                    throw $e;
+                }
+            }
 
             $batch->update(['applied_sale_price' => $salePrice]);
 
