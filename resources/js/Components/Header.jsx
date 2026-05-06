@@ -107,8 +107,8 @@ useEffect(() => {
                                 : <Moon className="w-3.5 h-3.5 text-[var(--primary)]" />}
                         </button>
                     </div>
-                    {/* ب. أيقونة الجرس - تصغير الحجم وتغيير اللون للموف الفاتح */}
-{/* ب. أيقونة الجرس - مطابقة حجم الدائرة لزر الثيم (32px) مع الحفاظ على حجم الجرس */}
+                   
+
 {isInventory && (
     <div className="relative">
         <button 
@@ -119,10 +119,9 @@ useEffect(() => {
                 : 'bg-[var(--accent)] text-[var(--primary)] border-[var(--border)] hover:border-[var(--primary)]'
             }`}
         >
-            {/* حجم الجرس كما هو (4) ليبقى واضحاً */}
-            <BellRing className={`w-4 h-4 ${unreadCount > 0 ? 'animate-[shake_0.5s_ease-in-out_infinite]' : ''}`} />
+           
+            <BellRing className={`w-4 h-4 ${unreadCount > 0 ? 'animate-shake' : ''}`} />
             
-            {/* الدائرة الحمراء - موضع دقيق ليتناسب مع حجم الدائرة الجديد */}
             {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-[#f87171] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-[var(--card)] shadow-sm">
                     {unreadCount}
@@ -130,7 +129,6 @@ useEffect(() => {
             )}
         </button>
 
-        {/* قائمة الإشعارات المنسدلة */}
         {isNotifOpen && (
             <>
                 <div className="fixed inset-0 z-[60]" onClick={() => setIsNotifOpen(false)}></div>
@@ -138,7 +136,7 @@ useEffect(() => {
                     <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--accent)]/10 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <BellRing className="w-3.5 h-3.5 text-[var(--primary)]" />
-                            <span className="text-xs font-bold text-[var(--foreground)]">التنبيهات</span>
+                            <span className="text-xs font-bold text-[var(--foreground)]">Notifications</span>
                         </div>
                         <button 
                            onClick={() => {
@@ -150,30 +148,34 @@ useEffect(() => {
             'X-Requested-With': 'XMLHttpRequest',
         },
         credentials: 'include',
+    }).then(res => {
+        if (!res.ok) throw new Error('Failed');
+        return res.json();
     }).then(() => {
         setUnreadCount(0);
         setNotifications(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
-    });
+    }).catch(err => console.error('Mark all read error:', err));
 }}
                             className="flex items-center gap-1 text-[10px] font-bold text-[var(--primary)] hover:underline"
                         >
                             <CheckCheck className="w-3 h-3" />
-                            قراءة الكل
+                            Mark all read
                         </button>
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto p-1 text-right" dir="rtl">
+                    <div className="max-h-64 overflow-y-auto p-1 text-left" dir="ltr">
                         {notifications.length === 0 ? (
     <div className="p-4 text-center text-[11px] text-[var(--muted-foreground)]">
-        لا توجد تنبيهات
+        No notifications
     </div>
 ) : (
     notifications.map((n) => (
         <NotificationItem
             key={n.id}
-            title={n.data?.status === 'red' ? 'منتج منتهي!' : 'تنبيه اقتراب انتهاء'}
-            msg={`دفعة ${n.data?.batch_code ?? ''} ${n.data?.status === 'red' ? 'انتهت صلاحيتها' : 'تقترب من الانتهاء'}.`}
+            title={n.data?.status === 'red' ? 'Expired Product!' : 'Expiry Approaching'}
+            msg={`Batch ${n.data?.batch_code ?? ''} of "${n.data?.product_name ?? 'product'}" ${n.data?.status === 'red' ? 'has expired.' : 'is approaching its expiry date.'}`}
             color={n.data?.status === 'red' ? 'text-[#f87171]' : 'text-[#fbbf24]'}
+            unread={!n.read_at}
         />
     ))
 )}
@@ -183,7 +185,7 @@ useEffect(() => {
         )}
     </div>
 )}
-    {/* ج. قائمة المستخدم - تحسين الحدود والتباعد */}
+    
     <div className="relative">
         <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -262,10 +264,11 @@ useEffect(() => {
         </header>
     );
 }
-// أضف هذا الكود في أسفل الملف تماماً
-function NotificationItem({ title, msg, color }) {
+// Notification item component
+function NotificationItem({ title, msg, color, unread }) {
     return (
-        <div className="p-3 rounded-lg hover:bg-[var(--accent)]/50 transition-colors cursor-pointer group">
+        <div className={`p-3 rounded-lg hover:bg-[var(--accent)]/50 transition-colors cursor-pointer group relative ${unread ? 'bg-[var(--accent)]/20' : ''}`}>
+            {unread && <span className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />}
             <p className={`text-[11px] font-bold ${color} mb-0.5`}>{title}</p>
             <p className="text-[10px] text-[var(--muted-foreground)] leading-tight group-hover:text-[var(--foreground)]">{msg}</p>
         </div>

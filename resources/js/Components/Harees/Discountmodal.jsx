@@ -1,19 +1,52 @@
 import React, { useState } from 'react';
-import { X, Percent, CheckCircle, Info } from 'lucide-react';
+import { X, Percent, CheckCircle, Info, AlertCircle } from 'lucide-react';
 
 export default function DiscountModal({ batch, product, onClose, onApply }) {
-    const [discountPct, setDiscountPct] = useState(20);
+    const [discountPct, setDiscountPct] = useState('20');
     const [endDate, setEndDate]         = useState('');
     const [isApplied, setIsApplied]     = useState(false);
+    const [pctError, setPctError]       = useState('');
+
+    const handlePctChange = (e) => {
+        // Strip everything that's not a digit
+        const clean = e.target.value.replace(/[^\d]/g, '');
+
+        // Prevent leading zeros (e.g. "07" → "7")
+        const normalized = clean === '' ? '' : String(parseInt(clean, 10));
+
+        setDiscountPct(normalized);
+
+        // Live validation
+        if (normalized === '') {
+            setPctError('Required');
+        } else {
+            const num = parseInt(normalized, 10);
+            if (num < 1 || num > 99) {
+                setPctError('Must be between 1 and 99');
+            } else {
+                setPctError('');
+            }
+        }
+    };
 
     const handleApply = () => {
         if (!endDate) return;
+
+        // Validate before submit
+        const num = parseInt(discountPct, 10);
+        if (!discountPct || isNaN(num) || num < 1 || num > 99) {
+            setPctError('Must be a number greater than 0');
+            return;
+        }
+
         setIsApplied(true);
         setTimeout(() => {
-            onApply && onApply({ batchId: batch?.id, discountPct, endDate });
+            onApply && onApply({ batchId: batch?.id, discountPct: num, endDate });
             onClose();
         }, 1500);
     };
+
+    const hasError = Boolean(pctError);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -56,27 +89,33 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                                 </label>
                                 <div className="relative">
                                     <input
-                                        type="number"
-                                        min={1}
-                                        max={99}
+                                        type="text"
+                                        inputMode="numeric"
                                         value={discountPct}
-                                        onChange={e => setDiscountPct(e.target.value)}
-                                        className="
+                                        onChange={handlePctChange}
+                                        className={`
                                             w-full p-3 pr-7 rounded-xl border
-                                            bg-[var(--muted)]
-                                            border-[var(--primary)]/20
                                             text-[var(--foreground)]
                                             text-sm font-bold outline-none
-                                            focus:border-[var(--primary)]/60
-                                            focus:ring-2 focus:ring-[var(--primary)]/15
                                             transition-all
                                             placeholder:text-[var(--muted-foreground)]
-                                        "
+                                            focus:ring-2
+                                            ${hasError
+                                                ? 'bg-red-50 dark:bg-red-950/20 border-red-500 focus:border-red-500 focus:ring-red-500/15'
+                                                : 'bg-[var(--muted)] border-[var(--primary)]/20 focus:border-[var(--primary)]/60 focus:ring-[var(--primary)]/15'
+                                            }
+                                        `}
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs font-bold">
+                                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${hasError ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}>
                                         %
                                     </span>
                                 </div>
+                                {hasError && (
+                                    <p className="text-[10px] text-red-500 font-medium flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+                                        <AlertCircle size={10} />
+                                        {pctError}
+                                    </p>
+                                )}
                             </div>
 
                             {/* End Date */}

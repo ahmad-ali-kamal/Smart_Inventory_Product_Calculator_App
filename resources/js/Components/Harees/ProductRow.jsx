@@ -36,7 +36,7 @@ const getStatusStyle = (normalized) => {
 };
 
 // ProductRow.jsx
-export default function ProductRow({ product }) {
+export default function ProductRow({ product, autoDiscount }) {
     const [showBatches, setShowBatches] = useState(false);
 
     const normalizedStatus = normalizeStatus(product.status);
@@ -47,10 +47,9 @@ export default function ProductRow({ product }) {
         <>
             <tr className="group hover:bg-[var(--accent)]/5 transition-all border-b border-[var(--border)]">
                 {/* Product - تم استخدام py-3 px-4 لتطابق صف الباتشات */}
-                <td className="py-3 px-4 w-[25%]"> 
-                    <div className="flex items-center gap-3">
-                        {/* تصغير الحاوية إلى w-8 h-8 لتطابق صف الباتشات */}
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-[var(--muted)] border border-[var(--border)] shrink-0 flex items-center justify-center">
+                <td className="py-3.5 px-4 w-[25%]"> 
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-[var(--muted)] border border-[var(--border)] shrink-0 flex items-center justify-center">
                             {image
                                 ? <img
                                     src={image}
@@ -60,35 +59,34 @@ export default function ProductRow({ product }) {
                                   />
                                 : null}
                             <span
-                                className="w-full h-full flex items-center justify-center text-[9px] font-black text-[var(--muted-foreground)] uppercase"
+                                className="w-full h-full flex items-center justify-center text-[10px] font-black text-[var(--muted-foreground)] uppercase"
                                 style={{ display: image ? 'none' : 'flex' }}
                             >
                                 {product.name?.charAt(0) ?? '?'}
                             </span>
                         </div>
-                        <div className="flex flex-col gap-0">
-                            {/* تصغير الخط إلى 10px ليطابق صف الباتشات */}
-                            <span className="font-bold text-[var(--foreground)] text-[10px] leading-tight">{product.name}</span>
-                            <span className="text-[9px] text-[var(--muted-foreground)] font-mono opacity-80">{product.salla_product_id}</span>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="font-bold text-[var(--foreground)] text-[12px] leading-tight">{product.name}</span>
+                            <span className="text-[10px] text-[var(--muted-foreground)] font-mono opacity-80">{product.salla_product_id}</span>
                         </div>
                     </div>
                 </td>
 
                 {/* Status - نفس الـ Padding وارتفاع الكبسولة */}
-                <td className="py-3 px-4 text-center w-[20%]">
+                <td className="py-3.5 px-4 text-center w-[20%]">
                     <span
                         style={statusStyle}
-                        className="inline-flex items-center justify-center w-[100px] h-[22px] rounded-full text-[9px] font-black uppercase border"
+                        className="inline-flex items-center justify-center w-[110px] h-[26px] rounded-full text-[10px] font-black uppercase border"
                     >
                         {normalizedStatus}
                     </span>
                 </td>
 
                 {/* Expiry Info - فارغ بنفس الـ Padding */}
-                <td className="py-3 px-4 text-center w-[30%]"></td>
+                <td className="py-3.5 px-4 text-center w-[30%]"></td>
 
-                {/* Actions - تصغير الزر ليطابق حجم أزرار صف الباتشات */}
-                <td className="py-3 px-4 w-[25%]">
+                {/* Actions */}
+                <td className="py-3.5 px-4 w-[25%]">
                     <div className="flex justify-center">
                         <button
                             onClick={() => setShowBatches(!showBatches)}
@@ -113,7 +111,7 @@ export default function ProductRow({ product }) {
                     }`}>
                         <div className="overflow-hidden">
                             <div className="bg-[var(--background)]/30">
-                                <BatchRow product={product} />
+                                <BatchRow product={product} autoDiscount={autoDiscount} />
                             </div>
                         </div>
                     </div>
