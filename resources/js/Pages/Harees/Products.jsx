@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, SlidersHorizontal, RefreshCw, ChevronDown } from "lucide-react";
+import { Toaster } from 'react-hot-toast';
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../hooks/useHareesGuard';
+import useHareesGuard from '../../Hooks/useHareesGuard';
 import Card from '../../Components/UI/Card';
 import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
@@ -15,6 +16,10 @@ const FILTER_OPTIONS = [
     { value: 'long',   label: 'Long'   },
 ];
 
+const sanitizeInput = (val) => {
+    if (val.startsWith('-')) return ""; 
+    return val.replace(/[<>{}()]/g, "");
+};
 export default function Products() {
     useHareesGuard();
     const [search, setSearch]             = useState("");
@@ -75,14 +80,14 @@ export default function Products() {
 
     useEffect(() => { fetchProducts(); }, []);
 
-    // ── بعد حفظ أو حذف الـ Expiry: نحدث المنتج في الـ state محلياً ──
+   // Post-Expiry mutation: Updating local product state
     const handleExpirySave = (productId, responseData) => {
         if (!responseData) { setExpiryTarget(null); return; }
 
         setProducts(prev => prev.map(p => {
             if (p.id !== productId) return p;
 
-            // حذف كامل (reset) — نفرّغ الباتشات
+           // Reset: Purge all batches.
             if (responseData.reset) {
                 return { ...p, batches: [] };
             }
@@ -121,10 +126,15 @@ export default function Products() {
         setExpiryTarget(null);
     };
 
-    const filtered = products.filter(p =>
+    const filtered = products.filter(p => {
+    const matchesSearch = 
         p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase())
-    );
+       p.salla_product_id?.toString().toLowerCase().includes(search.toLowerCase());
+
+    const matchesFilter = filter === 'all' || p.bucket_type === filter;
+
+    return matchesSearch && matchesFilter;
+});
 
     if (loading) {
         return <Layout><LoadingState /></Layout>;
@@ -138,7 +148,8 @@ export default function Products() {
 
     return (
         <Layout>
-            <div className="space-y-4">
+            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+            <div className="space-y-4 ">
 
                 {/* Banner */}
                 <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10 text-[var(--primary)] text-sm font-medium">
@@ -157,11 +168,12 @@ export default function Products() {
                         <div className="flex items-center gap-2 px-3 h-9 rounded-xl bg-[var(--accent)] w-40 sm:w-48 border border-[var(--primary)]/5 focus-within:border-[var(--primary)]/20 transition-all">
                             <Search size={14} className="text-[var(--primary)]/60 flex-shrink-0" />
                             <input
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Search..."
-                                className="bg-transparent text-xs text-[var(--primary)] outline-none border-none focus:ring-0 w-full placeholder:text-[var(--primary)]/40 caret-[var(--primary)] p-0"
-                            />
+    value={search}
+    
+    onChange={e => setSearch(sanitizeInput(e.target.value))} 
+    placeholder="Search..."
+    className="bg-transparent text-xs text-[var(--primary)] outline-none border-none focus:ring-0 w-full placeholder:text-[var(--primary)]/40 caret-[var(--primary)] p-0"
+/>
                         </div>
 
                         <div className="relative" ref={filterRef}>
@@ -212,7 +224,7 @@ export default function Products() {
 
                     {/* ── Table ── */}
                     <div className="overflow-x-auto">
-                        <table className="w-full border-collapse min-w-[700px]">
+                        <table className="w-full border-collapse min-w-[700px] ">
                             <thead>
                                 <tr className="border-b border-[var(--border)] bg-[var(--muted)]/20">
                                     <th className="p-4 w-[16%] text-left   text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Product</th>

@@ -39,7 +39,7 @@ export default function AppLayout({ children, app = 'inventory', header }) {
         <div style={{
             display: 'flex',
             minHeight: '100vh',
-            background: 'var(--color-bg)',
+            background: '#ffffff',
             direction: 'rtl',
         }}>
 
@@ -238,8 +238,8 @@ export default function AppLayout({ children, app = 'inventory', header }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: 'rgba(14,8,19,0.8)',
-                    backdropFilter: 'blur(12px)',
+                    background: '#ffffff',
+                    backdropFilter: 'none',
                     flexShrink: 0,
                     position: 'sticky', top: 0, zIndex: 20,
                 }}>
@@ -265,7 +265,7 @@ export default function AppLayout({ children, app = 'inventory', header }) {
                             fontFamily: 'var(--font-display)',
                             fontSize: '1.3rem',
                             fontWeight: '600',
-                            color: 'var(--color-orchid-light)',
+                            color: '#1F2937',
                             margin: 0,
                         }}>
                             {header}

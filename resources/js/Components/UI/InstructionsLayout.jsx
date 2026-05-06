@@ -1,7 +1,5 @@
 /**
- * InstructionsLayout — كومبونينت عام لصفحات الـ Instructions
- * لا يستخدم Layout عشان يكون full-width بدون حدود
- * يستخدم Header مباشرة
+ * InstructionsLayout — A general component for instruction pages.
  */
 
 import { ArrowRight } from "lucide-react";
@@ -23,7 +21,7 @@ export default function InstructionsLayout({
   subtitle      = "Three simple steps to get started",
   description   = "",
   steps         = [],
-  ctaLabel      = "Go to Settings",
+  ctaLabel      = "",
   onCta,
   footerNote    = "",
   customContent = null,
@@ -31,10 +29,10 @@ export default function InstructionsLayout({
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
 
-      {/* Header مباشرة — بدون Layout */}
+      {/* Header directly — no Layout */}
       <Header />
 
-      {/* Full-width page — بدون max-w أو px على هذا المستوى */}
+      {/* Full-width page — no max-width or horizontal padding at this level*/}
       <div className="relative overflow-hidden bg-[var(--background)]">
 
         {/* ── Atmospheric BG ── */}
@@ -108,26 +106,27 @@ export default function InstructionsLayout({
               ))}
             </div>
 
-            {/* CTA */}
-            <div className="mt-16 flex justify-center">
-              <div className="relative group">
-                <div className="absolute -inset-1 rounded-2xl blur-lg opacity-0 group-hover:opacity-60 transition-opacity duration-300"
-                  style={{ background: "linear-gradient(135deg, var(--primary), var(--muted-foreground))" }} />
-                <button
-                  onClick={onCta}
-                  className="relative px-10 py-4 rounded-2xl text-white flex items-center gap-3 font-bold text-base transition-all duration-300 group-hover:scale-[1.03]"
-                  style={{
-                    background: "linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 60%, #000))",
-                    boxShadow: "0 8px 32px rgba(148,144,200,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-                    border: "1px solid rgba(148,144,200,0.35)",
-                  }}
-                >
-                 
-                  {ctaLabel}
-                  <ArrowRight className="w-4 h-4 text-white/70 group-hover:translate-x-1 transition-transform duration-200" />
-                </button>
+            {/*CTA — only rendered if ctaLabel is provided*/}
+            {ctaLabel && (
+              <div className="mt-16 flex justify-center">
+                <div className="relative group">
+                  <div className="absolute -inset-1 rounded-2xl blur-lg opacity-0 group-hover:opacity-60 transition-opacity duration-300"
+                    style={{ background: "linear-gradient(135deg, var(--primary), var(--muted-foreground))" }} />
+                  <button
+                    onClick={onCta}
+                    className="relative px-10 py-4 rounded-2xl text-white flex items-center gap-3 font-bold text-base transition-all duration-300 group-hover:scale-[1.03]"
+                    style={{
+                      background: "linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 60%, #000))",
+                      boxShadow: "0 8px 32px rgba(148,144,200,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+                      border: "1px solid rgba(148,144,200,0.35)",
+                    }}
+                  >
+                    {ctaLabel}
+                    <ArrowRight className="w-4 h-4 text-white/70 group-hover:translate-x-1 transition-transform duration-200" />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Footer */}
             {footerNote && (

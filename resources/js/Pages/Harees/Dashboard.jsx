@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../hooks/useHareesGuard';
-import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import useHareesGuard from '../../Hooks/useHareesGuard';
+import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown, Tag, Percent } from 'lucide-react';
 import ProductRow from '../../Components/Harees/ProductRow';
+import DiscountModal from '../../Components/Harees/DiscountModal';
 import ErrorBoundary from '../../Components/Common/ErrorBoundary';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
 
-// ── نورماليزيشن: red/yellow/green → expired/approaching/safe (فرونت فقط) ──
+// Normalization: Mapping backend status codes to unified frontend display names.
 const normalizeStatus = (status) => {
     const map = {
         red: 'expired', yellow: 'approaching', green: 'safe',
@@ -58,8 +59,8 @@ export default function Dashboard() {
                 return res.json();
             })
             .then(data => {
-                setProducts(data.products || []);
-                // ── ربط أسماء الباك مع الفرونت ──
+                const reversedProducts = (data.products || []).reverse();
+                setProducts(reversedProducts);
                 const raw = data.stats || {};
                 setStats({
                     expiredCount: raw.red_batches    ?? raw.expiredCount  ?? 0,
@@ -88,9 +89,17 @@ export default function Dashboard() {
         return <Layout><ErrorState message={error} onRetry={fetchDashboardData} /></Layout>;
     }
 
-    const filteredProducts = products.filter(p =>
-        statusFilter === 'all' || normalizeStatus(p.status) === statusFilter
+    //Advanced Filtering Logic: Splitting products into batches for filtered results.
+    const allBatches = products.flatMap(product => 
+        (product.batches || []).map(batch => ({
+            ...batch,
+            parentProduct: product 
+        }))
     );
+
+    const filteredItems = statusFilter === 'all' 
+        ? products 
+        : allBatches.filter(b => normalizeStatus(b.status) === statusFilter);
 
     const activeLabel = STATUS_FILTERS.find(o => o.value === statusFilter)?.label ?? 'All';
 
@@ -103,15 +112,15 @@ export default function Dashboard() {
                     <StatCard label="Safe"        value={stats.validCount}   icon={<ShieldCheck className="w-5 h-5" />} status="success"  sub="Stable inventory"         />
                 </div>
 
-                <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm overflow-hidden">
-                    {/* ── Header ── */}
+                <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm">
+                    {/* Header */}
                     <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--background)]/30">
                         <div className="flex items-center gap-2">
                             <ListFilter className="w-4 h-4 text-[var(--primary)]" />
                             <h2 className="text-sm font-bold text-[var(--foreground)]">Monitored Products</h2>
                         </div>
 
-                        {/* ── فلتر الحالة ── */}
+                        {/* Dropdown Filter */}
                         <div className="relative" ref={filterRef}>
                             <button
                                 onClick={() => setFilterOpen(o => !o)}
@@ -151,6 +160,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    <div className="overflow-hidden rounded-b-[20px]">
                     <ErrorBoundary>
                         <table className="w-full border-collapse">
                             <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
@@ -162,22 +172,119 @@ export default function Dashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--border)]">
-                                {filteredProducts.map(product => (
-                                    <ProductRow key={product.id} product={product} />
-                                ))}
-                                {filteredProducts.length === 0 && (
+                                {statusFilter === 'all' ? (
+                                    filteredItems.map(product => (
+                                        <ProductRow key={product.id} product={product} />
+                                    ))
+                                ) : (
+                                    filteredItems.map(batch => (
+                                        <BatchRowStandalone key={batch.id} batch={batch} product={batch.parentProduct} />
+                                    ))
+                                )}
+                                
+                                {filteredItems.length === 0 && (
                                     <tr>
                                         <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
-                                            No monitored products yet.
+                                            No monitored items found.
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
                     </ErrorBoundary>
+                    </div>
                 </div>
             </div>
         </Layout>
+    );
+}
+
+// Component: Render batch as an independent row during filtering.
+function BatchRowStandalone({ batch, product }) {
+    const [selectedBatch, setSelectedBatch] = useState(null);
+
+    const normalized = normalizeStatus(batch.status);
+    const batchCode  = batch.batch_code  || batch.batchNo     || '—';
+    const expiryDate = batch.expiry_date  || batch.expiryDate  || '—';
+
+  
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'expired':     return { color: 'var(--status-expired-text)', bg: 'var(--status-expired-bg)', border: 'var(--status-expired-border)' };
+            case 'approaching': return { color: 'var(--status-approaching-text)', bg: 'var(--status-approaching-bg)', border: 'var(--status-approaching-border)' };
+            default:            return { color: 'var(--status-safe-text)', bg: 'var(--status-safe-bg)', border: 'var(--status-safe-border)' };
+        }
+    };
+    const style = getStatusStyle(normalized);
+
+    return (
+        <>
+            <tr className="hover:bg-[var(--accent)]/5 transition-all border-b border-[var(--border)]">
+                <td className="py-3 px-4 w-[25%]">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-[var(--muted)] border border-[var(--border)] shrink-0 flex items-center justify-center">
+                            {(product.image_url || product.image) ? (
+                                <img
+                                    src={product.image_url || product.image}
+                                    className="w-full h-full object-cover"
+                                    alt={product.name}
+                                    onError={e => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextSibling.style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            <span
+                                className="w-full h-full flex items-center justify-center text-[9px] font-black text-[var(--muted-foreground)] uppercase"
+                                style={{ display: (product.image_url || product.image) ? 'none' : 'flex' }}
+                            >
+                                {product.name?.charAt(0) ?? '?'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] font-bold text-[var(--foreground)] truncate max-w-[150px]">{product.name}</span>
+                            <span className="text-[9px] font-bold flex items-center gap-1 text-[var(--muted-foreground)]">
+                                <Tag size={8} className="text-[var(--primary)] opacity-50" />
+                                {batchCode}
+                            </span>
+                        </div>
+                    </div>
+                </td>
+                <td className="py-3 px-4 text-center w-[20%]">
+                    <span 
+                        style={{ color: style.color, background: style.bg, borderColor: style.border }}
+                        className="inline-flex items-center justify-center w-[100px] h-[22px] rounded-full text-[9px] font-black uppercase border"
+                    >
+                        {normalized}
+                    </span>
+                </td>
+                <td className="py-3 px-4 text-center w-[30%]">
+                    <span className="text-[11px] font-bold text-[var(--foreground)]">{expiryDate}</span>
+                </td>
+                <td className="py-3 px-4 text-center w-[25%]">
+                    {normalized === 'approaching' ? (
+                        <button
+                            onClick={() => setSelectedBatch(batch)}
+                            className="w-[120px] h-[32px] flex items-center justify-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-[10px] font-black uppercase hover:bg-[var(--primary)] hover:text-white transition-all mx-auto"
+                        >
+                            <Percent size={11} />
+                            Discount
+                        </button>
+                    ) : (
+                        <span className="text-[10px] text-[var(--muted-foreground)]">-</span>
+                    )}
+                </td>
+            </tr>
+
+            {selectedBatch && (
+                <DiscountModal
+                    batch={selectedBatch}
+                    product={product}
+                    onClose={() => setSelectedBatch(null)}
+                    onApply={() => setSelectedBatch(null)}
+                />
+            )}
+        </>
     );
 }
 

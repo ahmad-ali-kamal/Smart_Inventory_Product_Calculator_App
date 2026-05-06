@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Tag, Calendar, Percent } from 'lucide-react';
 import DiscountModal from './DiscountModal';
 
-// نورماليزيشن: red/yellow/green → Expired/Approaching/Safe
+// normalizeStatus: red/yellow/green → Expired/Approaching/Safe
 const normalizeStatus = (status) => {
     const map = {
         red: 'Expired', yellow: 'Approaching', green: 'Safe',
@@ -56,7 +56,7 @@ export default function BatchRow({ product }) {
                 const normalized = normalizeStatus(batch.status);
                 const style = getStatusStyle(normalized);
 
-                // ربط أسماء الحقول مع الباك
+                
                 const batchCode  = batch.batch_code  || batch.batchNo     || '—';
                 const expiryDate = batch.expiry_date  || batch.expiryDate  || '—';
 
@@ -65,7 +65,7 @@ export default function BatchRow({ product }) {
                         {/* Batch Code - 25% */}
 <div className="w-[25%] py-3 px-4">
     <div className="flex items-center gap-2">
-        {/* صورة المنتج */}
+        {/* product image */}
         <div className="w-8 h-8 rounded-lg overflow-hidden bg-[var(--muted)] border border-[var(--border)] shrink-0 flex items-center justify-center">
             {(product.image_url || product.image) ? (
                 <img
@@ -86,7 +86,7 @@ export default function BatchRow({ product }) {
             </span>
         </div>
 
-        {/* اسم المنتج + باتش كود */}
+        {/* product name and batch code */}
         <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-bold text-[var(--foreground)]">{product.name}</span>
             <span className="text-[10px] font-bold flex items-center gap-1 text-[var(--muted-foreground)]">
@@ -116,15 +116,18 @@ export default function BatchRow({ product }) {
                         </div>
 
                         {/* Discount - 25% */}
-                        <div className="w-[25%] py-3 px-4 flex justify-center">
-                            <button
-                                onClick={() => setSelectedBatch(batch)}
-                                className="w-[120px] h-[32px] flex items-center justify-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-[10px] font-black uppercase hover:bg-[var(--primary)] hover:text-white transition-all"
-                            >
-                                <Percent size={11} />
-                                Discount
-                            </button>
-                        </div>
+                        {/* Discount - 25% */}
+<div className="w-[25%] py-3 px-4 flex justify-center">
+    {normalized === 'Approaching' && (
+        <button
+            onClick={() => setSelectedBatch(batch)}
+            className="w-[120px] h-[32px] flex items-center justify-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-[10px] font-black uppercase hover:bg-[var(--primary)] hover:text-white transition-all"
+        >
+            <Percent size={11} />
+            Discount
+        </button>
+    )}
+</div>
                     </div>
                 );
             })}

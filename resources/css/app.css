@@ -4,6 +4,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ════════════════════════════════════════════════════════
+ * ✅ WHITE FLASH PREVENTION — شرح كامل للحل
+ * ════════════════════════════════════════════════════════
+ *
+ * المشكلة الأصلية (3 أسباب متداخلة):
+ *
+ * 1. المتصفح يرسم :root (لايت موود) قبل تحميل JS
+ * 2. canvas الـ WebGL يبدأ شفافاً (alpha:true) وما وراءه أبيض
+ * 3. Inertia عند التنقل تُفرغ DOM مؤقتاً قبل mount الصفحة الجديدة
+ *
+ * الحل المتكامل (4 طبقات):
+ * - html: background مباشرة داكن (قبل أي JS)
+ * - body: background ثابت بدون transition في البداية
+ * - canvas: خلفية داكنة حتى يجهز الـ shader
+ * - GuestLayout: Persistent Layout يمنع إعادة mount الخلفية
+ * ════════════════════════════════════════════════════════
+ */
+
+/*
+ * ✅ FIX #1 — أهم سطر: خلفية html نفسها داكنة قبل أي شيء
+ * هذا يمنع الوميض الأبيض حتى قبل تحميل React أو أي JS
+ * color-scheme: dark يُخبر المتصفح فوراً بالوضع الداكن
+ */
+html {
+    background-color:  #ffffff;
+    color-scheme: dark;
+}
+
 :root {
     --background: #FDFCFF;
     --card: #FFFFFF;
@@ -20,27 +49,34 @@
     --color-text-muted: #9A97B4;
     --color-text-faint: #C8C4DF;
 
+    /* ✅ متغيرات AppLayout */
+    --color-bg: #0F0E17;
+    --color-border: rgba(120, 112, 175, 0.2);
+    --color-purple: #5227FF;
+    --font-display: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+    --font-body: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+
     --radius: 0.625rem;
     --font-sans: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
 
     /* ── Status Colors - Light Mode ── */
-    --status-expired-text:         #f87171;
-    --status-expired-icon-bg:      rgba(248, 113, 113, 0.15);
-    --status-expired-icon-border:  rgba(248, 113, 113, 0.25);
-    --status-expired-bg:           rgba(248, 113, 113, 0.10);
-    --status-expired-border:       rgba(248, 113, 113, 0.25);
+    --status-expired-text: #f87171;
+    --status-expired-icon-bg: rgba(248, 113, 113, 0.15);
+    --status-expired-icon-border: rgba(248, 113, 113, 0.25);
+    --status-expired-bg: rgba(248, 113, 113, 0.10);
+    --status-expired-border: rgba(248, 113, 113, 0.25);
 
-    --status-approaching-text:        #fbbf24;
-    --status-approaching-icon-bg:     rgba(251, 191, 36, 0.15);
+    --status-approaching-text: #fbbf24;
+    --status-approaching-icon-bg: rgba(251, 191, 36, 0.15);
     --status-approaching-icon-border: rgba(251, 191, 36, 0.25);
-    --status-approaching-bg:          rgba(251, 191, 36, 0.10);
-    --status-approaching-border:      rgba(251, 191, 36, 0.25);
+    --status-approaching-bg: rgba(251, 191, 36, 0.10);
+    --status-approaching-border: rgba(251, 191, 36, 0.25);
 
-    --status-safe-text:         #34d399;
-    --status-safe-icon-bg:      rgba(52, 211, 153, 0.15);
-    --status-safe-icon-border:  rgba(52, 211, 153, 0.25);
-    --status-safe-bg:           rgba(52, 211, 153, 0.10);
-    --status-safe-border:       rgba(52, 211, 153, 0.25);
+    --status-safe-text: #34d399;
+    --status-safe-icon-bg: rgba(52, 211, 153, 0.15);
+    --status-safe-icon-border: rgba(52, 211, 153, 0.25);
+    --status-safe-bg: rgba(52, 211, 153, 0.10);
+    --status-safe-border: rgba(52, 211, 153, 0.25);
 }
 
 .dark {
@@ -55,35 +91,141 @@
 
     --color-orchid: #D4A0B8;
     --color-orchid-light: #E8BCCD;
+    --color-bg: #0F0E17;
+    --color-border: rgba(120, 112, 175, 0.2);
 
     /* ── Status Colors - Dark Mode ── */
-    --status-expired-text:         #f87171;
-    --status-expired-icon-bg:      rgba(248, 113, 113, 0.15);
-    --status-expired-icon-border:  rgba(248, 113, 113, 0.25);
-    --status-expired-bg:           rgba(248, 113, 113, 0.15);
-    --status-expired-border:       rgba(248, 113, 113, 0.25);
+    --status-expired-text: #f87171;
+    --status-expired-icon-bg: rgba(248, 113, 113, 0.15);
+    --status-expired-icon-border: rgba(248, 113, 113, 0.25);
+    --status-expired-bg: rgba(248, 113, 113, 0.15);
+    --status-expired-border: rgba(248, 113, 113, 0.25);
 
-    --status-approaching-text:        #fbbf24;
-    --status-approaching-icon-bg:     rgba(251, 191, 36, 0.15);
+    --status-approaching-text: #fbbf24;
+    --status-approaching-icon-bg: rgba(251, 191, 36, 0.15);
     --status-approaching-icon-border: rgba(251, 191, 36, 0.25);
-    --status-approaching-bg:          rgba(251, 191, 36, 0.15);
-    --status-approaching-border:      rgba(251, 191, 36, 0.25);
+    --status-approaching-bg: rgba(251, 191, 36, 0.15);
+    --status-approaching-border: rgba(251, 191, 36, 0.25);
 
-    --status-safe-text:         #34d399;
-    --status-safe-icon-bg:      rgba(52, 211, 153, 0.15);
-    --status-safe-icon-border:  rgba(52, 211, 153, 0.25);
-    --status-safe-bg:           rgba(52, 211, 153, 0.15);
-    --status-safe-border:       rgba(52, 211, 153, 0.25);
+    --status-safe-text: #34d399;
+    --status-safe-icon-bg: rgba(52, 211, 153, 0.15);
+    --status-safe-icon-border: rgba(52, 211, 153, 0.25);
+    --status-safe-bg: rgba(52, 211, 153, 0.15);
+    --status-safe-border: rgba(52, 211, 153, 0.25);
 }
 
+/*
+ * ✅ FIX #2 — body يرث الخلفية الداكنة
+ * background-color ثابت هنا كـ fallback مستقل عن JS
+ * transition مؤجّل إلى ما بعد الـ mount (عبر .theme-ready في app.jsx)
+ */
 body {
     font-family: var(--font-sans);
-    background-color: var(--background);
+    background-color: #ffffff;
     color: var(--foreground);
-    transition: background-color 0.3s ease, color 0.3s ease;
     margin: 0;
 }
 
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--background); }
-::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 20px; }
+/*
+ * ✅ FIX #3 — transition فقط بعد التحميل
+ * class="theme-ready" تُضاف من app.jsx بعد أول render
+ * هذا يمنع الـ flash الأبيض عند التحميل الأول
+ */
+body.theme-ready {
+    background-color: var(--background);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/*
+ * ✅ FIX #4 — canvas: خلفية داكنة فورية
+ *
+ * المشكلة: alpha:true في Three.js يجعل الـ canvas شفافاً
+ * ما وراءه (html/body) يظهر أبيض لثانية قبل تشغيل الـ shader
+ *
+ * الحل: نعطي كل canvas خلفية داكنة كـ fallback
+ * LiquidEther نفسها تضيف background: '#0F0E17' على الـ domElement
+ * لكن هذا CSS يضمن التطبيق على مستوى الـ stylesheet أيضاً
+ */
+canvas {
+    background: #0F0E17 !important;
+}
+
+/*
+ * ✅ FIX #5 — canvas داخل GuestLayout (LiquidEther)
+ * نحافظ على نفس اللون لضمان الاتساق
+ * (هذا السيلكتور كان يُطبّق على .liquid-background في الكود القديم)
+ */
+.liquid-bg-wrapper canvas {
+    background: #0F0E17 !important;
+}
+
+/*
+ * ✅ FIX #6 — منع أي وميض عند تنقلات Inertia
+ *
+ * Inertia عند تغيير الصفحة تُفرغ محتوى الـ div#app مؤقتاً
+ * نضمن أن الـ div الجذر نفسه يحمل خلفية داكنة
+ * حتى في اللحظة القصيرة بين unmount القديم و mount الجديد
+ */
+#app {
+    background-color: #ffffff;
+    min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 20px;
+}
+
+/* ── Utility classes used in AppLayout ── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(232, 188, 205, 0.06);
+    border: 1px solid rgba(232, 188, 205, 0.12);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+}
+
+.badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-orchid);
+    opacity: 0.7;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

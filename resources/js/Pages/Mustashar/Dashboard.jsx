@@ -1,14 +1,14 @@
 // resources/js/Pages/Calculator/Dashboard.jsx
 import { Link } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../hooks/useMustasharGuard';
+import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import StatCard from '../../Components/UI/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
-import { useAllProducts, useCalculatorSettings } from '../../hooks/useProducts';
-import { useToggleWithToast } from '../../hooks/useToggleWithToast';  // ← الهوك الموحد
+import { useAllProducts, useCalculatorSettings } from '../../Hooks/useProducts';
+import { useToggleWithToast } from '../../Hooks/useToggleWithToast';  // ← الهوك الموحد
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

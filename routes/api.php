@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApiProductController;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
+use App\Http\Controllers\Calculator\CalculatorSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,6 +13,9 @@ use App\Http\Controllers\Calculator\ProductCalculatorController;
 |--------------------------------------------------------------------------
 | المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
+Route::get('/calculator/settings/{salla_product_id}',
+    [CalculatorSettingsController::class, 'getSettingsForStore']
+);
 
 Route::middleware('auth:sanctum')->group(function () {
 

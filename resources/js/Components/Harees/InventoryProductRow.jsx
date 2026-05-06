@@ -106,8 +106,7 @@ export default function InventoryProductRow({ product, onExpiry }) {
             </div>
             <div>
               <div className="text-sm font-bold">{product.name}</div>
-              <div className="text-[10px] text-[var(--muted-foreground)]">{product.sku}</div>
-              <div className="text-[10px] text-[var(--muted-foreground)]/70">#{product.id}</div>
+              <div className="text-[10px] text-[var(--muted-foreground)]/70">{product.salla_product_id}</div>
             </div>
           </div>
         </td>

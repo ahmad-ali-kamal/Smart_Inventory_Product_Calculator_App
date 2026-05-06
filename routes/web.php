@@ -8,6 +8,7 @@ use App\Http\Controllers\Calculator\CalculatorSettingsController;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Inventory\NotificationController;
 
+
 // الصفحة الرئيسية (Welcome)
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 
@@ -30,6 +31,8 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
 
     Route::get('/api/products', [ProductCalculatorController::class, 'index']);
     Route::post('/api/products/{id}/toggle', [ProductCalculatorController::class, 'toggle']);
+     Route::get('/api/calculator-settings', [CalculatorSettingsController::class, 'show']);
+    Route::post('/api/calculator-settings', [CalculatorSettingsController::class, 'store']);
 });
 
 // --- تطبيق "حريص" (Inventory App) ---
