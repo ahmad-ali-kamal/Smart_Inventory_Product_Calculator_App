@@ -54,11 +54,19 @@ const T = {
 };
 
 /*
- * FIX: Mustashar now uses the same purple palette as Harees for unified
- * visual identity across both products.
+ * نفس HERO_BG حقت حريص — هوية موحدة بين التطبيقين
  */
-const HERO_BG = 'linear-gradient(155deg, #110330 0%, #2A0868 38%, #3B0F90 62%, #1C0445 100%)';
-const ACCENT  = '#7C3AED';
+const HERO_BG = [
+    'radial-gradient(ellipse at 50%  0%,  #110330 0%, transparent 38%)',
+    'radial-gradient(ellipse at 15% 38%,  #0047ab 0%, transparent 48%)',
+    'radial-gradient(ellipse at 72% 52%,  #6d28d9 0%, transparent 52%)',
+    'radial-gradient(ellipse at 82% 90%,  #0369a1 0%, transparent 48%)',
+    'radial-gradient(ellipse at 10% 82%,  #1e3a5f 0%, transparent 42%)',
+    '#0c0220',
+].join(', ');
+
+const ACCENT = '#7C3AED';
+const CARD_W  = 'clamp(420px, 46%, 560px)';
 
 export default function MustasharLogin({ status }) {
     const { lang, isAr, dir, ff } = useLang();
@@ -71,8 +79,8 @@ export default function MustasharLogin({ status }) {
         return () => clearTimeout(timer);
     }, []);
 
-    const cardSlide = isAr ? '-32px' : '32px';
-    const infoSlide = isAr ? '32px' : '-32px';
+    const cardSlide = isAr ? '-40px' : '40px';
+    const infoSlide = isAr ? '40px'  : '-40px';
 
     return (
         <>
@@ -80,151 +88,130 @@ export default function MustasharLogin({ status }) {
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Changa:wght@700;800&family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
                 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-                html, body { height: 100%; }
+                html, body { height: 100%; overflow: hidden; }
 
                 .card-anim {
                     opacity: 0;
                     transform: translateX(${cardSlide});
-                    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
-                                transform 0.7s cubic-bezier(0.16,1,0.3,1);
+                    transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
                 }
                 .card-anim.show { opacity: 1; transform: translateX(0); }
 
                 .info-anim {
                     opacity: 0;
                     transform: translateX(${infoSlide});
-                    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1) 0.12s,
-                                transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.12s;
+                    transition: opacity .7s cubic-bezier(.16,1,.3,1) .12s, transform .7s cubic-bezier(.16,1,.3,1) .12s;
                 }
                 .info-anim.show { opacity: 1; transform: translateX(0); }
 
                 .salla-btn {
-                    display: flex; align-items: center; justify-content: center; gap: 10px;
-                    width: 100%; padding: 0.95rem 1.5rem;
-                    background: ${ACCENT}; color: #fff;
-                    border: none; border-radius: 12px;
-                    font-family: inherit; font-size: 1rem; font-weight: 700;
-                    cursor: pointer; text-decoration: none;
-                    transition: all 0.25s;
-                    box-shadow: 0 4px 14px rgba(124,58,237,0.35);
-                }
-                .salla-btn:hover {
-                    background: #6D28D9;
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(124,58,237,0.5);
-                }
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: .9rem 1.5rem;
+    background: rgba(147, 51, 234, 0.7); 
+    border: 1.5px solid rgba(216, 180, 254, 0.5); 
+    color: #fff;
+    border-radius: 12px;
+    font-family: inherit; font-size: 1rem; font-weight: 700;
+    cursor: pointer; text-decoration: none;
+    transition: all .25s;
+    backdrop-filter: blur(8px); 
+    box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3); 
+}
+
+.salla-btn:hover {
+    background: rgba(168, 85, 247, 1); 
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
+}
 
                 .step-row {
                     display: flex; align-items: center; gap: 12px;
-                    padding: 12px 14px; border-radius: 14px;
-                    transition: background 0.35s ease;
+                    padding: 10px 12px; border-radius: 14px;
+                    transition: background .35s ease;
                 }
-                .step-row.active-step { background: rgba(124,58,237,0.07); }
+                .step-row.active-step { background: rgba(255,255,255,.08); }
 
-                /*
-                 * FIX: card-panel is absolutely positioned edge-to-edge (top:0, height:100%)
-                 * so there is zero gap between the white panel and the purple hero.
-                 */
                 .card-panel {
-                    position: absolute;
+                    position: fixed;
                     top: 0;
+                    bottom: 0;
                     ${isAr ? 'left: 0;' : 'right: 0;'}
-                    width: clamp(340px, 46%, 520px);
-                    height: 100%;
-                    background: #fff;
+                    width: ${CARD_W};
+                    background: transparent;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    padding: 1.5rem 2rem;
+                    padding: 72px 2rem 2rem;
                     overflow-y: auto;
-                    box-shadow: ${isAr
-                        ? '8px 0 48px rgba(0,0,0,0.45)'
-                        : '-8px 0 48px rgba(0,0,0,0.45)'};
                     z-index: 5;
                 }
 
-                /* ---------- mobile ---------- */
                 @media (max-width: 768px) {
                     .card-panel {
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        right: 0 !important;
+                        left: 0 !important; right: 0 !important;
                         width: 100% !important;
-                        height: 100% !important;
-                        background: #fff !important;
-                        box-shadow: none !important;
-                        align-items: flex-start;
-                        padding: 0 1.25rem 2.5rem;
-                        overflow-y: auto;
-                        z-index: 10 !important;
+                        padding: 72px 1.25rem 2rem !important;
                     }
                     .dark-info { display: none !important; }
                 }
             `}</style>
 
             <div style={{
-                width: '100vw',
-                height: '100vh',
+                width: '100vw', height: '100vh',
                 background: HERO_BG,
                 position: 'relative',
                 overflow: 'hidden',
                 direction: dir,
             }}>
-                {/* Glow orbs */}
+                {/* Orb — أزرق electric يعزز المنطقة العلوية-الوسطى */}
                 <div style={{
-                    position: 'absolute', top: '-200px',
-                    [isAr ? 'left' : 'right']: '-200px',
-                    width: '600px', height: '600px', borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)',
+                    position: 'absolute', top: '-80px',
+                    [isAr ? 'right' : 'left']: '8%',
+                    width: '580px', height: '380px', borderRadius: '50%',
+                    background: 'radial-gradient(ellipse, rgba(0,100,210,.22) 0%, transparent 65%)',
                     pointerEvents: 'none',
                 }} />
+                {/* Orb — موف في المنتصف */}
                 <div style={{
-                    position: 'absolute', bottom: '-150px',
-                    [isAr ? 'right' : 'left']: '-100px',
-                    width: '450px', height: '450px', borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(165,243,252,0.12) 0%, transparent 70%)',
+                    position: 'absolute', top: '28%',
+                    [isAr ? 'left' : 'right']: '18%',
+                    width: '480px', height: '480px', borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(109,40,217,.25) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                }} />
+                {/* Orb — تركوازي أسفل */}
+                <div style={{
+                    position: 'absolute', bottom: '-80px',
+                    [isAr ? 'left' : 'right']: '-60px',
+                    width: '480px', height: '480px', borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(3,105,161,.3) 0%, transparent 65%)',
                     pointerEvents: 'none',
                 }} />
 
-                {/*
-                 * FIX: Navbar is transparent, sits above all panels via z-index:20.
-                 */}
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-                    background: 'transparent',
-                }}>
+                {/* Navbar */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: 'transparent' }}>
                     <GuestNavbar variant="login" backLabel={t.backHome} transparent />
                 </div>
 
-                {/* Dark info panel */}
+                {/* Info panel */}
                 <div style={{
                     position: 'absolute',
                     top: 0, left: 0, right: 0, bottom: 0,
                     display: 'flex',
-                    alignItems: 'flex-end',
-                    paddingInlineEnd: 'clamp(340px, 46%, 520px)',
+                    alignItems: 'center',
+                    paddingTop: '80px',
+                    paddingInlineEnd: CARD_W,
                     zIndex: 1,
                 }}>
-                    <InfoPanel
-                        t={t}
-                        isAr={isAr}
-                        ff={ff}
-                        bodyFont={bodyFont}
-                        visible={visible}
-                    />
+                    <InfoPanel t={t} isAr={isAr} ff={ff} bodyFont={bodyFont} visible={visible} />
                 </div>
 
-                {/* White card panel */}
+                {/* Glass card panel */}
                 <div className="card-panel">
                     <LoginCard
-                        t={t}
-                        isAr={isAr}
-                        ff={ff}
-                        bodyFont={bodyFont}
-                        visible={visible}
-                        status={status}
-                        accent={ACCENT}
+                        t={t} isAr={isAr} ff={ff} bodyFont={bodyFont}
+                        visible={visible} status={status} accent={ACCENT}
                     />
                 </div>
             </div>

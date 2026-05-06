@@ -25,6 +25,7 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                 padding: '2.5rem 3rem',
                 paddingTop: '0',
                 direction: isAr ? 'rtl' : 'ltr',
+                textAlign: isAr ? 'right' : 'left',
             }}
         >
             {/* Big headline */}
@@ -36,7 +37,6 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                     lineHeight: 1.25,
                     color: '#fff',
                     marginBottom: '0.75rem',
-                    textAlign: isAr ? 'right' : 'left',
                 }}>
                     {t.appName}
                     <span style={{
@@ -55,10 +55,8 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                     color: 'rgba(255,255,255,0.55)',
                     lineHeight: 1.75,
                     maxWidth: '380px',
-                    /* FIX: use textAlign instead of marginInlineStart so both LTR and RTL align correctly */
-                    textAlign: isAr ? 'right' : 'left',
-                    marginInlineStart: isAr ? 'auto' : 0,
-                    marginInlineEnd: isAr ? 0 : 'auto',
+                    marginInlineStart: 0,
+                    marginInlineEnd: 'auto',
                 }}>{t.appDesc}</p>
             </div>
 
@@ -74,9 +72,8 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        /* FIX: row-reverse in RTL ensures icon + text are right-aligned */
-                        flexDirection: isAr ? 'row-reverse' : 'row',
-                        justifyContent: isAr ? 'flex-end' : 'flex-start',
+                        /* In RTL, icon comes first (inline-start), then text — natural flow */
+                        flexDirection: 'row',
                     }}>
                         <CheckCircle2 size={14} color="#a5f3fc" style={{ flexShrink: 0 }} />
                         <span style={{
@@ -95,8 +92,6 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                flexDirection: isAr ? 'row-reverse' : 'row',
-                justifyContent: isAr ? 'flex-end' : 'flex-start',
             }}>
                 <div style={{
                     width: '40px', height: '40px', flexShrink: 0,
@@ -107,7 +102,7 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                 }}>
                     <HareesIconColored size={22} />
                 </div>
-                <div style={{ textAlign: isAr ? 'right' : 'left' }}>
+                <div>
                     <div style={{
                         fontFamily: "'Changa', sans-serif",
                         fontSize: '1rem',
@@ -132,8 +127,6 @@ export default function InfoPanel({ t, isAr, ff, bodyFont, visible }) {
                 height: '3px',
                 borderRadius: '2px',
                 background: 'linear-gradient(90deg, #c4b5fd, #a5f3fc)',
-                marginInlineStart: isAr ? 'auto' : 0,
-                marginInlineEnd: isAr ? 0 : 'auto',
             }} />
         </div>
     );
