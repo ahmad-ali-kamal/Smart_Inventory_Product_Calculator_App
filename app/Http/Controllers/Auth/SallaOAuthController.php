@@ -68,8 +68,12 @@ class SallaOAuthController extends Controller
 
             Auth::login($merchant);
 
-            return redirect()->route('welcome')
-                ->with('success', 'مرحباً بك ' . $merchant->name . ' 🎉.. تم ربط متجرك!');
+            return redirect(
+    session('salla_app_type') === 'calculator'
+        ? '/mustashar/dashboard'
+        : '/harees/dashboard'
+);
+             
 
         } catch (\Exception $e) {
             Log::error('Salla OAuth Error: ' . $e->getMessage());
@@ -127,7 +131,7 @@ class SallaOAuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('welcome')->with('success', 'تم تسجيل الخروج.');
+        return redirect()->route('home')->with('success', 'logged out successfully');
     }
 
     private function getAccessToken(string $code, array $config): array

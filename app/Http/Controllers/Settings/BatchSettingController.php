@@ -15,7 +15,7 @@ class BatchSettingController extends Controller
     /**
      * حفظ أو تحديث إعدادات المدد الزمنية (Buckets) + توزيع التصنيفات
      */
-    public function store(Request $request)
+public function store(Request $request)
 {
     $merchant = Auth::user();
 
@@ -38,35 +38,53 @@ class BatchSettingController extends Controller
     // 2. Transaction
     DB::transaction(function () use ($request, $merchant, $validated) {
 
-        // 3. تجهيز البيانات مع ضمان قيم boolean صحيحة
+        // 3. Prepare data with correct boolean casting
         $dataToSave = collect($validated)
             ->except('category_mapping')
             ->toArray();
 
-        $dataToSave['auto_hide_expired']    = (int) ($request->input('auto_hide_expired',    0));
-        $dataToSave['enable_notifications'] = (int) ($request->input('enable_notifications', 0));
-        $dataToSave['auto_discounts']       = (int) ($request->input('auto_discounts',       0));
+       $dataToSave['auto_hide_expired']    = $request->boolean('auto_hide_expired');
+$dataToSave['enable_notifications'] = $request->boolean('enable_notifications');
+$dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
 
-        // 4. حفظ الإعدادات (مرة واحدة فقط ✅)
+        // 4. Save settings (unchanged)
         BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
             $dataToSave
         );
 
-        // 5. حفظ Category Mappings
+        // 5. Save Category Mappings — UPSERT, no destructive delete
         if ($request->has('category_mapping')) {
-            CategoryMapping::where('merchant_id', $merchant->id)->delete();
 
-            foreach ($request->category_mapping as $bucket => $categories) {
+            $incomingMapping = $request->category_mapping;
+
+            // Flatten to detect which categories were removed entirely
+            $submittedNames = collect($incomingMapping)
+                ->flatten()
+                ->filter()
+                ->values()
+                ->toArray();
+
+            // Delete only rows absent from the new submission
+            CategoryMapping::where('merchant_id', $merchant->id)
+                ->whereNotIn('category_name', $submittedNames)
+                ->delete();
+
+            // Update existing rows or create new ones — never touches the ID
+            foreach ($incomingMapping as $bucket => $categories) {
                 if (!is_array($categories)) continue;
 
                 foreach ($categories as $index => $catName) {
-                    CategoryMapping::create([
-                        'merchant_id'   => $merchant->id,
-                        'category_name' => $catName,
-                        'bucket'        => $bucket,
-                        'sort_order'    => $index,
-                    ]);
+                    CategoryMapping::updateOrCreate(
+                        [
+                            'merchant_id'   => $merchant->id,
+                            'category_name' => $catName,
+                        ],
+                        [
+                            'bucket'     => $bucket,
+                            'sort_order' => $index,
+                        ]
+                    );
                 }
             }
         }
@@ -74,7 +92,10 @@ class BatchSettingController extends Controller
 
     Cache::forget("inventory_dashboard_{$merchant->id}");
 
-    return back()->with('success', 'تم حفظ الإعدادات بنجاح.');
+    return response()->json([
+    'success' => true,
+    'message' => 'تم حفظ الإعدادات بنجاح.',
+]);
 }
     /**
      * إعادة تعيين الإعدادات للقيم الافتراضية

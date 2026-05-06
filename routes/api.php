@@ -3,32 +3,19 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApiProductController;
+use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
-use App\Http\Controllers\SallaWebhookController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API Routes (Sanctum Protected)
 |--------------------------------------------------------------------------
 | المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
 
-// ====================================================================
-// 1. مسارات الويب هوكس (عامة - لا تحتاج Auth)
-// ====================================================================
-/**
- * رابط استقبال بيانات سلة (المنتجات، المبيعات، إلخ)
- * الرابط في مركز الشركاء: https://yourdomain.com/api/webhooks/salla
- */
-Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle']);
-
-
-// ====================================================================
-// 2. مسارات محمية (تتطلب تسجيل دخول Merchant عبر Sanctum)
-// ====================================================================
 Route::middleware('auth:sanctum')->group(function () {
 
-    // جلب معلومات المتجر الحالي (Quantix API User)
+    // --- 1. معلومات المستخدم الحالي ---
     Route::get('/user', function (Request $request) {
         return response()->json([
             'id'             => $request->user()->id,
@@ -39,22 +26,44 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // إدارة المنتجات عبر الـ API
-    Route::prefix('products')->group(function () {
-        Route::get('/',             [ApiProductController::class, 'index']);   // عرض كل المنتجات
-        Route::get('/{product_id}', [ApiProductController::class, 'show']);    // عرض منتج محدد
+    // --- 2. إدارة المخزون (Inventory Core) ---
+    Route::prefix('inventory')->group(function () {
+        Route::get('/dashboard', [InventoryApiController::class, 'dashboard']);
+        Route::get('/products', [InventoryApiController::class, 'products']);
+        
+        // ── مسارات الدفعات الجديدة (بديل السيناريوهات القديمة) ──
+        // إضافة دفعة جديدة بالكمية اليدوية والتاريخ
+        Route::post('/products/{product_id}/store-batch', [InventoryApiController::class, 'storeBatch']);
+        // تعديل بيانات دفعة سابقة
+        Route::put('/batch/{batch_id}', [InventoryApiController::class, 'updateBatch']);
+
+        Route::post('/expiry/batch', [InventoryApiController::class, 'storeExpiry']);
+        Route::get('/settings', [InventoryApiController::class, 'settings']);
+        Route::put('/settings/batch', [InventoryApiController::class, 'updateSettings']);
+        
+        // ملاحظة: تم حذف السيناريو 4 (reconcile) بالكامل بناءً على طلبك
     });
 
-    // إعدادات الحاسبة الذكية (المستشار)
+    // --- 3. محرك المنتجات (Product Routes) ---
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ApiProductController::class, 'index']);
+        Route::get('/{product}', [ApiProductController::class, 'show']);
+        Route::get('/{product_id}/variants', [ApiProductController::class, 'variants']);
+        Route::put('/variants/{variant}', [ApiProductController::class, 'updateVariant']);
+
+        // ملاحظة: تم حذف (convert-to-variants, merge-batch, partial-update)
+        // لأن الاعتماد أصبح 100% على (store-batch) وسلة مباشرة
+    });
+
+    // --- 4. إعدادات الحاسبة (Mustashar) ---
     Route::prefix('calculator')->group(function () {
         Route::get('/settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
-        Route::post('/settings/update',      [ProductCalculatorController::class, 'updateSettings']);
+        Route::post('/settings/update', [ProductCalculatorController::class, 'updateSettings']);
     });
 });
 
-
 // ====================================================================
-// 3. مسارات الاختبار (Local Environment Only)
+// مسارات الاختبار (Local Environment Only)
 // ====================================================================
 if (app()->environment('local')) {
     Route::get('/test-db-connection', function () {

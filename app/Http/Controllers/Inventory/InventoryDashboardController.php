@@ -89,7 +89,7 @@ class InventoryDashboardController extends Controller
         return view('inventory.dashboard', [
             'stats'    => $data['stats'],
             'products' => $data['products'],
-            'settings' => $settings,
+             'settings' => $settings,
         ]);
     }
 

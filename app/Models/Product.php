@@ -57,6 +57,10 @@ class Product extends Model
         return $this->hasOne(ProductCalculator::class);
     }
 
+    /**
+     * العلاقة مع الباتشات عبر جدول batch_items
+     * محرك "حريص" يعتمد على هذه العلاقة لحساب الكميات الفعلية الصالحة
+     */
     public function batches(): BelongsToMany
     {
         return $this->belongsToMany(Batch::class, 'batch_items')
@@ -85,7 +89,6 @@ class Product extends Model
     public function getCategoryThreshold(): int
     {
         // 1. البحث عن خريطة التصنيف لهذا المنتج وللبائع الحالي
-        // نفترض أن العمود 'category' في المنتج يطابق 'category_name' في الخريطة
         $mapping = CategoryMapping::where('merchant_id', $this->merchant_id)
             ->where('category_name', $this->category)
             ->first();
@@ -100,11 +103,11 @@ class Product extends Model
 
         // 4. تحديد الأيام بناءً على النوع المربوط (Short, Medium, Long)
         switch ($mapping->bucket) {
-    case 'short':  return $settings->short_term_days;
-    case 'long':   return $settings->long_term_days;
-    case 'medium':
-    default:       return $settings->medium_term_days;
-}
+            case 'short':  return $settings->short_term_days;
+            case 'long':   return $settings->long_term_days;
+            case 'medium':
+            default:       return $settings->medium_term_days;
+        }
     }
 
     // ====================================================================

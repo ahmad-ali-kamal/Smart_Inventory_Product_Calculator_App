@@ -1,0 +1,84 @@
+{
+  "_Card-CQ-AFelV.js": {
+    "file": "assets/Card-CQ-AFelV.js",
+    "name": "Card",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_sliders-horizontal-D8cBHfgc.js": {
+    "file": "assets/sliders-horizontal-D8cBHfgc.js",
+    "name": "sliders-horizontal",
+    "imports": [
+      "_Card-CQ-AFelV.js"
+    ]
+  },
+  "resources/js/Pages/Calculator/Dashboard.jsx": {
+    "file": "assets/Dashboard-D2QIIWgu.js",
+    "name": "Dashboard",
+    "src": "resources/js/Pages/Calculator/Dashboard.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Card-CQ-AFelV.js",
+      "_sliders-horizontal-D8cBHfgc.js"
+    ]
+  },
+  "resources/js/Pages/Calculator/Instructions.jsx": {
+    "file": "assets/Instructions-BGuePZva.js",
+    "name": "Instructions",
+    "src": "resources/js/Pages/Calculator/Instructions.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Card-CQ-AFelV.js",
+      "_sliders-horizontal-D8cBHfgc.js"
+    ]
+  },
+  "resources/js/Pages/Calculator/Products.jsx": {
+    "file": "assets/Products-3WtuZOha.js",
+    "name": "Products",
+    "src": "resources/js/Pages/Calculator/Products.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Card-CQ-AFelV.js"
+    ]
+  },
+  "resources/js/Pages/Calculator/Settings.jsx": {
+    "file": "assets/Settings-Dfv2eK0i.js",
+    "name": "Settings",
+    "src": "resources/js/Pages/Calculator/Settings.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Card-CQ-AFelV.js",
+      "_sliders-horizontal-D8cBHfgc.js"
+    ]
+  },
+  "resources/js/Pages/Welcome.jsx": {
+    "file": "assets/Welcome-DkVGP-_n.js",
+    "name": "Welcome",
+    "src": "resources/js/Pages/Welcome.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "resources/js/app.jsx": {
+    "file": "assets/app-CN6CSxnb.js",
+    "name": "app",
+    "src": "resources/js/app.jsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/Pages/Calculator/Dashboard.jsx",
+      "resources/js/Pages/Calculator/Instructions.jsx",
+      "resources/js/Pages/Calculator/Products.jsx",
+      "resources/js/Pages/Calculator/Settings.jsx",
+      "resources/js/Pages/Welcome.jsx"
+    ],
+    "css": [
+      "assets/app-pR5qMWTC.css"
+    ]
+  }
+}

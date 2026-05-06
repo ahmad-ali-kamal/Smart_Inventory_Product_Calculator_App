@@ -24,9 +24,16 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-       $schedule->job(new \App\Jobs\CheckBatchExpiryJob())
-             ->dailyAt('08:00')
-             ->withoutOverlapping();
+        /**
+         * تشغيل المحرك الأساسي لنظام "حريص".
+         * هذه المهمة تقوم بفحص تواريخ الانتهاء يومياً وتحديث متجر سلة:
+         * 1. تصفير وخصم الباتشات الحمراء (منتهية الصلاحية).
+         * 2. تحديث أسعار الباتشات الصفراء (قريبة الانتهاء) كـ Variants مستقلة.
+         * 3. إخفاء المنتج تماماً في حال كانت كافة الباتشات المرتبطة به "حمراء".
+         */
+        $schedule->job(new \App\Jobs\CheckBatchExpiryJob())
+                 ->dailyAt('00:00')
+                 ->withoutOverlapping();
     }
 
     /**

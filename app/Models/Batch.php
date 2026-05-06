@@ -9,19 +9,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Log;
 
 class Batch extends Model
 {
     use HasFactory;
 
+    public $afterCommit = true;
+
     protected $fillable = [
         'merchant_id',
+        'salla_variant_id',
         'batch_code',
         'name',
         'manufactured_date',
         'expiry_date',
-        'status',           
-        'days_until_expiry', 
+        'status',
+        'days_until_expiry',
         'notes',
     ];
 
@@ -39,91 +43,57 @@ class Batch extends Model
         'total_sold',
     ];
 
-    // ====================================================================
-    // 1. البوت (Boot) - معالجة المنطق التلقائي عند الحفظ
-    // ====================================================================
     protected static function boot()
     {
         parent::boot();
 
-        // قبل الحفظ: تحديث الحالة والأيام المتبقية
         static::saving(function ($batch) {
             $batch->calculateStatus();
         });
 
-        // بعد الحفظ: إرسال الإشعارات وتطبيق الخصم التلقائي
         static::saved(function ($batch) {
+            Log::info("--- [Batch Hook] Notification Triggered for ID: {$batch->id} ---");
+
             $oldStatus = $batch->getOriginal('status');
             $newStatus = $batch->status;
 
-            if ($oldStatus === $newStatus) return;
-            if (!in_array($newStatus, ['yellow', 'red'])) return;
+            // ✅ إصلاح 1: لا نُرسل notification إذا لم يتغيّر الوضع
+            if ($oldStatus === $newStatus) {
+                return;
+            }
+
+            // ✅ إصلاح 2: لا نُرسل إلا للحالات الحرجة
+            if (!in_array($newStatus, ['yellow', 'red'])) {
+                return;
+            }
 
             $merchant = $batch->merchant;
-            if (!$merchant) return;
+            if (!$merchant) {
+                Log::warning("[Batch Hook] لا يوجد تاجر للدفعة ID: {$batch->id}");
+                return;
+            }
 
-            // 1. إرسال إشعار للنظام
-            $merchant->notify(
-                new \App\Notifications\BatchExpiryNotification($batch, $newStatus)
-            );
+            // ✅ إصلاح 3: التحقق من وجود منتج مرتبط قبل إرسال الـ notification
+            // عند إنشاء Batch جديد، البيانات تُحفظ قبل BatchItem بفارق صغير
+            // لذلك نتحقق بدلاً من إطلاق exception
+            $hasProduct = $batch->batchItems()->exists();
 
-            // 2. تطبيق الخصم التلقائي إذا تحولت الحالة إلى "صفراء"
-            if ($newStatus === 'yellow') {
-                $setting = \App\Models\BatchSetting::where('merchant_id', $merchant->id)->first();
+            if (!$hasProduct) {
+                Log::info("[Batch Hook] الدفعة {$batch->id} ليس لها منتج بعد — تم تأجيل الـ notification");
+                return;
+            }
 
-                if (!$setting || !$setting->auto_discounts) return;
-
-                foreach ($batch->items as $batchItem) {
-                    $product = $batchItem->product;
-                    if (!$product) continue;
-
-                    // تجنب خصم مكرر
-                    $alreadyDiscounted = \App\Models\ProductDiscount::where('product_id', $product->id)
-                        ->where('status', 'active')
-                        ->exists();
-
-                    if ($alreadyDiscounted) continue;
-
-                    try {
-                        $discountPercent = $setting->auto_discount_percent;
-                        $durationDays    = $setting->auto_discount_duration_days ?? 7;
-                        $discountedPrice = $product->price * (1 - ($discountPercent / 100));
-                        $endsAt          = now()->addDays($durationDays);
-
-                        // الربط مع API سلة لتعديل السعر في المتجر
-                        $sallaApi = \App\Services\SallaApiService::for($merchant);
-                        $sallaApi->applySpecialPrice(
-                            $product->salla_product_id,
-                            $discountedPrice,
-                            now()->toIso8601String(),
-                            $endsAt->toIso8601String(),
-                            $discountPercent
-                        );
-
-                        // توثيق الخصم في قاعدة البيانات
-                        \App\Models\ProductDiscount::create([
-                            'product_id'          => $product->id,
-                            'batch_id'            => $batch->id,
-                            'discount_percentage' => $discountPercent,
-                            'starts_at'           => now(),
-                            'ends_at'             => $endsAt,
-                            'status'              => 'active',
-                            'is_ai_suggested'     => false,
-                            'applied_to_salla'    => true,
-                        ]);
-
-                        \Illuminate\Support\Facades\Log::info("[AutoDiscount] تم تطبيق خصم {$discountPercent}% على: {$product->name}");
-
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error("[AutoDiscount] فشل: " . $e->getMessage());
-                    }
-                }
+            try {
+                $merchant->notify(new \App\Notifications\BatchExpiryNotification($batch, $newStatus));
+                Log::info("[Batch Hook] تم إرسال notification للتاجر: {$merchant->id}");
+            } catch (\Throwable $e) {
+                Log::error("[Batch Hook] فشل إرسال notification: " . $e->getMessage());
             }
         });
     }
 
     // ====================================================================
-    // 2. الأكسيسورز (Accessors)
+    // Accessors
     // ====================================================================
 
     public function getIsExpiredAttribute(): bool
@@ -134,21 +104,20 @@ class Batch extends Model
 
     public function getExpiryLabelAttribute(): string
     {
-        $days = $this->days_until_expiry;
-
-        if ($days < 0) return 'منتهي الصلاحية';
+        $days = $this->days_until_expiry ?? 0;
+        if ($days < 0)  return 'منتهي الصلاحية';
         if ($days == 0) return 'ينتهي اليوم!';
         return $days <= 7 ? "خطر: باقي {$days} أيام فقط!" : "باقي {$days} يوم";
     }
 
     public function getTotalQuantityAttribute(): int
     {
-        return (int) $this->items()->sum('quantity');
+        return (int) $this->batchItems()->sum('quantity');
     }
 
     public function getTotalSoldAttribute(): int
     {
-        return (int) $this->items()->sum('sold_quantity');
+        return (int) $this->batchItems()->sum('sold_quantity');
     }
 
     public function getTotalRemainingAttribute(): int
@@ -157,7 +126,7 @@ class Batch extends Model
     }
 
     // ====================================================================
-    // 3. العلاقات (Relationships)
+    // Relationships
     // ====================================================================
 
     public function merchant(): BelongsTo
@@ -165,9 +134,9 @@ class Batch extends Model
         return $this->belongsTo(Merchant::class, 'merchant_id');
     }
 
-    public function items(): HasMany
+    public function batchItems(): HasMany
     {
-        return $this->hasMany(BatchItem::class);
+        return $this->hasMany(BatchItem::class, 'batch_id');
     }
 
     public function products(): BelongsToMany
@@ -183,13 +152,37 @@ class Batch extends Model
     }
 
     // ====================================================================
-    // 4. الدوال الأساسية (Methods)
+    // Scopes
+    // ====================================================================
+
+    public function scopeForMerchant($query, $merchantId)
+    {
+        return $query->where('merchant_id', $merchantId);
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('status', 'red');
+    }
+
+    public function scopeWarning($query)
+    {
+        return $query->where('status', 'yellow');
+    }
+
+    public function scopeSafe($query)
+    {
+        return $query->where('status', 'green');
+    }
+
+    // ====================================================================
+    // Methods
     // ====================================================================
 
     public function calculateStatus(): void
     {
         if (!$this->expiry_date) return;
-        
+
         $expiry   = Carbon::parse($this->expiry_date)->startOfDay();
         $today    = Carbon::now()->startOfDay();
         $daysLeft = (int) $today->diffInDays($expiry, false);
@@ -201,34 +194,42 @@ class Batch extends Model
             return;
         }
 
-        $threshold = $this->getThreshold();
+        $threshold    = $this->getThreshold();
         $this->status = ($daysLeft <= $threshold) ? 'yellow' : 'green';
     }
 
     public function getThreshold(): int
     {
         $product = $this->products()->first();
-
         if ($product && method_exists($product, 'getCategoryThreshold')) {
             $threshold = $product->getCategoryThreshold();
             if (!is_null($threshold)) return (int) $threshold;
         }
 
         $settings = BatchSetting::where('merchant_id', $this->merchant_id)->first();
-        return (int) ($settings->medium_term_days ?? 14);
+        return (int) ($settings?->medium_term_days ?? 14);
     }
 
-    public function needsDiscount(): bool
+    /**
+     * إرسال notification يدوياً بعد ربط المنتج (يُستدعى من Controller)
+     * يحل مشكلة: الـ saved hook يُطلَق قبل إنشاء BatchItem
+     */
+    public function sendExpiryNotificationIfNeeded(): void
     {
-        return $this->status === 'yellow' && $this->days_until_expiry >= 0;
+        if (!in_array($this->status, ['yellow', 'red'])) {
+            return;
+        }
+
+        $merchant = $this->merchant;
+        if (!$merchant) return;
+
+        if (!$this->batchItems()->exists()) return;
+
+        try {
+            $merchant->notify(new \App\Notifications\BatchExpiryNotification($this, $this->status));
+            Log::info("[Batch] Notification يدوية أُرسلت للدفعة: {$this->id}");
+        } catch (\Throwable $e) {
+            Log::error("[Batch] فشل إرسال notification يدوية: " . $e->getMessage());
+        }
     }
-
-    // ====================================================================
-    // 5. السكوبس (Scopes)
-    // ====================================================================
-
-    public function scopeExpired($query) { return $query->where('status', 'red'); }
-    public function scopeWarning($query) { return $query->where('status', 'yellow'); }
-    public function scopeSafe($query)    { return $query->where('status', 'green'); }
-    public function scopeForMerchant($query, int $merchantId) { return $query->where('merchant_id', $merchantId); }
 }
