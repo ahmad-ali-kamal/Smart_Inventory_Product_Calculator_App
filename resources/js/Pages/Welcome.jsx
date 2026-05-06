@@ -2,8 +2,8 @@ import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { Settings2, Clock, TrendingUp, CheckCircle2, ShoppingBag } from 'lucide-react';
 import { useLang } from '@/Hooks/useLang';
-import LanguageSwitcher from '@/Components/LanguageSwitcher';
 import GuestLayout from '@/Layouts/GuestLayout';
+import GuestNavbar from '@/Components/GuestNavbar';
 
 /* ─── TRANSLATIONS ─── */
 const T = {
@@ -520,57 +520,7 @@ export default function Welcome() {
             `}</style>
 
             {/* ══ NAVBAR ══ */}
-            <header style={{
-                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-                height: NAV_H,
-                backdropFilter: 'blur(20px)',
-                background: 'rgba(10, 5, 30, 0.65)',
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
-                display: 'flex', alignItems: 'center',
-            }}>
-                <div style={{
-                    maxWidth: 1100, margin: '0 auto', width: '100%', padding: '0 1.5rem',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    direction: 'ltr',
-                }}>
-                    <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-                        <img src="/images/Quantix_logo.png" alt="Quantix" style={{ height: 30 }} />
-                        <span style={{ fontFamily: "'Changa', sans-serif", fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.08em', color: 'white' }}>
-                            QUANTIX
-                        </span>
-                    </Link>
-
-                    <nav style={{
-                        display: 'flex', alignItems: 'center',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 999, padding: '3px',
-                        direction: dir,
-                    }}>
-                        {t.nav.map((item, i) => (
-                            <a key={i}
-                                href={['#features', '#platforms', '#stats'][i]}
-                                style={{
-                                    padding: '6px 16px',
-                                    color: i === 0 ? 'white' : 'rgba(255,255,255,0.5)',
-                                    textDecoration: 'none',
-                                    fontFamily: bodyFont,
-                                    fontSize: '0.82rem',
-                                    fontWeight: 600,
-                                    borderRadius: 999,
-                                    display: 'flex', alignItems: 'center', gap: 5,
-                                    background: i === 0 ? 'rgba(255,255,255,0.1)' : 'transparent',
-                                }}
-                            >
-                                {i === 0 && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A855F7', flexShrink: 0 }} />}
-                                {item}
-                            </a>
-                        ))}
-                    </nav>
-
-                    <LanguageSwitcher />
-                </div>
-            </header>
+            <GuestNavbar variant="welcome" />
 
             {/* ══ MAIN ══ */}
             <main dir={dir}>

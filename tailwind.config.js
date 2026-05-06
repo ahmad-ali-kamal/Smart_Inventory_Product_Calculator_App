@@ -25,11 +25,19 @@ export default {
                 display: ["Cormorant Garamond", "serif"],
                 body: ["DM Sans", "sans-serif"],
             },
+            keyframes: {
+            shake: {
+                '0%, 100%': { transform: 'rotate(0deg)' },
+                '25%': { transform: 'rotate(8deg)' }, 
+                '75%': { transform: 'rotate(-8deg)' },
+            }
+        },
+        animation: {
+            shake: 'shake 0.5s ease-in-out infinite',
+        }
         },
     },
     plugins: [
-        // استبدل require بـ import إذا كنت تستخدم إصدارات حديثة，
-        // أو تأكد من أن السطر التالي يعمل بعد تحويل المشروع لـ Module
         forms,
     ],
 };
