@@ -63,12 +63,13 @@ class BatchExpiryNotification extends Notification
     }
 
     public function toArray($notifiable): array
-    {
-        return [
-            'batch_id'   => $this->batch->id,
-            'batch_code' => $this->batch->batch_code,
-            'status'     => $this->status,
-            'expiry_date'=> $this->batch->expiry_date?->format('Y-m-d'),
-        ];
-    }
+{
+    return [
+        'batch_id'    => $this->batch->id,
+        'batch_code'  => $this->batch->batch_code,
+        'product_name'=> $this->getProductName(),
+        'status'      => $this->status,
+        'expiry_date' => $this->batch->expiry_date?->format('Y-m-d'),
+    ];
+}
 }

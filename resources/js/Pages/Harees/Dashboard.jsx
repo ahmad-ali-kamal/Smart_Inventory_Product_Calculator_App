@@ -215,6 +215,41 @@ export default function Dashboard() {
 function BatchRowStandalone({ batch, product, autoDiscount }) {
     const [selectedBatch, setSelectedBatch] = useState(null);
 
+    const handleApplyDiscount = async ({ batchId, discountPct, endDate }) => {
+    try {
+        const res = await fetch(`/harees/api/products/${product.id}/discounts/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                batch_id: batchId,
+                discount_percentage: discountPct,
+                ends_at: endDate,
+                is_ai_suggested: false,
+            }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+            alert(data.message || 'Failed to apply discount');
+            return;
+        }
+
+        alert('Discount applied successfully');
+        setSelectedBatch(null);
+
+    } catch (err) {
+        console.error(err);
+        alert('Server error');
+    }
+};
+
     const normalized = normalizeStatus(batch.status);
     const batchCode  = batch.batch_code  || batch.batchNo     || '—';
     const expiryDate = batch.expiry_date  || batch.expiryDate  || '—';
@@ -307,7 +342,7 @@ function BatchRowStandalone({ batch, product, autoDiscount }) {
                     batch={selectedBatch}
                     product={product}
                     onClose={() => setSelectedBatch(null)}
-                    onApply={() => setSelectedBatch(null)}
+                    onApply={handleApplyDiscount}
                 />
             )}
         </>

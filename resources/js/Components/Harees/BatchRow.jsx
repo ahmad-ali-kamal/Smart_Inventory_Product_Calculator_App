@@ -38,6 +38,35 @@ const getStatusStyle = (normalized) => {
 export default function BatchRow({ product, autoDiscount }) {
     const [selectedBatch, setSelectedBatch] = useState(null);
 
+    const handleApplyDiscount = async ({ batchId, discountPct, endDate }) => {
+    const res = await fetch(`/harees/api/products/${product.id}/discounts/apply`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            batch_id: batchId,
+            discount_percentage: discountPct,
+            ends_at: endDate,
+            is_ai_suggested: false,
+        }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+        alert(data.message || 'Failed to apply discount');
+        return;
+    }
+
+    alert('Discount applied successfully');
+    setSelectedBatch(null);
+};
+
     // الباك يرسل batches كـ array داخل product (من dashboard API)
     // كل batch فيه: id, batch_code, expiry_date, status (red/yellow/green)
     const productBatches = product.batches || [];
@@ -150,7 +179,7 @@ export default function BatchRow({ product, autoDiscount }) {
                     batch={selectedBatch}
                     product={product}
                     onClose={() => setSelectedBatch(null)}
-                    onApply={() => setSelectedBatch(null)}
+                    onApply={handleApplyDiscount}
                 />
             )}
         </>

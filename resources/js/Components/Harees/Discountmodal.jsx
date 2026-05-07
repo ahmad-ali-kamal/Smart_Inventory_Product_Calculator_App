@@ -40,10 +40,12 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
         }
 
         setIsApplied(true);
-        setTimeout(() => {
-            onApply && onApply({ batchId: batch?.id, discountPct: num, endDate });
-            onClose();
-        }, 1500);
+
+onApply && onApply({
+    batchId: batch?.id,
+    discountPct: num,
+    endDate
+});
     };
 
     const hasError = Boolean(pctError);
