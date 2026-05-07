@@ -45,7 +45,7 @@ class CheckBatchExpiryJob implements ShouldQueue
                   if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
     
     // إنشاء فارينت إذا تحوّل لأصفر لأول مرة
-    if ($batch->status === 'yellow' && empty($batch->salla_variant_id)) {
+    if ($batch->status === 'yellow' && empty($batch->getSallaVariantId())) {
         try {
             $batch->createSallaVariant();
         } catch (\Throwable $e) {
@@ -66,11 +66,15 @@ class CheckBatchExpiryJob implements ShouldQueue
                     }
 
                     // تطبيق التخفيض فقط إذا كان أصفر (دون إرسال أي بيانات تخص الـ stock_quantity)
-                    if ($batch->salla_variant_id && $batch->status === 'yellow') {
+                    if ($batch->getSallaVariantId() && $batch->status === 'yellow') {
                         try {
-                            $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                                'sale_price' => round($batch->price * 0.7, 2),
-                            ]);
+                          $product = $batch->products()->first();
+if ($product) {
+    $sallaApi->updateBatchVariant($batch->getSallaVariantId(), [
+        'price'      => $product->regular_price ?? $product->price,
+        'sale_price' => round(($product->regular_price ?? $product->price) * 0.85, 2),
+    ]);
+}
                         } catch (\Exception $e) {
                             Log::error("[Batch] فشل تحديث سعر الباتش الأصفر: " . $e->getMessage());
                         }

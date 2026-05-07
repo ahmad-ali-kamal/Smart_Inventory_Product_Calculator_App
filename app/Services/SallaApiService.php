@@ -197,15 +197,14 @@ class SallaApiService
         ]);
     }
 
-    public function addValueToOption($option_id, $value)
-    {
-        return $this->request('post', "/products/options/{$option_id}/values", [
-            'name' => $value
-        ]);
-    }
-
-    public function deleteProductOption($product_id, $option_id)
+    public function addValueToOption($product_id, $option_id, $value)
 {
-    return $this->request('delete', "/products/{$product_id}/options/{$option_id}");
+    return $this->request('post', "/products/{$product_id}/options/{$option_id}/values", [
+        'name' => $value
+    ]);
+}
+   public function deleteOption($option_id)
+{
+    return $this->request('delete', "/products/options/{$option_id}");
 }
 }

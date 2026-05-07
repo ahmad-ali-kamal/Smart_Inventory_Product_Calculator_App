@@ -281,7 +281,7 @@ class ProductExpiryController extends Controller
             'unit_cost'  => $product->price ?? 0,
         ]);
         
-if ($batch->status === 'yellow' && empty($batch->salla_variant_id)) {
+if ($batch->status === 'yellow' && empty($batch->getSallaVariantId())) {
     try {
         $batch->createSallaVariant();
     } catch (\Throwable $e) {
@@ -314,7 +314,7 @@ return $batch;
                 'unit_cost'  => $product->price ?? 0,
             ]);
 
-            if ($batch->status === 'yellow' && empty($batch->salla_variant_id)) {
+            if ($batch->status === 'yellow' && empty($batch->getSallaVariantId())) {
     try {
         $batch->createSallaVariant();
     } catch (\Throwable $e) {

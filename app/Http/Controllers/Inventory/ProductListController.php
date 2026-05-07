@@ -79,7 +79,7 @@ class ProductListController extends Controller
             }
 
             // هـ. تحديد الحالة العامة للمنتج بناءً على أقرب دفعة
-            $status = BatchSetting::getStatusForDays($minDaysRemaining, $merchant->id);
+            $status = BatchSetting::getStatusForDays($minDaysRemaining, $threshold);
 
             // و. إضافة الخصائص للمنتج لتظهر في واجهة العرض
             $product->status = $status;
