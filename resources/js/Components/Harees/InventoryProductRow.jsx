@@ -182,10 +182,10 @@ export default function InventoryProductRow({ product, onExpiry }) {
           const config = getStatusConfig(status);
           return (
             <tr key={batch.id} className="bg-[var(--accent)]/5 border-b border-[var(--border)]">
-              <td className="pl-10 py-3 text-[11px] text-[var(--muted-foreground)]">
+              <td className="pl-10 py-3.5 text-[12px] text-[var(--muted-foreground)]">
                 <span className="font-bold text-[var(--foreground)]">Batch:</span> {batch.code}
               </td>
-              <td className="text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
+              <td className="text-center text-[11px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
                 {product.category}
               </td>
               <td className="text-center">
@@ -193,8 +193,8 @@ export default function InventoryProductRow({ product, onExpiry }) {
                   {config.label}
                 </span>
               </td>
-              <td className="text-center text-[11px]">{batch.qty}</td>
-              <td className="text-center text-[11px] text-[var(--muted-foreground)]">{batch.expiryDate}</td>
+              <td className="text-center text-[12px]">{batch.qty}</td>
+              <td className="text-center text-[12px] text-[var(--muted-foreground)]">{batch.expiryDate}</td>
               <td />
             </tr>
           );

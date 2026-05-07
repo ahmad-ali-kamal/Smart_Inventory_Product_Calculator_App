@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../Hooks/useHareesGuard';
-import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown, Tag, Percent } from 'lucide-react';
+import useHareesGuard from '../../hooks/useHareesGuard';
+import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown, Tag, Percent, BadgeCheck } from 'lucide-react';
 import ProductRow from '../../Components/Harees/ProductRow';
 import DiscountModal from '../../Components/Harees/DiscountModal';
 import ErrorBoundary from '../../Components/Common/ErrorBoundary';
@@ -35,6 +35,7 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const [statusFilter, setStatusFilter] = useState('all');
     const [filterOpen, setFilterOpen] = useState(false);
+    const [autoDiscount, setAutoDiscount] = useState(false);
     const filterRef = useRef(null);
 
     useEffect(() => {
@@ -50,23 +51,34 @@ export default function Dashboard() {
     const fetchDashboardData = () => {
         setLoading(true);
         setError(null);
-        fetch('/harees/api/dashboard', {
-            headers: { Accept: 'application/json' },
-            credentials: 'include',
-        })
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch data');
-                return res.json();
+
+        Promise.all([
+            fetch('/harees/api/dashboard', {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+            }),
+            fetch('/harees/api/settings', {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+            }),
+        ])
+            .then(([dashRes, settingsRes]) => {
+                if (!dashRes.ok) throw new Error('Failed to fetch data');
+                if (!settingsRes.ok) throw new Error('Failed to fetch settings');
+                return Promise.all([dashRes.json(), settingsRes.json()]);
             })
-            .then(data => {
-                const reversedProducts = (data.products || []).reverse();
+            .then(([dashData, settingsData]) => {
+                const reversedProducts = (dashData.products || []).reverse();
                 setProducts(reversedProducts);
-                const raw = data.stats || {};
+                const raw = dashData.stats || {};
                 setStats({
                     expiredCount: raw.red_batches    ?? raw.expiredCount  ?? 0,
                     expiringSoon: raw.yellow_batches ?? raw.expiringSoon  ?? 0,
                     validCount:   raw.green_batches  ?? raw.validCount    ?? 0,
                 });
+
+                const settings = settingsData.settings || settingsData;
+                setAutoDiscount(Boolean(settings.auto_discounts));
             })
             .catch(err => { console.error('Dashboard fetch error:', err); setError(err.message); })
             .finally(() => setLoading(false));
@@ -174,11 +186,11 @@ export default function Dashboard() {
                             <tbody className="divide-y divide-[var(--border)]">
                                 {statusFilter === 'all' ? (
                                     filteredItems.map(product => (
-                                        <ProductRow key={product.id} product={product} />
+                                        <ProductRow key={product.id} product={product} autoDiscount={autoDiscount} />
                                     ))
                                 ) : (
                                     filteredItems.map(batch => (
-                                        <BatchRowStandalone key={batch.id} batch={batch} product={batch.parentProduct} />
+                                        <BatchRowStandalone key={batch.id} batch={batch} product={batch.parentProduct} autoDiscount={autoDiscount} />
                                     ))
                                 )}
                                 
@@ -200,8 +212,43 @@ export default function Dashboard() {
 }
 
 // Component: Render batch as an independent row during filtering.
-function BatchRowStandalone({ batch, product }) {
+function BatchRowStandalone({ batch, product, autoDiscount }) {
     const [selectedBatch, setSelectedBatch] = useState(null);
+
+    const handleApplyDiscount = async ({ batchId, discountPct, endDate }) => {
+    try {
+        const res = await fetch(`/harees/api/products/${product.id}/discounts/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                batch_id: batchId,
+                discount_percentage: discountPct,
+                ends_at: endDate,
+                is_ai_suggested: false,
+            }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+            alert(data.message || 'Failed to apply discount');
+            return;
+        }
+
+        alert('Discount applied successfully');
+        setSelectedBatch(null);
+
+    } catch (err) {
+        console.error(err);
+        alert('Server error');
+    }
+};
 
     const normalized = normalizeStatus(batch.status);
     const batchCode  = batch.batch_code  || batch.batchNo     || '—';
@@ -263,13 +310,27 @@ function BatchRowStandalone({ batch, product }) {
                 </td>
                 <td className="py-3 px-4 text-center w-[25%]">
                     {normalized === 'approaching' ? (
-                        <button
-                            onClick={() => setSelectedBatch(batch)}
-                            className="w-[120px] h-[32px] flex items-center justify-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-[10px] font-black uppercase hover:bg-[var(--primary)] hover:text-white transition-all mx-auto"
-                        >
-                            <Percent size={11} />
-                            Discount
-                        </button>
+                        autoDiscount ? (
+                            <div
+                                className="inline-flex items-center justify-center gap-1.5 px-3 h-[28px] rounded-full border text-[9px] font-black uppercase tracking-wide mx-auto"
+                                style={{
+                                    color: 'var(--status-approaching-text)',
+                                    background: 'var(--status-approaching-bg)',
+                                    borderColor: 'var(--status-approaching-border)',
+                                }}
+                            >
+                                <BadgeCheck size={10} />
+                                Auto-Discount Enabled
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setSelectedBatch(batch)}
+                                className="w-[120px] h-[32px] flex items-center justify-center gap-1.5 rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] text-[10px] font-black uppercase hover:bg-[var(--primary)] hover:text-white transition-all mx-auto"
+                            >
+                                <Percent size={11} />
+                                Discount
+                            </button>
+                        )
                     ) : (
                         <span className="text-[10px] text-[var(--muted-foreground)]">-</span>
                     )}
@@ -281,7 +342,7 @@ function BatchRowStandalone({ batch, product }) {
                     batch={selectedBatch}
                     product={product}
                     onClose={() => setSelectedBatch(null)}
-                    onApply={() => setSelectedBatch(null)}
+                    onApply={handleApplyDiscount}
                 />
             )}
         </>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Calculator\ProductCalculatorController;
 use App\Http\Controllers\Calculator\CalculatorSettingsController;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Inventory\NotificationController;
+use App\Http\Controllers\Inventory\DiscountController;
 
 
 // الصفحة الرئيسية (Welcome)
@@ -33,6 +34,7 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::post('/api/products/{id}/toggle', [ProductCalculatorController::class, 'toggle']);
      Route::get('/api/calculator-settings', [CalculatorSettingsController::class, 'show']);
     Route::post('/api/calculator-settings', [CalculatorSettingsController::class, 'store']);
+    Route::post('/api/products/sync', [InventoryApiController::class, 'syncProducts']);
 });
 
 // --- تطبيق "حريص" (Inventory App) ---
@@ -49,6 +51,7 @@ Route::prefix('harees')->middleware('auth')->group(function () {
         Route::get('/dashboard', [InventoryApiController::class, 'dashboard']);
         Route::get('/settings', [InventoryApiController::class, 'settings']);
         Route::put('/settings', [InventoryApiController::class, 'updateSettings']);
+        Route::post('/products/{product}/discounts/apply', [DiscountController::class, 'apply']);
         
         // المسار المهم لجلب الخيارات في BatchModal.jsx
         Route::get('/products/{product_id}/options', [InventoryApiController::class, 'getProductOptions']);
@@ -60,5 +63,6 @@ Route::prefix('harees')->middleware('auth')->group(function () {
         // التنبيهات
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     });
 });
