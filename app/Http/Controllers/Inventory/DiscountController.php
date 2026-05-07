@@ -401,6 +401,8 @@ class DiscountController extends Controller
 
             return response()->json(['success' => true, 'message' => 'تم إلغاء الخصم']);
 
+            } // close if at line 357
+
         } catch (\Exception $e) {
             Log::error('[Discount] فشل إلغاء الخصم: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'فشل إلغاء الخصم'], 500);
