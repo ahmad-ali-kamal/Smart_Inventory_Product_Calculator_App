@@ -34,6 +34,7 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::post('/api/products/{id}/toggle', [ProductCalculatorController::class, 'toggle']);
      Route::get('/api/calculator-settings', [CalculatorSettingsController::class, 'show']);
     Route::post('/api/calculator-settings', [CalculatorSettingsController::class, 'store']);
+    Route::post('/api/products/sync', [InventoryApiController::class, 'syncProducts']);
 });
 
 // --- تطبيق "حريص" (Inventory App) ---

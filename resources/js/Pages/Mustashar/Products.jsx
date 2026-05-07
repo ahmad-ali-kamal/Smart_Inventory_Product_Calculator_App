@@ -10,7 +10,7 @@ import { useToggleWithToast } from '../../Hooks/useToggleWithToast';  // ← ا�
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { Search, ChevronDown, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
 export default function Products() {
     useMustasharGuard();
@@ -25,6 +25,35 @@ export default function Products() {
     const [categoryOpen, setCategoryOpen] = useState(false);
     const [search, setSearch] = useState('');
     const categoryRef = useRef(null);
+
+    const handleSync = async () => {
+    try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        const res = await fetch('/mustashar/api/products/sync', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': token,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+        });
+
+        const text = await res.text();
+        console.log('SYNC STATUS:', res.status);
+        console.log('SYNC RESPONSE:', text);
+
+        if (!res.ok) throw new Error(text || 'Sync failed');
+
+window.location.reload();
+
+       
+    } catch (err) {
+        console.error('Sync error:', err);
+        alert('فشل مزامنة المنتجات');
+    }
+};
 
     useEffect(() => {
         function handleClick(e) {
@@ -178,6 +207,12 @@ export default function Products() {
                             </div>
                         )}
                     </div>
+                    <button
+    onClick={handleSync}
+    className="h-9 w-9 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity flex items-center justify-center border border-[var(--primary)]/5 flex-shrink-0"
+>
+    <RefreshCw size={14} />
+</button>
                 </div>
 
                 {/* ── Products Table ───────────────────────────────── */}
