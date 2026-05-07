@@ -1,274 +1,222 @@
-import { Head, Link } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { Head } from '@inertiajs/react';
 import { useLang } from '@/Hooks/useLang';
 import GuestLayout from '@/Layouts/GuestLayout';
+import GuestNavbar from '@/Components/GuestNavbar';
+import { useState, useEffect } from 'react';
+import LoginCard from '@/Components/LoginCard';
+import InfoPanel from '@/Components/InfoPanel';
 
-/* ─── Translations ─────────────────────────────────────── */
 const T = {
     ar: {
-        pageTitle:    'مستشار — تسجيل الدخول',
-        backHome:     'العودة للرئيسية',
-        appName:      'مستشار',
-        appSub:       'حاسبة الكميات الذكية',
-        welcomeTitle: 'أهلاً بك في مستشار',
-        welcomeDesc:  'أداة حساب ذكية تحسب تلقائياً الكمية المثلى للعملاء بناءً على قواعد الحساب الخاصة بك — قرارات أدق وتكاليف أقل.',
-        loginTitle:   'تسجيل الدخول',
-        loginDesc:    'ادخل مباشرةً عبر حساب سلة',
-        sallaBtn:     'دخول عبر سلة ←',
-        orText:       'أو',
-        sallaOnly:    'التسجيل عبر سلة فقط',
-        sallaOnlyDesc:'مستشار متاح لتجار سلة — ثبّت التطبيق من سوق تطبيقات سلة للحصول على حسابك',
-        steps: [
-            { title: 'افتح متجرك في سلة',  desc: 'أنشئ حساب تاجر مجاناً على salla.sa' },
-            { title: 'ثبّت تطبيق مستشار', desc: 'ابحث عن "مستشار" في سوق تطبيقات سلة وثبّته على متجرك' },
-            { title: 'سجّل دخولك هنا',    desc: 'استخدم بريد حساب سلة للوصول إلى لوحة مستشار' },
+        pageTitle: 'المستشار — تسجيل الدخول',
+        backHome:  'العودة للرئيسية',
+        appName:   'المستشار',
+        appSub:    'مستشارك التجاري الذكي',
+        appDesc:   'منصة متكاملة تُحلّل بيانات متجرك وتُقدّم توصيات ذكية لتنمية مبيعاتك وتحسين قراراتك التجارية.',
+        features: [
+            'تحليلات مبيعات لحظية وتنبؤات دقيقة',
+            'توصيات تسعير مدعومة بالذكاء الاصطناعي',
+            'تقارير أداء أسبوعية وشهرية',
+            'تنبيهات فرص النمو الفوري',
         ],
+        steps: [
+            { title: 'افتح متجرك في سلة',    sub: 'أنشئ حساب تاجر مجاني في منصة سلة' },
+            { title: 'ثبّت تطبيق المستشار',  sub: 'ابحث عن "المستشار" في سوق تطبيقات سلة' },
+            { title: 'سجّل دخولك هنا',       sub: 'استخدم بريد حساب سلة للدخول' },
+        ],
+        loginNow: 'سجّل دخولك الآن',
+        loginSub: 'ادخل مباشرةً عبر حساب سلة',
+        sallaBtn: 'دخول عبر سلة ←',
+        note:     'المستشار متاح حصرياً لتجار سلة — ثبّت التطبيق من متجر سلة للحصول على حسابك',
     },
     en: {
-        pageTitle:    'Mustashar — Login',
-        backHome:     'Back Home',
-        appName:      'Mustashar',
-        appSub:       'Smart Quantity Calculator',
-        welcomeTitle: 'Welcome to Mustashar',
-        welcomeDesc:  'A smart calculation tool that automatically calculates the optimal quantity for customers based on your calculation rules.',
-        loginTitle:   'Login',
-        loginDesc:    'Access directly via Salla account',
-        sallaBtn:     'Login via Salla ←',
-        orText:       'OR',
-        sallaOnly:    'Salla Login Only',
-        sallaOnlyDesc:'Mustashar is available for Salla merchants — install the app from Salla App Store to get your account',
-        steps: [
-            { title: 'Open your store',  desc: 'Create a merchant account for free on salla.sa' },
-            { title: 'Install App',      desc: 'Search for "Mustashar" in Salla App Store and install it' },
-            { title: 'Login here',       desc: 'Use your Salla account email to access the dashboard' },
+        pageTitle: 'Mustashar — Login',
+        backHome:  'Back to Home',
+        appName:   'Mustashar',
+        appSub:    'Your Smart Business Advisor',
+        appDesc:   'An all-in-one platform that analyses your store data and delivers AI-powered recommendations to grow your sales.',
+        features: [
+            'Real-time sales analytics and forecasts',
+            'AI-powered pricing recommendations',
+            'Weekly and monthly performance reports',
+            'Instant growth opportunity alerts',
         ],
+        steps: [
+            { title: 'Open your Salla store',  sub: 'Create a free merchant account on Salla' },
+            { title: 'Install Mustashar app',  sub: 'Search for "Mustashar" in the Salla App Market' },
+            { title: 'Sign in here',           sub: 'Use your Salla account email to log in' },
+        ],
+        loginNow: 'Sign in now',
+        loginSub: 'Access directly via your Salla account',
+        sallaBtn: 'Continue with Salla →',
+        note:     'Mustashar is exclusively available to Salla merchants — install from the Salla App Market to get your account',
     },
 };
 
-function MustasharIcon({ size = 24 }) {
-    return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="url(#mustashar-grad)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" fill="none"/>
-            <path d="M2 17L12 22L22 17"
-                stroke="url(#mustashar-grad)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
-            <path d="M2 12L12 17L22 12"
-                stroke="url(#mustashar-grad)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
-            <defs>
-                <linearGradient id="mustashar-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#c4b5fd"/>
-                    <stop offset="100%" stopColor="#a5f3fc"/>
-                </linearGradient>
-            </defs>
-        </svg>
-    );
-}
+/*
+ * نفس HERO_BG حقت حريص — هوية موحدة بين التطبيقين
+ */
+const HERO_BG = [
+    'radial-gradient(ellipse at 50%  0%,  #110330 0%, transparent 38%)',
+    'radial-gradient(ellipse at 15% 38%,  #0047ab 0%, transparent 48%)',
+    'radial-gradient(ellipse at 72% 52%,  #6d28d9 0%, transparent 52%)',
+    'radial-gradient(ellipse at 82% 90%,  #0369a1 0%, transparent 48%)',
+    'radial-gradient(ellipse at 10% 82%,  #1e3a5f 0%, transparent 42%)',
+    '#0c0220',
+].join(', ');
 
-function CheckIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-    );
-}
-
-function Step({ title, desc, active, done, ff }) {
-    return (
-        <div style={{
-            display: 'flex', gap: '14px', alignItems: 'flex-start',
-            opacity: active || done ? 1 : 0.35,
-            transition: 'opacity 0.3s',
-        }}>
-            <div style={{
-                width: '36px', height: '36px', flexShrink: 0, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #FF9FFC, #5227FF)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.4s',
-                boxShadow: active || done ? '0 0 12px rgba(136,132,191,0.4)' : 'none',
-            }}>
-                <CheckIcon />
-            </div>
-            <div>
-                <div style={{ fontFamily: ff, fontSize: '0.88rem', fontWeight: '700', color: active || done ? '#fff' : 'rgba(255,255,255,0.5)' }}>
-                    {title}
-                </div>
-                <div style={{ fontFamily: ff, fontSize: '0.78rem', color: 'rgba(230, 225, 245, 0.4)', lineHeight: 1.6 }}>
-                    {desc}
-                </div>
-            </div>
-        </div>
-    );
-}
+const ACCENT = '#7C3AED';
+const CARD_W  = 'clamp(420px, 46%, 560px)';
 
 export default function MustasharLogin({ status }) {
     const { lang, isAr, dir, ff } = useLang();
     const t = T[lang];
-    const [activeStep, setActiveStep] = useState(0);
+    const bodyFont = lang === 'ar' ? "'Cairo', sans-serif" : "'Inter', sans-serif";
+    const [visible, setVisible] = useState(false);
 
     useEffect(() => {
-        setActiveStep(0);
-        const timers = [
-            setTimeout(() => setActiveStep(1), 300),
-            setTimeout(() => setActiveStep(2), 800),
-            setTimeout(() => setActiveStep(3), 1300),
-        ];
-        return () => timers.forEach(clearTimeout);
-    }, [lang]);
+        const timer = setTimeout(() => setVisible(true), 80);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const cardSlide = isAr ? '-40px' : '40px';
+    const infoSlide = isAr ? '40px'  : '-40px';
 
     return (
         <>
             <Head title={t.pageTitle} />
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Cormorant+Garamond:wght@700;900&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Changa:wght@700;800&family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+                html, body { height: 100%; overflow: hidden; }
 
-                /*
-                 * ✅ لا نُعيد تعريف الخلفية هنا — GuestLayout يتولى ذلك
-                 */
-                body { color: #E6E1F5; font-family: ${ff}; overflow-x: hidden; margin: 0; }
-
-                .iri-text {
-                    background: linear-gradient(120deg, #fff 0%, #ddd6fe 18%, #a5f3fc 36%, #fde68a 54%, #f9a8d4 72%, #c4b5fd 90%, #fff 100%);
-                    background-size: 280% 280%;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    animation: iridescent 6s ease infinite;
+                .card-anim {
+                    opacity: 0;
+                    transform: translateX(${cardSlide});
+                    transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
                 }
-                @keyframes iridescent {
-                    0%   { background-position: 0% 50%; }
-                    50%  { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
+                .card-anim.show { opacity: 1; transform: translateX(0); }
+
+                .info-anim {
+                    opacity: 0;
+                    transform: translateX(${infoSlide});
+                    transition: opacity .7s cubic-bezier(.16,1,.3,1) .12s, transform .7s cubic-bezier(.16,1,.3,1) .12s;
+                }
+                .info-anim.show { opacity: 1; transform: translateX(0); }
+
+                .salla-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: .9rem 1.5rem;
+    background: rgba(147, 51, 234, 0.7); 
+    border: 1.5px solid rgba(216, 180, 254, 0.5); 
+    color: #fff;
+    border-radius: 12px;
+    font-family: inherit; font-size: 1rem; font-weight: 700;
+    cursor: pointer; text-decoration: none;
+    transition: all .25s;
+    backdrop-filter: blur(8px); 
+    box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3); 
+}
+
+.salla-btn:hover {
+    background: rgba(168, 85, 247, 1); 
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
+}
+
+                .step-row {
+                    display: flex; align-items: center; gap: 12px;
+                    padding: 10px 12px; border-radius: 14px;
+                    transition: background .35s ease;
+                }
+                .step-row.active-step { background: rgba(255,255,255,.08); }
+
+                .card-panel {
+                    position: fixed;
+                    top: 0;
+                    bottom: 0;
+                    ${isAr ? 'left: 0;' : 'right: 0;'}
+                    width: ${CARD_W};
+                    background: transparent;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 72px 2rem 2rem;
+                    overflow-y: auto;
+                    z-index: 5;
                 }
 
-                .app-name-gradient {
-                    background: linear-gradient(90deg, #c4b5fd 0%, #818cf8 40%, #a5f3fc 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
+                @media (max-width: 768px) {
+                    .card-panel {
+                        left: 0 !important; right: 0 !important;
+                        width: 100% !important;
+                        padding: 72px 1.25rem 2rem !important;
+                    }
+                    .dark-info { display: none !important; }
                 }
-
-                .login-card {
-                    background: rgba(23, 20, 42, 0.4);
-                    border: 1px solid rgba(120, 112, 175, 0.15);
-                    border-radius: 30px;
-                    backdrop-filter: blur(20px);
-                    transition: all 0.5s ease;
-                }
-
-                .submit-btn {
-                    width: 100%; padding: 1rem; background: #8884BF;
-                    border-radius: 15px; color: #fff; font-weight: 700;
-                    border: none; cursor: pointer; transition: all 0.3s;
-                    text-decoration: none; display: block; text-align: center;
-                    font-family: inherit;
-                }
-                .submit-btn:hover { background: #6b67a1; transform: translateY(-2px); }
-
-                @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-                @media (max-width: 860px) { .inv-left { display: none !important; } .inv-grid { grid-template-columns: 1fr !important; } }
             `}</style>
 
-            {/* ✅ لا يوجد هنا LiquidEther — الخلفية موجودة في GuestLayout */}
+            <div style={{
+                width: '100vw', height: '100vh',
+                background: HERO_BG,
+                position: 'relative',
+                overflow: 'hidden',
+                direction: dir,
+            }}>
+                {/* Orb — أزرق electric يعزز المنطقة العلوية-الوسطى */}
+                <div style={{
+                    position: 'absolute', top: '-80px',
+                    [isAr ? 'right' : 'left']: '8%',
+                    width: '580px', height: '380px', borderRadius: '50%',
+                    background: 'radial-gradient(ellipse, rgba(0,100,210,.22) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                }} />
+                {/* Orb — موف في المنتصف */}
+                <div style={{
+                    position: 'absolute', top: '28%',
+                    [isAr ? 'left' : 'right']: '18%',
+                    width: '480px', height: '480px', borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(109,40,217,.25) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                }} />
+                {/* Orb — تركوازي أسفل */}
+                <div style={{
+                    position: 'absolute', bottom: '-80px',
+                    [isAr ? 'left' : 'right']: '-60px',
+                    width: '480px', height: '480px', borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(3,105,161,.3) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                }} />
 
-            <div style={{ direction: dir, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                {/* Navbar */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: 'transparent' }}>
+                    <GuestNavbar variant="login" backLabel={t.backHome} transparent />
+                </div>
 
-                <header style={{
-                    padding: '0 2rem', height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    background: 'rgba(15, 14, 23, 0.7)', backdropFilter: 'blur(15px)',
-                    borderBottom: '1px solid rgba(120, 112, 175, 0.1)',
-                    position: 'sticky', top: 0, zIndex: 50,
+                {/* Info panel */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingTop: '80px',
+                    paddingInlineEnd: CARD_W,
+                    zIndex: 1,
                 }}>
-                    <Link href="/" style={{ color: '#8A86A2', textDecoration: 'none', fontSize: '0.9rem', fontFamily: ff }}>
-                        {isAr ? '←' : '→'} {t.backHome}
-                    </Link>
-                    <span className="iri-text" style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: '1.5rem', fontWeight: '900', letterSpacing: '0.1em',
-                    }}>QUANTIX</span>
-                </header>
+                    <InfoPanel t={t} isAr={isAr} ff={ff} bodyFont={bodyFont} visible={visible} />
+                </div>
 
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-                    <div className="inv-grid" style={{
-                        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem',
-                        width: '100%', maxWidth: '1000px', alignItems: 'stretch',
-                    }}>
-
-                        {/* Left: Welcome panel */}
-                        <div className="login-card inv-left" style={{
-                            padding: '3rem', animation: 'fadeUp 0.7s ease 0.1s both',
-                            display: 'flex', flexDirection: 'column',
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2rem' }}>
-                                <div style={{
-                                    width: '52px', height: '52px', flexShrink: 0,
-                                    background: 'rgba(136, 132, 191, 0.1)',
-                                    border: '1px solid rgba(120, 112, 175, 0.2)',
-                                    borderRadius: '16px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                    <MustasharIcon size={26} />
-                                </div>
-                                <div>
-                                    <div className="app-name-gradient" style={{
-                                        fontSize: '1.5rem', fontWeight: '800',
-                                        fontFamily: "'Cormorant Garamond', serif",
-                                        letterSpacing: '0.05em',
-                                    }}>{t.appName}</div>
-                                    <div style={{ fontSize: '0.8rem', color: '#8A86A2' }}>{t.appSub}</div>
-                                </div>
-                            </div>
-
-                            <h2 style={{ fontFamily: ff, fontSize: '1.8rem', fontWeight: '800', marginBottom: '1rem' }}>
-                                {t.welcomeTitle}
-                            </h2>
-                            <p style={{ color: '#8A86A2', lineHeight: 1.7, marginBottom: '2.5rem' }}>{t.welcomeDesc}</p>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: 'auto' }}>
-                                {t.steps.map((s, i) => (
-                                    <Step key={i} {...s} ff={ff} active={activeStep === i + 1} done={activeStep > i + 1} />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Right: Login form */}
-                        <div className="login-card" style={{
-                            padding: '3rem', animation: 'fadeUp 0.7s ease 0.2s both',
-                            display: 'flex', flexDirection: 'column',
-                        }}>
-                            <h3 style={{ fontFamily: ff, fontSize: '1.8rem', fontWeight: '800', marginBottom: '0.5rem' }}>{t.loginTitle}</h3>
-                            <p style={{ color: '#8A86A2', marginBottom: '2rem' }}>{t.loginDesc}</p>
-
-                            {status && <div style={{ color: '#c4b5fd', marginBottom: '1rem' }}>{status}</div>}
-
-                            <a href="/auth/salla?app=calculator" className="submit-btn" style={{ fontFamily: ff }}>
-                                {t.sallaBtn}
-                            </a>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '2rem 0' }}>
-                                <div style={{ flex: 1, height: '1px', background: 'rgba(120, 112, 175, 0.2)' }} />
-                                <span style={{ color: '#8A86A2', fontSize: '0.8rem' }}>{t.orText}</span>
-                                <div style={{ flex: 1, height: '1px', background: 'rgba(120, 112, 175, 0.2)' }} />
-                            </div>
-
-                            <div style={{
-                                padding: '1.5rem', background: 'rgba(255,255,255,0.03)',
-                                borderRadius: '20px', border: '1px solid rgba(120, 112, 175, 0.1)',
-                                marginTop: 'auto',
-                            }}>
-                                <div style={{ fontWeight: '700', color: '#fff', marginBottom: '5px', fontSize: '0.9rem' }}>{t.sallaOnly}</div>
-                                <div style={{ fontSize: '0.8rem', color: '#8A86A2', lineHeight: 1.5 }}>{t.sallaOnlyDesc}</div>
-                            </div>
-                        </div>
-                    </div>
+                {/* Glass card panel */}
+                <div className="card-panel">
+                    <LoginCard
+                        t={t} isAr={isAr} ff={ff} bodyFont={bodyFont}
+                        visible={visible} status={status} accent={ACCENT}
+                    />
                 </div>
             </div>
         </>
     );
 }
 
-/*
- * ✅ PERSISTENT LAYOUT
- * نفس الـ GuestLayout — Inertia تُعيد استخدام الـ instance دون إعادة mount
- */
 MustasharLogin.layout = page => <GuestLayout>{page}</GuestLayout>;
