@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Search, SlidersHorizontal, RefreshCw, ChevronDown } from "lucide-react";
 import { Toaster } from 'react-hot-toast';
 import Layout from '../../Components/Layout';
@@ -8,6 +8,7 @@ import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
+import {useInventoryProducts,} from "../../Hooks/useInventory";
 
 const FILTER_OPTIONS = [
     { value: 'all',    label: 'All'    },
@@ -27,6 +28,18 @@ export default function Products() {
     const [filterOpen, setFilterOpen]     = useState(false);
     const [expiryTarget, setExpiryTarget] = useState(null);
     const filterRef                       = useRef(null);
+
+   const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+} = useInventoryProducts();
+
+const products = useMemo(() => {
+    return data?.products || data?.data || [];
+}, [data]);
 
     const handleSync = async () => {
         try {
@@ -58,73 +71,14 @@ export default function Products() {
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading]   = useState(true);
-    const [error, setError]       = useState(null);
 
-    const fetchProducts = () => {
-        setLoading(true);
-        setError(null);
-        fetch('/harees/api/products', {
-            headers: { Accept: 'application/json' },
-            credentials: 'include',
-        })
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to load products');
-                return res.json();
-            })
-            .then(data => setProducts(data.products || data.data || []))
-            .catch(err => { console.error(err); setError(err.message); })
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchProducts(); }, []);
+    
 
    // Post-Expiry mutation: Updating local product state
-    const handleExpirySave = (productId, responseData) => {
-        if (!responseData) { setExpiryTarget(null); return; }
-
-        setProducts(prev => prev.map(p => {
-            if (p.id !== productId) return p;
-
-           // Reset: Purge all batches.
-            if (responseData.reset) {
-                return { ...p, batches: [] };
-            }
-
-            // single batch
-            if (responseData.type === 'single') {
-                return {
-                    ...p,
-                    batches: [{
-                        id: responseData.batch_id,
-                        batch_code: responseData.batch_code,
-                        quantity: p.quantity ?? p.dbQty ?? 0,
-                        status: responseData.status || 'green',
-                        expiry_date: responseData.expiry_date || null,
-                    }],
-                };
-            }
-
-            // multiple batches
-            if (responseData.batches && responseData.batches.length > 0) {
-                return {
-                    ...p,
-                    batches: responseData.batches.map(b => ({
-                        id: b.id,
-                        batch_code: b.batch_code,
-                        quantity: b.qty,
-                        status: b.status || 'green',
-                        expiry_date: b.expiry_date,
-                    })),
-                };
-            }
-
-            return p;
-        }));
-
-        setExpiryTarget(null);
-    };
+   const handleExpirySave = () => {
+    refetch();
+    setExpiryTarget(null);
+};
 
     const filtered = products.filter(p => {
     const matchesSearch = 
@@ -136,13 +90,24 @@ export default function Products() {
     return matchesSearch && matchesFilter;
 });
 
-    if (loading) {
-        return <Layout><LoadingState /></Layout>;
-    }
+    if (isLoading) {
+    return (
+        <Layout>
+            <LoadingState />
+        </Layout>
+    );
+}
 
-    if (error) {
-        return <Layout><ErrorState message={error} onRetry={fetchProducts} /></Layout>;
-    }
+if (isError) {
+    return (
+        <Layout>
+            <ErrorState
+                message={error?.message || "Failed to load products"}
+                onRetry={refetch}
+            />
+        </Layout>
+    );
+}
 
     const activeLabel = FILTER_OPTIONS.find(o => o.value === filter)?.label ?? 'All';
 

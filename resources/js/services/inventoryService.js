@@ -29,3 +29,18 @@ export const storeExpiry = async (data) => {
   const res = await apiClient.post("/inventory/expiry/batch", data);
   return res.data;
 };
+
+// Store Batch
+export const storeBatch = async ({ productId, data }) => {
+  const res = await apiClient.post(
+    `/inventory/products/${productId}/store-batch`,
+    data
+  );
+  return res.data;
+};
+
+// Update Batch
+export const updateBatch = async ({ batchId, data }) => {
+  const res = await apiClient.put(`/inventory/batch/${batchId}`, data);
+  return res.data;
+};

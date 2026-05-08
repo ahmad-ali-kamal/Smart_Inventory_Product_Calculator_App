@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Settings2, Tag, Zap, Save, EyeOff, BadgePercent, Percent, Calendar, AlertCircle } from "lucide-react";
 import Layout from '../../Components/Layout';
 import useHareesGuard from '../../Hooks/useHareesGuard';
@@ -7,6 +7,7 @@ import Toggle from '../../Components/UI/Toggle';
 import { FormSkeleton } from '../../Components/Common/FormSkeleton';
 import ErrorState from '../../Components/Common/ErrorState';
 import toast, { Toaster } from 'react-hot-toast';
+import {useInventorySettings, useUpdateInventorySettings,} from "../../Hooks/useInventory";
 
 
 const INITIAL_CATEGORIES = {
@@ -84,49 +85,53 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+const {
+  data,
+  isLoading,
+  isError,
+  error,
+  refetch,
+} = useInventorySettings();
 
-  const fetchSettings = () => {
-    setLoading(true);
-    setError(null);
-    fetch('/harees/api/settings', {
-      headers: { Accept: 'application/json' },
-      credentials: 'include',
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch settings');
-        return res.json();
-      })
-      .then(data => {
-        const settings = data.settings || data;
-        setThresholds({
-          short: settings.short_term_days ?? 10,
-          medium: settings.medium_term_days ?? 10,
-          long: settings.long_term_days ?? 10,
-        });
-        setAutomation({
-          autoHide: Boolean(settings.auto_hide_expired),
-          autoDiscount: Boolean(settings.auto_discounts),
-        });
-        setDiscountConfig({
-          percent: settings.auto_discount_percent ?? 20,
-          durationDays: settings.auto_discount_duration_days ?? 7,
-        });
-        if (data.category_mapping) {
-          setCategories({
-            short: data.category_mapping.short || [],
-            medium: data.category_mapping.medium || [],
-            long: data.category_mapping.long || [],
-          });
-        }
-        if (data.unassigned_categories) setUnassigned(data.unassigned_categories);
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  };
+const {
+  mutateAsync: updateInventorySettings,
+} = useUpdateInventorySettings();
+  
+useEffect(() => {
+  if (!data) return;
 
-  useEffect(() => { fetchSettings(); }, []);
+  const settings = data.settings || data;
+
+  setThresholds({
+    short: settings.short_term_days ?? 10,
+    medium: settings.medium_term_days ?? 10,
+    long: settings.long_term_days ?? 10,
+  });
+
+  setAutomation({
+    autoHide: Boolean(settings.auto_hide_expired),
+    autoDiscount: Boolean(settings.auto_discounts),
+  });
+
+  setDiscountConfig({
+    percent: settings.auto_discount_percent ?? 20,
+    durationDays: settings.auto_discount_duration_days ?? 7,
+  });
+
+  if (data.category_mapping) {
+    setCategories({
+      short: data.category_mapping.short || [],
+      medium: data.category_mapping.medium || [],
+      long: data.category_mapping.long || [],
+    });
+  }
+
+  if (data.unassigned_categories) {
+    setUnassigned(data.unassigned_categories);
+  }
+}, [data]);
+  
 
   const handleInputChange = (field, value, group, min, max) => {
     const cleanValue = value.replace(/[^\d]/g, '');
@@ -187,47 +192,46 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
-    if (hasActiveErrors) return;
+  if (hasActiveErrors) return;
 
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const token = document.querySelector('meta[name="csrf-token"]')?.content;
-      const res = await fetch('/harees/api/settings', {
-        method: 'PUT',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': token,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          short_term_days: thresholds.short,
-          medium_term_days: thresholds.medium,
-          long_term_days: thresholds.long,
-          auto_hide_expired: automation.autoHide ? 1 : 0,
-          auto_discounts: automation.autoDiscount ? 1 : 0,
-          auto_discount_percent: discountConfig.percent,
-          auto_discount_duration_days: discountConfig.durationDays,
-          category_mapping: categories,
-        })
-      });
+  setSaving(true);
+  setSaveError(null);
 
-      if (!res.ok) throw new Error('فشل في حفظ البيانات، تأكد من الاتصال');
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-      toast.success('Settings saved successfully.');
-    } catch (err) {
-      setSaveError(err.message);
-      toast.error(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
+  try {
+    await updateInventorySettings({
+      short_term_days: thresholds.short,
+      medium_term_days: thresholds.medium,
+      long_term_days: thresholds.long,
 
-  if (loading) return <Layout><div className="max-w-2xl mx-auto space-y-5 py-10"><FormSkeleton /><FormSkeleton /></div></Layout>;
-  if (error) return <Layout><ErrorState message={error} onRetry={fetchSettings} /></Layout>;
+      auto_hide_expired: automation.autoHide ? 1 : 0,
+      auto_discounts: automation.autoDiscount ? 1 : 0,
+
+      auto_discount_percent: discountConfig.percent,
+      auto_discount_duration_days: discountConfig.durationDays,
+
+      category_mapping: categories,
+    });
+
+    setSaved(true);
+
+    setTimeout(() => {
+      setSaved(false);
+    }, 2500);
+
+    toast.success("Settings saved successfully.");
+  } catch (err) {
+    setSaveError(err.message);
+
+    toast.error(
+      err.message || "Failed to save settings"
+    );
+  } finally {
+    setSaving(false);
+  }
+};
+
+  if (isLoading) return <Layout><div className="max-w-2xl mx-auto space-y-5 py-10"><FormSkeleton /><FormSkeleton /></div></Layout>;
+  if (isError) return <Layout><ErrorState message={error} onRetry={refetch} /></Layout>;
 
   return (
     <Layout>

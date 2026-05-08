@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
 import useHareesGuard from '../../Hooks/useHareesGuard';
 import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown, Tag, Percent, BadgeCheck } from 'lucide-react';
@@ -8,6 +8,7 @@ import ErrorBoundary from '../../Components/Common/ErrorBoundary';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
+import {useInventoryDashboard, useInventorySettings,} from '../../Hooks/useInventory';
 
 // Normalization: Mapping backend status codes to unified frontend display names.
 const normalizeStatus = (status) => {
@@ -28,15 +29,45 @@ const STATUS_FILTERS = [
 
 export default function Dashboard() {
     useHareesGuard();
-
-    const [products, setProducts] = useState([]);
-    const [stats, setStats] = useState({ expiredCount: 0, expiringSoon: 0, validCount: 0 });
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    
     const [statusFilter, setStatusFilter] = useState('all');
-    const [filterOpen, setFilterOpen] = useState(false);
-    const [autoDiscount, setAutoDiscount] = useState(false);
-    const filterRef = useRef(null);
+const [filterOpen, setFilterOpen] = useState(false);
+const filterRef = useRef(null);
+
+   const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    isError: dashboardError,
+    error: dashboardErrorMessage,
+    refetch: refetchDashboard,
+} = useInventoryDashboard();
+
+const {
+    data: settingsData,
+    isLoading: settingsLoading,
+    isError: settingsError,
+    error: settingsErrorMessage,
+} = useInventorySettings();
+
+const products = useMemo(() => {
+    return (dashboardData?.products || []).reverse();
+}, [dashboardData]);
+
+const stats = useMemo(() => {
+    const raw = dashboardData?.stats || {};
+
+    return {
+        expiredCount: raw.red_batches ?? raw.expiredCount ?? 0,
+        expiringSoon: raw.yellow_batches ?? raw.expiringSoon ?? 0,
+        validCount: raw.green_batches ?? raw.validCount ?? 0,
+    };
+}, [dashboardData]);
+
+const autoDiscount = useMemo(() => {
+    const settings = settingsData?.settings || settingsData || {};
+
+    return Boolean(settings.auto_discounts);
+}, [settingsData]);
 
     useEffect(() => {
         function handleClick(e) {
@@ -48,58 +79,34 @@ export default function Dashboard() {
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    const fetchDashboardData = () => {
-        setLoading(true);
-        setError(null);
+    
 
-        Promise.all([
-            fetch('/harees/api/dashboard', {
-                headers: { Accept: 'application/json' },
-                credentials: 'include',
-            }),
-            fetch('/harees/api/settings', {
-                headers: { Accept: 'application/json' },
-                credentials: 'include',
-            }),
-        ])
-            .then(([dashRes, settingsRes]) => {
-                if (!dashRes.ok) throw new Error('Failed to fetch data');
-                if (!settingsRes.ok) throw new Error('Failed to fetch settings');
-                return Promise.all([dashRes.json(), settingsRes.json()]);
-            })
-            .then(([dashData, settingsData]) => {
-                const reversedProducts = (dashData.products || []).reverse();
-                setProducts(reversedProducts);
-                const raw = dashData.stats || {};
-                setStats({
-                    expiredCount: raw.red_batches    ?? raw.expiredCount  ?? 0,
-                    expiringSoon: raw.yellow_batches ?? raw.expiringSoon  ?? 0,
-                    validCount:   raw.green_batches  ?? raw.validCount    ?? 0,
-                });
+    
+    if (dashboardLoading || settingsLoading) {
+    return (
+        <Layout>
+            <div className="space-y-10 p-6">
+                <StatsSkeleton cards={3} />
+                <LoadingState />
+            </div>
+        </Layout>
+    );
+}
 
-                const settings = settingsData.settings || settingsData;
-                setAutoDiscount(Boolean(settings.auto_discounts));
-            })
-            .catch(err => { console.error('Dashboard fetch error:', err); setError(err.message); })
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchDashboardData(); }, []);
-
-    if (loading) {
-        return (
-            <Layout>
-                <div className="space-y-10 p-6">
-                    <StatsSkeleton cards={3} />
-                    <LoadingState />
-                </div>
-            </Layout>
-        );
-    }
-
-    if (error) {
-        return <Layout><ErrorState message={error} onRetry={fetchDashboardData} /></Layout>;
-    }
+if (dashboardError || settingsError) {
+    return (
+        <Layout>
+            <ErrorState
+                message={
+                    dashboardErrorMessage?.message ||
+                    settingsErrorMessage?.message ||
+                    'Failed to load dashboard'
+                }
+                onRetry={refetchDashboard}
+            />
+        </Layout>
+    );
+}
 
     //Advanced Filtering Logic: Splitting products into batches for filtered results.
     const allBatches = products.flatMap(product => 
