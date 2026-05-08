@@ -12,7 +12,7 @@ const api = axios.create({
 // ── API functions ─────────────────────────────────────────────────────────────
 
 async function fetchProducts() {
-    const { data } = await axios.get("/mustashar/api/products");
+    const { data } = await axios.get("/api/products");
     return data.data || data;
 }
 
@@ -143,7 +143,7 @@ export function useCalculatorSettings() {
         queryKey: ["calculator-settings"],
         queryFn: async () => {
             const { data } = await axios.get(
-                "/mustashar/api/calculator-settings",
+                axios.get(`/api/calculator/settings/${productId}`),
             );
             return data;
         },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../hooks/useHareesGuard';
+import useHareesGuard from '../../Hooks/useHareesGuard';
 import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown, Tag, Percent, BadgeCheck } from 'lucide-react';
 import ProductRow from '../../Components/Harees/ProductRow';
 import DiscountModal from '../../Components/Harees/DiscountModal';
