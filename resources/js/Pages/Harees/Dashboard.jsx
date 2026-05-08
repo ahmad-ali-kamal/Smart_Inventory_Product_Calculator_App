@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import { AlertCircle, ShieldCheck, Clock, ListFilter, SlidersHorizontal, ChevronDown, Tag, Percent, BadgeCheck } from 'lucide-react';
 import ProductRow from '../../Components/Harees/ProductRow';
 import DiscountModal from '../../Components/Harees/DiscountModal';
@@ -8,7 +8,7 @@ import ErrorBoundary from '../../Components/Common/ErrorBoundary';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
 import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
-import {useInventoryDashboard, useInventorySettings,} from '../../Hooks/useInventory';
+import {useInventoryDashboard, useInventorySettings,} from '../../hooks/useInventory';
 
 // Normalization: Mapping backend status codes to unified frontend display names.
 const normalizeStatus = (status) => {

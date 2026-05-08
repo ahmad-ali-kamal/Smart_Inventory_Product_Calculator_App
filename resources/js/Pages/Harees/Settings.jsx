@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Settings2, Tag, Zap, Save, EyeOff, BadgePercent, Percent, Calendar, AlertCircle } from "lucide-react";
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import Card from '../../Components/UI/Card'; 
 import Toggle from '../../Components/UI/Toggle'; 
 import { FormSkeleton } from '../../Components/Common/FormSkeleton';
 import ErrorState from '../../Components/Common/ErrorState';
 import toast, { Toaster } from 'react-hot-toast';
-import {useInventorySettings, useUpdateInventorySettings,} from "../../Hooks/useInventory";
+import {useInventorySettings, useUpdateInventorySettings,} from "../../hooks/useInventory";
 
 
 const INITIAL_CATEGORIES = {

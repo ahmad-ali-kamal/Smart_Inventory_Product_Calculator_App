@@ -2,13 +2,13 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Search, SlidersHorizontal, RefreshCw, ChevronDown } from "lucide-react";
 import { Toaster } from 'react-hot-toast';
 import Layout from '../../Components/Layout';
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import Card from '../../Components/UI/Card';
 import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
-import {useInventoryProducts,} from "../../Hooks/useInventory";
+import {useInventoryProducts,} from "../../hooks/useInventory";
 
 const FILTER_OPTIONS = [
     { value: 'all',    label: 'All'    },
