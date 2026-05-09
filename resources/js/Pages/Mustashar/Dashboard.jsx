@@ -1,14 +1,14 @@
 // resources/js/Pages/Calculator/Dashboard.jsx
 import { Link } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../Hooks/useMustasharGuard';
-import StatCard from '../../Components/UI/StatCard';
+import useMustasharGuard from '../../hooks/useMustasharGuard';
+import StatCard from '../../Components/Common/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
-import { useAllProducts, useCalculatorSettings } from '../../Hooks/useProducts';
-import { useToggleWithToast } from '../../Hooks/useToggleWithToast';  // ← الهوك الموحد
+import { useAllProducts, useCalculatorSettings } from '../../hooks/useProducts';
+import { useToggleWithToast } from '../../hooks/useToggleWithToast';  
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,10 +18,10 @@ export default function Dashboard() {
     const { products = [], isLoading, isError, error } = useAllProducts();
     const { data: settings } = useCalculatorSettings();
 
-    // ← هوك موحد — نفس السلوك تماماً مثل Products
+  
     const { handleToggle, isPending, variables } = useToggleWithToast(products);
 
-    // ── Loading / Error guards (مطابقة لـ Products) ──────────────────────
+  
     if (isLoading) return <Layout><LoadingState message="Loading dashboard…" /></Layout>;
     if (isError)   return <Layout><ErrorState message={error?.message ?? 'Failed to load products.'} /></Layout>;
 

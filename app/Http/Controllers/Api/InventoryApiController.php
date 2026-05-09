@@ -23,18 +23,35 @@ class InventoryApiController extends Controller
      * بدء مزامنة المنتجات من سلة عبر Job خلفي
      */
     public function syncProducts(Request $request)
-    {
-        $merchant = Auth::user();
+{
+    $merchant = Auth::user();
 
-        FetchProductsJob::dispatch($merchant);
+    // تحديد مصدر الطلب (حريص أو مستشار)
+    $source = str_contains($request->path(), 'mustashar') ? 'mustashar' : 'harees';
 
-        Cache::forget("inventory_dashboard_api_{$merchant->id}");
+    // جلب عدد المنتجات قبل السينك
+    $productsCount = Product::where('merchant_id', $merchant->id)->count();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'بدأت مزامنة المنتجات من سلة',
-        ]);
-    }
+    Log::info("🔄 [{$source}] Sync started", [
+        'user_id'        => $merchant->id,
+        'store_name'     => $merchant->name,
+        'products_count' => $productsCount,
+        'time'           => now()->toDateTimeString(),
+    ]);
+
+    FetchProductsJob::dispatch($merchant);
+
+    Cache::forget("inventory_dashboard_api_{$merchant->id}");
+
+    Log::info("✅ [{$source}] Sync job dispatched successfully", [
+        'user_id' => $merchant->id,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'بدأت مزامنة المنتجات من سلة',
+    ]);
+}
 
     /**
      * بيانات لوحة التحكم (الإحصائيات والمنتجات الحرجة)
