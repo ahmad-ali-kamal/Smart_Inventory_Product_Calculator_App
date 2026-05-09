@@ -6,11 +6,11 @@ import T            from '@/constants/translations';
 import globalStyles from '@/styles/globalStyles';
 import { useFonts } from '@/Hooks/useFonts';
 
-import Navbar           from '@/Components/layout/Navbar';
-import Footer           from '@/Components/layout/Footer';
-import HeroSection      from '@/Components/hero/HeroSection';
-import FeaturesSection  from '@/Components/sections/FeatureSection';
-import PlatformsSection from '@/Components/sections/PlatformsSection';
+import Navbar           from '@/Components/Welcome/Navbar';
+import Footer           from '@/Components/Welcome/Footer';
+import HeroSection      from '@/Components/Welcome/hero/HeroSection';
+import FeaturesSection  from '@/Components/Welcome/sections/FeatureSection';
+import PlatformsSection from '@/Components/Welcome/sections/PlatformsSection';
 
 const NAV_H = 58;
 

@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link } from '@inertiajs/react';
 import SplitText from '@/Components/ui/SplitText';
-import HeroRight  from '@/Components/hero/HeroRight';
+import HeroRight  from '@/Components/Welcome/hero/HeroRight';
 
 /**
  * Full-viewport hero with parallax zoom background, split-text headline,

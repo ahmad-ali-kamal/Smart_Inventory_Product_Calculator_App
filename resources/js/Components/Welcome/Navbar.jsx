@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import LanguageSwitcher from '@/Components/LanguageSwitcher';
+import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 
 const NAV_ANCHORS = ['#features', '#platforms', '#stats'];
 

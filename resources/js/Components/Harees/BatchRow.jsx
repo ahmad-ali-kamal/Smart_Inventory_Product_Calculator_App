@@ -4,7 +4,7 @@ import { Tag, Calendar, Percent, BadgeCheck, Loader2 } from 'lucide-react'; // Ø
 import DiscountModal from './DiscountModal';
 import StatusBadge from './StatusBadge';
 import ProductAvatar from '../Common/ProductAvatar';
-import { useApplyDiscount } from '../../hooks/useApplyDiscount';
+import { useApplyDiscount } from '../../Hooks/useApplyDiscount';
 import toast from 'react-hot-toast';
 
 const toastStyle = {

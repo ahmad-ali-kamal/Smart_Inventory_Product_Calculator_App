@@ -1,14 +1,12 @@
-// resources/js/Pages/Calculator/Dashboard.jsx
+// Pages/Calculator/Dashboard.jsx
 import { Link } from '@inertiajs/react';
-import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../hooks/useMustasharGuard';
+import useMustasharGuard from '../../Hooks/useMustasharGuard';
+import PageShell from '../../Components/Common/PageShell';
 import StatCard from '../../Components/Common/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import LoadingState from '../../Components/Common/LoadingState';
-import ErrorState from '../../Components/Common/ErrorState';
-import { useAllProducts, useCalculatorSettings } from '../../hooks/useProducts';
-import { useToggleWithToast } from '../../hooks/useToggleWithToast';  
+import { useAllProducts, useCalculatorSettings } from '../../Hooks/useProducts';
+import { useToggleWithToast } from '../../Hooks/useToggleWithToast';
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,13 +15,7 @@ export default function Dashboard() {
 
     const { products = [], isLoading, isError, error } = useAllProducts();
     const { data: settings } = useCalculatorSettings();
-
-  
     const { handleToggle, isPending, variables } = useToggleWithToast(products);
-
-  
-    if (isLoading) return <Layout><LoadingState message="Loading dashboard…" /></Layout>;
-    if (isError)   return <Layout><ErrorState message={error?.message ?? 'Failed to load products.'} /></Layout>;
 
     const activeProducts = products.filter((p) => p.active);
 
@@ -33,9 +25,9 @@ export default function Dashboard() {
     ] : [];
 
     return (
-        <Layout>
-            <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <PageShell isLoading={isLoading} isError={isError} error={error}>
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
                         label="Total Products"
                         value={products.length}
@@ -56,29 +48,29 @@ export default function Dashboard() {
                 </div>
 
                 <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] overflow-hidden">
-                  <ProductTable empty="No active products available">
-    {activeProducts.length > 0 && (
-        <AnimatePresence mode="popLayout">
-            {activeProducts.map((product) => (
-                <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, x: -20 }}
-                >
-                    <ProductRow
-                        product={product}
-                        onToggle={handleToggle}
-                        loading={isPending && variables === product.id}
-                    />
-                </motion.div>
-            ))}
-        </AnimatePresence>
-    )}
-</ProductTable>
+                    <ProductTable empty="No active products available">
+                        {activeProducts.length > 0 && (
+                            <AnimatePresence mode="popLayout">
+                                {activeProducts.map((product) => (
+                                    <motion.div
+                                        key={product.id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                    >
+                                        <ProductRow
+                                            product={product}
+                                            onToggle={handleToggle}
+                                            loading={isPending && variables === product.id}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        )}
+                    </ProductTable>
                 </div>
             </div>
-        </Layout>
+        </PageShell>
     );
 }

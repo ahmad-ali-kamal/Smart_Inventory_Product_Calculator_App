@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useLang } from '@/Hooks/useLang';
-import LanguageSwitcher from '@/Components/LanguageSwitcher';
+import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 import { useFonts }  from '@/Hooks/useFonts';
 import SplitText     from '@/Components/ui/SplitText';
 

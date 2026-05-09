@@ -2,17 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CalendarPlus, Trash2, PlusCircle, CheckCircle, AlertCircle, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useStoreExpiry, useDeleteExpiry } from '../../hooks/useInventory';
-
-// ── Toast style ──
-const toastStyle = {
-    borderRadius: '12px',
-    background: 'var(--card)',
-    color: 'var(--foreground)',
-    border: '1px solid var(--border)',
-    fontSize: '12px',
-    fontWeight: 'bold',
-};
+import { useStoreExpiry, useDeleteExpiry } from '../../Hooks/useInventory';
 
 const dateInputStyle = `
   input[type="date"]::-webkit-calendar-picker-indicator {
@@ -34,7 +24,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     const [error, setError]             = useState(null);
     const [fieldErrors, setFieldErrors] = useState({});
 
-    // ← هوكان — كل منطق الـ API والكاش داخلهم
     const { mutateAsync: storeExpiry, isPending: isSaving }   = useStoreExpiry();
     const { mutateAsync: deleteExpiry, isPending: isDeleting } = useDeleteExpiry();
 
@@ -64,13 +53,12 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     const isOverLimit     = usedQty > totalQty;
     const progressPercent = totalQty > 0 ? Math.min((usedQty / totalQty) * 100, 100) : 0;
 
-    // ← الحذف عبر الهوك — يُغلق بعد اكتمال invalidation
     const handleDeleteAll = async (closeAfter = true) => {
         if (!window.confirm('Are you sure you want to delete all batches? This cannot be undone.')) return;
         setError(null);
         try {
             await deleteExpiry(product.id);
-            toast.success('All batches deleted successfully', { duration: 3000, style: toastStyle });
+            toast.success('All batches deleted successfully');
             onSave(product.id, { reset: true });
             if (closeAfter) onClose();
         } catch (err) {
@@ -107,7 +95,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         return null;
     };
 
-    // ← الحفظ عبر الهوك — يُغلق بعد اكتمال invalidation
     const handleSave = async () => {
         setError(null);
         const err = validate();
@@ -131,10 +118,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         try {
             const data = await storeExpiry(payload);
             if (selection === 'yes' && !data.expiry_date) data.expiry_date = singleDate;
-            toast.success(
-                hasBatches ? 'Expiry date updated successfully' : 'Expiry date added successfully',
-                { duration: 3000, style: toastStyle }
-            );
+            toast.success(hasBatches ? 'Expiry date updated successfully' : 'Expiry date added successfully');
             onSave(product.id, data);
             onClose();
         } catch (err) {
@@ -143,15 +127,18 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     };
 
     const updateBatch = (id, field, value) => {
+        setBatches(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+        setFieldErrors(prev => {
+            const next = { ...prev };
+            if (field === 'qty')  delete next[id];
+            if (field === 'date') delete next[id + '_date'];
+            return next;
+        });
         setError(null);
-        let clean = field === 'qty' ? value.replace(/[^0-9]/g, '') : value;
-        if (field === 'qty' && clean.length > 6) return;
-        setFieldErrors(prev => ({ ...prev, [id]: undefined, [id + '_date']: undefined }));
-        setBatches(prev => prev.map(b => b.id === id ? { ...b, [field]: clean } : b));
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <style>{dateInputStyle}</style>
             <div className="relative w-full max-w-[500px] bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
 

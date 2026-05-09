@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { useTheme } from '../Context/ThemeContext';
+import { useTheme } from '../../Context/ThemeContext';
 import { Sun, Moon, User, LayoutGrid, ChevronDown, Globe, LogOut, BellRing, CheckCheck } from 'lucide-react';
-import LangToggle from '../Components/LangToggle';
+import LangToggle from './LangToggle';
 
 export default function Header() {
     const { theme, toggleTheme } = useTheme();
