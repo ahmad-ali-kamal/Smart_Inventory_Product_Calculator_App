@@ -2,15 +2,13 @@
 import { useState, useMemo } from 'react';
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import PageShell from '../../Components/Common/PageShell';
+import TableToolbar from '../../Components/Common/TableToolbar';
 import Card from '../../Components/Common/Card';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
 import { useAllProducts } from '../../Hooks/useProducts';
 import { useToggleWithToast } from '../../Hooks/useToggleWithToast';
 import { motion, AnimatePresence } from 'framer-motion';
-import DropdownFilter from '../../Components/Common/DropdownFilter';
-import SearchInput from '../../Components/Common/SearchInput';
-import SyncButton from '../../Components/Common/SyncButton';
 
 export default function Products() {
     useMustasharGuard();
@@ -18,7 +16,7 @@ export default function Products() {
     const { products = [], isLoading, isError, error, refetch } = useAllProducts();
     const { handleToggle, isPending, variables } = useToggleWithToast(products);
 
-    const [search, setSearch]           = useState('');
+    const [search, setSearch]               = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
 
     const categoryOptions = useMemo(
@@ -43,32 +41,21 @@ export default function Products() {
         <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
             <div className="space-y-6">
 
-                <div>
-                    <h1 className="text-2xl font-semibold text-[var(--foreground)]">Products</h1>
-                    <p className="text-sm text-[var(--muted-foreground)] mt-1">
-                        Manage product activation for the smart calculator.
-                    </p>
-                </div>
+                {/* ── Toolbar + Banner ── */}
+                <TableToolbar
+                    banner="Active products sort to the top so you can spot them fast; inactive ones appear faded to easily highlight catalog gaps."
+                    search={search}
+                    onSearch={setSearch}
+                    filterOptions={categoryOptions}
+                    filterValue={categoryFilter}
+                    onFilter={setCategoryFilter}
+                    syncEndpoint="/mustashar/api/products/sync"
+                    onSyncSuccess={() => refetch()}
+                    placeholder="Search products..."
+                    filterWidth="w-[130px]"
+                />
 
-                <div className="flex items-start gap-3 bg-[var(--secondary)] border border-[var(--border)] rounded-xl px-4 py-3">
-                    <svg className="w-4 h-4 text-[var(--primary)] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-sm">
-                        <span className="font-semibold text-[var(--foreground)]">Activation Guide: </span>
-                        <span className="text-[var(--muted-foreground)]">
-                            Active products are highlighted and sorted to the top. Inactive products appear faded so you can spot gaps at a glance.
-                        </span>
-                    </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <div className="flex-1" />
-                    <SearchInput value={search} onChange={setSearch} placeholder="Search products..." sanitize={true} />
-                    <DropdownFilter options={categoryOptions} value={categoryFilter} onChange={setCategoryFilter} width="w-[130px]" />
-                    <SyncButton endpoint="/mustashar/api/products/sync" onSyncSuccess={() => refetch()} />
-                </div>
-
+                {/* ── Products Table ── */}
                 <Card>
                     <ProductTable empty="All products are inactive. Activate products to include them in calculations.">
                         <AnimatePresence mode="popLayout">
@@ -91,6 +78,7 @@ export default function Products() {
                         </AnimatePresence>
                     </ProductTable>
                 </Card>
+
             </div>
         </PageShell>
     );
