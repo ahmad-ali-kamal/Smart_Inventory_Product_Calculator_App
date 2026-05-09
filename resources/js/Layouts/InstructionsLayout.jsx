@@ -3,7 +3,7 @@
  */
 
 import { ArrowRight } from "lucide-react";
-import Header from "../Header";
+import Header from "../Components/Header";
 
 const DOTS = [
   { top: "15%", left: "8%",   size: 6, opacity: 0.35 },

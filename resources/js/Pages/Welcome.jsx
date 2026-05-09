@@ -4,7 +4,7 @@ import GuestLayout from '@/Layouts/GuestLayout';
 
 import T            from '@/constants/translations';
 import globalStyles from '@/styles/globalStyles';
-import { useFonts } from '@/hooks/useFonts';
+import { useFonts } from '@/Hooks/useFonts';
 
 import Navbar           from '@/Components/layout/Navbar';
 import Footer           from '@/Components/layout/Footer';

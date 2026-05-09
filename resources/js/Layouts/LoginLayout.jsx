@@ -2,17 +2,12 @@ import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/LanguageSwitcher';
-import { useFonts }  from '@/hooks/useFonts';
+import { useFonts }  from '@/Hooks/useFonts';
 import SplitText     from '@/Components/ui/SplitText';
 
 /**
  * LoginLayout — shared layout for all login pages.
- *
- * NOTE on Reveal: We intentionally do NOT use <Reveal> here.
- * Reveal adds a plain <motion.div> wrapper with no layout styles,
- * which breaks the flex sizing (md:w-[50%] h-full) of the right panel.
- * The login card is above-the-fold anyway — scroll-reveal makes no sense.
- * The right panel uses its own motion.div with correct layout classes instead.
+ * Each app (Mustashar, Harees) passes its own translations, hero image, and colors as props.
  *
  * Props:
  * @param {object}  translations
@@ -200,7 +195,7 @@ export default function LoginLayout({
         width="600"
         height="420"
         className={`login-visual w-full max-w-[480px] ${imageScale} object-contain drop-shadow-2xl`}
-        //                              ↑ reduced from 600px to 480px for safer fit
+      
     />
 </motion.div>
 
@@ -210,11 +205,7 @@ export default function LoginLayout({
                         </div>
                     </div>
 
-                    {/* ── RIGHT panel (white form) ──────────────────────────────
-                        IMPORTANT: this motion.div must be a DIRECT child of the
-                        flex row above. It carries md:w-[50%] and h-full itself —
-                        never wrap it in Reveal or any other unstyled div.
-                    ── */}
+                    {/* ── RIGHT panel (white form) ── */}
                     <motion.div
                         variants={rightVariants}
                         initial="hidden"

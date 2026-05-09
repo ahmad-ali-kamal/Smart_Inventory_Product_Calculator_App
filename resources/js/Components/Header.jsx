@@ -64,7 +64,7 @@ useEffect(() => {
 
     
     const navItems = isInventory ? inventoryNav : calculatorNav;
-    const appName = isInventory ? 'حريص' : 'المستشار';
+    const appName = isInventory ? 'Harees' : 'Al-mustashar';
 
     return (
         <header className="sticky top-0 z-50 bg-[var(--background)] border-b border-[var(--border)] transition-colors duration-300">
@@ -107,8 +107,6 @@ useEffect(() => {
                                 : <Moon className="w-3.5 h-3.5 text-[var(--primary)]" />}
                         </button>
                     </div>
-                    {/* ب. أيقونة الجرس - تصغير الحجم وتغيير اللون للموف الفاتح */}
-{/* ب. أيقونة الجرس - مطابقة حجم الدائرة لزر الثيم (32px) مع الحفاظ على حجم الجرس */}
 {isInventory && (
     <div className="relative">
         <button 
@@ -119,10 +117,9 @@ useEffect(() => {
                 : 'bg-[var(--accent)] text-[var(--primary)] border-[var(--border)] hover:border-[var(--primary)]'
             }`}
         >
-            {/* حجم الجرس كما هو (4) ليبقى واضحاً */}
             <BellRing className={`w-4 h-4 ${unreadCount > 0 ? 'animate-[shake_0.5s_ease-in-out_infinite]' : ''}`} />
             
-            {/* الدائرة الحمراء - موضع دقيق ليتناسب مع حجم الدائرة الجديد */}
+          
             {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-[#f87171] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-[var(--card)] shadow-sm">
                     {unreadCount}
@@ -158,14 +155,14 @@ useEffect(() => {
                             className="flex items-center gap-1 text-[10px] font-bold text-[var(--primary)] hover:underline"
                         >
                             <CheckCheck className="w-3 h-3" />
-                            قراءة الكل
+                            Mark all as read
                         </button>
                     </div>
 
                     <div className="max-h-64 overflow-y-auto p-1 text-right" dir="rtl">
                         {notifications.length === 0 ? (
     <div className="p-4 text-center text-[11px] text-[var(--muted-foreground)]">
-        لا توجد تنبيهات
+       no notifications found
     </div>
 ) : (
     notifications.map((n) => (
@@ -183,7 +180,7 @@ useEffect(() => {
         )}
     </div>
 )}
-    {/* ج. قائمة المستخدم - تحسين الحدود والتباعد */}
+    
     <div className="relative">
         <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -260,9 +257,7 @@ useEffect(() => {
                 ))}
             </div>
         </header>
-    );
-}
-// أضف هذا الكود في أسفل الملف تماماً
+    );}
 function NotificationItem({ title, msg, color }) {
     return (
         <div className="p-3 rounded-lg hover:bg-[var(--accent)]/50 transition-colors cursor-pointer group">
