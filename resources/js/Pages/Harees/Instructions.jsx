@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import InstructionsLayout from "../../Components/UI/InstructionsLayout";
+import InstructionsLayout from "../../Components/Common/InstructionsLayout";
 
 /* ── Icons ── */
 const CheckIcon = () => (

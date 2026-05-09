@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Toaster } from 'react-hot-toast';
 import Layout from '../../Components/Layout';
 import useHareesGuard from '../../hooks/useHareesGuard';
-import Card from '../../Components/UI/Card';
+import Card from '../../Components/Common/Card';
 import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import LoadingState from '../../Components/Common/LoadingState';

@@ -43,7 +43,6 @@ const SIZE = {
 };
 
 /**
- * مشترك بين Harees و Mustashar.
  *
  * Props:
  *  - status:    "red" | "yellow" | "green" | "Expired" | "Approaching" | "Safe" | "valid"

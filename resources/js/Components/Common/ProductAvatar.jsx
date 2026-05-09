@@ -1,15 +1,5 @@
 // resources/js/Components/UI/ProductAvatar.jsx
 
-/**
- * صورة المنتج مع Fallback الحرف الأول.
- * مشترك بين: BatchRow، ProductRow (Harees)، ProductRow (Mustashar).
- *
- * Props:
- *  - src:      string | null  — رابط الصورة
- *  - name:     string         — اسم المنتج (للـ alt و fallback)
- *  - size:     number         — حجم الـ px (default: 40)
- *  - radius:   string         — Tailwind border-radius class (default: "rounded-lg")
- */
 export default function ProductAvatar({ src, name, size = 40, radius = 'rounded-lg' }) {
     const initial = name?.charAt(0)?.toUpperCase() ?? '?';
 

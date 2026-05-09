@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/react';
 import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../hooks/useMustasharGuard';
-import StatCard from '../../Components/UI/StatCard';
+import StatCard from '../../Components/Common/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
 import LoadingState from '../../Components/Common/LoadingState';

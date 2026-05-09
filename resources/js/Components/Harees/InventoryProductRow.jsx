@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Pencil, PlusCircle } from 'lucide-react';
-import ProductAvatar from '../UI/ProductAvatar';
-import { normalizeStatus, getStatusStyle } from '../UI/StatusBadge';
+import ProductAvatar from '../Common/ProductAvatar';
+import { normalizeStatus, getStatusStyle } from './StatusBadge';
 
 // ── شكل البادج ──
 const PILL =

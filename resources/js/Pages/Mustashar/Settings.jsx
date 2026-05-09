@@ -2,10 +2,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import toast, { Toaster, useToasterStore } from 'react-hot-toast';
 import Layout from '../../Components/Layout';
-import useMustasharGuard from '../../Hooks/useMustasharGuard';
-import { useCalculatorSettings, useUpdateCalculatorSettings } from '../../Hooks/useProducts';
+import useMustasharGuard from '../../hooks/useMustasharGuard';
+import { useCalculatorSettings, useUpdateCalculatorSettings } from '../../hooks/useProducts';
 import { SlidersHorizontal, Calculator, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { FormSkeleton } from '../../Components/Common/FormSkeleton';
+import { FormSkeleton } from '../../Components/Common/Skeleton/FormSkeleton';
 import ErrorState from '../../Components/Common/ErrorState';
 
 // ---------------------------------------------------------------------------

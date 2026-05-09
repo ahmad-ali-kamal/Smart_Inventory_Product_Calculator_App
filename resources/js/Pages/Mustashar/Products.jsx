@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../hooks/useMustasharGuard';
-import Card from '../../Components/UI/Card';
+import Card from '../../Components/Common/Card';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
 import { useAllProducts } from '../../hooks/useProducts';

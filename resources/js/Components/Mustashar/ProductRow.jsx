@@ -1,6 +1,6 @@
 // resources/js/Components/Calculator/ProductRow.jsx
-import Toggle from "../UI/Toggle";
-import ProductAvatar from "../UI/ProductAvatar";
+import Toggle from "../Common/Toggle";
+import ProductAvatar from "../Common/ProductAvatar";
 
 export default function ProductRow({ product, onToggle, fading = false }) {
     return (

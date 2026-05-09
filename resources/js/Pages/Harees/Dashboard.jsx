@@ -4,15 +4,16 @@ import useHareesGuard from '../../hooks/useHareesGuard';
 import { AlertCircle, ShieldCheck, Clock, ListFilter, Tag, Percent, BadgeCheck } from 'lucide-react';
 import ProductRow from '../../Components/Harees/ProductRow';
 import DiscountModal from '../../Components/Harees/DiscountModal';
-import ProductAvatar from '../../Components/UI/ProductAvatar';
-import StatusBadge, { normalizeStatus } from '../../Components/UI/StatusBadge';
+import ProductAvatar from '../../Components/Common/ProductAvatar';
+import StatusBadge, { normalizeStatus } from '../../Components/Harees/StatusBadge';
 import ErrorBoundary from '../../Components/Common/ErrorBoundary';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
-import { StatsSkeleton } from '../../Components/Common/StatsSkeleton';
+import { StatsSkeleton } from '../../Components/Common/Skeleton/StatsSkeleton';
 import { useInventoryDashboard, useInventorySettings } from '../../hooks/useInventory';
 import { useApplyDiscount } from '../../hooks/useApplyDiscount';
 import DropdownFilter from '../../Components/Common/DropdownFilter';
+import StatCard from '../../Components/Common/StatCard';
 import toast from 'react-hot-toast';
 
 const toastStyle = {
@@ -110,9 +111,9 @@ export default function Dashboard() {
         <Layout>
             <div className="space-y-10" dir="ltr">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <StatCard label="Expired"     value={stats.expiredCount} icon={<AlertCircle className="w-5 h-5" />} status="critical" sub="Requires immediate action" />
-                    <StatCard label="Approaching" value={stats.expiringSoon} icon={<Clock className="w-5 h-5" />}       status="warning"  sub="Under close monitoring"   />
-                    <StatCard label="Safe"        value={stats.validCount}   icon={<ShieldCheck className="w-5 h-5" />} status="success"  sub="Stable inventory"         />
+                    <StatCard label="Expired"     value={stats.expiredCount} icon={<AlertCircle className="w-5 h-5" />} variant="critical" sub="Requires immediate action" />
+                    <StatCard label="Approaching" value={stats.expiringSoon} icon={<Clock className="w-5 h-5" />}       variant="warning"  sub="Under close monitoring"   />
+                    <StatCard label="Safe"        value={stats.validCount}   icon={<ShieldCheck className="w-5 h-5" />} variant="success"  sub="Stable inventory"         />
                 </div>
 
                 <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm">
@@ -262,32 +263,5 @@ function BatchRowStandalone({ batch, product, autoDiscount }) {
                 />
             )}
         </>
-    );
-}
-
-
-function StatCard({ label, value, icon, status, sub }) {
-    const config = {
-        critical: { textVar: 'var(--status-expired-text)',     iconBgVar: 'var(--status-expired-icon-bg)',     iconBorderVar: 'var(--status-expired-icon-border)'     },
-        warning:  { textVar: 'var(--status-approaching-text)', iconBgVar: 'var(--status-approaching-icon-bg)', iconBorderVar: 'var(--status-approaching-icon-border)' },
-        success:  { textVar: 'var(--status-safe-text)',         iconBgVar: 'var(--status-safe-icon-bg)',         iconBorderVar: 'var(--status-safe-icon-border)'         },
-    };
-    const c = config[status];
-    return (
-        <div className="p-6 rounded-[22px] bg-[var(--card)] border border-[var(--border)] flex flex-col gap-4 transition-all hover:shadow-md">
-            <div className="flex items-center gap-3">
-                <div
-                    style={{ color: c.textVar, background: c.iconBgVar, borderColor: c.iconBorderVar }}
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border"
-                >
-                    {icon}
-                </div>
-                <span style={{ color: c.textVar }} className="text-[13px] font-black uppercase tracking-wide">{label}</span>
-            </div>
-            <div>
-                <span className="text-3xl font-black text-[var(--foreground)]">{value}</span>
-                <p className="text-[11px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide mt-1">{sub}</p>
-            </div>
-        </div>
     );
 }

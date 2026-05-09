@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
 import BatchRow from './BatchRow';
-import StatusBadge from '../UI/StatusBadge';
-import ProductAvatar from '../UI/ProductAvatar';
+import StatusBadge from './StatusBadge';
+import ProductAvatar from '../Common/ProductAvatar';
 
 export default function ProductRow({ product, autoDiscount }) {
     const [showBatches, setShowBatches] = useState(false);

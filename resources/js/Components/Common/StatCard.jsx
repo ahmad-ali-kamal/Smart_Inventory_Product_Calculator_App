@@ -2,9 +2,9 @@
 import { Settings } from 'lucide-react';
 
 /**
- * StatCard — يدعم طريقتين للاستخدام:
+ * StatCard — يدعم ثلاث طرق للاستخدام:
  *
- * 1) الكارد العادي:
+ * 1) الكارد العادي (Mustashar):
  *    <StatCard label="Total Products" value={20} icon={<Package />} sub="In your store" />
  *    أو بـ icon كـ component:
  *    <StatCard label="Total Products" value={20} icon={Package} sub="In your store" />
@@ -13,6 +13,10 @@ import { Settings } from 'lucide-react';
  *    <StatCard type="settings_preview" rules={calcRules}>
  *        <EditButton />
  *    </StatCard>
+ *
+ * 3) كارد ملوّن بحسب الحالة (Harees):
+ *    <StatCard label="Expired" value={5} icon={<AlertCircle />} variant="critical" sub="..." />
+ *    variant: "critical" | "warning" | "success"
  */
 export default function StatCard({ label, title, value, icon: IconProp, type, rules, children, sub, variant }) {
 
@@ -62,6 +66,40 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
     const hoverOn  = e => { e.currentTarget.style.boxShadow = '0 4px 20px color-mix(in srgb, var(--primary) 11%, transparent)'; e.currentTarget.style.transform = 'translateY(-1px)'; };
     const hoverOff = e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; };
 
+    // ── Variant config (للحالات الملونة مثل حريص) ──
+    const VARIANT_CONFIG = {
+        critical: {
+            textVar:       'var(--status-expired-text)',
+            iconBgVar:     'var(--status-expired-icon-bg)',
+            iconBorderVar: 'var(--status-expired-icon-border)',
+        },
+        warning: {
+            textVar:       'var(--status-approaching-text)',
+            iconBgVar:     'var(--status-approaching-icon-bg)',
+            iconBorderVar: 'var(--status-approaching-icon-border)',
+        },
+        success: {
+            textVar:       'var(--status-safe-text)',
+            iconBgVar:     'var(--status-safe-icon-bg)',
+            iconBorderVar: 'var(--status-safe-icon-border)',
+        },
+    };
+
+    const variantStyle = variant ? VARIANT_CONFIG[variant] : null;
+
+    const resolvedIconWrap = variantStyle ? {
+        ...iconWrap,
+        background:  variantStyle.iconBgVar,
+        borderColor: variantStyle.iconBorderVar,
+        color:       variantStyle.textVar,
+        border:      '1px solid',
+    } : iconWrap;
+
+    const resolvedLabelStyle = variantStyle ? {
+        ...labelStyle,
+        color: variantStyle.textVar,
+    } : labelStyle;
+
     /* ─── Settings card ─── */
     if (type === 'settings_preview') {
         return (
@@ -74,20 +112,20 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <p style={labelStyle}>Calculator Logic</p>
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-    {rules?.length
-        ? rules.map((rule) => (
-            <PurpleBadge key={rule.label}>
-                {rule.value}
-            </PurpleBadge>
-        ))
-        : (
-            <>
-                <PurpleBadge>8.00 m²</PurpleBadge>
-                <PurpleBadge>10% waste</PurpleBadge>
-            </>
-        )
-    }
-</div>
+                            {rules?.length
+                                ? rules.map((rule) => (
+                                    <PurpleBadge key={rule.label}>
+                                        {rule.value}
+                                    </PurpleBadge>
+                                ))
+                                : (
+                                    <>
+                                        <PurpleBadge>8.00 m²</PurpleBadge>
+                                        <PurpleBadge>10% waste</PurpleBadge>
+                                    </>
+                                )
+                            }
+                        </div>
                     </div>
                     {children && <div>{children}</div>}
                 </div>
@@ -95,13 +133,13 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
         );
     }
 
-    /* ─── Default stat card ─── */
+    /* ─── Default stat card (مع دعم variant) ─── */
     return (
         <div style={card} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-            {IconEl && <div style={iconWrap}>{IconEl}</div>}
+            {IconEl && <div style={resolvedIconWrap}>{IconEl}</div>}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <p style={labelStyle}>{displayLabel}</p>
+                <p style={resolvedLabelStyle}>{displayLabel}</p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
                     <span style={{ fontSize: '28px', fontWeight: 800, lineHeight: 1, color: 'var(--foreground)' }}>
                         {value}
