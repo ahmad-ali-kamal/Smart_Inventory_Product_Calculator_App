@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CalendarPlus, Trash2, PlusCircle, CheckCircle, AlertCircle, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useStoreExpiry, useDeleteExpiry } from '../../hooks/useInventory';
 
 // ── Toast style ──
 const toastStyle = {
@@ -12,7 +13,6 @@ const toastStyle = {
     fontSize: '12px',
     fontWeight: 'bold',
 };
-
 
 const dateInputStyle = `
   input[type="date"]::-webkit-calendar-picker-indicator {
@@ -28,17 +28,18 @@ const dateInputStyle = `
 `;
 
 export default function ExpiryModal({ product, onClose, onSave }) {
-    const [selection, setSelection] = useState(null); // 'yes' or 'no'
+    const [selection, setSelection] = useState(null);
     const [singleDate, setSingleDate] = useState('');
     const [batches, setBatches] = useState([{ id: Date.now(), qty: '', date: '' }]);
-    const [isSaving, setIsSaving]       = useState(false);
     const [error, setError]             = useState(null);
-    const [isDeleting, setIsDeleting]   = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
+
+    // ← هوكان — كل منطق الـ API والكاش داخلهم
+    const { mutateAsync: storeExpiry, isPending: isSaving }   = useStoreExpiry();
+    const { mutateAsync: deleteExpiry, isPending: isDeleting } = useDeleteExpiry();
 
     const totalQty   = product.quantity ?? product.dbQty ?? 0;
     const hasBatches = product.batches && product.batches.length > 0;
-
     const today = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
@@ -57,52 +58,31 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         }
     }, [hasBatches, product.batches]);
 
-    const usedQty = batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0);
+    const usedQty         = batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0);
     const remainingQty    = totalQty - usedQty;
     const allDistributed  = remainingQty === 0 && usedQty > 0;
     const isOverLimit     = usedQty > totalQty;
     const progressPercent = totalQty > 0 ? Math.min((usedQty / totalQty) * 100, 100) : 0;
 
-    const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content;
-
+    // ← الحذف عبر الهوك — يُغلق بعد اكتمال invalidation
     const handleDeleteAll = async (closeAfter = true) => {
+        if (!window.confirm('Are you sure you want to delete all batches? This cannot be undone.')) return;
         setError(null);
-        setIsDeleting(true);
         try {
-            const res = await fetch(`/harees/api/expiry/${product.id}`, {
-                method: 'DELETE',
-                headers: {
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'include',
-            });
-            const data = await res.json();
-            if (!res.ok || !data.success) {
-                setError(data.message || 'Failed to delete batches');
-                setIsDeleting(false);
-                return;
-            }
-
+            await deleteExpiry(product.id);
+            toast.success('All batches deleted successfully', { duration: 3000, style: toastStyle });
             onSave(product.id, { reset: true });
             if (closeAfter) onClose();
-            toast.success('All batches deleted successfully', { duration: 3000, style: toastStyle });
-
-        } catch {
-            setError('Connection failed');
-            setIsDeleting(false);
+        } catch (err) {
+            setError(err?.message || 'Failed to delete batches');
         }
     };
 
     const validate = () => {
         if (!selection) return 'Please select an option first';
-
         if (selection === 'yes') {
             if (!singleDate) return 'Please enter the expiry date';
-
             if (singleDate < today) return 'Expiry date cannot be in the past';
-
         } else {
             if (batches.length === 0) return 'Add at least one batch';
             const errors = {};
@@ -113,7 +93,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 }
                 if (!batches[i].date) {
                     errors[batches[i].id + '_date'] = 'required';
-
                 } else if (batches[i].date < today) {
                     errors[batches[i].id + '_date'] = 'past';
                 }
@@ -122,22 +101,19 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 setFieldErrors(errors);
                 return 'Please fix the highlighted fields';
             }
-            if (isOverLimit)
-                return `Exceeds available stock (${totalQty}).`;
-            if (usedQty < totalQty)
-                return `${totalQty - usedQty} unit(s) unassigned — all stock must be distributed`;
+            if (isOverLimit) return `Exceeds available stock (${totalQty}).`;
+            if (usedQty < totalQty) return `${totalQty - usedQty} unit(s) unassigned — all stock must be distributed`;
         }
         return null;
     };
 
+    // ← الحفظ عبر الهوك — يُغلق بعد اكتمال invalidation
     const handleSave = async () => {
         setError(null);
         const err = validate();
         if (err) { setError(err); return; }
 
-        setIsSaving(true);
         const payload = { product_id: product.id, same_expiry: selection === 'yes' };
-
         if (selection === 'yes') {
             payload.single_batch = {
                 expiry_date: singleDate,
@@ -153,58 +129,26 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         }
 
         try {
-            const res = await fetch('/harees/api/expiry', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'include',
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-            if (!res.ok || !data.success) {
-                setError(data.message || 'An error occurred while saving');
-                setIsSaving(false);
-                return;
-            }
-
-            if (selection === 'yes' && !data.expiry_date) {
-                data.expiry_date = singleDate;
-            }
-
-            onSave(product.id, data);
-            onClose();
+            const data = await storeExpiry(payload);
+            if (selection === 'yes' && !data.expiry_date) data.expiry_date = singleDate;
             toast.success(
                 hasBatches ? 'Expiry date updated successfully' : 'Expiry date added successfully',
                 { duration: 3000, style: toastStyle }
             );
-
-        } catch {
-            setError('Connection failed');
-            setIsSaving(false);
+            onSave(product.id, data);
+            onClose();
+        } catch (err) {
+            setError(err?.message || 'An error occurred while saving');
         }
     };
 
-    // ── updateBatch: أرقام فقط للـ qty + مسح field error ──
-   const updateBatch = (id, field, value) => {
-    setError(null);
-   let clean = field === 'qty' ? value.replace(/[^0-9]/g, '') : value;
-
-    if (field === 'qty' && clean.length > 6) {
-        return; 
-    }
-
-    setFieldErrors(prev => ({
-        ...prev,
-        [id]: undefined,
-        [id + '_date']: undefined,
-    }));
-    setBatches(prev => prev.map(b => b.id === id ? { ...b, [field]: clean } : b));
-};
+    const updateBatch = (id, field, value) => {
+        setError(null);
+        let clean = field === 'qty' ? value.replace(/[^0-9]/g, '') : value;
+        if (field === 'qty' && clean.length > 6) return;
+        setFieldErrors(prev => ({ ...prev, [id]: undefined, [id + '_date']: undefined }));
+        setBatches(prev => prev.map(b => b.id === id ? { ...b, [field]: clean } : b));
+    };
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
@@ -222,7 +166,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         </h3>
                         <p className="text-[11px] text-[var(--muted-foreground)]">{product.name}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--foreground)]">
+                    <button onClick={onClose} disabled={isSaving || isDeleting} className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--foreground)] disabled:opacity-40">
                         <X size={16} />
                     </button>
                 </div>
@@ -315,13 +259,11 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                     </button>
                                 )}
                             </div>
-
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wide">Expiry Date</label>
                                 <input
                                     type="date"
                                     value={singleDate}
-                                   
                                     min={today}
                                     onChange={e => { setSingleDate(e.target.value); setError(null); }}
                                     className="w-full p-3 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-sm outline-none focus:border-[var(--primary)] transition-colors"
@@ -342,7 +284,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                 setBatches([]);
                                                 setError(null);
                                                 setFieldErrors({});
-                                                if (hasBatches) await handleDeleteAll(false);
+                                                if (hasBatches) await handleDeleteAll(true);
                                             }}
                                             disabled={isDeleting}
                                             className="text-[10px] font-bold text-[var(--status-expired-text)] bg-[var(--status-expired-bg)] px-2 py-1 rounded-lg hover:brightness-95 transition-all"
@@ -387,7 +329,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
-
                                         {/* Quantity */}
                                         <div className="space-y-1">
                                             <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-wide">Quantity</label>
@@ -395,7 +336,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                 type="number"
                                                 placeholder="0"
                                                 min="1"
-                                                maxLength={6} 
                                                 value={batch.qty}
                                                 onChange={e => updateBatch(batch.id, 'qty', e.target.value)}
                                                 onKeyDown={e => {
@@ -414,14 +354,12 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                 </p>
                                             )}
                                         </div>
-
                                         {/* Expiry Date */}
                                         <div className="space-y-1">
                                             <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-wide">Expiry Date</label>
                                             <input
                                                 type="date"
                                                 value={batch.date}
-                                               
                                                 min={today}
                                                 onChange={e => updateBatch(batch.id, 'date', e.target.value)}
                                                 className={`w-full p-2.5 rounded-xl text-xs outline-none transition-colors border
@@ -433,21 +371,17 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                             />
                                             {fieldErrors[batch.id + '_date'] && (
                                                 <p className="text-[9px] font-bold text-[var(--status-expired-text)] mt-0.5">
-                                                    
-                                                    {fieldErrors[batch.id + '_date'] === 'past'
-                                                        ? 'Date is in the past'
-                                                        : 'Required'}
+                                                    {fieldErrors[batch.id + '_date'] === 'past' ? 'Date is in the past' : 'Required'}
                                                 </p>
                                             )}
                                         </div>
-
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {/* Error Alert Box */}
+                    {/* Error Alert */}
                     {error && (
                         <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--status-expired-bg)] border border-[var(--status-expired-border)] text-[var(--status-expired-text)] text-[11px] font-bold">
                             <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
@@ -460,8 +394,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 <div className="p-5 border-t border-[var(--border)] bg-[var(--card)]">
                     <button
                         onClick={handleSave}
-                      
-                        disabled={isSaving || !selection}
+                        disabled={isSaving || isDeleting || !selection}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                             isSaving
                                 ? 'bg-[var(--primary)]/60 text-white cursor-wait'

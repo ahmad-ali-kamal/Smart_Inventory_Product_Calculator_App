@@ -12,7 +12,7 @@ const api = axios.create({
 // ── API functions ─────────────────────────────────────────────────────────────
 
 async function fetchProducts() {
-    const { data } = await axios.get("/api/products");
+    const { data } = await axios.get("/mustashar/api/products");
     return data.data || data;
 }
 
@@ -52,13 +52,14 @@ function useProductsData() {
 // useAllProducts  →  used by Products.jsx
 // ─────────────────────────────────────────────────────────────────────────────
 export function useAllProducts() {
-    const { data, isLoading, isError, error } = useProductsData();
+    const { data, isLoading, isError, error, refetch } = useProductsData();
 
     return {
         products: data ?? [],
         isLoading,
         isError,
         error,
+        refetch,
     };
 }
 
@@ -141,10 +142,12 @@ export function useUpdateCalcRules() {
 export function useCalculatorSettings() {
     return useQuery({
         queryKey: ["calculator-settings"],
+
         queryFn: async () => {
             const { data } = await axios.get(
-                axios.get(`/api/calculator/settings/${productId}`),
+                "/mustashar/api/calculator-settings"
             );
+
             return data;
         },
     });

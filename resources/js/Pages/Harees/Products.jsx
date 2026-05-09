@@ -1,5 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
-import { Search, SlidersHorizontal, RefreshCw, ChevronDown } from "lucide-react";
+import { useState, useMemo } from "react";
 import { Toaster } from 'react-hot-toast';
 import Layout from '../../Components/Layout';
 import useHareesGuard from '../../hooks/useHareesGuard';
@@ -8,7 +7,13 @@ import InventoryProductRow from '../../Components/Harees/InventoryProductRow';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import LoadingState from '../../Components/Common/LoadingState';
 import ErrorState from '../../Components/Common/ErrorState';
-import {useInventoryProducts,} from "../../hooks/useInventory";
+import { useInventoryProducts } from "../../hooks/useInventory";
+import SearchInput from '../../Components/Common/SearchInput';      
+import DropdownFilter from '../../Components/Common/DropdownFilter'; 
+import SyncButton from '../../Components/Common/SyncButton';
+import ErrorBoundary from '../../Components/Common/ErrorBoundary';
+
+
 
 const FILTER_OPTIONS = [
     { value: 'all',    label: 'All'    },
@@ -17,218 +22,137 @@ const FILTER_OPTIONS = [
     { value: 'long',   label: 'Long'   },
 ];
 
-const sanitizeInput = (val) => {
-    if (val.startsWith('-')) return ""; 
-    return val.replace(/[<>{}()]/g, "");
-};
 export default function Products() {
     useHareesGuard();
+
     const [search, setSearch]             = useState("");
     const [filter, setFilter]             = useState('all');
-    const [filterOpen, setFilterOpen]     = useState(false);
     const [expiryTarget, setExpiryTarget] = useState(null);
-    const filterRef                       = useRef(null);
 
-   const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-} = useInventoryProducts();
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    } = useInventoryProducts();
 
-const products = useMemo(() => {
-    return data?.products || data?.data || [];
-}, [data]);
+    const products = useMemo(() => {
+        return data?.products || data?.data || [];
+    }, [data]);
 
-    const handleSync = async () => {
-        try {
-            const token = document.querySelector('meta[name="csrf-token"]')?.content;
-            const res = await fetch('/harees/api/products/sync', {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': token,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'include',
-            });
-            if (!res.ok) throw new Error('Sync failed');
-            window.location.reload();
-        } catch (err) {
-            console.error('Sync error:', err);
-            alert('فشل مزامنة المنتجات');
-        }
+
+    const handleExpirySave = async () => {
+        await refetch();        
+        setExpiryTarget(null);  
     };
 
-    useEffect(() => {
-        function handleClick(e) {
-            if (filterRef.current && !filterRef.current.contains(e.target)) {
-                setFilterOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, []);
-
-
-    
-
-   // Post-Expiry mutation: Updating local product state
-   const handleExpirySave = () => {
-    refetch();
-    setExpiryTarget(null);
-};
-
     const filtered = products.filter(p => {
-    const matchesSearch = 
-        p.name?.toLowerCase().includes(search.toLowerCase()) ||
-       p.salla_product_id?.toString().toLowerCase().includes(search.toLowerCase());
-
-    const matchesFilter = filter === 'all' || p.bucket_type === filter;
-
-    return matchesSearch && matchesFilter;
-});
+        const matchesSearch =
+            p.name?.toLowerCase().includes(search.toLowerCase()) ||
+            p.salla_product_id?.toString().toLowerCase().includes(search.toLowerCase());
+        const matchesFilter = filter === 'all' || p.bucket_type === filter;
+        return matchesSearch && matchesFilter;
+    });
 
     if (isLoading) {
-    return (
-        <Layout>
-            <LoadingState />
-        </Layout>
-    );
-}
+        return (
+            <Layout>
+                <LoadingState />
+            </Layout>
+        );
+    }
 
-if (isError) {
-    return (
-        <Layout>
-            <ErrorState
-                message={error?.message || "Failed to load products"}
-                onRetry={refetch}
-            />
-        </Layout>
-    );
-}
+    if (isError) {
+        return (
+            <Layout>
+                <ErrorState
+                    message={error?.message || "Failed to load products"}
+                    onRetry={refetch}
+                />
+            </Layout>
+        );
+    }
 
-    const activeLabel = FILTER_OPTIONS.find(o => o.value === filter)?.label ?? 'All';
+     return (
+        <ErrorBoundary>
+            <Layout>
+                <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+                <div className="space-y-4">
 
-    return (
-        <Layout>
-            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-            <div className="space-y-4 ">
-
-                {/* Banner */}
-                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10 text-[var(--primary)] text-sm font-medium">
-                    <span className="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm text-[var(--primary)] flex-shrink-0">ℹ</span>
-                    <span>
-                        Click <strong>"Add Expiry Date"</strong> to start tracking expiry dates,
-                        and click <strong>"Batch"</strong> to view each batch's details.
-                    </span>
-                </div>
-
-                <Card>
-                    {/* ── Toolbar ── */}
-                    <div className="flex items-center gap-2 p-4 border-b border-[var(--border)]">
-                        <div className="flex-1" />
-
-                        <div className="flex items-center gap-2 px-3 h-9 rounded-xl bg-[var(--accent)] w-40 sm:w-48 border border-[var(--primary)]/5 focus-within:border-[var(--primary)]/20 transition-all">
-                            <Search size={14} className="text-[var(--primary)]/60 flex-shrink-0" />
-                            <input
-    value={search}
-    
-    onChange={e => setSearch(sanitizeInput(e.target.value))} 
-    placeholder="Search..."
-    className="bg-transparent text-xs text-[var(--primary)] outline-none border-none focus:ring-0 w-full placeholder:text-[var(--primary)]/40 caret-[var(--primary)] p-0"
-/>
-                        </div>
-
-                        <div className="relative" ref={filterRef}>
-                            <button
-                                onClick={() => setFilterOpen(o => !o)}
-                                className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all justify-between border w-[115px] ${
-                                    filterOpen || filter !== 'all'
-                                        ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                                        : 'bg-[var(--accent)] text-[var(--primary)] border-[var(--primary)]/5'
-                                }`}
-                            >
-                                <div className="flex items-center gap-1.5 overflow-hidden">
-                                    <SlidersHorizontal size={13} className="flex-shrink-0" />
-                                    <span className="truncate">{activeLabel}</span>
-                                </div>
-                                <ChevronDown
-                                    size={12}
-                                    className={`flex-shrink-0 transition-transform duration-200 ${filterOpen ? 'rotate-180' : ''}`}
-                                />
-                            </button>
-
-                            {filterOpen && (
-                                <div className="absolute right-0 mt-2 w-full bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden">
-                                    {FILTER_OPTIONS.map(opt => (
-                                        <button
-                                            key={opt.value}
-                                            onClick={() => { setFilter(opt.value); setFilterOpen(false); }}
-                                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors ${
-                                                filter === opt.value
-                                                    ? 'bg-[var(--accent)] text-[var(--primary)]'
-                                                    : 'text-[var(--muted-foreground)] hover:bg-[var(--accent)]/50'
-                                            }`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={handleSync}
-                            className="h-9 w-9 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity flex items-center justify-center border border-[var(--primary)]/5 flex-shrink-0"
-                        >
-                            <RefreshCw size={14} />
-                        </button>
+                    {/* Banner */}
+                    <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10 text-[var(--primary)] text-sm font-medium">
+                        <span className="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm text-[var(--primary)] flex-shrink-0">ℹ</span>
+                        <span>
+                            Click <strong>"Add Expiry Date"</strong> to start tracking expiry dates,
+                            and click <strong>"Batch"</strong> to view each batch's details.
+                        </span>
                     </div>
 
-                    {/* ── Table ── */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse min-w-[700px] ">
-                            <thead>
-                                <tr className="border-b border-[var(--border)] bg-[var(--muted)]/20">
-                                    <th className="p-4 w-[16%] text-left   text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Product</th>
-                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Category</th>
-                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Status</th>
-                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Qty</th>
-                                    <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Expiry Info</th>
-                                    <th className="p-4 w-[20%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filtered.length > 0 ? (
-                                    filtered.map(product => (
-                                        <InventoryProductRow
-                                            key={product.id}
-                                            product={product}
-                                            onExpiry={setExpiryTarget}
-                                        />
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={6} className="py-16 text-center text-sm text-[var(--muted-foreground)]">
-                                            No products found.
-                                        </td>
+                    <Card>
+                        {/* ── Toolbar ── */}
+                        <div className="flex items-center gap-2 p-4 border-b border-[var(--border)]">
+                            <div className="flex-1" />
+                            <SearchInput
+                                value={search}
+                                onChange={setSearch}
+                                placeholder="Search..."
+                                sanitize={true}
+                            />
+                            <DropdownFilter
+                                options={FILTER_OPTIONS}
+                                value={filter}
+                                onChange={setFilter}
+                            />
+                            <SyncButton
+                                endpoint="/harees/api/products/sync"
+                                onSyncSuccess={() => refetch()}
+                            />
+                        </div>
+
+                        {/* ── Table ── */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr className="border-b border-[var(--border)] bg-[var(--muted)]/20">
+                                        <th className="p-4 w-[16%] text-left   text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Product</th>
+                                        <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Category</th>
+                                        <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Status</th>
+                                        <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Qty</th>
+                                        <th className="p-4 w-[16%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Expiry Info</th>
+                                        <th className="p-4 w-[20%] text-center text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider">Action</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
+                                </thead>
+                                <tbody>
+                                    {filtered.length > 0 ? (
+                                        filtered.map(product => (
+                                            <InventoryProductRow
+                                                key={product.id}
+                                                product={product}
+                                                onExpiry={setExpiryTarget}
+                                            />
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={6} className="py-16 text-center text-sm text-[var(--muted-foreground)]">
+                                                No products found.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
 
-                {expiryTarget && (
-                    <ExpiryModal
-                        product={expiryTarget}
-                        onClose={() => setExpiryTarget(null)}
-                        onSave={handleExpirySave}
-                    />
-                )}
-            </div>
-        </Layout>
+                    {expiryTarget && (
+                        <ExpiryModal
+                            product={expiryTarget}
+                            onClose={() => setExpiryTarget(null)}
+                            onSave={handleExpirySave}
+                        />
+                    )}
+                </div>
+            </Layout>
+        </ErrorBoundary>
     );
 }
