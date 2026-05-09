@@ -1,6 +1,6 @@
 // resources/js/Pages/Mustashar/Instructions.jsx
 import { useEffect } from "react";
-import InstructionsLayout from "../../Components/UI/InstructionsLayout";
+import InstructionsLayout from "../../Layouts/InstructionsLayout";
 
 /* ── Icons ── */
 const SliderIcon = () => (

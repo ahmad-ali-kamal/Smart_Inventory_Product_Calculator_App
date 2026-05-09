@@ -76,7 +76,7 @@ export default function MustasharLogin() {
             accentColor="#8B7CFF"
             accentLight="#EEEDFB"
             shadowColor="104,96,212"
-            authHref="/auth/salla/redirect"
+            authHref="/auth/salla?app=calculator"
             imageScale="scale-[1.25]"
             showBackHome={true}
             bgColor="#F1EDFF"
