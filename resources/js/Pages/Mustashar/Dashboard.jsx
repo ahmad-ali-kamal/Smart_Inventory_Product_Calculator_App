@@ -1,28 +1,30 @@
-// Pages/Calculator/Dashboard.jsx
+// resources/js/Pages/Mustashar/Dashboard.jsx
 import { Link } from '@inertiajs/react';
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import PageShell from '../../Components/Common/PageShell';
 import StatCard from '../../Components/Common/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import { useAllProducts, useCalculatorSettings } from '../../Hooks/useProducts';
+import { useActiveProducts, useCalculatorSettings } from '../../Hooks/useProducts';
 import { useToggleWithToast } from '../../Hooks/useToggleWithToast';
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+function useCalcRules() {
+    const { data: settings } = useCalculatorSettings();
+    if (!settings) return [];
+    return [
+        { label: 'Coverage', value: `${Number(settings.coverage).toFixed(2)} m²` },
+        { label: 'Waste',    value: `${Number(settings.waste).toFixed(0)}% waste` },
+    ];
+}
+
 export default function Dashboard() {
     useMustasharGuard();
 
-    const { products = [], isLoading, isError, error } = useAllProducts();
-    const { data: settings } = useCalculatorSettings();
-    const { handleToggle, isPending, variables } = useToggleWithToast(products);
-
-    const activeProducts = products.filter((p) => p.active);
-
-    const calcRules = settings ? [
-        { label: 'Coverage', value: `${Number(settings.coverage).toFixed(2)} m²` },
-        { label: 'Waste',    value: `${Number(settings.waste).toFixed(0)}% waste` },
-    ] : [];
+    const { allProducts, activeProducts, isLoading, isError, error } = useActiveProducts();
+    const { handleToggle, isPending, variables } = useToggleWithToast(allProducts);
+    const calcRules = useCalcRules();
 
     return (
         <PageShell isLoading={isLoading} isError={isError} error={error}>
@@ -30,7 +32,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
                         label="Total Products"
-                        value={products.length}
+                        value={allProducts.length}
                         icon={<Package className="w-4 h-4" />}
                         sub="In your store"
                     />
