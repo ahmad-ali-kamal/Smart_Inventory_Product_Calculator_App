@@ -1,10 +1,10 @@
 // resources/js/Components/Harees/BatchRow.jsx
 import React, { useState } from 'react';
 import { Tag, Calendar, Percent, BadgeCheck, Loader2 } from 'lucide-react'; // أضفنا Loader2
-import DiscountModal from './DiscountModal';
-import StatusBadge from './StatusBadge';
-import ProductAvatar from '../Common/ProductAvatar';
-import { useApplyDiscount } from '../../Hooks/useApplyDiscount';
+import DiscountModal from '../DiscountModal';
+import StatusBadge from '../StatusBadge';
+import ProductAvatar from '../../Common/ProductAvatar';
+import { useApplyDiscount } from '../../../Hooks/useApplyDiscount';
 import toast from 'react-hot-toast';
 
 const toastStyle = {
