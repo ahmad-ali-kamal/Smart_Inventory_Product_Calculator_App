@@ -1,27 +1,16 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Pencil, PlusCircle } from 'lucide-react';
-import ProductAvatar from '../Common/ProductAvatar';
-import { normalizeStatus, getStatusStyle } from './StatusBadge';
+import ProductAvatar from '../../Common/ProductAvatar';
+import { normalizeStatus, getStatusStyle } from '../StatusBadge';
 
-// ── شكل البادج ──
 const PILL =
   'inline-flex items-center justify-center w-[110px] h-[26px] rounded-full text-[9px] font-black uppercase border transition-all duration-200';
 
-// ── ألوان الحالات ──
 const getStatusConfig = (normalizedStatus) => {
   const config = {
-    Expired: {
-      style: getStatusStyle('Expired'),
-      label: 'Expired',
-    },
-    Approaching: {
-      style: getStatusStyle('Approaching'),
-      label: 'Approaching',
-    },
-    Safe: {
-      style: getStatusStyle('Safe'),
-      label: 'Safe',
-    },
+    Expired:    { style: getStatusStyle('Expired'),    label: 'Expired'    },
+    Approaching:{ style: getStatusStyle('Approaching'), label: 'Approaching'},
+    Safe:       { style: getStatusStyle('Safe'),        label: 'Safe'       },
   };
   return config[normalizedStatus] || config.Safe;
 };
@@ -29,24 +18,18 @@ const getStatusConfig = (normalizedStatus) => {
 export default function InventoryProductRow({ product, onExpiry }) {
   const [showBatches, setShowBatches] = useState(false);
 
-  // الـ API يُرجع batches بحقل batch_code و quantity و expiry_date و status
   const batches = (product.batches || []).map(b => ({
-    id: b.id,
-    code: b.batch_code || b.code || '-',
-    qty: b.quantity ?? b.qty ?? 0,
+    id:         b.id,
+    code:       b.batch_code || b.code || '-',
+    qty:        b.quantity ?? b.qty ?? 0,
     expiryDate: b.expiry_date || b.expiryDate || '-',
-    status: b.status || 'green',
+    status:     b.status || 'green',
   }));
 
-  const hasBatches = batches.length > 0;
-
-  // الكمية الكلية من الداتابيس
-  const totalQty = product.quantity ?? product.dbQty ?? 0;
-
-  // الكمية المخصصة للباتشات (مجموع الباتشات)
+  const hasBatches  = batches.length > 0;
+  const totalQty    = product.quantity ?? product.dbQty ?? 0;
   const assignedQty = batches.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
 
-  // أسوأ حالة للمنتج ككل
   const worstStatus = (() => {
     if (!hasBatches) return 'Safe';
     const priorities = { red: 3, yellow: 2, green: 1 };
@@ -86,11 +69,7 @@ export default function InventoryProductRow({ product, onExpiry }) {
         <td className="p-4 text-center">
           {(() => {
             const config = getStatusConfig(worstStatus);
-            return (
-              <span className={PILL} style={config.style}>
-                {config.label}
-              </span>
-            );
+            return <span className={PILL} style={config.style}>{config.label}</span>;
           })()}
         </td>
 
@@ -108,7 +87,7 @@ export default function InventoryProductRow({ product, onExpiry }) {
         <td className="p-4 text-center">
           {hasBatches ? (
             <button
-              onClick={() => setShowBatches(!showBatches)}
+              onClick={() => setShowBatches(v => !v)}
               className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-bold border border-[var(--primary)]/20 hover:opacity-80 transition-opacity"
             >
               {showBatches ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -121,50 +100,50 @@ export default function InventoryProductRow({ product, onExpiry }) {
 
         {/* Action */}
         <td className="p-4 text-center">
-          {hasBatches ? (
-            <button
-              onClick={() => onExpiry(product)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-black uppercase tracking-wide hover:opacity-80 transition-opacity border border-[var(--primary)]/20"
-            >
-              <Pencil size={11} />
-              Edit Expiry Date
-            </button>
-          ) : (
-            <button
-              onClick={() => onExpiry(product)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-black uppercase tracking-wide hover:opacity-80 transition-opacity border border-[var(--primary)]/20"
-            >
-              <PlusCircle size={11} />
-              Add Expiry Date
-            </button>
-          )}
+          <button
+            onClick={() => onExpiry(product)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-black uppercase tracking-wide hover:opacity-80 transition-opacity border border-[var(--primary)]/20"
+          >
+            {hasBatches ? <><Pencil size={11} /> Edit Expiry Date</> : <><PlusCircle size={11} /> Add Expiry Date</>}
+          </button>
         </td>
       </tr>
 
-      {/* Batches — تظهر عند الضغط على زر Expiry Info */}
-      {showBatches &&
-        batches.map((batch) => {
-          const status = normalizeStatus(batch.status);
-          const config = getStatusConfig(status);
-          return (
-            <tr key={batch.id} className="bg-[var(--accent)]/5 border-b border-[var(--border)]">
-              <td className="pl-10 py-3.5 text-[12px] text-[var(--muted-foreground)]">
-                <span className="font-bold text-[var(--foreground)]">Batch:</span> {batch.code}
-              </td>
-              <td className="text-center text-[11px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
-                {product.category}
-              </td>
-              <td className="text-center">
-                <span className={PILL} style={config.style}>
-                  {config.label}
-                </span>
-              </td>
-              <td className="text-center text-[12px]">{batch.qty}</td>
-              <td className="text-center text-[12px] text-[var(--muted-foreground)]">{batch.expiryDate}</td>
-              <td />
-            </tr>
-          );
-        })}
+      {/* ── Animated batch rows ── */}
+      <tr>
+        <td colSpan={6} className="p-0 border-none">
+          <div className={`grid transition-all duration-500 ease-in-out ${
+            showBatches ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          }`}>
+            <div className="overflow-hidden">
+              {batches.map((batch) => {
+                const status = normalizeStatus(batch.status);
+                const config = getStatusConfig(status);
+                return (
+                  <div
+                    key={batch.id}
+                    className="grid bg-[var(--accent)]/5 border-b border-[var(--border)]"
+                    style={{ gridTemplateColumns: '16% 16% 16% 16% 16% 20%' }}
+                  >
+                    <div className="pl-10 py-3.5 text-[12px] text-[var(--muted-foreground)]">
+                      <span className="font-bold text-[var(--foreground)]">Batch:</span> {batch.code}
+                    </div>
+                    <div className="flex items-center justify-center text-[11px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
+                      {product.category}
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <span className={PILL} style={config.style}>{config.label}</span>
+                    </div>
+                    <div className="flex items-center justify-center text-[12px]">{batch.qty}</div>
+                    <div className="flex items-center justify-center text-[12px] text-[var(--muted-foreground)]">{batch.expiryDate}</div>
+                    <div />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </td>
+      </tr>
     </>
   );
 }
