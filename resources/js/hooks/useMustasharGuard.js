@@ -6,9 +6,12 @@ export default function useMustasharGuard() {
     const isAuthenticated = props.auth?.user;
 
     // Server-side instructions flag — save immediately prior to rendering
-    if (props.markInstructionsSeen) {
-        localStorage.setItem("mustashar_seen_instructions", "true");
-    }
+    useEffect(() => {
+        if (props.markInstructionsSeen) {
+            localStorage.setItem("mustashar_seen_instructions", "true");
+        }
+    }, [props.markInstructionsSeen]);
+
 
     useEffect(() => {
         if (!isAuthenticated) {

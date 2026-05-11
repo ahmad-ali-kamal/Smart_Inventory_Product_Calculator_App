@@ -6,9 +6,11 @@ export default function useHareesGuard() {
     const isAuthenticated = props.auth?.user;
 
     // Server-side instructions flag — save immediately prior to rendering
+    useEffect(() => {
     if (props.markInstructionsSeen) {
         localStorage.setItem("harees_seen_instructions", "true");
     }
+}, [props.markInstructionsSeen]);
 
     useEffect(() => {
         if (!isAuthenticated) {

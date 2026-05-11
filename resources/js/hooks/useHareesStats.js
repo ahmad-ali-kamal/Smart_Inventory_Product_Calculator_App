@@ -12,7 +12,7 @@ export function useHareesStats() {
     }, [dashboard.data]);
 
     const products = useMemo(
-        () => (dashboard.data?.products || []).reverse(),
+        () => [...(dashboard.data?.products || [])].reverse(),
         [dashboard.data],
     );
 

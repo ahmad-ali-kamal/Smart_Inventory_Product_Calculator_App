@@ -13,11 +13,11 @@ use App\Http\Controllers\Calculator\CalculatorSettingsController;
 |--------------------------------------------------------------------------
 | المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
-Route::get('/calculator/settings/{salla_product_id}',
-    [CalculatorSettingsController::class, 'getSettingsForStore']
-);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/calculator/settings/{salla_product_id}',
+    [CalculatorSettingsController::class, 'getSettingsForStore']
+);
 
     // --- 1. معلومات المستخدم الحالي ---
     Route::get('/user', function (Request $request) {

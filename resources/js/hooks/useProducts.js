@@ -149,15 +149,8 @@ export function useCalculatorSettings() {
 
 export function useSettingsStatus() {
     const { data, isLoading } = useCalculatorSettings();
-
-    if (isLoading) return { isLoading: true, isConfigured: false };
-
-    // ✅ Trust the explicit flag from the API, not a numeric heuristic
-    // Before: Number(data.coverage) > 0  ← fooled by default 8
-    // After:  data.configured            ← only true when merchant saved settings
-    const isConfigured = !!data?.configured;
-
-    return { isLoading: false, isConfigured };
+    const isConfigured = !isLoading && !!data?.configured;
+    return { isLoading, isConfigured };
 }
 
 export function useUpdateCalculatorSettings() {
@@ -179,9 +172,7 @@ export function useUpdateCalculatorSettings() {
             queryClient.setQueryData(["calculator-settings"], {
                 coverage: data.coverage,
                 waste: data.waste,
-            });
-            queryClient.invalidateQueries({
-                queryKey: ["calculator-settings"],
+                configured: data.configured,
             });
         },
     });
