@@ -1,6 +1,7 @@
 // resources/js/Components/Harees/ProductRow.jsx
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
+import RowActionButton from '../../Common/RowActionButton';
 import BatchRow from './BatchRow';
 import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/ProductAvatar';
@@ -36,26 +37,25 @@ export default function ProductRow({ product, autoDiscount }) {
                     <StatusBadge status={product.status} size="md" />
                 </td>
 
-                {/* Expiry — فارغ على مستوى المنتج */}
+                {/* Expiry — empty at product level */}
                 <td className="py-3.5 px-4 text-center w-[30%]" />
 
                 {/* Actions */}
                 <td className="py-3.5 px-4 w-[25%]">
                     <div className="flex justify-center">
-                        <button
+                        <RowActionButton
                             onClick={() => setShowBatches(!showBatches)}
-                            className={`w-[120px] h-[32px] flex items-center justify-center gap-2 rounded-lg text-[10px] font-bold transition-all duration-300 ${
-                                showBatches
-                                    ? 'bg-[var(--primary)] text-white shadow-sm'
-                                    : 'bg-[var(--card)] text-[var(--primary)] border border-[var(--border)]'
-                            }`}
+                            variant={showBatches ? 'active' : 'default'}
+                            icon={
+                                <Eye
+                                    size={12}
+                                    className={`transition-transform duration-300 ${showBatches ? 'rotate-180' : ''}`}
+                                />
+                            }
+                            className="w-[120px] h-[32px]"
                         >
                             {showBatches ? 'Hide' : 'View'} Batches
-                            <Eye
-                                size={12}
-                                className={`transition-transform duration-300 ${showBatches ? 'rotate-180' : ''}`}
-                            />
-                        </button>
+                        </RowActionButton>
                     </div>
                 </td>
             </tr>

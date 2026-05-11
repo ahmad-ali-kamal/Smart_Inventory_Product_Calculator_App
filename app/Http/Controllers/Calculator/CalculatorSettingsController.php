@@ -144,17 +144,23 @@ public function show()
 {
     $merchant = Auth::user();
 
-    $settings = CalculatorSetting::firstOrCreate(
-        ['merchant_id' => $merchant->id],
-        [
-            'coverage_per_unit' => 8,
-            'waste_percentage' => 10,
-        ]
-    );
+    // ✅ firstWhere instead of firstOrCreate — never auto-creates a record
+    // Returns null if the merchant hasn't configured settings yet
+    $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+
+    // ✅ Return a flag the frontend can trust — not defaults that look real
+    if (!$settings) {
+        return response()->json([
+            'configured' => false,
+            'coverage'   => null,
+            'waste'      => null,
+        ]);
+    }
 
     return response()->json([
-        'coverage' => (float) $settings->coverage_per_unit,
-        'waste' => (float) $settings->waste_percentage,
+        'configured' => true,
+        'coverage'   => (float) $settings->coverage_per_unit,
+        'waste'      => (float) $settings->waste_percentage,
     ]);
 }
 }

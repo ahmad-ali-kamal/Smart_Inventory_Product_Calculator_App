@@ -4,6 +4,7 @@ import { AlertCircle, ShieldCheck, Clock } from 'lucide-react';
 import useHareesGuard from '../../Hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
 import StatCard from '../../Components/Common/StatCard';
+import SetupBanner from '../../Components/Common/SetupBanner';
 import MonitoredProductsTable from '../../Components/Harees/Dashboard/MonitoredProductsTable';
 import { useHareesStats } from '../../Hooks/useHareesStats';
 
@@ -12,11 +13,18 @@ export default function Dashboard() {
 
     const [statusFilter, setStatusFilter] = useState('all');
 
-    const { products, stats, autoDiscount, isLoading, isError, error, refetch } = useHareesStats();
+    const { products, stats, autoDiscount, needsSetup, isLoading, isError, error, refetch } = useHareesStats();
 
     return (
         <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
             <div className="space-y-10" dir="ltr">
+
+                {needsSetup && (
+                    <SetupBanner
+                        href="/harees/settings"
+                        description="Set up your expiry thresholds first so products and batches can be tracked."
+                    />
+                )}
 
                 {/* Stat cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -43,12 +51,12 @@ export default function Dashboard() {
                     />
                 </div>
 
-                {/* Products table */}
                 <MonitoredProductsTable
                     products={products}
                     autoDiscount={autoDiscount}
                     statusFilter={statusFilter}
                     onFilterChange={setStatusFilter}
+                    needsSetup={needsSetup}
                 />
 
             </div>

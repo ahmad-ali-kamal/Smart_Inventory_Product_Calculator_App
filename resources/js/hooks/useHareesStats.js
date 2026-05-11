@@ -6,6 +6,11 @@ export function useHareesStats() {
     const dashboard = useInventoryDashboard();
     const settings = useInventorySettings();
 
+    // Whether the merchant hasn't configured settings yet
+    const needsSetup = useMemo(() => {
+        return Boolean(dashboard.data?.needs_setup);
+    }, [dashboard.data]);
+
     const products = useMemo(
         () => (dashboard.data?.products || []).reverse(),
         [dashboard.data],
@@ -29,6 +34,7 @@ export function useHareesStats() {
         products,
         stats,
         autoDiscount,
+        needsSetup,
         isLoading: dashboard.isLoading || settings.isLoading,
         isError: dashboard.isError || settings.isError,
         error: dashboard.error || settings.error,

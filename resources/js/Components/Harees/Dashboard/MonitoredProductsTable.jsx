@@ -1,4 +1,4 @@
-// resources/js/Components/Harees/MonitoredProductsTable.jsx
+// resources/js/Components/Harees/Dashboard/MonitoredProductsTable.jsx
 import React from 'react';
 import { ListFilter } from 'lucide-react';
 import DropdownFilter from '../../Common/DropdownFilter';
@@ -11,11 +11,6 @@ const STATUS_FILTERS = [
     { value: 'safe',        label: 'Safe'        },
 ];
 
-/**
- * Filters products by worst-batch status so we can always
- * render the standard ProductRow (expand → see batches).
- * No need for a separate flat "BatchRowStandalone".
- */
 function filterProducts(products, statusFilter) {
     if (statusFilter === 'all') return products;
 
@@ -30,7 +25,9 @@ function filterProducts(products, statusFilter) {
     );
 }
 
-export default function MonitoredProductsTable({ products, autoDiscount, statusFilter, onFilterChange }) {
+// needsSetup is kept as a prop so the table can show an empty state message
+// when setup is missing — the banner itself is rendered by the parent page.
+export default function MonitoredProductsTable({ products, autoDiscount, statusFilter, onFilterChange, needsSetup }) {
     const filteredProducts = filterProducts(products, statusFilter);
 
     return (
@@ -62,19 +59,26 @@ export default function MonitoredProductsTable({ products, autoDiscount, statusF
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
-                        {filteredProducts.map(product => (
-                            <ProductRow
-                                key={product.id}
-                                product={product}
-                                autoDiscount={autoDiscount}
-                            />
-                        ))}
-                        {filteredProducts.length === 0 && (
+                        {needsSetup ? (
+                            <tr>
+                                <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
+                                    Configure your settings to start monitoring products.
+                                </td>
+                            </tr>
+                        ) : filteredProducts.length === 0 ? (
                             <tr>
                                 <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
                                     No monitored items found.
                                 </td>
                             </tr>
+                        ) : (
+                            filteredProducts.map(product => (
+                                <ProductRow
+                                    key={product.id}
+                                    product={product}
+                                    autoDiscount={autoDiscount}
+                                />
+                            ))
                         )}
                     </tbody>
                 </table>

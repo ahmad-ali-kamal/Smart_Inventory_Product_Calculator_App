@@ -1,5 +1,7 @@
+// resources/js/Components/Harees/Products/InventoryProductRow.jsx
 import React, { useState } from 'react';
 import { Eye, EyeOff, Pencil, PlusCircle } from 'lucide-react';
+import RowActionButton from '../../Common/RowActionButton';
 import ProductAvatar from '../../Common/ProductAvatar';
 import { normalizeStatus, getStatusStyle } from '../StatusBadge';
 
@@ -8,9 +10,9 @@ const PILL =
 
 const getStatusConfig = (normalizedStatus) => {
   const config = {
-    Expired:    { style: getStatusStyle('Expired'),    label: 'Expired'    },
-    Approaching:{ style: getStatusStyle('Approaching'), label: 'Approaching'},
-    Safe:       { style: getStatusStyle('Safe'),        label: 'Safe'       },
+    Expired:     { style: getStatusStyle('Expired'),     label: 'Expired'     },
+    Approaching: { style: getStatusStyle('Approaching'), label: 'Approaching' },
+    Safe:        { style: getStatusStyle('Safe'),        label: 'Safe'        },
   };
   return config[normalizedStatus] || config.Safe;
 };
@@ -83,29 +85,28 @@ export default function InventoryProductRow({ product, onExpiry }) {
           </span>
         </td>
 
-        {/* Expiry Info */}
+        {/* Expiry Info — toggle batch rows */}
         <td className="p-4 text-center">
           {hasBatches ? (
-            <button
+            <RowActionButton
               onClick={() => setShowBatches(v => !v)}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-bold border border-[var(--primary)]/20 hover:opacity-80 transition-opacity"
+              icon={showBatches ? <EyeOff size={12} /> : <Eye size={12} />}
             >
-              {showBatches ? <EyeOff size={12} /> : <Eye size={12} />}
               {batches.length} {batches.length === 1 ? 'Batch' : 'Batches'}
-            </button>
+            </RowActionButton>
           ) : (
             <span className="text-[11px] text-[var(--muted-foreground)]">-</span>
           )}
         </td>
 
-        {/* Action */}
+        {/* Action — add / edit expiry */}
         <td className="p-4 text-center">
-          <button
+          <RowActionButton
             onClick={() => onExpiry(product)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)] text-[var(--primary)] text-[10px] font-black uppercase tracking-wide hover:opacity-80 transition-opacity border border-[var(--primary)]/20"
+            icon={hasBatches ? <Pencil size={11} /> : <PlusCircle size={11} />}
           >
-            {hasBatches ? <><Pencil size={11} /> Edit Expiry Date</> : <><PlusCircle size={11} /> Add Expiry Date</>}
-          </button>
+            {hasBatches ? 'Edit Expiry Date' : 'Add Expiry Date'}
+          </RowActionButton>
         </td>
       </tr>
 
