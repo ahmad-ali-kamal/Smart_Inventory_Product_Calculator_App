@@ -1,22 +1,13 @@
 // hooks/useSettingsForm.js
-//
-// Single Responsibility: manage the Settings form's local state, derived
-// preview data, and the save flow. The page component becomes a pure
-// render tree — no logic inside it.
-//
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import {
     useCalculatorSettings,
     useUpdateCalculatorSettings,
 } from "./useProducts";
 import {
-    COVERAGE_MIN,
-    COVERAGE_MAX,
-    WASTE_MIN,
-    WASTE_MAX,
-    PREVIEW_AREA,
-    computePreview,
+    COVERAGE_MIN, COVERAGE_MAX,
+    WASTE_MIN, WASTE_MAX,
     validateFields,
 } from "../constants/calculatorSettings";
 
@@ -46,33 +37,6 @@ export function useSettingsForm() {
     // ── Mutation ────────────────────────────────────────────────────────────
     const updateSettings = useUpdateCalculatorSettings();
     const isSaving = updateSettings.isPending;
-
-    // ── Derived: live preview (memoised — only recomputes when inputs change)
-    const preview = useMemo(() => {
-        const coverageNum = parseFloat(coverage);
-        const wasteNum = parseFloat(waste);
-
-        const coverageValid =
-            !isNaN(coverageNum) &&
-            coverageNum >= COVERAGE_MIN &&
-            coverageNum <= COVERAGE_MAX;
-        const wasteValid =
-            !isNaN(wasteNum) && wasteNum >= WASTE_MIN && wasteNum <= WASTE_MAX;
-
-        if (!coverageValid || !wasteValid) return null;
-
-        const raw = computePreview({
-            length: 5,
-            width: 5,
-            wastePct: wasteNum,
-            coveragePerUnit: coverageNum,
-        });
-        const base = Math.ceil(PREVIEW_AREA / coverageNum);
-        const withWaste = raw.units;
-        const extraUnits = Math.max(0, withWaste - base);
-
-        return { base, withWaste, extraUnits };
-    }, [coverage, waste]);
 
     // ── Handlers ────────────────────────────────────────────────────────────
     function handleCoverageChange(e) {
@@ -104,7 +68,6 @@ export function useSettingsForm() {
             });
             toast.success("Settings saved successfully.");
         } catch (err) {
-            // Walk the error hierarchy from most specific → generic fallback
             const serverMsg =
                 err?.response?.data?.message ||
                 err?.response?.data?.errors?.coverage_per_unit?.[0] ||
@@ -125,8 +88,6 @@ export function useSettingsForm() {
         waste,
         errors,
         isSaving,
-        // Derived
-        preview,
         // Handlers
         handleCoverageChange,
         handleWasteChange,

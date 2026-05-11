@@ -50,7 +50,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] overflow-hidden">
-                    <ProductTable empty="No active products available">
+                    {/* showPreview=true — يظهر عمود وزر Preview بس هنا */}
+                    <ProductTable empty="No active products available" showPreview>
                         {activeProducts.length > 0 && (
                             <AnimatePresence mode="popLayout">
                                 {activeProducts.map((product) => (
@@ -65,6 +66,7 @@ export default function Dashboard() {
                                             product={product}
                                             onToggle={handleToggle}
                                             loading={isPending && variables === product.id}
+                                            showPreview
                                         />
                                     </motion.div>
                                 ))}

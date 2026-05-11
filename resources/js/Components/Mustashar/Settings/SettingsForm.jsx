@@ -1,9 +1,5 @@
 // Components/Settings/SettingsForm.jsx
-//
-// Single Responsibility: render the input card (two fields + save button).
-// Receives all data and handlers from the parent — no logic of its own.
-//
-import { Loader2 } from 'lucide-react';
+import { Loader2, SlidersHorizontal } from 'lucide-react';
 import SettingsField from './SettingsField';
 import {
     COVERAGE_MIN, COVERAGE_MAX,
@@ -21,6 +17,19 @@ export default function SettingsForm({
 }) {
     return (
         <div className="bg-[var(--card)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm space-y-6 text-[var(--foreground)]">
+
+            {/* Header inside the card */}
+            <div className="flex items-center gap-4 pb-2 border-b border-[var(--border)]">
+                <div className="p-3 bg-[var(--primary)]/10 rounded-2xl text-[var(--primary)]">
+                    <SlidersHorizontal size={24} />
+                </div>
+                <div>
+                    <h1 className="text-xl font-black text-[var(--foreground)]">Calculator Settings</h1>
+                    <p className="text-sm text-[var(--muted-foreground)] uppercase tracking-widest font-medium">
+                        Configure calculation parameters for products
+                    </p>
+                </div>
+            </div>
 
             <SettingsField
                 label="Unit Coverage (m²)"

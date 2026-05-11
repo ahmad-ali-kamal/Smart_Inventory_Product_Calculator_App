@@ -1,14 +1,36 @@
-// resources/js/Components/Calculator/ProductRow.jsx
+// resources/js/Components/Mustashar/ProductRow.jsx
+import { usePage } from '@inertiajs/react';
+import { ExternalLink } from 'lucide-react';
 import Toggle from "../Common/Toggle";
 import ProductAvatar from "../Common/ProductAvatar";
 
-export default function ProductRow({ product, onToggle, fading = false }) {
+const COLS_WITH_PREVIEW    = 'grid-cols-[280px_1fr_1fr_1fr_1fr]';
+const COLS_WITHOUT_PREVIEW = 'grid-cols-[280px_1fr_1fr_1fr]';
+
+export default function ProductRow({ product, onToggle, fading = false, showPreview = false }) {
+    const { auth } = usePage().props;
+
+    const sallaMerchantId = auth?.user?.salla_merchant_id;
+    const sallaProductId  = product.salla_product_id;
+
+    const productSlug = product.name
+        ? product.name.toString().toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\u0621-\u064A\w\-]+/g, '')
+            .replace(/--+/g, '-')
+        : 'product';
+
+    const previewUrl = (sallaMerchantId && sallaProductId)
+        ? `https://salla.sa/intend/${sallaMerchantId}/${productSlug}/p${sallaProductId}`
+        : null;
+
     return (
         <div
             className={`
-                grid grid-cols-[1.5fr_1fr_1fr_120px] gap-4 px-8 py-4 items-center
+                grid gap-4 px-8 py-4 items-center
+                ${showPreview ? COLS_WITH_PREVIEW : COLS_WITHOUT_PREVIEW}
                 transition-all duration-300
-                ${fading ? "opacity-0 -translate-y-1 pointer-events-none" : "opacity-100 translate-y-0"}
+                ${fading ? 'opacity-0 -translate-y-1 pointer-events-none' : 'opacity-100 translate-y-0'}
             `}
         >
             {/* Product info */}
@@ -41,26 +63,55 @@ export default function ProductRow({ product, onToggle, fading = false }) {
                 <span
                     className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
                         product.active
-                            ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                            : "bg-gray-300"
+                            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                            : 'bg-gray-300'
                     }`}
                 />
                 <span
                     className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-500 ${
-                        product.active ? "text-emerald-600" : "text-[var(--muted-foreground)]"
+                        product.active ? 'text-emerald-600' : 'text-[var(--muted-foreground)]'
                     }`}
                 >
-                    {product.active ? "active" : "inactive"}
+                    {product.active ? 'active' : 'inactive'}
                 </span>
             </div>
 
             {/* Toggle */}
-            <div className="flex justify-end">
+            <div className="flex justify-center">
                 <Toggle
                     checked={product.active}
                     onChange={() => onToggle(product.id)}
                 />
             </div>
+
+            {/* Preview — only rendered when showPreview=true */}
+            {showPreview && (
+                <div className="flex justify-center">
+                    {previewUrl ? (
+                        <a
+                            href={previewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+                                bg-[var(--primary)] text-[var(--primary-foreground)] text-[10px] font-black
+                                uppercase tracking-wide hover:opacity-80 transition-opacity shadow-sm"
+                        >
+                            <ExternalLink size={11} />
+                            Preview
+                        </a>
+                    ) : (
+                        <span
+                            title="بيانات الرابط غير مكتملة"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl
+                                bg-[var(--accent)] text-[10px] font-black uppercase tracking-wide
+                                border border-[var(--border)] opacity-30 cursor-not-allowed"
+                        >
+                            <ExternalLink size={11} />
+                            Preview
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

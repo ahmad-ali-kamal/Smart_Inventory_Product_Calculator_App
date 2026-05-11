@@ -5,7 +5,6 @@ export const COVERAGE_MIN = 0.01;
 export const COVERAGE_MAX = 200;
 export const WASTE_MIN = 0;
 export const WASTE_MAX = 50;
-export const PREVIEW_AREA = 25; // m² used for the live preview simulation
 
 // ---------------------------------------------------------------------------
 // roundSafe — avoids floating-point drift (e.g. 0.1 + 0.2 !== 0.3)
@@ -13,32 +12,6 @@ export const PREVIEW_AREA = 25; // m² used for the live preview simulation
 export function roundSafe(n, decimals) {
     const d = Math.max(0, decimals | 0);
     return Number(Math.round(+(n + Number.EPSILON) + "e" + d) + "e-" + d);
-}
-
-// ---------------------------------------------------------------------------
-// computePreview — mirrors the actual calculation engine used in the snippet
-// ---------------------------------------------------------------------------
-export function computePreview({
-    length,
-    width,
-    wastePct,
-    coveragePerUnit,
-    unitPrice = 0,
-}) {
-    if (!Number.isFinite(coveragePerUnit) || coveragePerUnit <= 0) {
-        return { area: 0, units: 0, finalPrice: 0 };
-    }
-
-    const area = roundSafe(Math.max(0, length) * Math.max(0, width), 4);
-    const wasteFactor = roundSafe(1 + Math.max(0, wastePct) / 100, 6);
-    const areaWithWaste = roundSafe(area * wasteFactor, 4);
-    const rawUnits = roundSafe(areaWithWaste / coveragePerUnit, 6);
-    const units = Math.ceil(rawUnits);
-    const unitPriceSafe =
-        Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : 0;
-    const finalPrice = roundSafe(units * unitPriceSafe, 2);
-
-    return { area, units, finalPrice };
 }
 
 // ---------------------------------------------------------------------------
