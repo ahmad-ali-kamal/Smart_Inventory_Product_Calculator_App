@@ -650,7 +650,7 @@ try {
             'long_term_days' => 'required|integer|min:1',
             'auto_hide_expired' => 'nullable|boolean',
             'auto_discounts' => 'nullable|boolean',
-            'enable_notifications' => 'nullable|boolean',
+           
             'auto_discount_percent'       => 'nullable|integer|min:1|max:99', 
             'auto_discount_duration_days' => 'nullable|integer|min:1', 
             'category_mapping' => 'nullable|array',
@@ -663,7 +663,7 @@ try {
                 'medium_term_days' => $validated['medium_term_days'],
                 'long_term_days' => $validated['long_term_days'],
                 'auto_hide_expired' => $request->boolean('auto_hide_expired'),
-                'enable_notifications' => $request->boolean('enable_notifications'),
+        
                 'auto_discounts' => $request->boolean('auto_discounts'),
                 'auto_discount_percent'       => $validated['auto_discount_percent'] ?? null,       
                 'auto_discount_duration_days' => $validated['auto_discount_duration_days'] ?? null, 
