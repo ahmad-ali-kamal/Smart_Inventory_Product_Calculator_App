@@ -1,222 +1,87 @@
-import { Head } from '@inertiajs/react';
-import { useLang } from '@/Hooks/useLang';
-import GuestLayout from '@/Layouts/GuestLayout';
-import GuestNavbar from '@/Components/GuestNavbar';
-import { useState, useEffect } from 'react';
-import LoginCard from '@/Components/LoginCard';
-import InfoPanel from '@/Components/InfoPanel';
-
+/**
+ * Pages/Mustashar/Login.jsx
+ *
+ * This file intentionally stays thin — all visual logic lives in LoginLayout.
+ * The only job here is to pass Mustashar-specific props (colours, image, translations).
+ *
+ * What benefits automatically from the LoginLayout upgrade:
+ *  ✓ SplitText animation on "المستشار / Mustashar" headline
+ *  ✓ Reveal animation on the right panel
+ *  ✓ useFonts hook (consistent font resolution across the app)
+ *  ✓ No @import duplication — fonts loaded once via globalStyles.js
+ */
+import LoginLayout from '@/Layouts/LoginLayout';
+import heroImage from '@/assets/mustasharLogin.webp';
 const T = {
     ar: {
-        pageTitle: 'المستشار — تسجيل الدخول',
-        backHome:  'العودة للرئيسية',
-        appName:   'المستشار',
-        appSub:    'مستشارك التجاري الذكي',
-        appDesc:   'منصة متكاملة تُحلّل بيانات متجرك وتُقدّم توصيات ذكية لتنمية مبيعاتك وتحسين قراراتك التجارية.',
+        pageTitle:  'المستشار — تسجيل الدخول',
+        backHome:   'العودة للرئيسية',
+        appName:    'المستشار',
+        appSub:     'دليلك الذكي لحساب الكميات بدقة',
+        appDesc:    'ودّع أخطاء القياس وهدر المخزون. المستشار يساعد عملائك على حساب احتياجهم الدقيق من (الأمتار، المساحات، أو القطع) بذكاء وسهولة، مباشرة من صفحة المنتج.',
         features: [
-            'تحليلات مبيعات لحظية وتنبؤات دقيقة',
-            'توصيات تسعير مدعومة بالذكاء الاصطناعي',
-            'تقارير أداء أسبوعية وشهرية',
-            'تنبيهات فرص النمو الفوري',
+            'حساب دقيق لاحتياج العميل بناءً على القياسات',
+            'تخصيص نسبة الهدر المناسبة لك',
+            'واجهة ذكية تندمج بتصميم متجرك',
+            'تحسين تجربة الشراء وتقليل استفسارات الدعم',
         ],
         steps: [
-            { title: 'افتح متجرك في سلة',    sub: 'أنشئ حساب تاجر مجاني في منصة سلة' },
-            { title: 'ثبّت تطبيق المستشار',  sub: 'ابحث عن "المستشار" في سوق تطبيقات سلة' },
-            { title: 'سجّل دخولك هنا',       sub: 'استخدم بريد حساب سلة للدخول' },
+            { title: 'امتلك متجراً في سلة',     sub: 'تأكد من تفعيل متجرك على منصة سلة' },
+            { title: 'ثبّت تطبيق المستشار',     sub: 'ستجده في متجر تطبيقات سلة بكل سهولة' },
+            { title: 'ابدأ الإعداد بضغطة زر',   sub: 'سجّل دخولك واربط منتجاتك في ثوانٍ' },
         ],
-        loginNow: 'سجّل دخولك الآن',
-        loginSub: 'ادخل مباشرةً عبر حساب سلة',
-        sallaBtn: 'دخول عبر سلة ←',
-        note:     'المستشار متاح حصرياً لتجار سلة — ثبّت التطبيق من متجر سلة للحصول على حسابك',
+        loginNow:  'تسجيل الدخول',
+        loginSub:  'وصول سريع وآمن عبر حسابك في سلة',
+        sallaBtn:  'الدخول عبر سلة ←',
+        note:      'تطبيق المستشار مصمم خصيصاً لخدمة تجار سلة. تأكد من تثبيت التطبيق أولاً لتتمكن من الدخول.',
+        support:   'مركز المساعدة والدعم الفني',
+        already:   'لديك حساب بالفعل؟',
+        loginLink: 'تسجيل الدخول',
     },
     en: {
-        pageTitle: 'Mustashar — Login',
-        backHome:  'Back to Home',
-        appName:   'Mustashar',
-        appSub:    'Your Smart Business Advisor',
-        appDesc:   'An all-in-one platform that analyses your store data and delivers AI-powered recommendations to grow your sales.',
+        pageTitle:  'Mustashar — Login',
+        backHome:   'Back Home',
+        appName:    'Mustashar',
+        appSub:     'The Smart Quantity Guide for Your Store',
+        appDesc:    'Say goodbye to measurement errors and stock waste. Mustashar helps your customers calculate exactly what they need (Meters, Areas, or Units) directly from the product page.',
         features: [
-            'Real-time sales analytics and forecasts',
-            'AI-powered pricing recommendations',
-            'Weekly and monthly performance reports',
-            'Instant growth opportunity alerts',
+            'Precise quantity calculation based on customer input',
+            'Customizable waste percentage per product',
+            'Seamless UI snippet that matches your store identity',
+            'Enhanced shopping experience & fewer support inquiries',
         ],
         steps: [
-            { title: 'Open your Salla store',  sub: 'Create a free merchant account on Salla' },
-            { title: 'Install Mustashar app',  sub: 'Search for "Mustashar" in the Salla App Market' },
-            { title: 'Sign in here',           sub: 'Use your Salla account email to log in' },
+            { title: 'Have a Salla Store',  sub: 'Ensure your merchant account is active on Salla' },
+            { title: 'Install Mustashar',   sub: 'Find us easily in the Salla App Store' },
+            { title: 'Start Setting Up',    sub: 'Log in and sync your products in seconds' },
         ],
-        loginNow: 'Sign in now',
-        loginSub: 'Access directly via your Salla account',
-        sallaBtn: 'Continue with Salla →',
-        note:     'Mustashar is exclusively available to Salla merchants — install from the Salla App Market to get your account',
+        loginNow:  'Sign In',
+        loginSub:  'Fast and secure access via your Salla account',
+        sallaBtn:  'Continue with Salla →',
+        note:      'Mustashar is exclusively built for Salla merchants. Please install the app first to gain access.',
+        support:   'Help Center & Support',
+        already:   'Already have an account?',
+        loginLink: 'Log in',
     },
 };
 
-/*
- * نفس HERO_BG حقت حريص — هوية موحدة بين التطبيقين
- */
-const HERO_BG = [
-    'radial-gradient(ellipse at 50%  0%,  #110330 0%, transparent 38%)',
-    'radial-gradient(ellipse at 15% 38%,  #0047ab 0%, transparent 48%)',
-    'radial-gradient(ellipse at 72% 52%,  #6d28d9 0%, transparent 52%)',
-    'radial-gradient(ellipse at 82% 90%,  #0369a1 0%, transparent 48%)',
-    'radial-gradient(ellipse at 10% 82%,  #1e3a5f 0%, transparent 42%)',
-    '#0c0220',
-].join(', ');
-
-const ACCENT = '#7C3AED';
-const CARD_W  = 'clamp(420px, 46%, 560px)';
-
-export default function MustasharLogin({ status }) {
-    const { lang, isAr, dir, ff } = useLang();
-    const t = T[lang];
-    const bodyFont = lang === 'ar' ? "'Cairo', sans-serif" : "'Inter', sans-serif";
-    const [visible, setVisible] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setVisible(true), 80);
-        return () => clearTimeout(timer);
-    }, []);
-
-    const cardSlide = isAr ? '-40px' : '40px';
-    const infoSlide = isAr ? '40px'  : '-40px';
-
+export default function MustasharLogin() {
     return (
-        <>
-            <Head title={t.pageTitle} />
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Changa:wght@700;800&family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
-                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-                html, body { height: 100%; overflow: hidden; }
-
-                .card-anim {
-                    opacity: 0;
-                    transform: translateX(${cardSlide});
-                    transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
-                }
-                .card-anim.show { opacity: 1; transform: translateX(0); }
-
-                .info-anim {
-                    opacity: 0;
-                    transform: translateX(${infoSlide});
-                    transition: opacity .7s cubic-bezier(.16,1,.3,1) .12s, transform .7s cubic-bezier(.16,1,.3,1) .12s;
-                }
-                .info-anim.show { opacity: 1; transform: translateX(0); }
-
-                .salla-btn {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; padding: .9rem 1.5rem;
-    background: rgba(147, 51, 234, 0.7); 
-    border: 1.5px solid rgba(216, 180, 254, 0.5); 
-    color: #fff;
-    border-radius: 12px;
-    font-family: inherit; font-size: 1rem; font-weight: 700;
-    cursor: pointer; text-decoration: none;
-    transition: all .25s;
-    backdrop-filter: blur(8px); 
-    box-shadow: 0 4px 15px rgba(147, 51, 234, 0.3); 
-}
-
-.salla-btn:hover {
-    background: rgba(168, 85, 247, 1); 
-    border-color: rgba(255, 255, 255, 0.8);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
-}
-
-                .step-row {
-                    display: flex; align-items: center; gap: 12px;
-                    padding: 10px 12px; border-radius: 14px;
-                    transition: background .35s ease;
-                }
-                .step-row.active-step { background: rgba(255,255,255,.08); }
-
-                .card-panel {
-                    position: fixed;
-                    top: 0;
-                    bottom: 0;
-                    ${isAr ? 'left: 0;' : 'right: 0;'}
-                    width: ${CARD_W};
-                    background: transparent;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 72px 2rem 2rem;
-                    overflow-y: auto;
-                    z-index: 5;
-                }
-
-                @media (max-width: 768px) {
-                    .card-panel {
-                        left: 0 !important; right: 0 !important;
-                        width: 100% !important;
-                        padding: 72px 1.25rem 2rem !important;
-                    }
-                    .dark-info { display: none !important; }
-                }
-            `}</style>
-
-            <div style={{
-                width: '100vw', height: '100vh',
-                background: HERO_BG,
-                position: 'relative',
-                overflow: 'hidden',
-                direction: dir,
-            }}>
-                {/* Orb — أزرق electric يعزز المنطقة العلوية-الوسطى */}
-                <div style={{
-                    position: 'absolute', top: '-80px',
-                    [isAr ? 'right' : 'left']: '8%',
-                    width: '580px', height: '380px', borderRadius: '50%',
-                    background: 'radial-gradient(ellipse, rgba(0,100,210,.22) 0%, transparent 65%)',
-                    pointerEvents: 'none',
-                }} />
-                {/* Orb — موف في المنتصف */}
-                <div style={{
-                    position: 'absolute', top: '28%',
-                    [isAr ? 'left' : 'right']: '18%',
-                    width: '480px', height: '480px', borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(109,40,217,.25) 0%, transparent 65%)',
-                    pointerEvents: 'none',
-                }} />
-                {/* Orb — تركوازي أسفل */}
-                <div style={{
-                    position: 'absolute', bottom: '-80px',
-                    [isAr ? 'left' : 'right']: '-60px',
-                    width: '480px', height: '480px', borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(3,105,161,.3) 0%, transparent 65%)',
-                    pointerEvents: 'none',
-                }} />
-
-                {/* Navbar */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, background: 'transparent' }}>
-                    <GuestNavbar variant="login" backLabel={t.backHome} transparent />
-                </div>
-
-                {/* Info panel */}
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingTop: '80px',
-                    paddingInlineEnd: CARD_W,
-                    zIndex: 1,
-                }}>
-                    <InfoPanel t={t} isAr={isAr} ff={ff} bodyFont={bodyFont} visible={visible} />
-                </div>
-
-                {/* Glass card panel */}
-                <div className="card-panel">
-                    <LoginCard
-                        t={t} isAr={isAr} ff={ff} bodyFont={bodyFont}
-                        visible={visible} status={status} accent={ACCENT}
-                    />
-                </div>
-            </div>
-        </>
+        <LoginLayout
+            translations={T}
+               imageSrc={heroImage} 
+            imageAlt="Mustashar"
+            gradientFrom="#8B7CFF"
+            gradientTo="#B6A9FF"
+            accentColor="#8B7CFF"
+            accentLight="#EEEDFB"
+            shadowColor="104,96,212"
+            authHref="/auth/salla?app=calculator"
+            imageScale="scale-[1.25]"
+            showBackHome={true}
+            bgColor="#F1EDFF"
+        />
     );
 }
 
-MustasharLogin.layout = page => <GuestLayout>{page}</GuestLayout>;
+MustasharLogin.layout = page => page;

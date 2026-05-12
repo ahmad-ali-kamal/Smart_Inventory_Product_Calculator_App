@@ -1,7 +1,7 @@
 import apiClient from "./apiClient";
 
 export const getUser = async () => {
-  const res = await apiClient.get("/user");
+  const res = await apiClient.get("/api/user")
   return res.data;
 };
 

@@ -26,7 +26,6 @@ class BatchSetting extends Model
         'medium_term_days'            => 'integer',
         'long_term_days'              => 'integer',
         'auto_hide_expired'           => 'boolean',
-   
         'auto_discounts'              => 'boolean',
         'auto_discount_percent'       => 'integer',
         'auto_discount_duration_days' => 'integer',
@@ -76,7 +75,6 @@ class BatchSetting extends Model
             'medium_term_days'            => 14,
             'long_term_days'              => 30,
             'auto_hide_expired'           => false,
-      
             'auto_discounts'              => false,
             'auto_discount_percent'       => 20,
             'auto_discount_duration_days' => 7,

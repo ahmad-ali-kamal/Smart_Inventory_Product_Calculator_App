@@ -1,5 +1,5 @@
 // resources/js/Components/Common/LoadingState.jsx
-import { TableSkeleton } from './TableSkeleton';
+import { TableSkeleton } from './Skeleton/TableSkeleton';
 
 export default function LoadingState() {
     return (

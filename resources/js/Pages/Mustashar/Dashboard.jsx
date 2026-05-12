@@ -1,44 +1,50 @@
-// resources/js/Pages/Calculator/Dashboard.jsx
+// resources/js/Pages/Mustashar/Dashboard.jsx
 import { Link } from '@inertiajs/react';
-import Layout from '../../Components/Layout';
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
-import StatCard from '../../Components/UI/StatCard';
+import PageShell from '../../Components/Common/PageShell';
+import SetupBanner from '../../Components/Common/SetupBanner';
+import StatCard from '../../Components/Common/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import LoadingState from '../../Components/Common/LoadingState';
-import ErrorState from '../../Components/Common/ErrorState';
-import { useAllProducts, useCalculatorSettings } from '../../Hooks/useProducts';
-import { useToggleWithToast } from '../../Hooks/useToggleWithToast';  // ← الهوك الموحد
+import { useActiveProducts, useCalculatorSettings, useSettingsStatus } from '../../Hooks/useProducts';
+import { useToggleWithToast } from '../../Hooks/useToggleWithToast';
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+function useCalcRules() {
+    const { data: settings } = useCalculatorSettings();
+    if (!settings) return [];
+    return [
+        { label: 'Coverage', value: `${Number(settings.coverage).toFixed(2)} m²` },
+        { label: 'Waste',    value: `${Number(settings.waste).toFixed(0)}% waste` },
+    ];
+}
 
 export default function Dashboard() {
     useMustasharGuard();
 
-    const { products = [], isLoading, isError, error } = useAllProducts();
-    const { data: settings } = useCalculatorSettings();
+    const { allProducts, activeProducts, isLoading, isError, error } = useActiveProducts();
+    const { handleToggle, isPending, variables } = useToggleWithToast(allProducts);
+    const calcRules = useCalcRules();
 
-    // ← هوك موحد — نفس السلوك تماماً مثل Products
-    const { handleToggle, isPending, variables } = useToggleWithToast(products);
-
-    // ── Loading / Error guards (مطابقة لـ Products) ──────────────────────
-    if (isLoading) return <Layout><LoadingState message="Loading dashboard…" /></Layout>;
-    if (isError)   return <Layout><ErrorState message={error?.message ?? 'Failed to load products.'} /></Layout>;
-
-    const activeProducts = products.filter((p) => p.active);
-
-    const calcRules = settings ? [
-        { label: 'Coverage', value: `${Number(settings.coverage).toFixed(2)} m²` },
-        { label: 'Waste',    value: `${Number(settings.waste).toFixed(0)}% waste` },
-    ] : [];
+    const { isLoading: settingsLoading, isConfigured } = useSettingsStatus();
+    const needsSetup = !settingsLoading && !isConfigured;
 
     return (
-        <Layout>
-            <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <PageShell isLoading={isLoading} isError={isError} error={error}>
+            <div className="space-y-6">
+
+                {needsSetup && (
+                    <SetupBanner
+                        href="/mustashar/settings"
+                        description="Configure coverage per unit and waste percentage so the calculator can generate accurate results."
+                    />
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
                         label="Total Products"
-                        value={products.length}
+                        value={allProducts.length}
                         icon={<Package className="w-4 h-4" />}
                         sub="In your store"
                     />
@@ -56,29 +62,30 @@ export default function Dashboard() {
                 </div>
 
                 <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] overflow-hidden">
-                  <ProductTable empty="No active products available">
-    {activeProducts.length > 0 && (
-        <AnimatePresence mode="popLayout">
-            {activeProducts.map((product) => (
-                <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, x: -20 }}
-                >
-                    <ProductRow
-                        product={product}
-                        onToggle={handleToggle}
-                        loading={isPending && variables === product.id}
-                    />
-                </motion.div>
-            ))}
-        </AnimatePresence>
-    )}
-</ProductTable>
+                    <ProductTable empty="No active products available" showPreview>
+                        {activeProducts.length > 0 && (
+                            <AnimatePresence mode="popLayout">
+                                {activeProducts.map((product) => (
+                                    <motion.div
+                                        key={product.id}
+                                        layout
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                    >
+                                        <ProductRow
+                                            product={product}
+                                            onToggle={handleToggle}
+                                            loading={isPending && variables === product.id}
+                                            showPreview
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        )}
+                    </ProductTable>
                 </div>
             </div>
-        </Layout>
+        </PageShell>
     );
 }
