@@ -197,52 +197,8 @@ class SallaApiService
      * عند إرسال sale_price فقط: لا نرسل price أو stock_quantity
      * عند إرسال بيانات كاملة: نرسل everything
      */
-    public function updateBatchVariant(string $variantId, array $data): array
+public function updateBatchVariant(string $variantId, array $data): array
     {
-        // ─── تحديث الخصم فقط (sale_price) ───
-        if (count($data) === 1 && array_key_exists('sale_price', $data)) {
-            try {
-                $variant = $this->getVariantDetails($variantId);
-                $variantData = $variant['data'] ?? [];
-                
-                if (empty($variantData)) {
-                    throw new Exception("Variant {$variantId} غير موجود");
-                }
-                
-                $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
-                $currentSku = $variantData['sku'] ?? null;
-                
-                $salePrice = $data['sale_price'];
-                
-                // ─── إرسال price و sale_price فقط (لا stock_quantity) ───
-                $payload = [
-                    'price' => $currentPrice,
-                ];
-                
-                if ($currentSku) {
-                    $payload['sku'] = $currentSku;
-                }
-                
-                if ($salePrice === 0 || $salePrice === null) {
-                    $payload['sale_price'] = 0;
-                } else {
-                    if ($salePrice < $currentPrice) {
-                        $payload['sale_price'] = $salePrice;
-                    } else {
-                        $payload['sale_price'] = 0;
-                    }
-                }
-                
-                Log::info("[Salla FIX] تحديث خصم variant {$variantId}", $payload);
-                return $this->request('put', "products/variants/{$variantId}", $payload);
-                
-            } catch (\Exception $e) {
-                Log::error("[SallaApiService] خطأ تحديث variant {$variantId}: " . $e->getMessage());
-                throw $e;
-            }
-        }
-        
-        // ─── تحديث كامل ───
         $variant = $this->getVariantDetails($variantId);
         $variantData = $variant['data'] ?? [];
 
@@ -250,17 +206,27 @@ class SallaApiService
             throw new Exception("Variant {$variantId} غير موجود");
         }
 
+        $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+        $currentSku = $variantData['sku'] ?? null;
+
         $payload = [
-            'sku' => $data['sku'] ?? ($variantData['sku'] ?? null),
-            'price' => $data['price'] ?? ($variantData['price']['amount'] ?? 0),
-            'stock_quantity' => $data['stock_quantity'] ?? ($variantData['stock_quantity'] ?? 0),
+            'price' => $data['price'] ?? $currentPrice,
         ];
 
+        if ($currentSku) {
+            $payload['sku'] = $currentSku;
+        }
+
+        if (array_key_exists('stock_quantity', $data)) {
+            $payload['stock_quantity'] = (int) $data['stock_quantity'];
+        }
+
         if (array_key_exists('sale_price', $data)) {
-            if ($data['sale_price'] === null || $data['sale_price'] === 0) {
+            $salePrice = $data['sale_price'];
+            if ($salePrice === null || $salePrice === 0) {
                 $payload['sale_price'] = 0;
-            } elseif ($data['sale_price'] < $payload['price']) {
-                $payload['sale_price'] = $data['sale_price'];
+            } elseif ($salePrice < ($data['price'] ?? $currentPrice)) {
+                $payload['sale_price'] = $salePrice;
             } else {
                 $payload['sale_price'] = 0;
             }

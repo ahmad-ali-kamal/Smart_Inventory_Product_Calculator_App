@@ -147,8 +147,8 @@ class DiscountController extends Controller
                 Log::warning('[Discount] لا يوجد SKU للـ variant - لا يمكن التحديث');
                 return response()->json(['success' => false, 'message' => 'لا يوجد SKU للـ variant'], 400);
             }
-            // ✅ جلب الكمية من جدول Product (حقل quantity)
-            $currentStock   = (int) ($product->quantity ?? 0);
+            // ✅ جلب الكمية من BatchItem وليس من سلة
+            $batchItemQty = (int) ($batchItem?->quantity ?? 0);
 
             // ✅ جلب باقي البيانات من variant
             $barcode     = $variantData['barcode'] ?? null;
@@ -162,21 +162,15 @@ class DiscountController extends Controller
                 'sku'            => $currentSku,
                 'price'          => $currentPrice,
                 'sale_price'     => $salePrice,
-                'stock_quantity' => $currentStock,
-                'cost_price'     => $costPrice,
+                'stock_quantity' => $batchItemQty,
             ]);
 
-            // ✅ تحديث كامل للـ Variant согласно توثيق سلة (جميع الحقول المطلوبة)
+            // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
             $variantRes = $sallaApi->updateBatchVariant($batch->salla_variant_id, [
                 'sku'            => $currentSku,
-                'barcode'        => $barcode,
                 'price'          => $currentPrice,
+                'stock_quantity' => $batchItemQty,
                 'sale_price'     => $salePrice,
-                'cost_price'     => $costPrice,
-                'stock_quantity' => $currentStock,
-                'weight'         => $weight,
-                'mpn'            => $mpn,
-                'gtin'           => $gtin,
             ]);
 
             if (!$variantRes) {
@@ -283,30 +277,18 @@ class DiscountController extends Controller
             // ✅ استخدام SKU: من variant أو من جدول Product
             $currentSku    = $variantData['sku'] ?? $product->sku ?? null;
             $currentPrice  = (float) ($variantData['price']['amount'] ?? $originalPrice);
-            $currentStock  = (int) ($product->quantity ?? 0);
+            $batchItemQty  = (int) ($item->quantity ?? 0);
 
             if (!$currentSku) {
                 continue; // تخطي إذا لا يوجد SKU
             }
 
-            // ✅ جلب باقي البيانات من variant
-            $barcode     = $variantData['barcode'] ?? null;
-            $costPrice  = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
-            $weight     = (int) ($variantData['weight'] ?? 0);
-            $mpn        = $variantData['mpn'] ?? null;
-            $gtin       = $variantData['gtin'] ?? null;
-
-            // ✅ تحديث كامل للـ Variant согласно توثيق سلة (جميع الحقول المطلوبة)
+            // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
             $res = $sallaApi->updateBatchVariant($batch->salla_variant_id, [
                 'sku'            => $currentSku,
-                'barcode'        => $barcode,
                 'price'          => $currentPrice,
+                'stock_quantity' => $batchItemQty,
                 'sale_price'     => $salePrice,
-                'cost_price'     => $costPrice,
-                'stock_quantity' => $currentStock,
-                'weight'         => $weight,
-                'mpn'            => $mpn,
-                'gtin'           => $gtin,
             ]);
 
             if ($res) {
@@ -363,30 +345,18 @@ class DiscountController extends Controller
                 // ✅ استخدام SKU: من variant أو من جدول Product
                 $currentSku     = $variantData['sku'] ?? $discount->product->sku ?? null;
                 $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
-                $currentStock   = (int) ($variantData['stock_quantity'] ?? 0);
+                $batchItemQty   = (int) ($batch->batchItems->first()?->quantity ?? 0);
 
                 if (!$currentSku) {
                     Log::warning('[Discount] لا يوجد SKU لإلغاء الخصم');
                 } else {
 
-                // ✅ جلب باقي البيانات من variant
-                $barcode     = $variantData['barcode'] ?? null;
-                $costPrice  = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
-                $weight     = (int) ($variantData['weight'] ?? 0);
-                $mpn        = $variantData['mpn'] ?? null;
-                $gtin       = $variantData['gtin'] ?? null;
-
-                // ✅ تصفير sale_price مع إرسال جميع البيانات للحفاظ على المخزون
+                // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
                 $sallaApi->updateBatchVariant($batch->salla_variant_id, [
                     'sku'            => $currentSku,
-                    'barcode'        => $barcode,
                     'price'          => $currentPrice,
-                    'sale_price'     => null, // إزالة الخصم
-                    'cost_price'     => $costPrice,
-                    'stock_quantity' => $currentStock,
-                    'weight'         => $weight,
-                    'mpn'            => $mpn,
-                    'gtin'           => $gtin,
+                    'stock_quantity' => $batchItemQty,
+                    'sale_price'     => 0, // إزالة الخصم
                 ]);
             }
 

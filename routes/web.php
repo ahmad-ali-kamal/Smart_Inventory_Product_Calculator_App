@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\SallaOAuthController;
 use App\Http\Controllers\Calculator\ProductCalculatorController;
 use App\Http\Controllers\Calculator\CalculatorSettingsController;
 use App\Http\Controllers\Api\InventoryApiController;
+use App\Http\Controllers\Api\SallaWebhookController;
 use App\Http\Controllers\Inventory\NotificationController;
 use App\Http\Controllers\Inventory\DiscountController;
 
@@ -22,6 +23,10 @@ Route::get('/harees/login', fn() => inertia('Harees/Login'))->name('harees.login
 Route::get('/auth/salla', [SallaOAuthController::class, 'redirect'])->name('auth.salla');
 Route::get('/auth/salla/callback', [SallaOAuthController::class, 'callback'])->name('auth.salla.callback');
 Route::post('/logout', [SallaOAuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// ─── Webhooks ───
+Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle'])->name('webhooks.salla');
+Route::post('/api/webhooks/salla', [SallaWebhookController::class, 'handle'])->name('api.webhooks.salla');
 
 // --- تطبيق "مستشار" (Calculator App) ---
 Route::prefix('mustashar')->middleware('auth')->group(function () {

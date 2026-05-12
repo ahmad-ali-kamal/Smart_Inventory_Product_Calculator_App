@@ -357,15 +357,17 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
                 $variantId = $matchedVariant['id'];
                 $variantData = $matchedVariant;
                 $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+                $currentSku = $variantData['sku'] ?? null;
+                $batchItemQuantity = $variantItem->quantity ?? 0;
 
-                if ($currentPrice <= 0) {
-                    continue;
-                }
-
-                $lastPrice = $currentPrice;
-
+                // ─── إزالة الخصم ───
                 if ($discountPercent <= 0) {
-                    $sallaApi->updateBatchVariant($variantId, ['sale_price' => 0]);
+                    $sallaApi->updateBatchVariant($variantId, [
+                        'sku'            => $currentSku,
+                        'price'          => $currentPrice,
+                        'stock_quantity' => $batchItemQuantity,
+                        'sale_price'     => 0,
+                    ]);
                     continue;
                 }
 
@@ -376,10 +378,15 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
                 }
 
                 // ─── تطبيق الخصم ───
-                $sallaApi->updateBatchVariant($variantId, ['sale_price' => $salePrice]);
+                $sallaApi->updateBatchVariant($variantId, [
+                    'sku'            => $currentSku,
+                    'price'          => $currentPrice,
+                    'stock_quantity' => $batchItemQuantity,
+                    'sale_price'     => $salePrice,
+                ]);
                 
                 $usedVariantIds[] = $variantId;
-                Log::info("[Discount] ✅ خصم على Variant {$variantId}: {$currentPrice} → {$salePrice} SAR");
+                Log::info("[Discount] ✅ خصم على Variant {$variantId}: {$currentPrice} → {$salePrice} SAR (stock: {$batchItemQuantity})");
 
             } catch (\Exception $e) {
                 Log::error("[Discount] خطأ في تطبيق الخصم: " . $e->getMessage());
@@ -439,28 +446,7 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
 
         } catch (\Exception $e) {
             Log::error("[Discount] خطأ في تطبيق الخصم على المنتج {$product->id}: " . $e->getMessage());
-        }
-    }
-
-private function removeVariantDiscount(SallaApiService $sallaApi, string $variantId, float $currentPrice, int $currentStock): void
-    {
-        $sallaApi->updateBatchVariant($variantId, [
-            'price'          => $currentPrice,
-            'sale_price'     => 0,
-            'stock_quantity' => $currentStock,
-        ]);
-    }
-
-    /**
-     * تحديث variant بخصم
-     */
-    private function updateVariantWithDiscount(SallaApiService $sallaApi, string $variantId, float $currentPrice, int $currentStock, float $salePrice): void
-    {
-        $sallaApi->updateBatchVariant($variantId, [
-            'price'          => $currentPrice,
-            'sale_price'     => $salePrice,
-            'stock_quantity' => $currentStock,
-        ]);
+}
     }
 
     /**

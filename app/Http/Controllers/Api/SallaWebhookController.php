@@ -31,31 +31,50 @@ use Illuminate\Support\Facades\Log;
 
 class SallaWebhookController extends Controller
 {
-    /**
+/**
      * نقطة الدخول الموحَّدة لكل أحداث سلة
      */
     public function handle(Request $request)
     {
+        // ─── استخراج الحدث من سلة ───
         // سلة ترسل الحدث في الهيدر أو في الـ body
-        $event      = $request->header('Salla-Event')
-                   ?? $request->header('x-salla-event')
-                   ?? $request->input('event');
+        $event = $request->header('Salla-Event')
+                ?? $request->header('x-salla-event')
+                ?? $request->header('X-Salla-Event')
+                ?? $request->input('event')
+                ?? $request->input('type')
+                ?? 'unknown';
 
-        $merchantId = $request->input('merchant');
-        $payload    = $request->input('data', []);
+        // ─── استخراج البيانات من الـ body ───
+        $body = $request->all();
+        
+        // ─── استخراج merchant_id من عدة مصادر ───
+        $merchantId = $body['merchant_id']
+                    ?? $body['merchant']
+                    ?? $request->input('merchant_id')
+                    ?? $request->input('merchant');
 
-        Log::info('[Webhook] حدث جديد من سلة', [
-            'event'      => $event,
-            'merchant'   => $merchantId,
+        // ─── استخراج data (سلة ترسل في data أو مباشرة في body) ───
+        $data = $body['data'] ?? $body;
+
+        Log::info('[Webhook] حدث من سلة', [
+            'event'        => $event,
+            'merchant_id'  => $merchantId,
+            'body_keys'    => array_keys($body),
         ]);
 
+        // ─── إذا لم يتم العثور على merchant_id ───
         if (!$merchantId) {
-            return response()->json(['message' => 'Merchant ID missing'], 400);
+            Log::warning('[Webhook] لم يتم العثور على merchant_id - يتم التجاوز');
+            // نرجع 200 حتى لا تعيد سلة الإرسال
+            return response()->json(['success' => true, 'note' => 'merchant not found']);
         }
 
-        // التحقق من التوكن
-        $token = str_replace('Bearer ', '', $request->header('Authorization') ?? '');
-        if (!$this->isTokenValid($token)) {
+        // ─── التحقق من التوكن ───
+        $token = $request->bearerToken() ?? '';
+        
+        // ─── إذا لم يتم التحقق من التوكن، نتجاوز التحقق في بيئة التطوير ───
+        if (!app()->environment('local') && !$this->isTokenValid($token)) {
             Log::error('[Webhook] توكن غير صالح للتاجر: ' . $merchantId);
             return response()->json(['message' => 'Unauthorized Token'], 401);
         }
@@ -63,28 +82,34 @@ class SallaWebhookController extends Controller
         $merchant = Merchant::where('salla_merchant_id', $merchantId)->first();
         if (!$merchant) {
             Log::error('[Webhook] تاجر غير موجود: ' . $merchantId);
-            // نرجع 200 حتى لا تُعيد سلة الإرسال
             return response()->json(['success' => true, 'note' => 'merchant not found']);
         }
 
         try {
+            Log::info('[Webhook] معالجة الحدث: ' . $event);
+
             match ($event) {
                 // ─── أحداث المنتجات ───────────────────────────────────
                 'product.created',
-                'product.updated'          => $this->upsertProduct($merchant, $payload),
+                'product.updated'          => $this->upsertProduct($merchant, $data),
 
-                'product.deleted'          => $this->deleteProduct($merchant, $payload['id'] ?? null),
+                'product.deleted'          => $this->deleteProduct($merchant, $data['id'] ?? null),
 
-                // product.status.updated و product.available موجودان لكن deprecated
-                // نستخدم upsertProduct للتعامل معهما مع درع الحماية
                 'product.status.updated',
-                'product.available'        => $this->upsertProduct($merchant, $payload),
+                'product.available'        => $this->upsertProduct($merchant, $data),
+
+                // ─── أحداث الـ Variants ────────────────────────────────
+                'variant.created',
+                'variant.updated'          => $this->upsertVariant($merchant, $data),
+                'variant.deleted'          => $this->deleteVariant($merchant, $data),
 
                 // ─── تحديث الكمية من التاجر ───────────────────────────
-                'product.quantity.updated' => $this->handleQuantityUpdated($merchant, $payload),
+                'product.quantity.updated',
+                'quantity.updated',
+                'stock.updated'            => $this->handleQuantityUpdated($merchant, $data),
 
                 // ─── أحداث الطلبات ────────────────────────────────────
-                'order.created'            => $this->handleOrderCreated($merchant, $payload),
+                'order.created'            => $this->handleOrderCreated($merchant, $data),
 
                 // ─── أحداث أخرى غير مدعومة ────────────────────────────
                 default => Log::info('[Webhook] حدث غير مُعالَج: ' . $event),
@@ -94,10 +119,9 @@ class SallaWebhookController extends Controller
                 'event'    => $event,
                 'merchant' => $merchantId,
             ]);
-            // نرجع 200 دائماً لسلة لكن نسجل الخطأ
         }
 
-        return response()->json(['success' => true]);
+return response()->json(['success' => true]);
     }
 
     // =========================================================
@@ -339,5 +363,194 @@ class SallaWebhookController extends Controller
             env('SALLA_MANAGEMENT_WEBHOOK_SECRET'),
             env('SALLA_CALCULATOR_WEBHOOK_SECRET'),
         ]));
+    }
+
+    // =========================================================
+    // variants.updated → تحديث بيانات الـ Variant (سعر، مخزون، خصم)
+    // =========================================================
+
+    /**
+     * إنشاء أو تحديث Variant
+     */
+    private function upsertVariant(Merchant $merchant, array $data): void
+    {
+        $variantId = $data['id'] ?? null;
+        $productId = $data['product_id'] ?? null;
+
+        if (!$variantId || !$productId) return;
+
+        // ─── جلب أو إنشاء المنتج ───
+        $product = Product::where('merchant_id', $merchant->id)
+            ->where('salla_product_id', $productId)
+            ->first();
+
+        if (!$product) return;
+
+        // ─── تحديث variants_data في المنتج ───
+        $variantsData = $product->variants_data ?? [];
+
+        // البحث عن الـ variant الموجود
+        $found = false;
+        foreach ($variantsData as $key => $variant) {
+            if ($variant['id'] == $variantId) {
+                // تحديث بيانات الـ variant
+                $variantsData[$key] = array_merge($variant, [
+                    'id'              => $variantId,
+                    'sku'             => $data['sku'] ?? $variant['sku'] ?? null,
+                    'name'            => $data['name'] ?? $variant['name'] ?? 'Variant ' . $variantId,
+                    'price'           => $data['price']['amount'] ?? $variant['price'] ?? 0,
+                    'stock_quantity'  => $data['stock_quantity'] ?? $variant['stock_quantity'] ?? 0,
+                    'unlimited_quantity' => $data['unlimited_quantity'] ?? false,
+                    'has_special_price' => $data['has_special_price'] ?? false,
+                    'sale_price'      => $data['sale_price']['amount'] ?? $variant['sale_price'] ?? 0,
+                    'updated_at'      => now()->toISOString(),
+                ]);
+                $found = true;
+                break;
+            }
+        }
+
+        // إضافة variant جديد إذا لم يكن موجوداً
+        if (!$found) {
+            $variantsData[] = [
+                'id'                   => $variantId,
+                'sku'                  => $data['sku'] ?? null,
+                'name'                 => $data['name'] ?? 'Variant ' . $variantId,
+                'price'                => $data['price']['amount'] ?? 0,
+                'stock_quantity'       => $data['stock_quantity'] ?? 0,
+                'unlimited_quantity'   => $data['unlimited_quantity'] ?? false,
+                'has_special_price'    => $data['has_special_price'] ?? false,
+                'sale_price'           => $data['sale_price']['amount'] ?? 0,
+                'related_option_values' => $data['related_option_values'] ?? [],
+            ];
+        }
+
+        $product->variants_data = $variantsData;
+        $product->save();
+
+        // ─── تحديث batch_items المرتبطة ───
+        BatchItem::where('product_id', $product->id)
+            ->where('salla_variant_id', $variantId)
+            ->update(['variant_quantity' => $data['stock_quantity'] ?? 0]);
+
+        Log::info('[Webhook] ✅ تم تحديث Variant', [
+            'product_id' => $productId,
+            'variant_id' => $variantId,
+            'price'      => $data['price']['amount'] ?? 0,
+            'stock'      => $data['stock_quantity'] ?? 0,
+        ]);
+    }
+
+    /**
+     * حذف Variant
+     */
+    private function deleteVariant(Merchant $merchant, array $data): void
+    {
+        $variantId = $data['id'] ?? null;
+        $productId = $data['product_id'] ?? null;
+
+        if (!$variantId || !$productId) return;
+
+        // ─── حذف من variants_data ───
+        $product = Product::where('merchant_id', $merchant->id)
+            ->where('salla_product_id', $productId)
+            ->first();
+
+        if ($product) {
+            $variantsData = $product->variants_data ?? [];
+            $variantsData = array_values(array_filter($variantsData, function ($v) use ($variantId) {
+                return $v['id'] != $variantId;
+            }));
+            $product->variants_data = $variantsData;
+            $product->save();
+        }
+
+        // ─── مسح salla_variant_id من batch_items ───
+        BatchItem::where('product_id', $product->id ?? 0)
+            ->where('salla_variant_id', $variantId)
+            ->update(['salla_variant_id' => null, 'variant_quantity' => null]);
+
+        Log::info('[Webhook] تم حذف Variant: ' . $variantId);
+    }
+
+    /**
+     * مزامنة المخزون من سلة (يدوي أو مجدول)
+     */
+    public function syncInventory(Merchant $merchant, string $sallaProductId = null): void
+    {
+        $sallaApi = SallaApiService::for($merchant);
+
+        // ─── مزامنة منتج واحد أو الكل ───
+        $query = Product::where('merchant_id', $merchant->id);
+        if ($sallaProductId) {
+            $query->where('salla_product_id', $sallaProductId);
+        }
+
+        $products = $query->where('salla_product_id', '>', 0)->get();
+
+        foreach ($products as $product) {
+            try {
+                // جلب الـ variants من سلة
+                $variantsResp = $sallaApi->getProductVariants($product->salla_product_id);
+                $variants = $variantsResp['data'] ?? [];
+
+                if (empty($variants)) {
+                    continue;
+                }
+
+                // ─── حساب إجمالي المخزون ───
+                $totalStock = 0;
+                $variantsData = [];
+
+                foreach ($variants as $v) {
+                    $stockQty = (int) ($v['stock_quantity'] ?? 0);
+
+                    // جلب المخزون من branches_quantities
+                    $branchesQty = $v['branches_quantities'] ?? [];
+                    if (!empty($branchesQty)) {
+                        foreach ($branchesQty as $branch) {
+                            $stockQty = max($stockQty, (int) ($branch['quantity'] ?? 0));
+                        }
+                    }
+
+                    $totalStock += $stockQty;
+
+                    $variantsData[] = [
+                        'id'                  => $v['id'],
+                        'sku'                 => $v['sku'] ?? null,
+                        'name'                => $v['name'] ?? 'Variant ' . $v['id'],
+                        'price'               => $v['price']['amount'] ?? 0,
+                        'stock_quantity'      => $stockQty,
+                        'unlimited_quantity'  => $v['unlimited_quantity'] ?? false,
+                        'has_special_price'   => $v['has_special_price'] ?? false,
+                        'sale_price'          => $v['sale_price']['amount'] ?? 0,
+                        'related_option_values' => $v['related_option_values'] ?? [],
+                    ];
+                }
+
+                // ─── تحديث المنتج ───
+                $product->variants_data = $variantsData;
+                $product->quantity = $totalStock;
+                $product->save();
+
+                // ─── تحديث batch_items ───
+                foreach ($variantsData as $variant) {
+                    BatchItem::where('product_id', $product->id)
+                        ->where('salla_variant_id', $variant['id'])
+                        ->update(['variant_quantity' => $variant['stock_quantity']]);
+                }
+
+                Log::info('[Webhook] تم مزامنة المخزون للمنتج: ' . $product->name, [
+                    'salla_product_id' => $product->salla_product_id,
+                    'total_stock'     => $totalStock,
+                    'variants_count'  => count($variantsData),
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('[Webhook] خطأ في مزامنة المخزون: ' . $e->getMessage(), [
+                    'product_id' => $product->id,
+                ]);
+            }
+        }
     }
 }
