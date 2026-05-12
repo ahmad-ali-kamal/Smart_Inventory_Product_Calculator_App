@@ -2,10 +2,11 @@
 import { Link } from '@inertiajs/react';
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import PageShell from '../../Components/Common/PageShell';
+import SetupBanner from '../../Components/Common/SetupBanner';
 import StatCard from '../../Components/Common/StatCard';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
-import { useActiveProducts, useCalculatorSettings } from '../../Hooks/useProducts';
+import { useActiveProducts, useCalculatorSettings, useSettingsStatus } from '../../Hooks/useProducts';
 import { useToggleWithToast } from '../../Hooks/useToggleWithToast';
 import { Package, CheckCircle2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,9 +27,20 @@ export default function Dashboard() {
     const { handleToggle, isPending, variables } = useToggleWithToast(allProducts);
     const calcRules = useCalcRules();
 
+    const { isLoading: settingsLoading, isConfigured } = useSettingsStatus();
+    const needsSetup = !settingsLoading && !isConfigured;
+
     return (
         <PageShell isLoading={isLoading} isError={isError} error={error}>
             <div className="space-y-6">
+
+                {needsSetup && (
+                    <SetupBanner
+                        href="/mustashar/settings"
+                        description="Configure coverage per unit and waste percentage so the calculator can generate accurate results."
+                    />
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
                         label="Total Products"
@@ -50,7 +62,6 @@ export default function Dashboard() {
                 </div>
 
                 <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] overflow-hidden">
-                    {/* showPreview=true — يظهر عمود وزر Preview بس هنا */}
                     <ProductTable empty="No active products available" showPreview>
                         {activeProducts.length > 0 && (
                             <AnimatePresence mode="popLayout">

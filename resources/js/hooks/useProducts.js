@@ -1,3 +1,4 @@
+// resources/js/Hooks/useProducts.js
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
@@ -88,18 +89,12 @@ export function useToggleProduct() {
     return useMutation({
         mutationFn: toggleProductApi,
 
-        // Called BEFORE the network request fires
         onMutate: async (productId) => {
-            // 1. Cancel any in-flight refetches so they don't stomp our optimistic update
             await queryClient.cancelQueries({ queryKey: QUERY_KEYS.products });
-
-            // 2. Snapshot current cache so we can roll back on error
             const previous = queryClient.getQueryData(QUERY_KEYS.products);
 
-            // 3. Optimistically flip the product's active flag in the cache
             queryClient.setQueryData(QUERY_KEYS.products, (old) => {
                 if (!old) return old;
-
                 return old.map((p) =>
                     p.id === productId ? { ...p, active: !p.active } : p,
                 );
@@ -139,19 +134,25 @@ export function useUpdateCalcRules() {
         },
     });
 }
+
 export function useCalculatorSettings() {
     return useQuery({
         queryKey: ["calculator-settings"],
-
         queryFn: async () => {
             const { data } = await axios.get(
-                "/mustashar/api/calculator-settings"
+                "/mustashar/api/calculator-settings",
             );
-
             return data;
         },
     });
 }
+
+export function useSettingsStatus() {
+    const { data, isLoading } = useCalculatorSettings();
+    const isConfigured = !isLoading && !!data?.configured;
+    return { isLoading, isConfigured };
+}
+
 export function useUpdateCalculatorSettings() {
     const queryClient = useQueryClient();
 
@@ -164,7 +165,6 @@ export function useUpdateCalculatorSettings() {
                     waste_percentage: waste,
                 },
             );
-
             return data;
         },
 
@@ -172,10 +172,7 @@ export function useUpdateCalculatorSettings() {
             queryClient.setQueryData(["calculator-settings"], {
                 coverage: data.coverage,
                 waste: data.waste,
-            });
-
-            queryClient.invalidateQueries({
-                queryKey: ["calculator-settings"],
+                configured: data.configured,
             });
         },
     });

@@ -1,6 +1,7 @@
 // resources/js/Components/Mustashar/ProductRow.jsx
 import { usePage } from '@inertiajs/react';
 import { ExternalLink } from 'lucide-react';
+import RowActionButton from '../Common/RowActionButton';
 import Toggle from "../Common/Toggle";
 import ProductAvatar from "../Common/ProductAvatar";
 
@@ -88,27 +89,23 @@ export default function ProductRow({ product, onToggle, fading = false, showPrev
             {showPreview && (
                 <div className="flex justify-center">
                     {previewUrl ? (
-                        <a
+                        <RowActionButton
                             href={previewUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl
-                                bg-[var(--primary)] text-[var(--primary-foreground)] text-[10px] font-black
-                                uppercase tracking-wide hover:opacity-80 transition-opacity shadow-sm"
+                            variant="active"
+                            icon={<ExternalLink size={11} />}
                         >
-                            <ExternalLink size={11} />
                             Preview
-                        </a>
+                        </RowActionButton>
                     ) : (
-                        <span
+                        <RowActionButton
+                            variant="disabled"
+                            icon={<ExternalLink size={11} />}
                             title="بيانات الرابط غير مكتملة"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl
-                                bg-[var(--accent)] text-[10px] font-black uppercase tracking-wide
-                                border border-[var(--border)] opacity-30 cursor-not-allowed"
                         >
-                            <ExternalLink size={11} />
                             Preview
-                        </span>
+                        </RowActionButton>
                     )}
                 </div>
             )}

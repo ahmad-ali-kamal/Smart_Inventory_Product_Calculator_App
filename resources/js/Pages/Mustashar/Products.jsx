@@ -1,10 +1,13 @@
+// resources/js/Pages/Mustashar/Products.jsx
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import PageShell from '../../Components/Common/PageShell';
+import SetupBanner from '../../Components/Common/SetupBanner';
 import TableToolbar from '../../Components/Common/TableToolbar';
 import Card from '../../Components/Common/Card';
 import ProductRow from '../../Components/Mustashar/ProductRow';
 import ProductTable from '../../Components/Mustashar/ProductTable';
 import { useProductsFilter } from '../../Hooks/useProductsFilter';
+import { useSettingsStatus } from '../../Hooks/useProducts';
 import { useToggleWithToast } from '../../Hooks/useToggleWithToast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,11 +22,22 @@ export default function Products() {
         isLoading, isError, error, refetch,
     } = useProductsFilter();
 
+    const { isLoading: settingsLoading, isConfigured } = useSettingsStatus();
+    const needsSetup = !settingsLoading && !isConfigured;
+
     const { handleToggle, isPending, variables } = useToggleWithToast(sorted);
 
     return (
         <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
             <div className="space-y-6">
+
+                {needsSetup && (
+                    <SetupBanner
+                        href="/mustashar/settings"
+                        description="Configure coverage per unit and waste percentage so the calculator can generate accurate results."
+                    />
+                )}
+
                 <TableToolbar
                     banner="Active products sort to the top so you can spot them fast; inactive ones appear faded to easily highlight catalog gaps."
                     search={search}
