@@ -45,6 +45,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/settings', [InventoryApiController::class, 'settings']);
         Route::put('/settings/batch', [InventoryApiController::class, 'updateSettings']);
         
+        // جلب الفاريينت لمنتج من سلة
+        Route::get('/products/{product_id}/variants', [InventoryApiController::class, 'getProductVariants']);
+        // السؤال للتاجر عن خيارات المنتج
+        Route::get('/products/{product_id}/check-options', [InventoryApiController::class, 'checkProductOptions']);
+        
         // ملاحظة: تم حذف السيناريو 4 (reconcile) بالكامل بناءً على طلبك
     });
 

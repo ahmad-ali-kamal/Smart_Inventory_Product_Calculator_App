@@ -49,3 +49,15 @@ export const updateBatch = async ({ batchId, data }) => {
 
   return res.data;
 };
+
+// Get Product Variants
+export const getProductVariants = async (productId) => {
+  const res = await apiClient.get(`/inventory/products/${productId}/variants`);
+  return res.data;
+};
+
+// Check Product Options (ask merchant)
+export const checkProductOptions = async (productId) => {
+  const res = await apiClient.get(`/inventory/products/${productId}/check-options`);
+  return res.data;
+};

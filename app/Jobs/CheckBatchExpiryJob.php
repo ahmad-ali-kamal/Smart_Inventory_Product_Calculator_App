@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Batch;
+use App\Models\BatchItem;
 use App\Models\BatchSetting;
 use App\Models\Merchant;
 use App\Models\Product;
@@ -151,7 +152,7 @@ class CheckBatchExpiryJob implements ShouldQueue
     }
 
     /**
-     * ربط variant_id من سلة مع batch في قاعدة البيانات
+     * ربط variant_id من سلة مع batch_items في قاعدة البيانات
      */
     private function linkVariantsToBatches(SallaApiService $sallaApi, Product $product, $activeBatches): void
     {
@@ -177,7 +178,7 @@ class CheckBatchExpiryJob implements ShouldQueue
                 }
             }
 
-            // مطابقة كل variant مع batch
+            // مطابقة كل variant مع batch_item
             foreach ($variants as $variant) {
                 $variantId = $variant['id'] ?? null;
                 $relatedValueIds = $variant['related_option_values'] ?? [];
@@ -195,9 +196,21 @@ class CheckBatchExpiryJob implements ShouldQueue
                     $batchName = $this->formatBatchName($batch);
 
                     if (in_array($batchName, $valueNames)) {
-                        if ($batch->salla_variant_id !== $variantId) {
-                            $batch->update(['salla_variant_id' => $variantId]);
-                            Log::info("[LinkVariant] ✅ حفظ salla_variant_id={$variantId} للباتش {$batch->id} ({$batch->batch_code})");
+                        // البحث عن batch_item غير مرتبط بهذا الـ variant
+                        $batchItem = \App\Models\BatchItem::where('batch_id', $batch->id)
+                            ->where('product_id', $product->id)
+                            ->where(function($q) {
+                                $q->whereNull('salla_variant_id')
+                                  ->orWhere('salla_variant_id', 0);
+                            })
+                            ->first();
+
+                        if ($batchItem) {
+                            $batchItem->update([
+                                'salla_variant_id' => $variantId,
+                                'variant_quantity' => $batchItem->quantity,
+                            ]);
+                            Log::info("[LinkVariant] ✅ حفظ salla_variant_id={$variantId} في batch_item {$batchItem->id} (باتش {$batch->id})");
                         }
                         break;
                     }
@@ -215,9 +228,11 @@ class CheckBatchExpiryJob implements ShouldQueue
 
     private function applyDiscountsToYellowBatches(SallaApiService $sallaApi, Merchant $merchant, BatchSetting $settings): void
     {
+        // جلب الباتشات الصفراء التي لها batch_items
         $yellowBatches = Batch::where('merchant_id', $merchant->id)
             ->where('status', 'yellow')
-            ->whereNotNull('salla_variant_id')
+            ->whereHas('batchItems')
+            ->with('batchItems.product')
             ->get();
 
         if ($yellowBatches->isEmpty()) {
@@ -232,73 +247,177 @@ class CheckBatchExpiryJob implements ShouldQueue
         });
     }
 
-    private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, BatchSetting $settings): void
+private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, BatchSetting $settings): void
     {
         try {
-            // جلب تفاصيل الـvariant من سلة
-            $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
-            $variantData = $variantDetails['data'] ?? [];
-
-            // جلب بيانات المنتج والدفعة
-            $batchItem = $batch->batchItems()->first();
-            $product = $batchItem?->product;
-
-            // الـ SKU من سلة أو من كود الدفعة
-            $currentSKU = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
-
-            // السعر: من سلة أو من المنتج
-            $currentPrice = (float) ($variantData['price']['amount'] ?? $product?->price ?? $batch->price ?? 0);
-
-            // الكمية: من جدول Product (حقل quantity)
-            $currentStock = (int) ($product?->quantity ?? 0);
-
-            Log::info('[Discount] بيانات الجلب:', [
-                'variant_id'     => $batch->salla_variant_id,
-                'sku'            => $currentSKU,
-                'price'          => $currentPrice,
-                'stock_quantity' => $currentStock,
-                'product_quantity' => $product?->quantity,
-            ]);
-
-            if ($currentPrice <= 0) {
-                Log::warning("[Discount] سعر الـvariant {$batch->salla_variant_id} = 0 - تم التجاوز");
-                return;
+            // جلب الـ batch_items المرتبطة بالـ batch (من العلاقة المحملة مسبقاً أو جديد)
+            $batchItems = $batch->batchItems;
+            if ($batchItems->isEmpty()) {
+                $batchItems = $batch->batchItems()->get();
             }
-
+            
+            // البحث عن variants مرتبطة في batch_items
+            $variantItems = $batchItems->filter(function($item) {
+                return $item->salla_variant_id && $item->salla_variant_id > 0;
+            });
+            
             // حساب نسبة الخصم
             $discountPercent = $this->calculateDiscountPercentage($batch, $settings);
-
+            
             Log::info('[Discount] نسبة الخصم المحسوبة:', [
                 'batch_id'       => $batch->id,
                 'discount_pct'   => $discountPercent,
-                'custom_discount' => $batch->custom_discount_percentage,
-                'auto_discounts'  => $settings->auto_discounts,
+                'has_variants'   => $variantItems->count() > 0,
                 'days_left'      => $batch->days_until_expiry,
             ]);
 
-            if ($discountPercent <= 0) {
-                // لا خصم → إزالة sale_price (إذا كان موجوداً)
-                if (isset($variantData['sale_price']['amount']) && $variantData['sale_price']['amount'] > 0) {
-                    // جلب باقي البيانات لإرسال جميع الحقول المطلوبة
-                    $barcode = $variantData['barcode'] ?? null;
-                    $costPrice = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
-                    $weight = (int) ($variantData['weight'] ?? 0);
-                    $mpn = $variantData['mpn'] ?? null;
-                    $gtin = $variantData['gtin'] ?? null;
+            if ($variantItems->count() > 0) {
+                // ─── حالة 1: يوجد variants مرتبطة ───
+                $this->applyDiscountToVariants($sallaApi, $batch, $variantItems, $discountPercent);
+            } else {
+                // ─── حالة 2: لا يوجد variants → تطبيق الخصم على المنتج ───
+                $this->applyDiscountToProduct($sallaApi, $batch, $discountPercent);
+            }
 
-                    $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                        'sku'            => $currentSKU,
-                        'barcode'        => $barcode,
-                        'price'          => $currentPrice,
-                        'cost_price'     => $costPrice,
-                        'stock_quantity' => $currentStock,
-                        'weight'         => $weight,
-                        'mpn'            => $mpn,
-                        'gtin'           => $gtin,
-                        'sale_price'     => null, // إزالة الخصم
-                    ]);
-                    $batch->update(['applied_sale_price' => null]);
-                    Log::info("[Discount] ❌ إزالة الخصم من الباتش {$batch->id}");
+        } catch (\Exception $e) {
+            Log::error("[Discount] خطأ في تطبيق الخصم على الباتش {$batch->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * تطبيق الخصم على الـ variants المرتبطة بالـ batch
+     */
+    private function applyDiscountToVariants(SallaApiService $sallaApi, Batch $batch, $variantItems, float $discountPercent): void
+    {
+        $batchItem = $batch->batchItems->first();
+        $product = $batchItem?->product;
+        
+        if (!$product || !$product->salla_product_id) {
+            Log::warning("[Discount] المنتج ليس له salla_product_id");
+            return;
+        }
+        
+        // ─── جلب الـ variants الحالية من سلة ───
+        $currentVariants = $sallaApi->getProductVariants($product->salla_product_id);
+        $sallaVariants = $currentVariants['data'] ?? [];
+        
+        // ─── بناء خريطة: batch name → variant data ───
+        $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
+        $options = $optionsResponse['data'] ?? [];
+        $valueIdToName = [];
+        foreach ($options as $option) {
+            foreach ($option['values'] ?? [] as $value) {
+                $valueIdToName[$value['id']] = $value['name'];
+            }
+        }
+        
+        $lastPrice = null;
+        $usedVariantIds = [];
+
+        foreach ($variantItems as $variantItem) {
+            $storedVariantId = $variantItem->salla_variant_id;
+            $batchName = $this->formatBatchName($batch);
+            
+            try {
+                // ─── إيجاد الـ variant من سلة ───
+                $matchedVariant = null;
+                
+                // ─── البحث أولاً بالـ stored variant_id ───
+                foreach ($sallaVariants as $sv) {
+                    if ($sv['id'] == $storedVariantId) {
+                        $matchedVariant = $sv;
+                        break;
+                    }
+                }
+                
+                // ─── إذا لم يوجد، البحث بالاسم ───
+                if (!$matchedVariant) {
+                    foreach ($sallaVariants as $sv) {
+                        // ─── تخطي المتغيرات المستخدمة ───
+                        if (in_array($sv['id'], $usedVariantIds)) {
+                            continue;
+                        }
+                        
+                        $relatedValueIds = $sv['related_option_values'] ?? [];
+                        $valueNames = array_filter(array_map(fn($id) => $valueIdToName[$id] ?? null, $relatedValueIds));
+                        
+                        if (in_array($batchName, $valueNames)) {
+                            $matchedVariant = $sv;
+                            break;
+                        }
+                    }
+                }
+                
+                // ─── إذا لم يتم العثور ───
+                if (!$matchedVariant) {
+                    Log::warning("[Discount] لم يتم العثور على variant للمباتش {$batch->id} - لا يوجد متغيرات متاحة");
+                    continue;
+                }
+                
+                $variantId = $matchedVariant['id'];
+                $variantData = $matchedVariant;
+                $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+
+                if ($currentPrice <= 0) {
+                    continue;
+                }
+
+                $lastPrice = $currentPrice;
+
+                if ($discountPercent <= 0) {
+                    $sallaApi->updateBatchVariant($variantId, ['sale_price' => 0]);
+                    continue;
+                }
+
+                $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
+
+                if ($salePrice >= $currentPrice) {
+                    continue;
+                }
+
+                // ─── تطبيق الخصم ───
+                $sallaApi->updateBatchVariant($variantId, ['sale_price' => $salePrice]);
+                
+                $usedVariantIds[] = $variantId;
+                Log::info("[Discount] ✅ خصم على Variant {$variantId}: {$currentPrice} → {$salePrice} SAR");
+
+            } catch (\Exception $e) {
+                Log::error("[Discount] خطأ في تطبيق الخصم: " . $e->getMessage());
+            }
+        }
+
+        $batch->update(['applied_sale_price' => $lastPrice ? round($lastPrice * (1 - $discountPercent / 100), 2) : null]);
+    }
+
+    /**
+     * تطبيق الخصم على سعر المنتج (بدون variants)
+     */
+    private function applyDiscountToProduct(SallaApiService $sallaApi, Batch $batch, float $discountPercent): void
+    {
+        $batchItem = $batch->batchItems()->first();
+        $product = $batchItem?->product;
+
+        if (!$product || !$product->salla_product_id) {
+            Log::warning("[Discount] المنتج {$product?->id} ليس له salla_product_id");
+            return;
+        }
+
+        try {
+            // جلب تفاصيل المنتج من سلة
+            $productData = $sallaApi->getProduct($product->salla_product_id);
+            $productDetails = $productData['data'] ?? [];
+            
+            $currentPrice = (float) ($productDetails['price']['amount'] ?? $product->price ?? 0);
+
+            if ($currentPrice <= 0) {
+                Log::warning("[Discount] سعر المنتج {$product->id} = 0 - تم التجاوز");
+                return;
+            }
+
+            // إزالة الخصم إذا كانت النسبة = 0
+            if ($discountPercent <= 0) {
+                if (isset($productDetails['sale_price']['amount']) && $productDetails['sale_price']['amount'] > 0) {
+                    $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, null);
                 }
                 return;
             }
@@ -306,52 +425,42 @@ class CheckBatchExpiryJob implements ShouldQueue
             // حساب السعر بعد الخصم
             $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
 
-            // التحقق من أن السعر المخفض أقل من الأصلي
             if ($salePrice >= $currentPrice) {
                 Log::warning("[Discount] سعر الخصم ({$salePrice}) >= الأصلي ({$currentPrice})!");
                 return;
             }
 
-            // تطبيق الخصم - إرسال جميع الحقول المطلوبة согласно توثيق سلة
-            // جلب البيانات الكاملة من variant موجود
-            $barcode = $variantData['barcode'] ?? null;
-            $costPrice = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
-            $weight = (int) ($variantData['weight'] ?? 0);
-            $mpn = $variantData['mpn'] ?? null;
-            $gtin = $variantData['gtin'] ?? null;
-
-            Log::info('[Discount] ✅ إرسال ALL الحقول:', [
-                'variant_id'     => $batch->salla_variant_id,
-                'sku'            => $currentSKU,
-                'barcode'        => $barcode,
-                'price'          => $currentPrice,
-                'sale_price'     => $salePrice,
-                'cost_price'     => $costPrice,
-                'stock_quantity' => $currentStock,
-                'weight'         => $weight,
-                'mpn'            => $mpn,
-                'gtin'           => $gtin,
-            ]);
-
-            $sallaApi->updateBatchVariant($batch->salla_variant_id, [
-                'sku'            => $currentSKU,
-                'barcode'        => $barcode,
-                'price'          => $currentPrice,
-                'sale_price'     => $salePrice,
-                'cost_price'     => $costPrice,
-                'stock_quantity' => $currentStock,
-                'weight'         => $weight,
-                'mpn'            => $mpn,
-                'gtin'           => $gtin,
-            ]);
-
+            // تطبيق الخصم على المنتج
+            $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
+            
             $batch->update(['applied_sale_price' => $salePrice]);
+            
+            Log::info("[Discount] ✅ خصم على المنتج {$product->id}: {$currentPrice} → {$salePrice} SAR");
 
-            Log::info("[Discount] ✅ تطبيق خصم {$discountPercent}% على Batch {$batch->id} ({$currentPrice} → {$salePrice} SAR)");
-
-        } catch (\Throwable $e) {
-            Log::warning("[Discount] تعذّر تطبيق الخصم على الباتش {$batch->id}: " . $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error("[Discount] خطأ في تطبيق الخصم على المنتج {$product->id}: " . $e->getMessage());
         }
+    }
+
+private function removeVariantDiscount(SallaApiService $sallaApi, string $variantId, float $currentPrice, int $currentStock): void
+    {
+        $sallaApi->updateBatchVariant($variantId, [
+            'price'          => $currentPrice,
+            'sale_price'     => 0,
+            'stock_quantity' => $currentStock,
+        ]);
+    }
+
+    /**
+     * تحديث variant بخصم
+     */
+    private function updateVariantWithDiscount(SallaApiService $sallaApi, string $variantId, float $currentPrice, int $currentStock, float $salePrice): void
+    {
+        $sallaApi->updateBatchVariant($variantId, [
+            'price'          => $currentPrice,
+            'sale_price'     => $salePrice,
+            'stock_quantity' => $currentStock,
+        ]);
     }
 
     /**
@@ -471,8 +580,8 @@ class CheckBatchExpiryJob implements ShouldQueue
 
     private function formatBatchName(Batch $batch): string
     {
-        $code = $batch->batch_code ?? 'B-' . $batch->id;
-        $date = $batch->expiry_date ? $batch->expiry_date->format('Y-m-d') : 'Unknown';
-        return "{$code} - {$date}";
+        $expiry = $batch->expiry_date;
+        $dateStr = $expiry ? $expiry->format('Y-m-d') : 'Unknown';
+        return "تاريخ انتهاء المنتج {$dateStr}";
     }
 }

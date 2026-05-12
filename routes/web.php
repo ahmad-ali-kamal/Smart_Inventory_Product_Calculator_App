@@ -56,6 +56,10 @@ Route::prefix('harees')->middleware('auth')->group(function () {
         // المسار المهم لجلب الخيارات في BatchModal.jsx
         Route::get('/products/{product_id}/options', [InventoryApiController::class, 'getProductOptions']);
 
+        // جلب الفاريينت والتأكد من وجود خيارات
+        Route::get('/products/{product_id}/variants', [InventoryApiController::class, 'getProductVariants']);
+        Route::get('/products/{product_id}/check-options', [InventoryApiController::class, 'checkProductOptions']);
+
         // إدارة تواريخ الانتهاء
         Route::post('/expiry', [InventoryApiController::class, 'storeExpiry']);
         Route::delete('/expiry/{id}', [InventoryApiController::class, 'destroyExpiry']);

@@ -190,46 +190,122 @@ class SallaApiService
         return $this->request('get', "products/variants/{$variantId}");
     }
 
-    /**
+/**
      * تحديث بيانات Variant موجود
      * PUT /products/variants/{variant}
-     *
-     * ✅ قواعد سلة الصارمة (من التوثيق):
-     * - يجب إرسال جميع الحقول المطلوبة من الـ OpenAPI
-     * - الحقول المطلوبة: sku, barcode, price, sale_price, cost_price, stock_quantity, weight, mpn, gtin
+     * 
+     * عند إرسال sale_price فقط: لا نرسل price أو stock_quantity
+     * عند إرسال بيانات كاملة: نرسل everything
      */
     public function updateBatchVariant(string $variantId, array $data): array
     {
-        if (!isset($data['sku'])) {
-            throw new Exception('SKU مطلوب لتحديث الـvariant');
+        // ─── تحديث الخصم فقط (sale_price) ───
+        if (count($data) === 1 && array_key_exists('sale_price', $data)) {
+            try {
+                $variant = $this->getVariantDetails($variantId);
+                $variantData = $variant['data'] ?? [];
+                
+                if (empty($variantData)) {
+                    throw new Exception("Variant {$variantId} غير موجود");
+                }
+                
+                $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+                $currentSku = $variantData['sku'] ?? null;
+                
+                $salePrice = $data['sale_price'];
+                
+                // ─── إرسال price و sale_price فقط (لا stock_quantity) ───
+                $payload = [
+                    'price' => $currentPrice,
+                ];
+                
+                if ($currentSku) {
+                    $payload['sku'] = $currentSku;
+                }
+                
+                if ($salePrice === 0 || $salePrice === null) {
+                    $payload['sale_price'] = 0;
+                } else {
+                    if ($salePrice < $currentPrice) {
+                        $payload['sale_price'] = $salePrice;
+                    } else {
+                        $payload['sale_price'] = 0;
+                    }
+                }
+                
+                Log::info("[Salla FIX] تحديث خصم variant {$variantId}", $payload);
+                return $this->request('put', "products/variants/{$variantId}", $payload);
+                
+            } catch (\Exception $e) {
+                Log::error("[SallaApiService] خطأ تحديث variant {$variantId}: " . $e->getMessage());
+                throw $e;
+            }
         }
-        if (!isset($data['price'])) {
-            throw new Exception('السعر الأصلي (price) مطلوب');
-        }
-        if (!isset($data['stock_quantity'])) {
-            throw new Exception('الكمية (stock_quantity) مطلوبة');
+        
+        // ─── تحديث كامل ───
+        $variant = $this->getVariantDetails($variantId);
+        $variantData = $variant['data'] ?? [];
+
+        if (empty($variantData)) {
+            throw new Exception("Variant {$variantId} غير موجود");
         }
 
-        // ✅ إرسال جميع الحقول المطلوبة حسب توثيق سلة
         $payload = [
-            'sku'            => $data['sku'],
-            'barcode'        => $data['barcode'] ?? null,
-            'price'          => (float) $data['price'],
-            'sale_price'     => isset($data['sale_price']) ? (float) $data['sale_price'] : null,
-            'cost_price'     => (float) ($data['cost_price'] ?? $data['price'] ?? 0),
-            'stock_quantity' => (int) $data['stock_quantity'],
-            'weight'         => (int) ($data['weight'] ?? 0),
-            'mpn'            => $data['mpn'] ?? null,
-            'gtin'           => $data['gtin'] ?? null,
+            'sku' => $data['sku'] ?? ($variantData['sku'] ?? null),
+            'price' => $data['price'] ?? ($variantData['price']['amount'] ?? 0),
+            'stock_quantity' => $data['stock_quantity'] ?? ($variantData['stock_quantity'] ?? 0),
         ];
 
-        Log::info('[Variant Update] ✅ إرسال ALL الحقول المطلوبة:', $payload);
+        if (array_key_exists('sale_price', $data)) {
+            if ($data['sale_price'] === null || $data['sale_price'] === 0) {
+                $payload['sale_price'] = 0;
+            } elseif ($data['sale_price'] < $payload['price']) {
+                $payload['sale_price'] = $data['sale_price'];
+            } else {
+                $payload['sale_price'] = 0;
+            }
+        }
 
-        $response = $this->request('put', "products/variants/{$variantId}", $payload);
+        Log::info("[Salla FIX] تحديث variant {$variantId}", $payload);
 
-        Log::info('[Variant Update] ✅ الاستجابة:', $response);
+        try {
+            return $this->request('put', "products/variants/{$variantId}", $payload);
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), '422') !== false || strpos($e->getMessage(), 'invalid_fields') !== false) {
+                Log::warning('[Variant Update] SKU مكرر - إعادة المحاولة بدون SKU');
+                unset($payload['sku']);
+                return $this->request('put', "products/variants/{$variantId}", $payload);
+            }
+            throw $e;
+        }
+    }
 
-        return $response;
+    /**
+     * تحديث كمية الـ Variant فقط (بدون تغيير السعر)
+     * مع دعم الفروع عبر quantities
+     */
+    public function updateVariantQuantity(string $variantId, int $quantity, ?int $branchId = null, ?int $reasonId = null): array
+    {
+        $payload = [];
+
+        // إذا كان هناك branch_id، نستخدم quantities
+        if ($branchId) {
+            $quantities = [
+                'branch'    => (int) $branchId,
+                'quantity'  => (int) $quantity,
+            ];
+            if ($reasonId) {
+                $quantities['reason_id'] = (int) $reasonId;
+            }
+            $payload['quantities'] = [$quantities];
+        } else {
+            // تحديث الكمية العامة
+            $payload['stock_quantity'] = (int) $quantity;
+        }
+
+        Log::info('[Variant Qty Update] payload:', $payload);
+
+        return $this->request('put', "products/variants/{$variantId}", $payload);
     }
 
     /**
@@ -254,6 +330,23 @@ class SallaApiService
         }
 
         return $this->request('post', "products/{$sallaProductId}/variants", $payload);
+    }
+
+    /**
+     * تحديث سعر المنتج (للمنتجات بدون variants)
+     * PUT /products/{product}
+     */
+    public function updateProductPrice(string $sallaProductId, float $price, ?float $salePrice = null): array
+    {
+        $payload = [
+            'price' => $price,
+        ];
+
+        if ($salePrice !== null) {
+            $payload['sale_price'] = $salePrice;
+        }
+
+        return $this->request('put', "products/{$sallaProductId}", $payload);
     }
 
     // ================================================================
@@ -295,5 +388,55 @@ class SallaApiService
     public function deleteProductOption(string $optionId): array
     {
         return $this->request('delete', "products/options/{$optionId}");
+    }
+
+    /**
+     * جلب تفاصيل خيار معين (مع القيم)
+     * GET /products/options/{option}
+     */
+    public function getOptionDetails(string $optionId): array
+    {
+        return $this->request('get', "products/options/{$optionId}");
+    }
+
+    /**
+     * جلب تفاصيل منتج واحد
+     * GET /products/{product}
+     */
+    public function getProduct(string $sallaProductId): array
+    {
+        return $this->request('get', "products/{$sallaProductId}");
+    }
+
+    /**
+     * جلب الفرع الافتراضي للمتجر
+     * GET /branches
+     */
+    public function getDefaultBranch(): ?array
+    {
+        try {
+            $response = $this->request('get', 'branches');
+            $branches = $response['data'] ?? [];
+            foreach ($branches as $branch) {
+                if ($branch['is_default'] ?? false) {
+                    return $branch;
+                }
+            }
+            return $branches[0] ?? null;
+        } catch (\Exception $e) {
+            Log::warning('[GetDefaultBranch] Failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * تحديث كمية المنتج الرئيسي (للمنتجات بدون variants)
+     * PUT /products/{product}
+     */
+    public function updateProductQuantity(string $sallaProductId, int $quantity): array
+    {
+        return $this->request('put', "products/{$sallaProductId}", [
+            'quantity' => $quantity,
+        ]);
     }
 }

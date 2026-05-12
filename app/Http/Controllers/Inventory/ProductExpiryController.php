@@ -45,6 +45,14 @@ class ProductExpiryController extends Controller
             'batches.*.quantity'             => 'required_with:batches|integer|min:1',
             'batches.*.expiry_date'          => 'required_with:batches|date|after_or_equal:today',
             'batches.*.batch_code'           => 'nullable|string',
+            'variants'                       => 'nullable|array',
+            'variants.*.salla_variant_id'    => 'required_with:variants|integer',
+            'variants.*.variant_quantity'    => 'required_with:variants|integer|min:1',
+            'batch_variants'                => 'nullable|array',
+            'batch_variants.*.batch_id'     => 'nullable|integer',
+            'batch_variants.*.variants'     => 'nullable|array',
+            'batch_variants.*.variants.*.salla_variant_id' => 'integer',
+            'batch_variants.*.variants.*.variant_quantity' => 'integer|min:1',
         ]);
 
         DB::beginTransaction();
@@ -63,21 +71,51 @@ class ProductExpiryController extends Controller
 
             // ─── إدارة الباتشات القديمة ───────────────────────────────
             if ($request->same_expiry) {
-                $existingItem = $product->batchItems()->with('batch')->first();
+                $existingItems = $product->batchItems()->with('batch')->get();
+                $existingItem = $existingItems->first();
 
                 if ($existingItem && $existingItem->batch) {
                     $existingItem->batch->update([
                         'expiry_date'       => $request->input('single_batch.expiry_date'),
                         'manufactured_date' => $request->input('single_batch.manufactured_date'),
                     ]);
-                    $existingItem->update(['quantity' => $product->quantity ?? 0]);
+                    
                     $savedBatchCode = $existingItem->batch->batch_code;
 
-                    $extraIds = $product->batchItems()
+                    // حذف الـ batch_items القديمة المرتبطة بهذا الـ batch
+                    $product->batchItems()->where('batch_id', $existingItem->batch_id)->delete();
+                    
+                    // إنشاء batch_items جديدة مع الـ variants
+                    $variants = $request->input('variants', []);
+                    if (!empty($variants)) {
+                        foreach ($variants as $variant) {
+                            BatchItem::create([
+                                'batch_id'         => $existingItem->batch_id,
+                                'product_id'       => $product->id,
+                                'quantity'         => $variant['variant_quantity'] ?? ($product->quantity ?? 0),
+                                'unit_cost'        => $product->price ?? 0,
+                                'salla_variant_id' => $variant['salla_variant_id'] ?? null,
+                                'variant_quantity' => $variant['variant_quantity'] ?? null,
+                            ]);
+                        }
+                    } else {
+                        BatchItem::create([
+                            'batch_id'   => $existingItem->batch_id,
+                            'product_id' => $product->id,
+                            'quantity'   => $product->quantity ?? 0,
+                            'unit_cost'  => $product->price ?? 0,
+                        ]);
+                    }
+
+                    // حذف أي batch_items قديمة لم تُحدث
+                    $extraIds = $existingItems
                         ->where('batch_id', '!=', $existingItem->batch_id)
-                        ->pluck('batch_id');
-                    if ($extraIds->isNotEmpty()) {
-                        $product->batchItems()->where('batch_id', '!=', $existingItem->batch_id)->delete();
+                        ->pluck('batch_id')
+                        ->unique()
+                        ->values()
+                        ->toArray();
+                    if (!empty($extraIds)) {
+                        $product->batchItems()->whereIn('batch_id', $extraIds)->delete();
                         Batch::whereIn('id', $extraIds)->where('merchant_id', $merchant->id)->delete();
                     }
                 } else {
@@ -91,10 +129,20 @@ class ProductExpiryController extends Controller
             // ✅ نتتبع الباتشات الجديدة لإرسال الـ notification بعد ربطها بالمنتج
             $newlyCreatedBatches = [];
 
+            Log::info('[ExpiryStore] Request data:', [
+                'same_expiry' => $request->same_expiry,
+                'variants' => $request->input('variants'),
+                'single_batch' => $request->input('single_batch'),
+            ]);
+            
             if ($request->same_expiry) {
                 if (!$savedBatchCode) {
                     $data               = $request->input('single_batch', []);
                     $data['batch_code'] = $oldBatchCodes[0] ?? ($data['batch_code'] ?? 'B-' . Str::upper(Str::random(6)));
+                    $data['variants']   = $request->input('variants', []);
+                    
+                    Log::info('[ExpiryStore] Creating batch with variants:', $data['variants']);
+                    
                     $newBatch           = $this->createSingleBatch($merchant, $product, $data);
                     $savedBatchCode     = $data['batch_code'];
                     if ($newBatch) $newlyCreatedBatches[] = $newBatch;
@@ -134,6 +182,9 @@ class ProductExpiryController extends Controller
                         }
                     } else {
                         $b['batch_code'] = $b['batch_code'] ?? 'B-' . Str::upper(Str::random(6));
+                        $batchVariants = $request->input('batch_variants', []);
+                        $batchVariantData = collect($batchVariants)->firstWhere('batch_id', $b['id'] ?? null);
+                        $b['variants'] = $batchVariantData['variants'] ?? [];
                         $createdBatches  = $this->createMultipleBatches($merchant, $product, [$b]);
                         $newlyCreatedBatches = array_merge($newlyCreatedBatches, $createdBatches);
                     }
@@ -274,12 +325,29 @@ class ProductExpiryController extends Controller
             'notes'             => $data['notes'] ?? null,
         ]);
 
-        BatchItem::create([
-            'batch_id'   => $batch->id,
-            'product_id' => $product->id,
-            'quantity'   => $product->quantity ?? 0,
-            'unit_cost'  => $product->price ?? 0,
-        ]);
+        $variants = $data['variants'] ?? [];
+        
+        Log::info('[CreateSingleBatch] Received variants:', $variants);
+        
+        if (!empty($variants)) {
+            foreach ($variants as $variant) {
+                BatchItem::create([
+                    'batch_id'         => $batch->id,
+                    'product_id'       => $product->id,
+                    'quantity'         => $variant['variant_quantity'] ?? ($product->quantity ?? 0),
+                    'unit_cost'        => $product->price ?? 0,
+                    'salla_variant_id' => $variant['salla_variant_id'] ?? null,
+                    'variant_quantity' => $variant['variant_quantity'] ?? null,
+                ]);
+            }
+        } else {
+            BatchItem::create([
+                'batch_id'   => $batch->id,
+                'product_id' => $product->id,
+                'quantity'   => $product->quantity ?? 0,
+                'unit_cost'  => $product->price ?? 0,
+            ]);
+        }
 
         return $batch;
     }
@@ -299,12 +367,37 @@ class ProductExpiryController extends Controller
                 'manufactured_date' => $data['manufactured_date'] ?? null,
             ]);
 
-            BatchItem::create([
-                'batch_id'   => $batch->id,
-                'product_id' => $product->id,
-                'quantity'   => $data['quantity'],
-                'unit_cost'  => $product->price ?? 0,
-            ]);
+            $variants = $data['variants'] ?? [];
+            
+            if (!empty($variants)) {
+                foreach ($variants as $variant) {
+                    $variantId = $variant['salla_variant_id'] ?? null;
+                    
+                    BatchItem::updateOrCreate(
+                        [
+                            'batch_id'         => $batch->id,
+                            'product_id'       => $product->id,
+                            'salla_variant_id' => $variantId,
+                        ],
+                        [
+                            'quantity'         => $variant['variant_quantity'] ?? ($data['quantity'] ?? 0),
+                            'unit_cost'        => $product->price ?? 0,
+                            'variant_quantity' => $variant['variant_quantity'] ?? null,
+                        ]
+                    );
+                }
+            } else {
+                BatchItem::updateOrCreate(
+                    [
+                        'batch_id'   => $batch->id,
+                        'product_id' => $product->id,
+                    ],
+                    [
+                        'quantity'   => $data['quantity'] ?? 0,
+                        'unit_cost'  => $product->price ?? 0,
+                    ]
+                );
+            }
 
             $created[] = $batch;
         }

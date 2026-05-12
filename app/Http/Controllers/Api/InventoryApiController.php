@@ -103,19 +103,29 @@ class InventoryApiController extends Controller
                         })
                         ->first();
 
+                    $batchesGrouped = $product->batchItems
+                        ->groupBy('batch_id')
+                        ->map(function ($items) {
+                            $batch = $items->first()->batch;
+                            if (!$batch) return null;
+                            return [
+                                'id'          => $batch->id,
+                                'batch_code'  => $batch->batch_code,
+                                'expiry_date'  => $batch->expiry_date?->format('Y-m-d'),
+                                'status'      => $batch->status ?? 'green',
+                            ];
+                        })
+                        ->filter()
+                        ->values();
+
                     return [
                         'id' => $product->id,
                         'salla_product_id' => $product->salla_product_id,
                         'name' => $product->name,
                         'image_url' => $product->image_url,
                         'status' => $criticalBatchItem?->batch->status ?? 'green',
-                        'expiry_date' => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
-                        'batches' => $product->batchItems->map(fn($item) => [
-                            'id'          => $item->batch?->id,
-                            'batch_code'  => $item->batch?->batch_code,
-                            'expiry_date' => $item->batch?->expiry_date?->format('Y-m-d'),
-                            'status'      => $item->batch?->status ?? 'green',
-                        ]),
+                        'expiry_date' => $criticalBatchItem?->batch?->expiry_date?->format('Y-m-d'),
+                        'batches' => $batchesGrouped,
                         'has_active_discount' => $product->discounts->isNotEmpty(),
                     ];
                 })
@@ -162,25 +172,42 @@ class InventoryApiController extends Controller
                 $thresholdKey = $bucket . '_term_days';
                 $threshold = $settings->$thresholdKey ?? 14;
 
-                $batches = $product->batchItems->map(function ($item) use ($threshold) {
-                    $batch = $item->batch;
-
-                    if (!$batch) {
-                        return null;
-                    }
-
-                    return [
-                        'id' => $batch->id,
-                        'batch_code' => $batch->batch_code,
-                        'quantity' => $item->quantity,
-                        'status' => $batch->status ?? 'green',
-                        'expiry_date' => $batch->expiry_date
-                            ? \Carbon\Carbon::parse($batch->expiry_date)->format('Y-m-d')
-                            : null,
-                        'days_until_expiry' => $batch->days_until_expiry,
-                        'threshold' => $threshold,
-                    ];
-                })->filter()->values();
+                $batches = $product->batchItems
+                    ->groupBy('batch_id')
+                    ->map(function ($items, $batchId) use ($threshold) {
+                        $batch = $items->first()->batch;
+                        if (!$batch) {
+                            return null;
+                        }
+                        
+                        $variants = $items->map(function ($item) {
+                            if ($item->salla_variant_id) {
+                                return [
+                                    'batch_item_id'    => $item->id,
+                                    'salla_variant_id' => $item->salla_variant_id,
+                                    'variant_quantity' => $item->variant_quantity,
+                                    'quantity'         => $item->quantity,
+                                ];
+                            }
+                            return null;
+                        })->filter()->values()->toArray();
+                        
+                        return [
+                            'id'               => $batch->id,
+                            'batch_code'       => $batch->batch_code,
+                            'quantity'         => $items->sum('quantity'),
+                            'status'           => $batch->status ?? 'green',
+                            'expiry_date'      => $batch->expiry_date
+                                ? \Carbon\Carbon::parse($batch->expiry_date)->format('Y-m-d')
+                                : null,
+                            'days_until_expiry' => $batch->days_until_expiry,
+                            'threshold'        => $threshold,
+                            'has_variants'     => count($variants) > 0,
+                            'variants'        => $variants,
+                        ];
+                    })
+                    ->filter()
+                    ->values();
 
                 $usedQty = $product->batchItems->sum('quantity');
 
@@ -270,16 +297,38 @@ class InventoryApiController extends Controller
             $batch->status = $batch->calculateStatus($request->expiry_date);
             $batch->save();
 
-            BatchItem::create([
-                'batch_id' => $batch->id,
-                'product_id' => $product->id,
-                'quantity' => $request->quantity
-            ]);
+            // 2. إنشاء الـ BatchItem مع الـ variants إذا وجدت
+            $variants = $request->input('variants', []);
+            
+            if (!empty($variants)) {
+                // يوجد variants محددة - إنشاء multiple batch_items
+                foreach ($variants as $variant) {
+                    BatchItem::create([
+                        'batch_id' => $batch->id,
+                        'product_id' => $product->id,
+                        'quantity' => $request->quantity,
+                        'salla_variant_id' => $variant['salla_variant_id'] ?? null,
+                        'variant_quantity' => $variant['variant_quantity'] ?? $request->quantity,
+                    ]);
+                }
+            } else {
+                // بدون variants - إنشاء batch item واحد
+                BatchItem::create([
+                    'batch_id' => $batch->id,
+                    'product_id' => $product->id,
+                    'quantity' => $request->quantity
+                ]);
+            }
 
-            // 2. تحديث خيار سلة "بيانات الدفعة" بالباتشات الصفراء فقط
+            // 3. تحديث خيار سلة "بيانات الدفعة" بالباتشات الصفراء فقط (إذا كان المنتج له variants)
             $this->syncYellowBatchesToSalla($product, $merchant);
 
-            return response()->json(['success' => true, 'message' => 'تم إنشاء الدفعة بنجاح']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'تم إنشاء الدفعة بنجاح',
+                'batch_id' => $batch->id,
+                'has_variants' => !empty($variants)
+            ]);
         } catch (\Exception $e) {
             Log::error('[Store Batch Error] ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
@@ -315,6 +364,190 @@ class InventoryApiController extends Controller
     }
 
     /**
+     * جلب الفاريينت لمنتج من سلة
+     */
+    public function getProductVariants(Request $request, $product_id)
+    {
+        $merchant = Auth::user();
+        $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
+
+        if (!$product->salla_product_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'المنتج غير مرتبط بسلة',
+                'has_variants' => false
+            ]);
+        }
+
+try {
+            // جلب من API مباشرة (بدون استخدام الكاش)
+            $sallaApi = SallaApiService::for($merchant);
+            
+            // جلب الـ Variants الكاملة (الـ SKUs)
+            $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
+            $variants = $variantsResponse['data'] ?? [];
+            
+            if (empty($variants)) {
+                return response()->json([
+                    'success' => true,
+                    'has_variants' => false,
+                    'variants' => [],
+                ]);
+            }
+            
+            // نحتاج نجمع كل الـ option IDs من كل variants
+            $allOptionIds = [];
+            foreach ($variants as $v) {
+                foreach ($v['related_options'] ?? [] as $optId) {
+                    $allOptionIds[$optId] = true;
+                }
+            }
+            
+            // جلب كل خيار للحصول على القيم الكاملة (مع names)
+            $valueNames = [];
+            $fetchedOptionIds = [];
+            
+            // جلب كل option ID من الـ variants
+            foreach (array_keys($allOptionIds) as $optionId) {
+                // تخطي إذا جلبناه سابقاً
+                if (in_array($optionId, $fetchedOptionIds)) continue;
+                
+                try {
+                    $optionDetails = $sallaApi->getOptionDetails($optionId);
+                    $optionData = $optionDetails['data'] ?? null;
+                    
+                    if ($optionData && isset($optionData['values'])) {
+                        $fetchedOptionIds[] = $optionId;
+                        foreach ($optionData['values'] as $value) {
+                            $valueNames[$value['id']] = $value['name'];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // تجاهل إذا فشل
+                }
+            }
+
+            // تجهيز الفاريينت بشكل مدمج
+            $formattedVariants = array_map(function ($v) use ($valueNames) {
+                // تجميع أسماء الخيارات مع بعضهم
+                $optionNames = [];
+                foreach ($v['related_option_values'] ?? [] as $valueId) {
+                    if (isset($valueNames[$valueId])) {
+                        $optionNames[] = $valueNames[$valueId];
+                    }
+                }
+                
+                // استخدام SKU كـ fallback إذا لم توجد option names
+                $displayName = implode(' - ', $optionNames);
+                if (empty($displayName)) {
+                    $displayName = $v['sku'] ?? 'فارينت ' . $v['id'];
+                }
+                
+                return [
+                    'id' => $v['id'],
+                    'sku' => $v['sku'] ?? null,
+                    'name' => $v['name'] ?? $displayName,
+                    'price' => $v['price']['amount'] ?? 0,
+                    'stock_quantity' => $v['stock_quantity'] ?? 0,
+                    'unlimited_quantity' => $v['unlimited_quantity'] ?? false,
+                    'has_special_price' => $v['has_special_price'] ?? false,
+                    'related_option_values' => $v['related_option_values'] ?? [],
+                ];
+            }, $variants);
+
+            return response()->json([
+                'success' => true,
+                'has_variants' => count($formattedVariants) > 0,
+                'variants' => $formattedVariants,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[Get Variants Error] ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل جلب الفاريينت: ' . $e->getMessage(),
+                'has_variants' => false
+            ], 500);
+        }
+    }
+
+    /**
+     * السؤال للتاجر عن خيارات المنتج
+     */
+    public function checkProductOptions(Request $request, $product_id)
+    {
+        $merchant = Auth::user();
+        $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
+
+        if (!$product->salla_product_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'المنتج غير مرتبط بسلة',
+                'has_variants' => false
+            ]);
+        }
+
+        try {
+            $sallaApi = SallaApiService::for($merchant);
+            
+            // جلب الفاريينت (الـ SKUs)
+            $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
+            $variants = $variantsResponse['data'] ?? [];
+            $hasVariants = count($variants) > 0;
+
+            return response()->json([
+                'success' => true,
+                'has_variants' => $hasVariants,
+                'variants_count' => count($variants),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'has_variants' => false,
+                'message' => 'فشل التحقق: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * السؤال للتاجر عن خيارات المنتج (جديد)
+     */
+    public function checkProductOptionsV2(Request $request, $product_id)
+    {
+        $merchant = Auth::user();
+        $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
+
+        if (!$product->salla_product_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'المنتج غير مرتبط بسلة',
+                'has_options' => false
+            ]);
+        }
+
+        try {
+            $sallaApi = SallaApiService::for($merchant);
+            $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
+            $variants = $variantsResponse['data'] ?? [];
+            $hasVariants = count($variants) > 0;
+
+            return response()->json([
+                'success' => true,
+                'has_variants' => $hasVariants,
+                'variants_count' => count($variants),
+                'message' => $hasVariants 
+                    ? 'المنتج لديه خيارات (' . count($variants) . ')'
+                    : 'المنتج ليس له خيارات - هل تريد إضافتها؟'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'has_variants' => false,
+                'message' => 'فشل التحقق: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * دالة مساعدة لإنشاء/تحديث خيار "بيانات الدفعة" بالباتشات الصفراء فقط
      */
     private function syncYellowBatchesToSalla($product, $merchant)
@@ -336,9 +569,10 @@ class InventoryApiController extends Controller
                 return; // إذا لا توجد دفعات صفراء، لا نفعل شيئاً
             }
 
-            // استخراج القيم التي سيتم إضافتها (تاريخ الانتهاء أو الكود)
+            // استخراج القيم التي سيتم إضافتها (نص تاريخ الانتهاء)
             $valuesToAdd = $yellowBatches->map(function($bi) {
-                return "ينتهي في: " . $bi->batch->expiry_date->format('Y-m-d') . " (الدفعة: " . $bi->batch->batch_code . ")";
+                $expiry = $bi->batch->expiry_date;
+                return "تاريخ انتهاء المنتج {$expiry->format('Y-m-d')}";
             })->unique()->values()->toArray();
 
             // جلب خيارات سلة الحالية للتحقق من وجود "بيانات الدفعة"
@@ -433,7 +667,6 @@ class InventoryApiController extends Controller
             'long_term_days' => 'required|integer|min:1',
             'auto_hide_expired' => 'nullable|boolean',
             'auto_discounts' => 'nullable|boolean',
-            'enable_notifications' => 'nullable|boolean',
             'auto_discount_percent'       => 'nullable|integer|min:1|max:99', 
             'auto_discount_duration_days' => 'nullable|integer|min:1', 
             'category_mapping' => 'nullable|array',
@@ -446,7 +679,7 @@ class InventoryApiController extends Controller
                 'medium_term_days' => $validated['medium_term_days'],
                 'long_term_days' => $validated['long_term_days'],
                 'auto_hide_expired' => $request->boolean('auto_hide_expired'),
-                'enable_notifications' => $request->boolean('enable_notifications'),
+            
                 'auto_discounts' => $request->boolean('auto_discounts'),
                 'auto_discount_percent'       => $validated['auto_discount_percent'] ?? null,       
                 'auto_discount_duration_days' => $validated['auto_discount_duration_days'] ?? null, 

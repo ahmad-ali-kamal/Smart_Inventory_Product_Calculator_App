@@ -139,8 +139,14 @@ class DiscountController extends Controller
             // ✅ جلب جميع بيانات الـ Variant من سلة
             $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
             $variantData    = $variantDetails['data'] ?? [];
-            $currentSku     = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+            // ✅ استخدام SKU: من variant أو من جدول Product
+            $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
             $currentPrice   = (float) ($variantData['price']['amount'] ?? $originalPrice);
+
+            if (!$currentSku) {
+                Log::warning('[Discount] لا يوجد SKU للـ variant - لا يمكن التحديث');
+                return response()->json(['success' => false, 'message' => 'لا يوجد SKU للـ variant'], 400);
+            }
             // ✅ جلب الكمية من جدول Product (حقل quantity)
             $currentStock   = (int) ($product->quantity ?? 0);
 
@@ -274,9 +280,14 @@ class DiscountController extends Controller
             // ✅ جلب جميع بيانات الـ Variant من سلة
             $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
             $variantData   = $variantDetails['data'] ?? [];
-            $currentSku    = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+            // ✅ استخدام SKU: من variant أو من جدول Product
+            $currentSku    = $variantData['sku'] ?? $product->sku ?? null;
             $currentPrice  = (float) ($variantData['price']['amount'] ?? $originalPrice);
             $currentStock  = (int) ($product->quantity ?? 0);
+
+            if (!$currentSku) {
+                continue; // تخطي إذا لا يوجد SKU
+            }
 
             // ✅ جلب باقي البيانات من variant
             $barcode     = $variantData['barcode'] ?? null;
@@ -349,9 +360,14 @@ class DiscountController extends Controller
                 // ✅ جلب جميع بيانات الـ Variant من سلة
                 $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
                 $variantData    = $variantDetails['data'] ?? [];
-                $currentSku     = $variantData['sku'] ?? $batch->batch_code ?? ('B-' . $batch->id);
+                // ✅ استخدام SKU: من variant أو من جدول Product
+                $currentSku     = $variantData['sku'] ?? $discount->product->sku ?? null;
                 $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
                 $currentStock   = (int) ($variantData['stock_quantity'] ?? 0);
+
+                if (!$currentSku) {
+                    Log::warning('[Discount] لا يوجد SKU لإلغاء الخصم');
+                } else {
 
                 // ✅ جلب باقي البيانات من variant
                 $barcode     = $variantData['barcode'] ?? null;
@@ -384,6 +400,8 @@ class DiscountController extends Controller
             );
 
             return response()->json(['success' => true, 'message' => 'تم إلغاء الخصم']);
+
+            } // close if at line 357
 
         } catch (\Exception $e) {
             Log::error('[Discount] فشل إلغاء الخصم: ' . $e->getMessage());
