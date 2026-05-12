@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CalendarPlus, Trash2, PlusCircle, CheckCircle, AlertCircle, Package } from 'lucide-react';
+import { X, CalendarPlus, Trash2, PlusCircle, CheckCircle, AlertCircle, Package, Layers, ExternalLink, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ── Toast style ──
@@ -36,6 +36,30 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     const [isDeleting, setIsDeleting]   = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    // ── Variants State ──
+    const [variants, setVariants] = useState([]);
+    const [variantsLoading, setVariantsLoading] = useState(false);
+    const [variantsLoaded, setVariantsLoaded] = useState(false);
+    const [linkedVariants, setLinkedVariants] = useState([]);
+    const [showOptionsQuestion, setShowOptionsQuestion] = useState(false);
+    const [optionsChecked, setOptionsChecked] = useState(false);
+    const [hasVariants, setHasVariants] = useState(null);
+    
+    // ── Check if quantity and date are entered (to show variants) ──
+    const canShowVariants = () => {
+        if (!selection) return false;
+        if (selection === 'yes') {
+            // Show after date is selected (quantity is totalQty from product)
+            return !!singleDate;
+        } else {
+            // Show after at least one batch has quantity AND date
+            const hasQty = batches.some(b => b.qty && parseInt(b.qty) > 0);
+            const hasDate = batches.some(b => b.date);
+            return hasQty && hasDate;
+        }
+    };
+    const showVariantsSection = canShowVariants();
+
     const totalQty   = product.quantity ?? product.dbQty ?? 0;
     const hasBatches = product.batches && product.batches.length > 0;
 
@@ -56,6 +80,114 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             })));
         }
     }, [hasBatches, product.batches]);
+
+    // ── Check for variants and ask about options (after quantity/date entered) ──
+    useEffect(() => {
+        if (!showVariantsSection || optionsChecked || variantsLoaded) return;
+        
+        const checkOptions = async () => {
+            setVariantsLoading(true);
+            try {
+                const token = getCsrfToken();
+                const res = await fetch(`/harees/api/products/${product.id}/check-options`, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include',
+                });
+                const data = await res.json();
+                setOptionsChecked(true);
+                
+                if (data.success) {
+                    setHasVariants(data.has_variants);
+                    
+                    if (!data.has_variants) {
+                        // No variants - ask the merchant
+                        setShowOptionsQuestion(true);
+                    } else {
+                        // Has variants - load them
+                        loadVariants();
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking options:', err);
+                setOptionsChecked(true);
+            } finally {
+                setVariantsLoading(false);
+            }
+        };
+        
+        checkOptions();
+    }, [showVariantsSection, product.id]);
+
+    // Load variants (combined form like "أحمر - XL")
+    const loadVariants = async () => {
+        try {
+            const token = getCsrfToken();
+            const res = await fetch(`/harees/api/products/${product.id}/variants`, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'include',
+            });
+            const data = await res.json();
+            
+            if (data.success && data.variants) {
+                setVariants(data.variants);
+            }
+            setVariantsLoaded(true);
+        } catch (err) {
+            console.error('Error loading variants:', err);
+            setVariantsLoaded(true);
+        }
+    };
+    
+    // Initialize linked variants for single batch
+    useEffect(() => {
+        if (variantsLoaded && hasVariants && variants.length > 0 && selection === 'yes' && linkedVariants.length === 0) {
+            setLinkedVariants(variants.map(v => ({
+                salla_variant_id: v.id,
+                variant_quantity: '',
+                name: v.name,
+                stock_quantity: v.unlimited_quantity ? 999999 : v.stock_quantity,
+                unlimited_quantity: v.unlimited_quantity,
+            })));
+        }
+    }, [variantsLoaded, hasVariants, selection]);
+
+    // Initialize linked variants for each batch
+    const initializeLinkedVariants = (batchId) => {
+        if (!variants.length) return [];
+        return variants.map(v => ({
+            batch_id: batchId,
+            salla_variant_id: v.id,
+            variant_quantity: '',
+            name: v.name,
+            stock_quantity: v.unlimited_quantity ? 999999 : v.stock_quantity,
+            unlimited_quantity: v.unlimited_quantity,
+        }));
+    };
+    
+    // Add linked variants state per batch (for multiple batches)
+    const [batchVariants, setBatchVariants] = useState({});
+
+    // حساب إجمالي الكميات الموزعة على الفاريينت
+    const totalVariantQty = linkedVariants.reduce((sum, v) => sum + (parseInt(v.variant_quantity) || 0), 0);
+    
+    // الحصول على كمية الباتش
+    const getBatchQty = () => {
+        if (selection === 'yes') {
+            return totalQty;
+        } else {
+            return batches.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
+        }
+    };
+    const batchQty = getBatchQty();
+    const remainingForVariants = batchQty - totalVariantQty;
 
     const usedQty = batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0);
     const remainingQty    = totalQty - usedQty;
@@ -98,6 +230,67 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     const validate = () => {
         if (!selection) return 'Please select an option first';
 
+        // ── التحقق من الفاريينت ──
+        if (hasVariants && variants.length > 0) {
+            if (selection === 'yes') {
+                // Single batch mode
+                const variantErrors = {};
+                let hasVariantWithQty = false;
+                
+                for (let i = 0; i < linkedVariants.length; i++) {
+                    const v = linkedVariants[i];
+                    const qty = parseInt(v.variant_quantity) || 0;
+                    
+                    if (qty > 0) {
+                        hasVariantWithQty = true;
+                        if (!v.unlimited_quantity && qty > v.stock_quantity) {
+                            variantErrors[`variant_${i}`] = `الكمية تتجاوز المخزون (${v.stock_quantity})`;
+                        }
+                    }
+                }
+                
+                if (Object.keys(variantErrors).length > 0) {
+                    setFieldErrors(prev => ({ ...prev, ...variantErrors }));
+                    return 'تجاوزت كميات بعض الخيارات المخزون المتاح';
+                }
+                
+                if (hasVariantWithQty && totalVariantQty !== batchQty) {
+                    return totalVariantQty > batchQty 
+                        ? `إجمالي quantities (${totalVariantQty}) يتجاوز كمية الدفعة (${batchQty})`
+                        : `لم يتم توزيع كل الكمية - باقي ${batchQty - totalVariantQty}`;
+                }
+            } else {
+                // Multiple batches mode - check each batch
+                const variantErrors = {};
+                
+                for (let b = 0; b < batches.length; b++) {
+                    const batch = batches[b];
+                    const batchQty = parseInt(batch.qty) || 0;
+                    const batchLinked = batchVariants[batch.id] || [];
+                    const batchTotal = batchLinked.reduce((sum, v) => sum + (parseInt(v.variant_quantity) || 0), 0);
+                    
+                    // Check each variant stock
+                    batchLinked.forEach((v, i) => {
+                        const qty = parseInt(v.variant_quantity) || 0;
+                        if (qty > 0 && !v.unlimited_quantity && qty > v.stock_quantity) {
+                            variantErrors[`batch_${batch.id}_variant_${v.salla_variant_id}`] = `تجاوز المخزون`;
+                        }
+                    });
+                    
+                    // Check total distribution
+                    const hasVariantWithQty = batchTotal > 0;
+                    if (hasVariantWithQty && batchTotal !== batchQty) {
+                        return `الدفعة ${b + 1}: يجب توزيع كامل الكمية (${batchTotal}/${batchQty})`;
+                    }
+                }
+                
+                if (Object.keys(variantErrors).length > 0) {
+                    setFieldErrors(prev => ({ ...prev, ...variantErrors }));
+                    return 'تجاوزت كميات بعض الخيارات المخزون المتاح';
+                }
+            }
+        }
+
         if (selection === 'yes') {
             if (!singleDate) return 'Please enter the expiry date';
 
@@ -137,6 +330,41 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
         setIsSaving(true);
         const payload = { product_id: product.id, same_expiry: selection === 'yes' };
+
+        // Add variants if they exist and have quantities
+        if (hasVariants && variants.length > 0) {
+            if (selection === 'yes') {
+                // Single batch mode
+                const variantsWithQty = linkedVariants.filter(v => v.variant_quantity && parseInt(v.variant_quantity) > 0);
+                if (variantsWithQty.length > 0) {
+                    payload.variants = variantsWithQty.map(v => ({
+                        salla_variant_id: v.salla_variant_id,
+                        variant_quantity: parseInt(v.variant_quantity),
+                    }));
+                }
+            } else {
+                // Multiple batches mode - each batch has its own variants
+                const allBatchVariants = [];
+                batches.forEach(batch => {
+                    const batchLinked = batchVariants[batch.id] || [];
+                    const batchVariantsWithQty = batchLinked.filter(v => v.variant_quantity && parseInt(v.variant_quantity) > 0);
+                    
+                    if (batchVariantsWithQty.length > 0) {
+                        allBatchVariants.push({
+                            batch_id: batch.id,
+                            variants: batchVariantsWithQty.map(v => ({
+                                salla_variant_id: v.salla_variant_id,
+                                variant_quantity: parseInt(v.variant_quantity),
+                            }))
+                        });
+                    }
+                });
+                
+                if (allBatchVariants.length > 0) {
+                    payload.batch_variants = allBatchVariants;
+                }
+            }
+        }
 
         if (selection === 'yes') {
             payload.single_batch = {
@@ -229,6 +457,198 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
                 {/* ── Body ── */}
                 <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+
+                    {/* ── Question: Does product have options? (show after quantity/date) ── */}
+                    {showVariantsSection && showOptionsQuestion && !variantsLoaded && (
+                        <div className="p-4 rounded-2xl bg-[var(--accent)]/10 border border-[var(--primary)]/15 space-y-3">
+                            <div className="flex items-start gap-3">
+                                <Layers size={20} className="text-[var(--primary)] flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-[var(--foreground)]">
+                                        هل المنتج له خيارات (مثل: حجم، لون)?
+                                    </p>
+                                    <p className="text-[11px] text-[var(--muted-foreground)] mt-1">
+                                        سيتم تطبيق الخصم على كل خيار بشكل منفصل
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                                <button
+                                    onClick={() => {
+                                        setShowOptionsQuestion(false);
+                                        window.open('https://salla.sa/dashboard/products', '_blank');
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                                >
+                                    <ExternalLink size={14} />
+                                    نعم - أضيف في سلة
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowOptionsQuestion(false);
+                                        setHasVariants(false);
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-[var(--muted)] text-[var(--muted-foreground)] hover:opacity-80 transition-opacity"
+                                >
+                                    لا - منتج واحد
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Loading variants ── */}
+                    {showVariantsSection && variantsLoading && (
+                        <div className="flex items-center justify-center py-4">
+                            <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs font-bold text-[var(--muted-foreground)] mr-2">جاري تحميل الخيارات...</span>
+                        </div>
+                    )}
+
+                    {/* ── Message: Enter quantity/date first (if selection made but no qty/date) ── */}
+                    {selection && !showVariantsSection && !showOptionsQuestion && (
+                        <div className="p-3 rounded-xl bg-[var(--accent)]/10 border border-[var(--primary)]/15 text-center">
+                            <p className="text-[11px] font-bold text-[var(--primary)]">
+                                ⏳ أدخل الكمية والتاريخ أولاًpara ver las opciones
+                            </p>
+                        </div>
+                    )}
+
+                    {/* ── Variant Selection (for each batch in multiple mode) ── */}
+                    {showVariantsSection && variantsLoaded && hasVariants && variants.length > 0 && selection === 'no' && (
+                        <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--border)] space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wide">الخيارات لكل دفعة</span>
+                                <span className="text-[10px] text-[var(--muted-foreground)]">{variants.length} فارينت</span>
+                            </div>
+                            
+                            {batches.map((batch, batchIdx) => {
+                                const batchQty = parseInt(batch.qty) || 0;
+                                const batchLinked = batchVariants[batch.id] || initializeLinkedVariants(batch.id);
+                                const batchVariantTotal = batchLinked.reduce((sum, v) => sum + (parseInt(v.variant_quantity) || 0), 0);
+                                
+                                return (
+                                    <div key={batch.id} className="border border-[var(--border)] rounded-xl overflow-hidden">
+                                        <div className="bg-[var(--secondary)]/30 px-3 py-2 border-b border-[var(--border)] flex justify-between items-center">
+                                            <span className="text-xs font-bold text-[var(--primary)]">الدفعة {batchIdx + 1}</span>
+                                            <span className="text-[10px] text-[var(--muted-foreground)]">الكمية: {batchQty}</span>
+                                        </div>
+                                        
+                                        <div className="p-2 space-y-2 max-h-[200px] overflow-y-auto">
+                                            {variants.map((variant) => {
+                                                const linkedIdx = batchLinked.findIndex(v => v.salla_variant_id === variant.id);
+                                                const linked = linkedIdx >= 0 ? batchLinked[linkedIdx] : null;
+                                                const hasError = linkedIdx >= 0 && fieldErrors[`batch_${batch.id}_variant_${variant.id}`];
+                                                const qty = linked ? parseInt(linked.variant_quantity) || 0 : 0;
+                                                
+                                                return (
+                                                    <div key={variant.id} className={`flex items-center gap-2 p-2 rounded-lg bg-[var(--background)] ${hasError ? 'border border-[var(--status-expired-text)]' : 'border border-[var(--border)]'}`}>
+                                                        <div className="flex-1">
+                                                            <p className="text-xs font-bold text-[var(--foreground)]">{variant.name}</p>
+                                                            <p className={`text-[9px] ${variant.unlimited_quantity ? 'text-[var(--status-safe-text)]' : 'text-[var(--muted-foreground)]'}`}>
+                                                                المخزون: {variant.unlimited_quantity ? 'غير محدود' : variant.stock_quantity}
+                                                            </p>
+                                                            {hasError && <p className="text-[9px] text-[var(--status-expired-text)]">{hasError}</p>}
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="0"
+                                                            min="0"
+                                                            max={variant.unlimited_quantity ? 99999 : variant.stock_quantity}
+                                                            value={linked?.variant_quantity || ''}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                setBatchVariants(prev => ({
+                                                                    ...prev,
+                                                                    [batch.id]: (prev[batch.id] || initializeLinkedVariants(batch.id)).map((v, i) => 
+                                                                        v.salla_variant_id === variant.id ? { ...v, variant_quantity: val } : v
+                                                                    )
+                                                                }));
+                                                                // Clear error
+                                                                if (fieldErrors[`batch_${batch.id}_variant_${variant.id}`]) {
+                                                                    setFieldErrors(prev => {
+                                                                        const next = { ...prev };
+                                                                        delete next[`batch_${batch.id}_variant_${variant.id}`];
+                                                                        return next;
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className={`w-20 p-1.5 rounded-lg text-xs font-bold text-center border bg-[var(--card)] text-[var(--foreground)] outline-none focus:border-[var(--primary)] ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        
+                                        {/* Batch variant total */}
+                                        <div className="flex justify-between items-center text-[10px] px-3 py-2 border-t border-[var(--border)] bg-[var(--accent)]/10">
+                                            <span className="text-[var(--muted-foreground)]">الموزّع:</span>
+                                            <span className={`font-bold ${batchVariantTotal > batchQty ? 'text-[var(--status-expired-text)]' : batchVariantTotal === batchQty ? 'text-[var(--status-safe-text)]' : 'text-[var(--foreground)]'}`}>
+                                                {batchVariantTotal} / {batchQty}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* ── Variant Selection (for single batch mode) ── */}
+                    {showVariantsSection && variantsLoaded && hasVariants && variants.length > 0 && selection === 'yes' && (
+                        <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--border)] space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wide">الخيارات والكميات</span>
+                                <span className="text-[10px] text-[var(--muted-foreground)]">{variants.length} فارينت</span>
+                            </div>
+                            
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                                {variants.map((variant, idx) => {
+                                    const linkedIdx = linkedVariants.findIndex(v => v.salla_variant_id === variant.id);
+                                    const linked = linkedIdx >= 0 ? linkedVariants[linkedIdx] : null;
+                                    const hasError = linkedIdx >= 0 && fieldErrors[`variant_${linkedIdx}`];
+                                    
+                                    return (
+                                        <div key={variant.id} className={`flex items-center gap-3 p-3 rounded-xl bg-[var(--background)] border ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-[var(--foreground)] truncate">{variant.name}</p>
+                                                <p className={`text-[9px] ${variant.unlimited_quantity ? 'text-[var(--status-safe-text)]' : 'text-[var(--muted-foreground)]'}`}>
+                                                    المخزون: {variant.unlimited_quantity ? 'غير محدود' : variant.stock_quantity}
+                                                </p>
+                                                {hasError && <p className="text-[9px] text-[var(--status-expired-text)]">{hasError}</p>}
+                                            </div>
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                min="0"
+                                                max={variant.unlimited_quantity ? 99999 : variant.stock_quantity}
+                                                value={linked?.variant_quantity || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                    setLinkedVariants(prev => prev.map((v, i) => 
+                                                        i === linkedIdx ? { ...v, variant_quantity: val } : v
+                                                    ));
+                                                    if (fieldErrors[`variant_${linkedIdx}`]) {
+                                                        setFieldErrors(prev => {
+                                                            const next = { ...prev };
+                                                            delete next[`variant_${linkedIdx}`];
+                                                            return next;
+                                                        });
+                                                    }
+                                                }}
+                                                className={`w-24 p-2 rounded-lg text-xs font-bold text-center border bg-[var(--card)] text-[var(--foreground)] outline-none focus:border-[var(--primary)] ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            
+                            <div className="flex justify-between items-center text-[10px] pt-2 border-t border-[var(--border)]">
+                                <span className="text-[var(--muted-foreground)]">الإجمالي:</span>
+                                <span className={`font-bold ${totalVariantQty > batchQty ? 'text-[var(--status-expired-text)]' : totalVariantQty === batchQty ? 'text-[var(--status-safe-text)]' : 'text-[var(--foreground)]'}`}>
+                                    {totalVariantQty} / {batchQty}
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
                     <p className="text-sm font-bold text-[var(--foreground)] text-center">
                         Do all quantities have the same expiry date?

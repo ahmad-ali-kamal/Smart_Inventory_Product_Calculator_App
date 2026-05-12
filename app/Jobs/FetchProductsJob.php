@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Services\SallaApiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -132,6 +133,114 @@ class FetchProductsJob implements ShouldQueue
             }
         }
         
+        // حفظ الفاريينت
+        $this->syncProductVariants($product);
+        
         Log::debug("Synced product ID: {$p['id']} - Name: {$p['name']} - Qty: {$p['quantity']}");
+    }
+    
+    /**
+     * مزامنة الفاريينت للمنتج وتخزينها
+     */
+    private function syncProductVariants(Product $product)
+    {
+        if (!$product->salla_product_id) return;
+        
+        try {
+            $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first() 
+                        ?? $this->merchant->sallaApps()->first();
+            
+            if (!$sallaApp || empty($sallaApp->access_token)) return;
+            
+            $sallaApi = new SallaApiService($this->merchant);
+            
+            // جلب الفاريينت
+            $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
+            $variants = $variantsResponse['data'] ?? [];
+            
+            if (empty($variants)) {
+                $product->update(['variants_data' => null]);
+                return;
+            }
+            
+            // نحتاج نجمع كل الـ option IDs من كل variants
+            $allOptionIds = [];
+            foreach ($variants as $v) {
+                foreach ($v['related_options'] ?? [] as $optId) {
+                    $allOptionIds[$optId] = true;
+                }
+            }
+            
+            // جلب الخيارات لأسماء القيم
+            $valueNames = [];
+            $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
+            $options = $optionsResponse['data'] ?? [];
+            
+            // من product options
+            foreach ($options as $option) {
+                $optionId = $option['id'] ?? null;
+                if (!$optionId) continue;
+                
+                $optionDetails = $sallaApi->getOptionDetails($optionId);
+                $optionData = $optionDetails['data'] ?? null;
+                
+                if ($optionData && isset($optionData['values'])) {
+                    foreach ($optionData['values'] as $value) {
+                        $valueNames[$value['id']] = $value['name'];
+                    }
+                }
+            }
+            
+            // من related_options في variants (إذا ما كانت موجودة)
+            foreach (array_keys($allOptionIds) as $optId) {
+                if (!isset($valueNames[$optId])) {
+                    try {
+                        $optionDetails = $sallaApi->getOptionDetails($optId);
+                        $optionData = $optionDetails['data'] ?? null;
+                        
+                        if ($optionData && isset($optionData['values'])) {
+                            foreach ($optionData['values'] as $value) {
+                                $valueNames[$value['id']] = $value['name'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // تجاهل
+                    }
+                }
+            }
+            
+            // تجهيز الفاريينت بشكل مدمج
+            $formattedVariants = array_map(function ($v) use ($valueNames) {
+                $optionNames = [];
+                foreach ($v['related_option_values'] ?? [] as $valueId) {
+                    if (isset($valueNames[$valueId])) {
+                        $optionNames[] = $valueNames[$valueId];
+                    }
+                }
+                
+                $displayName = implode(' - ', $optionNames);
+                if (empty($displayName)) {
+                    $displayName = $v['sku'] ?? 'فارينت ' . $v['id'];
+                }
+                
+                return [
+                    'id' => $v['id'],
+                    'sku' => $v['sku'] ?? null,
+                    'name' => $displayName,
+                    'price' => $v['price']['amount'] ?? 0,
+                    'stock_quantity' => $v['stock_quantity'] ?? 0,
+                    'unlimited_quantity' => $v['unlimited_quantity'] ?? false,
+                ];
+            }, $variants);
+            
+            // حفظ variants_data كـ JSON في قاعدة البيانات
+            $product->variants_data = $formattedVariants;
+            $product->save();
+            
+            Log::info("[FetchVariants] Saved " . count($formattedVariants) . " variants for product {$product->id}");
+            
+        } catch (\Exception $e) {
+            Log::warning("[FetchVariants] Failed for product {$product->id}: " . $e->getMessage());
+        }
     }
 }

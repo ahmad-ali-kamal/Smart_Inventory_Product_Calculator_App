@@ -16,12 +16,16 @@ class BatchItem extends Pivot
         'quantity',
         'unit_cost',
         'sold_quantity',
+        'salla_variant_id',
+        'variant_quantity',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
-        'sold_quantity' => 'integer',
-        'unit_cost' => 'decimal:2',
+        'quantity'          => 'integer',
+        'sold_quantity'    => 'integer',
+        'unit_cost'        => 'decimal:2',
+        'salla_variant_id' => 'integer',
+        'variant_quantity' => 'integer',
     ];
 
     protected $appends = [

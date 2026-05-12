@@ -23,14 +23,16 @@ class Product extends Model
         'category',
         'status',
         'metadata',
+        'variants_data',
         'synced_at',
     ];
 
     protected $casts = [
-        'price'     => 'decimal:2',
-        'quantity'  => 'integer',
-        'metadata'  => 'array',
-        'synced_at' => 'datetime',
+        'price'        => 'decimal:2',
+        'quantity'     => 'integer',
+        'metadata'     => 'array',
+        'variants_data' => 'array',
+        'synced_at'    => 'datetime',
     ];
 
     // ====================================================================
@@ -141,5 +143,32 @@ class Product extends Model
     public function getFormattedPriceAttribute(): string
     {
         return number_format($this->price, 2) . ' ر.س';
+    }
+
+    public function getVariantsDataAttribute($value)
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value) && !empty($value)) {
+            return json_decode($value, true) ?? [];
+        }
+        return [];
+    }
+
+    public function hasVariants(): bool
+    {
+        return !empty($this->variants_data);
+    }
+
+    public function getVariantById(int $variantId): ?array
+    {
+        $variants = $this->variants_data ?? [];
+        foreach ($variants as $variant) {
+            if (($variant['id'] ?? null) == $variantId) {
+                return $variant;
+            }
+        }
+        return null;
     }
 }
