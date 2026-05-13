@@ -11,8 +11,10 @@ export default function Settings() {
 
     const {
         isLoading, isError, error, refetch,
-        coverage, waste, errors, isSaving,
-        handleCoverageChange, handleWasteChange, handleSave,
+        waste, unitType, minInputArea, maxInputArea,
+        errors, isSaving,
+        handleWasteChange, handleUnitTypeChange,
+        handleMinAreaChange, handleMaxAreaChange, handleSave,
     } = useSettingsForm();
 
     if (isLoading) {
@@ -23,12 +25,16 @@ export default function Settings() {
         <PageShell isError={isError} error={error} onRetry={refetch}>
             <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
                 <SettingsForm
-                    coverage={coverage}
                     waste={waste}
+                    unitType={unitType}
+                    minInputArea={minInputArea}
+                    maxInputArea={maxInputArea}
                     errors={errors}
                     isSaving={isSaving}
-                    onCoverageChange={handleCoverageChange}
                     onWasteChange={handleWasteChange}
+                    onUnitTypeChange={handleUnitTypeChange}
+                    onMinAreaChange={handleMinAreaChange}
+                    onMaxAreaChange={handleMaxAreaChange}
                     onSave={handleSave}
                 />
             </div>

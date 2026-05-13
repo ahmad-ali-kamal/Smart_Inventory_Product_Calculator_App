@@ -125,31 +125,32 @@ class ProductCalculatorController extends Controller
      * عرض قائمة المنتجات في لوحة تحكم المستشار
      */
     public function index(Request $request)
-{
-    $merchant = Auth::user();
+    {
+        $merchant = Auth::user();
 
-    $products = Product::where('merchant_id', $merchant->id)
-        ->with(['calculator', 'mainImage'])
-        ->orderBy('name')
-        ->get()
-        ->map(function ($product) {
-            return [
-                'id' => $product->id,
-                'salla_product_id' => $product->salla_product_id,
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'price' => (float) $product->price,
-                'quantity' => $product->quantity,
-                'category' => $product->category ?? 'Uncategorized',
-                'image' => $product->image_url,
-                'active' => (bool) optional($product->calculator)->is_enabled,
-            ];
-        });
+        $products = Product::where('merchant_id', $merchant->id)
+            ->with(['calculator', 'mainImage'])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'salla_product_id' => $product->salla_product_id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'price' => (float) $product->price,
+                    'quantity' => $product->quantity,
+                    'category' => $product->category ?? 'Uncategorized',
+                    'image' => $product->image_url,
+                    'active' => (bool) optional($product->calculator)->is_enabled,
+                    'coverage_per_unit' => $product->calculator?->coverage_per_unit,
+                ];
+            });
 
-    return response()->json([
-        'data' => $products,
-    ]);
-}
+        return response()->json([
+            'data' => $products,
+        ]);
+    }
 
     /**
      * ✅ إصلاح: تفعيل/إيقاف الآلة الحاسبة (Toggle) بأسلوب آمن
@@ -195,10 +196,35 @@ class ProductCalculatorController extends Controller
         } catch (\Exception $e) {
             Log::error("Toggle Error for Product ID {$id}: " . $e->getMessage());
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * تحديث coverage_per_unit لمنتج واحد
+     */
+    public function updateCoverage(Request $request, $id)
+    {
+        $merchant = Auth::user();
+
+        $validated = $request->validate([
+            'coverage_per_unit' => 'required|numeric|min:0.0001',
+        ]);
+
+        $product = Product::where('id', $id)
+            ->where('merchant_id', $merchant->id)
+            ->firstOrFail();
+
+        $calculator = ProductCalculator::firstOrCreate(['product_id' => $product->id]);
+        $calculator->coverage_per_unit = (float) $validated['coverage_per_unit'];
+        $calculator->save();
+
+        return response()->json([
+            'success' => true,
+            'coverage_per_unit' => $calculator->coverage_per_unit,
+        ]);
     }
 
     /**

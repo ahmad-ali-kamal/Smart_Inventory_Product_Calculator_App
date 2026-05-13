@@ -12,37 +12,52 @@ class CalculatorSetting extends Model
 
     protected $fillable = [
         'merchant_id',
-        'coverage_per_unit',
         'waste_percentage',
+        'unit_type',
+        'min_input_area',
+        'max_input_area',
     ];
 
     protected $casts = [
-        'coverage_per_unit' => 'decimal:2',
         'waste_percentage' => 'decimal:2',
+        'min_input_area' => 'decimal:4',
+        'max_input_area' => 'decimal:4',
     ];
 
-    // Relationships
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
-    // Methods
-    public function calculateRequiredUnits(float $customerNeed): float
+    public function calculateRequiredUnits(float $customerNeed, float $coveragePerUnit): float
     {
         $withWaste = $customerNeed * (1 + ($this->waste_percentage / 100));
-        return $withWaste / $this->coverage_per_unit;
+        return $withWaste / $coveragePerUnit;
     }
 
-    public function calculateTotalCoverage(int $units): float
+    public function calculateTotalCoverage(int $units, float $coveragePerUnit): float
     {
-        return $units * $this->coverage_per_unit;
+        return $units * $coveragePerUnit;
     }
 
-    public function calculateActualCoverage(int $units): float
+    public function calculateActualCoverage(int $units, float $coveragePerUnit): float
     {
-        $total = $this->calculateTotalCoverage($units);
+        $total = $this->calculateTotalCoverage($units, $coveragePerUnit);
         $waste = $total * ($this->waste_percentage / 100);
         return $total - $waste;
+    }
+
+    public function getAreaLimits(): array
+    {
+        return [
+            'min' => (float) ($this->min_input_area ?? 0.01),
+            'max' => (float) ($this->max_input_area ?? 999999),
+        ];
+    }
+
+    public function isValidArea(float $area): bool
+    {
+        $limits = $this->getAreaLimits();
+        return $area >= $limits['min'] && $area <= $limits['max'];
     }
 }

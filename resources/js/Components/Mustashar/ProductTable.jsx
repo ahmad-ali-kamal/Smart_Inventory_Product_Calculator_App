@@ -1,7 +1,7 @@
 // resources/js/Components/Mustashar/ProductTable.jsx
 
-const COLS_WITH_PREVIEW    = 'grid-cols-[280px_1fr_1fr_1fr_1fr]';
-const COLS_WITHOUT_PREVIEW = 'grid-cols-[280px_1fr_1fr_1fr]';
+const COLS_WITH_PREVIEW    = 'grid-cols-[280px_1fr_1fr_1fr_1fr_1fr]';
+const COLS_WITHOUT_PREVIEW = 'grid-cols-[280px_1fr_1fr_1fr_1fr]';
 
 export default function ProductTable({ children, empty, showPreview = false }) {
     const hasChildren = Array.isArray(children)
@@ -25,13 +25,15 @@ export default function ProductTable({ children, empty, showPreview = false }) {
                     Category
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
+                    Unit Coverage
+                </span>
+                <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
                     Status
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
                     Active
                 </span>
 
-                {/* عمود Preview — يظهر بس لما showPreview=true */}
                 {showPreview && (
                     <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
                         Preview

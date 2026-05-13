@@ -1,18 +1,13 @@
-// hooks/useSettingsForm.js
+// resources/js/Hooks/useSettingsForm.js
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import {
     useCalculatorSettings,
     useUpdateCalculatorSettings,
 } from "./useProducts";
-import {
-    COVERAGE_MIN, COVERAGE_MAX,
-    WASTE_MIN, WASTE_MAX,
-    validateFields,
-} from "../constants/calculatorSettings";
+import { WASTE_MIN, WASTE_MAX, validateFields } from "../constants/calculatorSettings";
 
 export function useSettingsForm() {
-    // ── Server state (React Query) ──────────────────────────────────────────
     const {
         data: settings,
         isLoading,
@@ -21,37 +16,46 @@ export function useSettingsForm() {
         refetch,
     } = useCalculatorSettings();
 
-    // ── Local form state ────────────────────────────────────────────────────
-    const [coverage, setCoverage] = useState("8");
     const [waste, setWaste] = useState("10");
+    const [unitType, setUnitType] = useState("m2");
+    const [minInputArea, setMinInputArea] = useState("");
+    const [maxInputArea, setMaxInputArea] = useState("");
     const [errors, setErrors] = useState({});
 
-    // Hydrate form once server data arrives (or changes)
     useEffect(() => {
         if (settings) {
-            setCoverage(String(settings.coverage ?? 8));
             setWaste(String(settings.waste ?? 10));
+            setUnitType(settings.unit_type || "m2");
+            setMinInputArea(settings.min_input_area !== null ? String(settings.min_input_area) : "");
+            setMaxInputArea(settings.max_input_area !== null ? String(settings.max_input_area) : "");
         }
     }, [settings]);
 
-    // ── Mutation ────────────────────────────────────────────────────────────
     const updateSettings = useUpdateCalculatorSettings();
     const isSaving = updateSettings.isPending;
-
-    // ── Handlers ────────────────────────────────────────────────────────────
-    function handleCoverageChange(e) {
-        setCoverage(e.target.value);
-        if (errors.coverage)
-            setErrors((prev) => ({ ...prev, coverage: undefined }));
-    }
 
     function handleWasteChange(e) {
         setWaste(e.target.value);
         if (errors.waste) setErrors((prev) => ({ ...prev, waste: undefined }));
     }
 
+    function handleUnitTypeChange(e) {
+        setUnitType(e.target.value);
+        if (errors.unit_type) setErrors((prev) => ({ ...prev, unit_type: undefined }));
+    }
+
+    function handleMinAreaChange(e) {
+        setMinInputArea(e.target.value);
+        if (errors.min_input_area) setErrors((prev) => ({ ...prev, min_input_area: undefined }));
+    }
+
+    function handleMaxAreaChange(e) {
+        setMaxInputArea(e.target.value);
+        if (errors.max_input_area) setErrors((prev) => ({ ...prev, max_input_area: undefined }));
+    }
+
     async function handleSave() {
-        const fieldErrors = validateFields(coverage, waste);
+        const fieldErrors = validateFields(waste, unitType, minInputArea, maxInputArea);
 
         if (Object.keys(fieldErrors).length > 0) {
             setErrors(fieldErrors);
@@ -63,14 +67,15 @@ export function useSettingsForm() {
 
         try {
             await updateSettings.mutateAsync({
-                coverage: parseFloat(coverage),
-                waste: parseFloat(waste),
+                waste_percentage: parseFloat(waste),
+                unit_type: unitType,
+                min_input_area: minInputArea ? parseFloat(minInputArea) : null,
+                max_input_area: maxInputArea ? parseFloat(maxInputArea) : null,
             });
             toast.success("Settings saved successfully.");
         } catch (err) {
             const serverMsg =
                 err?.response?.data?.message ||
-                err?.response?.data?.errors?.coverage_per_unit?.[0] ||
                 err?.response?.data?.errors?.waste_percentage?.[0] ||
                 "Failed to save settings. Please try again.";
             toast.error(serverMsg);
@@ -78,19 +83,20 @@ export function useSettingsForm() {
     }
 
     return {
-        // Query state
         isLoading,
         isError,
         error,
         refetch,
-        // Form state
-        coverage,
         waste,
+        unitType,
+        minInputArea,
+        maxInputArea,
         errors,
         isSaving,
-        // Handlers
-        handleCoverageChange,
         handleWasteChange,
+        handleUnitTypeChange,
+        handleMinAreaChange,
+        handleMaxAreaChange,
         handleSave,
     };
 }

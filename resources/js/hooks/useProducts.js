@@ -157,12 +157,14 @@ export function useUpdateCalculatorSettings() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ coverage, waste }) => {
+        mutationFn: async ({ waste_percentage, unit_type, min_input_area, max_input_area }) => {
             const { data } = await axios.post(
                 "/mustashar/api/calculator-settings",
                 {
-                    coverage_per_unit: coverage,
-                    waste_percentage: waste,
+                    waste_percentage,
+                    unit_type,
+                    min_input_area,
+                    max_input_area,
                 },
             );
             return data;
@@ -170,9 +172,36 @@ export function useUpdateCalculatorSettings() {
 
         onSuccess: (data) => {
             queryClient.setQueryData(["calculator-settings"], {
-                coverage: data.coverage,
                 waste: data.waste,
+                unit_type: data.unit_type,
+                min_input_area: data.min_input_area,
+                max_input_area: data.max_input_area,
                 configured: data.configured,
+            });
+        },
+    });
+}
+
+export function useUpdateProductCoverage() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ productId, coverage_per_unit }) => {
+            const { data } = await axios.post(
+                `/mustashar/api/products/${productId}/coverage`,
+                { coverage_per_unit }
+            );
+            return data;
+        },
+
+        onSuccess: (_, variables) => {
+            queryClient.setQueryData(QUERY_KEYS.products, (old) => {
+                if (!old) return old;
+                return old.map((p) =>
+                    p.id === variables.productId
+                        ? { ...p, coverage_per_unit: variables.coverage_per_unit }
+                        : p
+                );
             });
         },
     });

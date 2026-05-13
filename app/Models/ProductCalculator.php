@@ -15,19 +15,19 @@ class ProductCalculator extends Model
     protected $fillable = [
         'product_id',
         'is_enabled',
+        'coverage_per_unit',
     ];
 
     protected $casts = [
         'is_enabled' => 'boolean',
+        'coverage_per_unit' => 'decimal:2',
     ];
 
-    // Relationships
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    // Methods
     public function enable(): bool
     {
         $this->is_enabled = true;
@@ -46,7 +46,6 @@ class ProductCalculator extends Model
         return $this->save();
     }
 
-    // Scopes
     public function scopeEnabled($query)
     {
         return $query->where('is_enabled', true);
@@ -55,5 +54,10 @@ class ProductCalculator extends Model
     public function scopeDisabled($query)
     {
         return $query->where('is_enabled', false);
+    }
+
+    public function getCoveragePerUnit(float $default = 1.0): float
+    {
+        return (float) ($this->coverage_per_unit ?? $default);
     }
 }
