@@ -1,4 +1,28 @@
-// resources/js/Components/Harees/ProductRow.jsx
+/**
+ * @file ProductRow.jsx
+ * @module Components/Harees/Dashboard
+ *
+ * @description
+ * Renders a single product row inside the MonitoredProductsTable.
+ * The row is interactive: clicking "View Batches" toggles an animated
+ * accordion beneath the product row that mounts the BatchRow component.
+ *
+ * Layout (4-column table):
+ *   [Product] [Status] [Expiry Info – empty at product level] [Actions]
+ *
+ * The Expiry Info cell is intentionally left blank at the product level;
+ * per-batch expiry dates are shown inside the expanded BatchRow accordion.
+ */
+
+// ─── i18n strings ────────────────────────────────────────────────────────────
+// Move these values to your JSON translation file and replace this object with
+// a `useTranslation` call (or equivalent) when you are ready.
+const t = {
+    btn_view_batches: 'View Batches',
+    btn_hide_batches: 'Hide Batches',
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
 import RowActionButton from '../../Common/RowActionButton';
@@ -6,14 +30,43 @@ import BatchRow from './BatchRow';
 import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
 
+/**
+ * ProductRow
+ *
+ * A table-row pair: the primary product row and a hidden accordion row that
+ * reveals batch-level details when the merchant clicks "View Batches".
+ *
+ * @component
+ *
+ * @param {Object}  props
+ * @param {Object}  props.product               - Product data object.
+ * @param {number}  props.product.id            - Unique product identifier.
+ * @param {string}  props.product.name          - Display name of the product.
+ * @param {string}  [props.product.image_url]   - Remote image URL (preferred).
+ * @param {string}  [props.product.image]       - Fallback image path.
+ * @param {string}  props.product.salla_product_id - External Salla platform ID shown as a sub-label.
+ * @param {string}  props.product.status        - Aggregate product status ("red"|"yellow"|"green"|…).
+ * @param {Array}   props.product.batches       - Array of batch objects belonging to this product.
+ * @param {boolean} props.autoDiscount          - Forwarded to BatchRow to conditionally render
+ *                                               the "Auto-Discount Enabled" badge vs. the manual
+ *                                               discount button.
+ * @returns {JSX.Element} A React fragment containing two <tr> elements.
+ */
 export default function ProductRow({ product, autoDiscount }) {
+    /**
+     * Controls accordion visibility.
+     * `false` = batches hidden (default), `true` = batches expanded.
+     *
+     * @type {[boolean, Function]}
+     */
     const [showBatches, setShowBatches] = useState(false);
 
     return (
         <>
+            {/* ── Primary product row ──────────────────────────────────────── */}
             <tr className="group hover:bg-[var(--accent)]/5 transition-all border-b border-[var(--border)]">
 
-                {/* Product */}
+                {/* Cell 1: Product avatar + name + Salla ID */}
                 <td className="py-3.5 px-4 w-[25%]">
                     <div className="flex items-center gap-2.5">
                         <ProductAvatar
@@ -25,6 +78,7 @@ export default function ProductRow({ product, autoDiscount }) {
                             <span className="font-bold text-[var(--foreground)] text-[12px] leading-tight">
                                 {product.name}
                             </span>
+                            {/* Monospaced external ID for quick scanning */}
                             <span className="text-[10px] text-[var(--muted-foreground)] font-mono opacity-80">
                                 {product.salla_product_id}
                             </span>
@@ -32,21 +86,23 @@ export default function ProductRow({ product, autoDiscount }) {
                     </div>
                 </td>
 
-                {/* Status */}
+                {/* Cell 2: Aggregate product status badge */}
                 <td className="py-3.5 px-4 text-center w-[20%]">
                     <StatusBadge status={product.status} size="md" />
                 </td>
 
-                {/* Expiry — empty at product level */}
+                {/* Cell 3: Expiry info — intentionally blank at the product level;
+                    per-batch dates appear in the expanded accordion below. */}
                 <td className="py-3.5 px-4 text-center w-[30%]" />
 
-                {/* Actions */}
+                {/* Cell 4: Toggle button to show/hide the batch accordion */}
                 <td className="py-3.5 px-4 w-[25%]">
                     <div className="flex justify-center">
                         <RowActionButton
                             onClick={() => setShowBatches(!showBatches)}
                             variant={showBatches ? 'active' : 'default'}
                             icon={
+                                /* Rotate the Eye icon 180° when expanded to hint at collapse */
                                 <Eye
                                     size={12}
                                     className={`transition-transform duration-300 ${showBatches ? 'rotate-180' : ''}`}
@@ -54,13 +110,18 @@ export default function ProductRow({ product, autoDiscount }) {
                             }
                             className="w-[120px] h-[32px]"
                         >
-                            {showBatches ? 'Hide' : 'View'} Batches
+                            {showBatches ? t.btn_hide_batches : t.btn_view_batches}
                         </RowActionButton>
                     </div>
                 </td>
             </tr>
 
-            {/* Expandable batches row */}
+            {/* ── Accordion / expandable batch row ────────────────────────────
+                Uses CSS grid-rows transition (0fr → 1fr) for a smooth
+                height animation without JavaScript layout calculations.
+                `overflow-hidden` on the inner div is required for the
+                grid-rows trick to clip the content while animating.
+            ─────────────────────────────────────────────────────────────── */}
             <tr>
                 <td colSpan="4" className="p-0 border-none">
                     <div className={`grid transition-all duration-500 ease-in-out ${
