@@ -1,7 +1,7 @@
 // resources/js/Components/Mustashar/ProductRow.jsx
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
-import { ExternalLink, Pencil, Check, X } from 'lucide-react';
+import { ExternalLink, Pencil } from 'lucide-react'; // Added Pencil icon
 import RowActionButton from '../Common/RowActionButton';
 import Toggle from "../Common/Toggle";
 import ProductAvatar from "../Common/ProductAvatar";
@@ -14,8 +14,9 @@ export default function ProductRow({ product, onToggle, fading = false, showPrev
     const { auth } = usePage().props;
     const updateCoverage = useUpdateProductCoverage();
 
-    const [isEditing, setIsEditing] = useState(false);
-    const [coverageValue, setCoverageValue] = useState(product.coverage_per_unit ?? '');
+    const [isEditing, setIsEditing]     = useState(false);
+    const [coverageValue, setCoverage]  = useState(product.coverage_per_unit ?? '');
+    const inputRef                      = useRef(null);
 
     const sallaMerchantId = auth?.user?.salla_merchant_id;
     const sallaProductId  = product.salla_product_id;
@@ -35,19 +36,24 @@ export default function ProductRow({ product, onToggle, fading = false, showPrev
         ? `${product.coverage_per_unit}`
         : '—';
 
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+        }
+    }, [isEditing]);
+
     const handleEditStart = () => {
-        setCoverageValue(product.coverage_per_unit ?? '');
+        setCoverage(product.coverage_per_unit ?? '');
         setIsEditing(true);
     };
 
-    const handleEditSave = async () => {
+    const handleSave = async () => {
         const value = parseFloat(coverageValue);
         if (isNaN(value) || value <= 0) {
-            setIsEditing(false);
-            setCoverageValue(product.coverage_per_unit ?? '');
+            handleCancel();
             return;
         }
-
         try {
             await updateCoverage.mutateAsync({
                 productId: product.id,
@@ -56,13 +62,17 @@ export default function ProductRow({ product, onToggle, fading = false, showPrev
         } catch (err) {
             console.error('Failed to update coverage:', err);
         }
-
         setIsEditing(false);
     };
 
-    const handleEditCancel = () => {
+    const handleCancel = () => {
         setIsEditing(false);
-        setCoverageValue(product.coverage_per_unit ?? '');
+        setCoverage(product.coverage_per_unit ?? '');
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter')  handleSave();
+        if (e.key === 'Escape') handleCancel();
     };
 
     return (
@@ -99,99 +109,79 @@ export default function ProductRow({ product, onToggle, fading = false, showPrev
                 </span>
             </div>
 
-            {/* Unit Coverage - Editable */}
-            <div className="flex justify-center items-center gap-1">
-                {isEditing ? (
-                    <>
+            {/* Unit Coverage Input */}
+            <div className="flex justify-center items-center">
+                <div className="relative flex items-center gap-2 group">
+                    {isEditing ? (
                         <input
+                            ref={inputRef}
                             type="number"
                             value={coverageValue}
-                            onChange={(e) => setCoverageValue(e.target.value)}
-                            className="w-16 px-2 py-1 text-[11px] font-bold text-center border border-[var(--border)] rounded-lg bg-[var(--background)]"
+                            onChange={(e) => setCoverage(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onBlur={handleSave}
                             step="0.01"
                             min="0"
-                            autoFocus
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleEditSave();
-                                if (e.key === 'Escape') handleEditCancel();
+                            /* Inline styles to hide spin buttons for cross-browser compatibility */
+                            style={{
+                                width: '64px',
+                                textAlign: 'center',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: 'var(--primary)',
+                                background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                                border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                                borderRadius: '8px',
+                                padding: '4px 8px',
+                                outline: 'none',
+                                MozAppearance: 'textfield',
+                                WebkitAppearance: 'none',
+                                appearance: 'textfield',
                             }}
                         />
-                        <button
-                            onClick={handleEditSave}
-                            className="p-1 text-emerald-500 hover:text-emerald-600"
-                            title="Save"
-                        >
-                            <Check size={12} />
-                        </button>
-                        <button
-                            onClick={handleEditCancel}
-                            className="p-1 text-red-400 hover:text-red-500"
-                            title="Cancel"
-                        >
-                            <X size={12} />
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <span className="text-[11px] font-bold text-[var(--primary)] font-mono">
-                            {coverageDisplay}
-                        </span>
-                        <button
-                            onClick={handleEditStart}
-                            className="p-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                            title="Edit coverage"
-                        >
-                            <Pencil size={10} />
-                        </button>
-                    </>
-                )}
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold font-mono text-[var(--primary)]">
+                                {coverageDisplay}
+                            </span>
+                            <button
+                                onClick={handleEditStart}
+                                className="p-1 text-[var(--muted-foreground)] opacity-40 hover:opacity-100 hover:text-[var(--primary)] transition-all"
+                                title="Edit coverage"
+                            >
+                                <Pencil size={12} strokeWidth={2.5} />
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* Active status dot */}
+            {/* Status */}
             <div className="flex justify-center items-center gap-2">
                 <span
                     className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
-                        product.active
-                            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                            : 'bg-gray-300'
+                        product.active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-gray-300'
                     }`}
                 />
-                <span
-                    className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-500 ${
-                        product.active ? 'text-emerald-600' : 'text-[var(--muted-foreground)]'
-                    }`}
-                >
+                <span className={`text-[10px] font-black uppercase tracking-widest ${product.active ? 'text-emerald-600' : 'text-[var(--muted-foreground)]'}`}>
                     {product.active ? 'active' : 'inactive'}
                 </span>
             </div>
 
             {/* Toggle */}
             <div className="flex justify-center">
-                <Toggle
-                    checked={product.active}
-                    onChange={() => onToggle(product.id)}
-                />
+                <Toggle checked={product.active} onChange={() => onToggle(product.id)} />
             </div>
 
-            {/* Preview — only rendered when showPreview=true */}
+            {/* Preview link */}
             {showPreview && (
                 <div className="flex justify-center">
                     {previewUrl ? (
-                        <RowActionButton
-                            href={previewUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            variant="active"
-                            icon={<ExternalLink size={11} />}
-                        >
+                        <RowActionButton href={previewUrl} target="_blank" variant="active" icon={<ExternalLink size={11} />}>
                             Preview
                         </RowActionButton>
                     ) : (
-                        <RowActionButton
-                            variant="disabled"
-                            icon={<ExternalLink size={11} />}
-                            title="بيانات الرابط غير مكتملة"
-                        >
+                        <RowActionButton variant="disabled" icon={<ExternalLink size={11} />}>
                             Preview
                         </RowActionButton>
                     )}

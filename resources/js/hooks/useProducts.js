@@ -118,21 +118,21 @@ export function useToggleProduct() {
 // ─────────────────────────────────────────────────────────────────────────────
 // useUpdateCalcRules  →  used by Settings page (future)
 // ─────────────────────────────────────────────────────────────────────────────
-export function useUpdateCalcRules() {
-    const queryClient = useQueryClient();
+function useCalcRules() {
+    const { data: settings } = useCalculatorSettings();
 
-    return useMutation({
-        mutationFn: updateCalcRulesApi,
-        onSuccess: (updatedRules) => {
-            queryClient.setQueryData(QUERY_KEYS.products, (old) => {
-                if (!old) return old;
-                return {
-                    ...old,
-                    meta: { ...old.meta, calcRules: updatedRules },
-                };
-            });
+    // Return empty array if no settings to avoid rendering anything
+    if (!settings || settings.waste === undefined || settings.waste === null) {
+        return [];
+    }
+
+    /* Return ONLY waste percentage to remove the NaN/Coverage badge */
+    return [
+        {
+            label: "Waste",
+            value: `${Number(settings.waste).toFixed(0)}% waste`,
         },
-    });
+    ];
 }
 
 export function useCalculatorSettings() {
@@ -157,7 +157,12 @@ export function useUpdateCalculatorSettings() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ waste_percentage, unit_type, min_input_area, max_input_area }) => {
+        mutationFn: async ({
+            waste_percentage,
+            unit_type,
+            min_input_area,
+            max_input_area,
+        }) => {
             const { data } = await axios.post(
                 "/mustashar/api/calculator-settings",
                 {
@@ -189,7 +194,7 @@ export function useUpdateProductCoverage() {
         mutationFn: async ({ productId, coverage_per_unit }) => {
             const { data } = await axios.post(
                 `/mustashar/api/products/${productId}/coverage`,
-                { coverage_per_unit }
+                { coverage_per_unit },
             );
             return data;
         },
@@ -199,8 +204,11 @@ export function useUpdateProductCoverage() {
                 if (!old) return old;
                 return old.map((p) =>
                     p.id === variables.productId
-                        ? { ...p, coverage_per_unit: variables.coverage_per_unit }
-                        : p
+                        ? {
+                              ...p,
+                              coverage_per_unit: variables.coverage_per_unit,
+                          }
+                        : p,
                 );
             });
         },

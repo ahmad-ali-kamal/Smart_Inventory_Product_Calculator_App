@@ -99,39 +99,39 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
         ...labelStyle,
         color: variantStyle.textVar,
     } : labelStyle;
+/* --- Settings card section inside StatCard.jsx --- */
 
-    /* ─── Settings card ─── */
-    if (type === 'settings_preview') {
-        return (
-            <div style={card} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-                <div style={iconWrap}>
-                    <Settings style={{ width: '15px', height: '15px' }} strokeWidth={2} />
-                </div>
+if (type === 'settings_preview') {
+    return (
+        <div style={card} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+            <div style={iconWrap}>
+                <Settings style={{ width: '15px', height: '15px' }} strokeWidth={2} />
+            </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <p style={labelStyle}>Calculator Logic</p>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            {rules?.length
-                                ? rules.map((rule) => (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <p style={labelStyle}>Calculator Logic</p>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {/* Filter rules to remove null, undefined, or NaN values before mapping */}
+                        {rules && rules.length > 0 ? (
+                            rules
+                                .filter(rule => rule.value && !rule.value.includes('NaN'))
+                                .map((rule) => (
                                     <PurpleBadge key={rule.label}>
                                         {rule.value}
                                     </PurpleBadge>
                                 ))
-                                : (
-                                    <>
-                                        <PurpleBadge>8.00 m²</PurpleBadge>
-                                        <PurpleBadge>10% waste</PurpleBadge>
-                                    </>
-                                )
-                            }
-                        </div>
+                        ) : (
+                            /* Fallback if no valid rules exist */
+                            <PurpleBadge>Default Settings</PurpleBadge>
+                        )}
                     </div>
-                    {children && <div>{children}</div>}
                 </div>
+                {children && <div>{children}</div>}
             </div>
-        );
-    }
+        </div>
+    );
+}
 
     /* ─── Default stat card (مع دعم variant) ─── */
     return (
