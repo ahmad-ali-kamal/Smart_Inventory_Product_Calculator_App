@@ -1,8 +1,28 @@
-// hooks/useInventorySettingsForm.js
-//
-// Single Responsibility: own every piece of state and logic for the
-// Harees Settings page. The page component becomes a pure render tree.
-//
+/**
+ * @file useInventorySettingsForm.js
+ * @module Hooks
+ *
+ * @description
+ * Custom React hook that owns the complete lifecycle of the Harees Inventory
+ * Settings form.
+ *
+ * Responsibilities:
+ *  - Fetches current settings from the server via React Query (`useInventorySettings`).
+ *  - Hydrates five local state slices once server data arrives.
+ *  - Validates numeric inputs against `FIELD_RULES` and accumulates per-field errors.
+ *  - Manages automation toggles and drag-and-drop category reassignment.
+ *  - Derives `activeErrors` — suppressing discount errors when the autoDiscount
+ *    toggle is off — to prevent the save button from being blocked by hidden fields.
+ *  - Persists form state via `useUpdateInventorySettings` and surfaces
+ *    success / error feedback through react-hot-toast.
+ *
+ * Separation of concerns:
+ *  - Server state  → React Query (caching, refetching, mutations).
+ *  - UI form state → useState (controlled inputs, toggles, drag state).
+ *  - Derived state → useMemo (activeErrors).
+ *  - Side effects  → toast notifications only.
+ */
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
@@ -20,13 +40,42 @@ import {
     hydrateFromServer,
 } from "../constants/inventorySettings";
 
-// Maps group name → its state setter key
-// Prevents silent failures if an unknown group is passed
+// ---------------------------------------------------------------------------
+// Group → setter key mapping
+// Used by handleInputChange to route field updates to the correct state slice.
+// Explicit map prevents silent failures when an unknown group name is passed.
+// ---------------------------------------------------------------------------
 const GROUP_SETTERS = {
     thresholds: "setThresholds",
     discount: "setDiscountConfig",
 };
 
+/**
+ * Manages form state, validation, drag-and-drop, and server synchronisation
+ * for the Harees Inventory Settings page.
+ *
+ * @returns {{
+ *   isLoading:        boolean,
+ *   isError:          boolean,
+ *   error:            Error|null,
+ *   refetch:          function,
+ *   thresholds:       { short: number|string, medium: number|string, long: number|string },
+ *   automation:       { autoHide: boolean, autoDiscount: boolean },
+ *   discountConfig:   { percent: number|string, durationDays: number|string },
+ *   categories:       { short: string[], medium: string[], long: string[] },
+ *   unassigned:       string[],
+ *   errors:           Record<string, string>,
+ *   saving:           boolean,
+ *   saved:            boolean,
+ *   saveError:        string|null,
+ *   hasActiveErrors:  boolean,
+ *   handleInputChange: function,
+ *   handleToggle:      function,
+ *   handleDragStart:   function,
+ *   handleDrop:        function,
+ *   handleSave:        function,
+ * }}
+ */
 export function useInventorySettingsForm() {
     // ── Server state (React Query) ──────────────────────────────────────────
     const { data, isLoading, isError, error, refetch } = useInventorySettings();
@@ -39,19 +88,32 @@ export function useInventorySettingsForm() {
     const [automation, setAutomation] = useState(DEFAULT_AUTOMATION);
     const [discountConfig, setDiscountConfig] = useState(DEFAULT_DISCOUNT);
     const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+
+    /** Categories not yet assigned to any expiry bucket. */
     const [unassigned, setUnassigned] = useState([]);
+
+    /** Per-field validation errors keyed as `"group.field"` (e.g. `"thresholds.short"`). */
     const [errors, setErrors] = useState({});
+
+    /** True while the save mutation is in-flight. */
     const [saving, setSaving] = useState(false);
+
+    /** Transient success flag — reset to false after 2.5 s. */
     const [saved, setSaved] = useState(false);
+
+    /** Server error message from the last failed save attempt. */
     const [saveError, setSaveError] = useState(null);
 
-    // ── Setter map (stable ref, not rebuilt each render) ───────────────────
+    // ── Setter map (stable reference — not rebuilt each render) ────────────
+    // Passed into handleInputChange via closure; useMemo prevents the callback
+    // from being recreated when unrelated state changes.
     const setterMap = useMemo(
         () => ({ thresholds: setThresholds, discount: setDiscountConfig }),
         [],
     );
 
     // ── Hydrate form once server data arrives ───────────────────────────────
+    // `hydrateFromServer` normalises the API response into the local state shape.
     useEffect(() => {
         if (!data) return;
         const hydrated = hydrateFromServer(data);
@@ -64,15 +126,24 @@ export function useInventorySettingsForm() {
 
     // ── Shared numeric field handler (thresholds + discount fields) ─────────
     //
-    // BUG FIX 1: store value as Number, not String — buildPayload must send
+    // BUG FIX 1: value stored as Number, not String — buildPayload must send
     //            numeric types to the API, not "20" as a string.
     //
-    // BUG FIX 2: removed the redundant replace() inside validateNumericField
-    //            call — the field already arrives stripped via `clean`.
+    // BUG FIX 2: removed the redundant replace() inside validateNumericField —
+    //            the value already arrives stripped via `clean`.
     //
-    // BUG FIX 3: unknown group now throws in dev so silent failures surface
-    //            immediately during development.
+    // BUG FIX 3: unknown group throws in development so silent failures surface
+    //            immediately during local development.
     //
+    /**
+     * Handles a change event on any numeric settings input.
+     * Strips non-digit characters, updates the relevant state slice,
+     * and runs field-level validation.
+     *
+     * @param {string} field    — Field key within the group (e.g. `"short"`, `"percent"`).
+     * @param {string} rawValue — Raw string value from the input element.
+     * @param {string} group    — State slice to update (`"thresholds"` or `"discount"`).
+     */
     const handleInputChange = useCallback(
         (field, rawValue, group) => {
             const setter = setterMap[group];
@@ -87,15 +158,17 @@ export function useInventorySettingsForm() {
                 return;
             }
 
+            // Strip all non-digit characters before storing or validating.
             const clean = rawValue.replace(/[^\d]/g, "");
             const rules = FIELD_RULES[field];
             const errorKey = `${group}.${field}`;
 
             // Store as Number so buildPayload sends numeric values to the API.
-            // Keep empty string as-is so the input field can be cleared while typing.
+            // Preserve empty string so the input can be cleared mid-edit.
             const stored = clean === "" ? "" : Number(clean);
             setter((prev) => ({ ...prev, [field]: stored }));
 
+            // Validate the cleaned value and update the errors map accordingly.
             const errMsg = validateNumericField(clean, rules.min, rules.max);
             setErrors((prev) => {
                 const next = { ...prev };
@@ -111,30 +184,57 @@ export function useInventorySettingsForm() {
     );
 
     // ── Toggle an automation flag ───────────────────────────────────────────
+    /**
+     * Flips the boolean value of a single automation flag.
+     *
+     * @param {string} key — Automation flag key (e.g. `"autoHide"`, `"autoDiscount"`).
+     */
     const handleToggle = useCallback((key) => {
         setAutomation((prev) => ({ ...prev, [key]: !prev[key] }));
     }, []);
 
     // ── Drag-and-drop handlers ──────────────────────────────────────────────
+
+    /**
+     * Stores the dragged category label and its source bucket in the
+     * drag event's data transfer object.
+     *
+     * @param {DragEvent} e          — Native drag event.
+     * @param {string}    label      — Category label being dragged.
+     * @param {string}    fromBucket — Source bucket key (or `"unassigned"`).
+     */
     const handleDragStart = useCallback((e, label, fromBucket) => {
         e.dataTransfer.setData("label", label);
         e.dataTransfer.setData("from", fromBucket);
     }, []);
 
+    /**
+     * Handles a drop event on a bucket column.
+     * Moves the dragged category from its source to the target bucket,
+     * or from the unassigned pool to a bucket.
+     *
+     * No-ops when the source and target bucket are identical.
+     *
+     * @param {DragEvent} e        — Native drop event.
+     * @param {string}    toBucket — Target bucket key.
+     */
     const handleDrop = useCallback((e, toBucket) => {
         e.preventDefault();
         const label = e.dataTransfer.getData("label");
         const from = e.dataTransfer.getData("from");
 
+        // Dropping onto the same bucket — nothing to do.
         if (from === toBucket) return;
 
         if (from === "unassigned") {
+            // Move from the unassigned pool into the target bucket.
             setUnassigned((prev) => prev.filter((c) => c !== label));
             setCategories((prev) => ({
                 ...prev,
                 [toBucket]: [...prev[toBucket], label],
             }));
         } else {
+            // Move between two named buckets.
             setCategories((prev) => ({
                 ...prev,
                 [from]: prev[from].filter((c) => c !== label),
@@ -143,11 +243,13 @@ export function useInventorySettingsForm() {
         }
     }, []);
 
-    // ── Derived: active errors (discount errors ignored when toggle is off) ──
+    // ── Derived: active errors ──────────────────────────────────────────────
     //
-    // BUG FIX 4: wrapped in useMemo — previously recalculated as a plain
-    //            function on every render even when errors/automation unchanged.
+    // BUG FIX 4: wrapped in useMemo — previously recalculated on every render
+    //            even when errors / automation were unchanged.
     //
+    // Discount field errors are excluded when the autoDiscount toggle is off
+    // because those fields are hidden from the UI and cannot be corrected.
     const activeErrors = useMemo(() => {
         const active = { ...errors };
         if (!automation.autoDiscount) {
@@ -157,9 +259,23 @@ export function useInventorySettingsForm() {
         return active;
     }, [errors, automation.autoDiscount]);
 
+    /** True when any validation error is currently active and visible. */
     const hasActiveErrors = Object.keys(activeErrors).length > 0;
 
     // ── Save ────────────────────────────────────────────────────────────────
+    /**
+     * Validates the form, then persists all settings to the server.
+     *
+     * Flow:
+     *  1. Bail out immediately if active errors exist.
+     *  2. Set saving=true and clear any previous server error.
+     *  3. Call `updateInventorySettings` with the serialised payload.
+     *  4. On success → flash the saved state for 2.5 s + success toast.
+     *  5. On failure → capture the server error message + error toast.
+     *  6. Always → set saving=false in the finally block.
+     *
+     * @returns {Promise<void>}
+     */
     const handleSave = useCallback(async () => {
         if (hasActiveErrors) return;
 
@@ -178,8 +294,10 @@ export function useInventorySettingsForm() {
 
             setSaved(true);
             toast.success("Settings saved successfully.");
+            // Reset the success flash after 2.5 s so it can fire again on the next save.
             setTimeout(() => setSaved(false), 2500);
         } catch (err) {
+            // Prefer the most specific server message; fall back to the JS error.
             const msg =
                 err?.response?.data?.message ||
                 err.message ||
@@ -199,12 +317,12 @@ export function useInventorySettingsForm() {
     ]);
 
     return {
-        // Query state
+        // Query state — passed through so the page can render skeleton / error UI.
         isLoading,
         isError,
         error,
         refetch,
-        // Form state
+        // Form state slices
         thresholds,
         automation,
         discountConfig,

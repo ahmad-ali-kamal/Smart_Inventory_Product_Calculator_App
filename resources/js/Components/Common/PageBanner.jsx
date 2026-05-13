@@ -1,12 +1,54 @@
-// resources/js/Components/Common/PageBanner.jsx
+/**
+ * @file PageBanner.jsx
+ * @module Components/Common
+ *
+ * @description
+ * Collapsible info banner shown in the top bar of admin pages.
+ * Renders an expandable pill with contextual help text, or a compact icon
+ * button when collapsed. Animated via Framer Motion (AnimatePresence).
+ *
+ * Used to surface per-page guidance without cluttering the header.
+ *
+ * @example
+ * <PageBanner visible={bannerVisible} onToggle={() => setBannerVisible(v => !v)}>
+ *   Products marked as inactive will not appear in the calculator.
+ * </PageBanner>
+ */
+
+// ─── i18n strings ────────────────────────────────────────────────────────────
+// Move to your JSON locale file when ready (e.g. en.json → "page_banner": { … })
+const t = {
+    /** Accessible label for the collapse / info toggle button */
+    banner_toggle_label: 'Toggle info banner',
+    /** Unicode info symbol rendered inside the pill button */
+    banner_icon: 'ℹ',
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * PageBanner
+ *
+ * @param {Object}   props
+ * @param {React.ReactNode} props.children  - Help text displayed inside the expanded banner.
+ * @param {boolean}  props.visible          - Whether the banner is in its expanded (open) state.
+ * @param {Function} props.onToggle         - Callback fired when the user clicks the info button
+ *                                            to expand or collapse the banner.
+ * @returns {JSX.Element}
+ */
 export default function PageBanner({ children, visible, onToggle }) {
     return (
         <div className="flex items-center flex-1 min-w-0">
+            {/*
+             * AnimatePresence lets Framer Motion animate the exit of the outgoing
+             * child before mounting the incoming one (mode="wait").
+             * initial={false} suppresses the mount animation on first render.
+             */}
             <AnimatePresence mode="wait" initial={false}>
                 {visible ? (
 
+                    /* ── Expanded state: pill with icon + help text ── */
                     <motion.div
                         key="open"
                         className="flex items-center gap-2 h-9 px-2 rounded-xl
@@ -18,22 +60,28 @@ export default function PageBanner({ children, visible, onToggle }) {
                         transition={{ duration: 0.35, ease: 'easeInOut' }}
                         style={{ whiteSpace: 'nowrap' }}
                     >
+                        {/* Collapse button — clicking it hides the banner */}
                         <button
                             onClick={onToggle}
+                            aria-label={t.banner_toggle_label}
                             className="w-5 h-5 flex items-center justify-center bg-white
                                 rounded-full shadow-sm flex-shrink-0 text-[10px] font-black
                                 text-[var(--primary)] hover:opacity-70 transition-opacity"
                         >
-                            ℹ
+                            {t.banner_icon}
                         </button>
+
+                        {/* Contextual help text passed as children */}
                         <span className="pr-1">{children}</span>
                     </motion.div>
 
                 ) : (
 
+                    /* ── Collapsed state: icon-only square button ── */
                     <motion.button
                         key="closed"
                         onClick={onToggle}
+                        aria-label={t.banner_toggle_label}
                         className="w-9 h-9 flex items-center justify-center flex-shrink-0
                             bg-[var(--accent)] border border-[var(--primary)]/10 rounded-xl
                             text-[var(--primary)] hover:opacity-70 transition-opacity"
@@ -44,7 +92,7 @@ export default function PageBanner({ children, visible, onToggle }) {
                     >
                         <span className="w-5 h-5 flex items-center justify-center bg-white
                             rounded-full shadow-sm text-[10px] font-black text-[var(--primary)]">
-                            ℹ
+                            {t.banner_icon}
                         </span>
                     </motion.button>
 

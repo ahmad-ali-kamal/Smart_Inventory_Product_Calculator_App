@@ -1,4 +1,4 @@
-import Card from "../../Common/Card";
+import Card from "../../Common/UI/Card";
 import InventoryProductRow from "./InventoryProductRow";
 
 const HEADERS = ["Product", "Category", "Status", "Qty", "Expiry Info", "Action"];

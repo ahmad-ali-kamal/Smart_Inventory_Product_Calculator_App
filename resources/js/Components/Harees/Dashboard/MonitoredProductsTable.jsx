@@ -1,7 +1,7 @@
 // resources/js/Components/Harees/Dashboard/MonitoredProductsTable.jsx
 import React from 'react';
 import { ListFilter } from 'lucide-react';
-import DropdownFilter from '../../Common/DropdownFilter';
+import DropdownFilter from '../../Common/Controls/DropdownFilter';
 import ProductRow from './ProductRow';
 
 const STATUS_FILTERS = [

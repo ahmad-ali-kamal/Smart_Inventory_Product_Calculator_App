@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Pencil, PlusCircle } from 'lucide-react';
 import RowActionButton from '../../Common/RowActionButton';
-import ProductAvatar from '../../Common/ProductAvatar';
+import ProductAvatar from '../../Common/UI/ProductAvatar';
 import { normalizeStatus, getStatusStyle } from '../StatusBadge';
 
 const PILL =

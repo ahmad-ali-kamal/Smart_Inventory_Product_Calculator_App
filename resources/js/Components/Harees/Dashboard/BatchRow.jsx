@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tag, Calendar, Percent, BadgeCheck, Loader2 } from 'lucide-react'; // أضفنا Loader2
 import DiscountModal from '../DiscountModal';
 import StatusBadge from '../StatusBadge';
-import ProductAvatar from '../../Common/ProductAvatar';
+import ProductAvatar from '../../Common/UI/ProductAvatar';
 import { useApplyDiscount } from '../../../Hooks/useApplyDiscount';
 import toast from 'react-hot-toast';
 

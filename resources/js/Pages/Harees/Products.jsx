@@ -2,8 +2,8 @@
 import { useState } from "react";
 import useHareesGuard from '../../Hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
-import SetupBanner from '../../Components/Common/SetupBanner';
-import TableToolbar from '../../Components/Common/TableToolbar';
+import SetupBanner from '../../Components/Common/Feedback/SetupBanner';
+import TableToolbar from '../../Components/Common/Controls/TableToolbar';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import InventoryTable from '../../Components/Harees/Products/InventoryTable';
 import { useInventoryProductsFilter, FILTER_OPTIONS } from '../../Hooks/useInventoryProductsFilter';

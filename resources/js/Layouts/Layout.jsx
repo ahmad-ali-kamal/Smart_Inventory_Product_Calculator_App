@@ -1,6 +1,6 @@
 // Layouts/Layout.jsx
 import Header from '../Components/UI/Header';
-import AppToaster from '../Components/Common/AppToaster';
+import AppToaster from '../Components/Common/Feedback/AppToaster';
 
 export default function Layout({ children }) {
     return (
