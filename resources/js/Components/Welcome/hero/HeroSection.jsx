@@ -1,3 +1,27 @@
+/**
+ * @file HeroSection.jsx
+ * @project Quantix — Intelligent Salla Store Management Platform
+ *
+ * Full-viewport hero section — the first thing visitors see on the landing page.
+ *
+ * Visual layers (bottom → top):
+ *  1. **Parallax zoom background** — a purple gradient that scales from 1× to
+ *     1.18× as the user scrolls through the section, driven by Framer Motion's
+ *     `useScroll` + `useSpring` for a smooth, physics-based feel.
+ *  2. **Noise overlay** — an inline SVG fractal-noise texture at low opacity
+ *     to break up the flat gradient and add tactile depth.
+ *  3. **Orbiting glow blobs** — two large radial-gradient circles that rotate
+ *     in opposite directions indefinitely.
+ *  4. **Content column** — fades out and translates upward as the user scrolls
+ *     past 45% of the section height.
+ *  5. **Curved SVG divider** — a white arc at the bottom that visually connects
+ *     the hero into the next (white-background) section.
+ *
+ * The content column is a two-column grid:
+ *  - Left  → headline (<SplitText>), subtitle, CTA button
+ *  - Right → <HeroRight> floating widgets
+ */
+
 import { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link } from '@inertiajs/react';
@@ -5,18 +29,38 @@ import SplitText from '@/Components/ui/SplitText';
 import HeroRight  from '@/Components/Welcome/hero/HeroRight';
 
 /**
- * Full-viewport hero with parallax zoom background, split-text headline,
- * and the floating widget column on the right.
+ * HeroSection
  *
- * @param {object} t        - Current language translations
- * @param {string} ff       - Heading font family string
- * @param {string} bodyFont - Body font family string
- * @param {string} dir      - Text direction ('ltr' | 'rtl')
- * @param {number} NAV_H    - Navbar height in px
+ * Full-viewport hero with a parallax zoom background, split-text headline,
+ * animated subtitle/CTA, and floating product widgets on the right.
+ *
+ * @param {object} props
+ * @param {object} props.t          - Current language translations.
+ *   Expected shape:
+ *   ```
+ *   {
+ *     heroSub:    string,   // Subtitle paragraph beneath the headline
+ *     exploreCta: string,   // Primary CTA button label
+ *     // …plus all keys consumed by <HeroRight>
+ *   }
+ *   ```
+ * @param {string} props.ff         - CSS font-family string for headings / labels.
+ * @param {string} props.bodyFont   - CSS font-family string for body copy.
+ * @param {string} props.dir        - Text direction: `'ltr'` or `'rtl'`.
+ * @param {number} props.NAV_H      - Navbar height in px; used as top padding
+ *                                    so hero content clears the fixed bar.
+ * @returns {JSX.Element}
  */
 export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
+    /** Ref attached to the section element so useScroll can track its progress. */
     const heroRef = useRef(null);
 
+    /**
+     * Track how far the user has scrolled through this section specifically.
+     * `offset: ['start start', 'end start']` means:
+     *  - 0  when the section's top aligns with the viewport top
+     *  - 1  when the section's bottom aligns with the viewport top (fully scrolled past)
+     */
     const { scrollYProgress } = useScroll({
         target: heroRef,
         offset: ['start start', 'end start'],
@@ -24,9 +68,11 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
 
     /* Background zooms from 1× → 1.18× as the user scrolls through the hero */
     const rawScale = useTransform(scrollYProgress, [0, 1], [1, 1.18]);
+
+    /* Apply a spring to the scale for organic, physics-based easing */
     const scale    = useSpring(rawScale, { stiffness: 80, damping: 22 });
 
-    /* Hero content fades + slides up on scroll */
+    /* Hero content fades + slides up as scroll progress approaches 60% */
     const contentY       = useTransform(scrollYProgress, [0, 0.6],  [0, -60]);
     const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
 
@@ -35,18 +81,18 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
             ref={heroRef}
             style={{
                 minHeight: '100vh',
-                paddingTop: NAV_H,
+                paddingTop: NAV_H,        // Offset for fixed navbar height
                 display: 'flex',
                 alignItems: 'center',
-                overflow: 'hidden',
+                overflow: 'hidden',       // Clip zoomed background at section edges
                 position: 'relative',
             }}
         >
-            {/* ── Zoom layer (background only) ── */}
+            {/* ── Layer 1: Parallax zoom background (gradient) ── */}
             <motion.div
                 style={{
                     position: 'absolute', inset: 0,
-                    scale,
+                    scale,                // Driven by scroll spring
                     background: `
                         radial-gradient(circle at 20% 30%, rgba(255,255,255,0.18) 0%, transparent 28%),
                         radial-gradient(circle at 80% 70%, rgba(255,255,255,0.10) 0%, transparent 24%),
@@ -64,14 +110,14 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                 }}
             />
 
-            {/* ── Noise overlay ── */}
+            {/* ── Layer 2: Noise texture overlay — adds grain for depth ── */}
             <div style={{
                 position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
                 background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
                 opacity: 0.4,
             }} />
 
-            {/* ── Orbiting glow blobs ── */}
+            {/* ── Layer 3a: Clockwise orbiting glow blob (top-left) ── */}
             <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
@@ -85,6 +131,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                 }} />
             </motion.div>
 
+            {/* ── Layer 3b: Counter-clockwise orbiting glow blob (bottom-right) ── */}
             <motion.div
                 animate={{ rotate: -360 }}
                 transition={{ duration: 34, repeat: Infinity, ease: 'linear' }}
@@ -98,7 +145,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                 }} />
             </motion.div>
 
-            {/* ── Content (fades on scroll) ── */}
+            {/* ── Layer 4: Main content — fades + slides up on scroll ── */}
             <motion.div
                 style={{ y: contentY, opacity: contentOpacity, position: 'relative', zIndex: 2, width: '100%' }}
             >
@@ -110,7 +157,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                         {/* ── Left: text content ── */}
                         <div className="q-hero-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
 
-                            {/* "NEW" badge */}
+                            {/* "NEW" feature badge — fades in first (lowest delay) */}
                             <motion.div
                                 initial={{ opacity: 0, y: 14 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -124,6 +171,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                     marginBottom: '1.25rem',
                                 }}
                             >
+                                {/* "NEW" pill */}
                                 <span style={{
                                     background: '#A855F7', color: 'white',
                                     borderRadius: 999, padding: '2px 8px',
@@ -132,6 +180,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                 }}>
                                     NEW
                                 </span>
+                                {/* Badge label */}
                                 <span style={{
                                     color: 'rgba(255,255,255,0.8)',
                                     fontSize: '0.78rem', fontFamily: ff, fontWeight: 600,
@@ -140,7 +189,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                 </span>
                             </motion.div>
 
-                            {/* Headline */}
+                            {/* Main headline — uses <SplitText> for per-character stagger entrance */}
                             <h1 style={{
                                 fontFamily: "'Changa', sans-serif",
                                 fontSize: 'clamp(3rem, 7vw, 6rem)',
@@ -149,12 +198,12 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                 letterSpacing: '0.06em',
                                 lineHeight: 1,
                                 marginBottom: '1.25rem',
-                                direction: 'ltr',
+                                direction: 'ltr', // Brand name always LTR
                             }}>
                                 <SplitText text="QUANTIX" wordDelay={0.08} />
                             </h1>
 
-                            {/* Subtitle */}
+                            {/* Sub-headline — delayed to appear after the headline completes */}
                             <motion.p
                                 initial={{ opacity: 0, y: 18 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -171,7 +220,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                 {t.heroSub}
                             </motion.p>
 
-                            {/* CTA buttons */}
+                            {/* CTA button group — last element to appear in the stagger sequence */}
                             <motion.div
                                 className="q-hero-btns"
                                 initial={{ opacity: 0, y: 18 }}
@@ -179,6 +228,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                 transition={{ duration: 0.6, delay: 0.72, ease: [0.22, 1, 0.36, 1] }}
                                 style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}
                             >
+                                {/* Primary CTA — anchors to the Platforms section */}
                                 <a
                                     href="#platforms"
                                     style={{
@@ -192,6 +242,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                         border: '1px solid rgba(255,255,255,0.12)',
                                         transition: 'transform 0.2s, box-shadow 0.2s',
                                     }}
+                                    /* Subtle lift + shadow on hover */
                                     onMouseEnter={e => {
                                         e.currentTarget.style.transform = 'translateY(-2px)';
                                         e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)';
@@ -206,7 +257,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                             </motion.div>
                         </div>
 
-                        {/* ── Right: floating widgets ── */}
+                        {/* ── Right: floating widget column ── */}
                         <div className="q-hero-visual">
                             <HeroRight t={t} />
                         </div>
@@ -214,7 +265,8 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                 </div>
             </motion.div>
 
-            {/* ── Curved arc divider ── */}
+            {/* ── Layer 5: Curved SVG arc divider ── */}
+            {/* Creates a smooth white wave that merges the hero into the next section */}
             <div style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
                 lineHeight: 0, zIndex: 3, pointerEvents: 'none',
@@ -225,6 +277,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                     style={{ display: 'block', width: '100%', height: 72 }}
                     xmlns="http://www.w3.org/2000/svg"
                 >
+                    {/* Quadratic bezier arc: flat edges → dipped centre */}
                     <path d="M0,72 Q720,0 1440,72 L1440,72 L0,72 Z" fill="#ffffff" />
                 </svg>
             </div>

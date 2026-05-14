@@ -1,14 +1,46 @@
+/**
+ * @file Footer.jsx
+ * @project Quantix — Intelligent Salla Store Management Platform
+ *
+ * Site-wide footer rendered at the bottom of the public landing page.
+ * Composed of a brand column (logo + short description) and three
+ * navigation link columns (Product, Company, Support).
+ *
+ * All copy is supplied via the `t` translation object, making it trivial
+ * to switch between Arabic and English without touching this file.
+ *
+ * Scroll-reveal animation is handled by the shared <Reveal> utility.
+ */
+
 import Reveal from '@/Components/ui/Reveal';
 
 /**
- * Site footer with brand column + three link columns.
+ * Footer
  *
- * @param {object} t        - Current language translations
- * @param {string} ff       - Heading font family string
- * @param {string} bodyFont - Body font family string
+ * Site footer with a brand column and three link columns.
+ * Renders inside a centred max-width container with a top border divider.
+ *
+ * @param {object} props
+ * @param {object} props.t          - Current language translations.
+ *   Expected shape:
+ *   ```
+ *   t.footer = {
+ *     desc:      string,          // Brand tagline / short description
+ *     product:   { label: string, links: string[] },
+ *     company:   { label: string, links: string[] },
+ *     support:   { label: string, links: string[] },
+ *     copyright: string,          // e.g. "© 2025 Quantix. All rights reserved."
+ *   }
+ *   ```
+ * @param {string} props.ff         - CSS font-family string for headings and labels.
+ * @param {string} props.bodyFont   - CSS font-family string for body / paragraph copy.
+ * @returns {JSX.Element}
  */
 export default function Footer({ t, ff, bodyFont }) {
+    // Destructure all needed keys from the footer translation namespace
     const { desc, product, company, support, copyright } = t.footer;
+
+    // Build an ordered array so we can render the three link columns generically
     const cols = [product, company, support];
 
     return (
@@ -22,6 +54,8 @@ export default function Footer({ t, ff, bodyFont }) {
             }}
         >
             <div style={{ maxWidth: 960, margin: '0 auto' }}>
+
+                {/* ── Main grid: brand column + three link columns ── */}
                 <Reveal>
                     <div
                         className="q-footer-grid"
@@ -33,11 +67,12 @@ export default function Footer({ t, ff, bodyFont }) {
                             flexWrap: 'wrap',
                         }}
                     >
-                        {/* Brand column */}
+                        {/* ── Brand column: logo + tagline ── */}
                         <div className="q-footer-brand">
                             <div style={{
                                 display: 'flex', alignItems: 'center',
-                                gap: 9, marginBottom: '0.75rem', direction: 'ltr',
+                                gap: 9, marginBottom: '0.75rem',
+                                direction: 'ltr', // Logo lockup always LTR
                             }}>
                                 <img src="/images/Quantix_logo.png" alt="Quantix" style={{ height: 36 }} />
                                 <span style={{
@@ -48,6 +83,8 @@ export default function Footer({ t, ff, bodyFont }) {
                                     QUANTIX
                                 </span>
                             </div>
+
+                            {/* Short brand description from translations */}
                             <p style={{
                                 fontFamily: bodyFont,
                                 fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.7,
@@ -56,9 +93,10 @@ export default function Footer({ t, ff, bodyFont }) {
                             </p>
                         </div>
 
-                        {/* Link columns */}
+                        {/* ── Link columns: Product / Company / Support ── */}
                         {cols.map((col, i) => (
                             <div key={i}>
+                                {/* Column heading */}
                                 <h4 style={{
                                     fontFamily: ff,
                                     fontSize: '0.7rem', fontWeight: 800,
@@ -67,6 +105,8 @@ export default function Footer({ t, ff, bodyFont }) {
                                 }}>
                                     {col.label}
                                 </h4>
+
+                                {/* Individual link items */}
                                 <ul style={{
                                     listStyle: 'none', padding: 0, margin: 0,
                                     display: 'flex', flexDirection: 'column', gap: 9,
@@ -80,6 +120,7 @@ export default function Footer({ t, ff, bodyFont }) {
                                                     fontSize: '0.84rem', color: '#4B5563',
                                                     textDecoration: 'none', transition: 'color 0.2s',
                                                 }}
+                                                /* Hover: highlight link with brand purple */
                                                 onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
                                                 onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
                                             >
@@ -93,7 +134,10 @@ export default function Footer({ t, ff, bodyFont }) {
                     </div>
                 </Reveal>
 
+                {/* ── Divider ── */}
                 <div style={{ height: 1, background: '#E5E7EB', marginBottom: '1.25rem' }} />
+
+                {/* ── Copyright notice ── */}
                 <p style={{
                     textAlign: 'center',
                     fontFamily: bodyFont,
