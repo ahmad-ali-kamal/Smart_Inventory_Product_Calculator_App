@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Calculator;
+namespace App\Http\Controllers\Mustashar;
 
 use App\Http\Controllers\Controller;
-use App\Models\CalculatorSetting;
+use App\Models\MustasharSetting;
 use App\Models\Product;
-use App\Models\ProductCalculator;
+use App\Models\ProductMustashar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-class ProductCalculatorController extends Controller
+class ProductMustasharController extends Controller
 {
     /**
      * جلب الإعدادات لمنتج معين (يستخدم عادة من قبل واجهة سلة أو API)
@@ -36,7 +36,7 @@ class ProductCalculatorController extends Controller
         }
 
         // جلب إعدادات التاجر
-        $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+        $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
         // Overrides per product (optional) via metadata
         $metaCalc = is_array($product->metadata) ? ($product->metadata['calculator'] ?? null) : null;
@@ -166,7 +166,7 @@ class ProductCalculatorController extends Controller
                               ->firstOrFail();
 
             // 2. جلب السجل الحالي أو إنشاء واحد جديد إذا لم يوجد
-            $calculator = ProductCalculator::firstOrCreate(['product_id' => $product->id]);
+            $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
 
             // 3. تحديد الحالة الجديدة:
             // إذا تم تمرير حالة محددة من الواجهة نستخدمها، وإلا نعكس الحالة الحالية.
@@ -219,7 +219,7 @@ class ProductCalculatorController extends Controller
                            ->get();
 
         foreach ($products as $product) {
-            ProductCalculator::updateOrCreate(
+            ProductMustashar::updateOrCreate(
                 ['product_id' => $product->id],
                 ['is_enabled' => true]
             );

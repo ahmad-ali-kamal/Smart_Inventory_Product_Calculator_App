@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\Harees;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
@@ -42,7 +42,7 @@ class DiscountController extends Controller
         // ─── نسبة الخصم: من إعدادات التاجر أو القيم الافتراضية ────────
         $setting = BatchSetting::where('merchant_id', $merchant->id)->first();
 
-        if ($setting && $setting->discount_auto) {
+        if ($setting && $setting->auto_discounts) {
             // وضع الخصم الأوتوماتيكي: يحسب بناءً على عدد الأيام
             $suggestedDiscount = $this->calcAutoDiscount($days, $setting);
             $discountMode      = 'auto';
@@ -119,25 +119,28 @@ class DiscountController extends Controller
             $batch = $batchItem->batch;
         }
 
-        // ─── التحقق من وجود salla_variant_id ─────────────────────────
-        if (!$batch->salla_variant_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'هذه الدفعة لم تُزامَن مع سلة بعد — شغّل المزامنة أولاً',
-            ], 422);
-        }
-
         try {
+            // ─── جلب batchItem والحصول على salla_variant_id منه ────────
             $sallaApi          = SallaApiService::for($merchant);
             $discountPct       = (float) $validated['discount_percentage'];
             $batchItem         = BatchItem::where('batch_id', $batch->id)->first();
+
+            // ✅ استخدام salla_variant_id من BatchItem وليس من Batch
+            $variantId = $batchItem?->salla_variant_id;
+            
+            if (!$variantId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'هذه الدفعة لم تُزامَن مع سلة بعد — شغّل المزامنة أولاً',
+                ], 422);
+            }
 
             // حساب السعر بعد الخصم
             $originalPrice  = (float) ($batchItem?->unit_cost ?? $product->price ?? 0);
             $salePrice      = round($originalPrice * (1 - $discountPct / 100), 2);
 
             // ✅ جلب جميع بيانات الـ Variant من سلة
-            $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
+            $variantDetails = $sallaApi->getVariantDetails($variantId);
             $variantData    = $variantDetails['data'] ?? [];
             // ✅ استخدام SKU: من variant أو من جدول Product
             $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
@@ -158,7 +161,7 @@ class DiscountController extends Controller
             $gtin       = $variantData['gtin'] ?? null;
 
             Log::info('[Discount] بيانات الإرسال:', [
-                'variant_id'     => $batch->salla_variant_id,
+                'variant_id'     => $variantId,
                 'sku'            => $currentSku,
                 'price'          => $currentPrice,
                 'sale_price'     => $salePrice,
@@ -166,7 +169,7 @@ class DiscountController extends Controller
             ]);
 
             // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
-            $variantRes = $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+            $variantRes = $sallaApi->updateBatchVariant($variantId, [
                 'sku'            => $currentSku,
                 'price'          => $currentPrice,
                 'stock_quantity' => $batchItemQty,
@@ -181,7 +184,7 @@ class DiscountController extends Controller
             }
 
             Log::info('[Discount] ✅ تم تطبيق الخصم على الـ Variant', [
-                'variant_id'     => $batch->salla_variant_id,
+                'variant_id'     => $variantId,
                 'original_price' => $originalPrice,
                 'sale_price'     => $salePrice,
                 'discount_pct'   => $discountPct,
@@ -249,8 +252,8 @@ class DiscountController extends Controller
         $setting  = BatchSetting::where('merchant_id', $merchant->id)->first();
 
         $yellowBatches = $product->batchItems()
-            ->whereHas('batch', fn($q) => $q->where('status', 'yellow')
-                ->whereNotNull('salla_variant_id'))
+            ->whereHas('batch', fn($q) => $q->where('status', 'yellow'))
+            ->whereNotNull('salla_variant_id')
             ->with('batch')
             ->get();
 
@@ -261,10 +264,12 @@ class DiscountController extends Controller
         $applied = 0;
         foreach ($yellowBatches as $item) {
             $batch = $item->batch;
-            if (!$batch || !$batch->salla_variant_id) continue;
+            // ✅ استخدام salla_variant_id من BatchItem بدلاً من Batch
+            $variantId = $item->salla_variant_id;
+            if (!$batch || !$variantId) continue;
 
             $days          = $batch->days_until_expiry;
-            $discountPct   = $setting?->discount_auto
+            $discountPct   = $setting?->auto_discounts
                 ? $this->calcAutoDiscount($days, $setting)
                 : (float) ($setting?->fixed_discount_percentage ?? 20);
 
@@ -272,7 +277,7 @@ class DiscountController extends Controller
             $salePrice     = round($originalPrice * (1 - $discountPct / 100), 2);
 
             // ✅ جلب جميع بيانات الـ Variant من سلة
-            $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
+            $variantDetails = $sallaApi->getVariantDetails($variantId);
             $variantData   = $variantDetails['data'] ?? [];
             // ✅ استخدام SKU: من variant أو من جدول Product
             $currentSku    = $variantData['sku'] ?? $product->sku ?? null;
@@ -284,7 +289,7 @@ class DiscountController extends Controller
             }
 
             // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
-            $res = $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+            $res = $sallaApi->updateBatchVariant($variantId, [
                 'sku'            => $currentSku,
                 'price'          => $currentPrice,
                 'stock_quantity' => $batchItemQty,
@@ -335,24 +340,27 @@ class DiscountController extends Controller
 
         try {
             $batch = $discount->batch;
+            // ✅ استخدام salla_variant_id من BatchItem وليس من Batch
+            $batchItem = $batch?->batchItems->first();
+            $variantId = $batchItem?->salla_variant_id;
 
-            if ($discount->applied_to_salla && $batch?->salla_variant_id) {
+            if ($discount->applied_to_salla && $variantId) {
                 $sallaApi = SallaApiService::for($discount->product->merchant);
 
                 // ✅ جلب جميع بيانات الـ Variant من سلة
-                $variantDetails = $sallaApi->getVariantDetails($batch->salla_variant_id);
+                $variantDetails = $sallaApi->getVariantDetails($variantId);
                 $variantData    = $variantDetails['data'] ?? [];
                 // ✅ استخدام SKU: من variant أو من جدول Product
                 $currentSku     = $variantData['sku'] ?? $discount->product->sku ?? null;
                 $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
-                $batchItemQty   = (int) ($batch->batchItems->first()?->quantity ?? 0);
+                $batchItemQty   = (int) ($batchItem?->quantity ?? 0);
 
                 if (!$currentSku) {
                     Log::warning('[Discount] لا يوجد SKU لإلغاء الخصم');
                 } else {
 
                 // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
-                $sallaApi->updateBatchVariant($batch->salla_variant_id, [
+                $sallaApi->updateBatchVariant($variantId, [
                     'sku'            => $currentSku,
                     'price'          => $currentPrice,
                     'stock_quantity' => $batchItemQty,

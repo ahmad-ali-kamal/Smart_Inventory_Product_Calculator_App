@@ -93,7 +93,7 @@ class Merchant extends Authenticatable
      */
     public function calculatorSettings(): HasOne
     {
-        return $this->hasOne(CalculatorSetting::class);
+        return $this->hasOne(MustasharSetting::class);
     }
 
     /**

@@ -56,7 +56,7 @@ class Product extends Model
 
     public function calculator(): HasOne
     {
-        return $this->hasOne(ProductCalculator::class);
+        return $this->hasOne(ProductMustashar::class);
     }
 
     /**

@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Calculator;
+namespace App\Http\Controllers\Mustashar;
 
 use App\Http\Controllers\Controller;
-use App\Models\CalculatorSetting;
+use App\Models\MustasharSetting;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class CalculatorSettingsController extends Controller
+class MustasharSettingsController extends Controller
 {
     /**
      * عرض صفحة الإعدادات
@@ -18,7 +18,7 @@ class CalculatorSettingsController extends Controller
         $merchant = Auth::user();
         
         // جلب الإعدادات الحالية إن وجدت لتعبئة الحقول بها
-        $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+        $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
         return view('calculator.settings', [
             'settings' => $settings,
@@ -48,7 +48,7 @@ class CalculatorSettingsController extends Controller
 
         // 2. الحفظ في قاعدة البيانات (Create Or Update)
         // يبحث عن إعدادات هذا التاجر، فإذا وجدها يحدثها، وإذا لم يجدها ينشئ جديدة
-        CalculatorSetting::updateOrCreate(
+        MustasharSetting::updateOrCreate(
             ['merchant_id' => $merchant->id], // شرط البحث
             [
                 'coverage_per_unit' => $validated['coverage_per_unit'],
@@ -79,7 +79,7 @@ public function  getSettingsForStore($salla_product_id)
     }
 
     // 2. تحقق إذا مفعّل في product_calculator
-    $calculator = \App\Models\ProductCalculator::where('product_id', $product->id)
+    $calculator = \App\Models\ProductMustashar::where('product_id', $product->id)
         ->where('is_enabled', 1)
         ->first();
 
@@ -89,7 +89,7 @@ public function  getSettingsForStore($salla_product_id)
     }
 
     // 3. جلب إعدادات التاجر
-    $settings = CalculatorSetting::where('merchant_id', $product->merchant_id)->first();
+    $settings = MustasharSetting::where('merchant_id', $product->merchant_id)->first();
 
     // 4. Overrides per product (optional) via metadata
     // This allows different products to have different coverage/unit types without schema changes.
@@ -146,7 +146,7 @@ public function show()
 
     // ✅ firstWhere instead of firstOrCreate — never auto-creates a record
     // Returns null if the merchant hasn't configured settings yet
-    $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+    $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
     // ✅ Return a flag the frontend can trust — not defaults that look real
     if (!$settings) {

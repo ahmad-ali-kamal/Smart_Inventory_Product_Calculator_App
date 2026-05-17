@@ -7,6 +7,7 @@ use App\Models\BatchItem;
 use App\Models\BatchSetting;
 use App\Models\Merchant;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Notifications\BatchExpiryNotification;
 use App\Services\SallaApiService;
 use Illuminate\Bus\Queueable;
@@ -271,6 +272,12 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
                 'days_left'      => $batch->days_until_expiry,
             ]);
 
+            // ✅ التحقق من وجود خصم يدوي مفعل قبل تطبيق الخصم التلقائي
+            if ($this->hasActiveManualDiscount($batch)) {
+                Log::info("[Discount]跳过 batch {$batch->id} - يوجد خصم يدوي مفعل");
+                return;
+            }
+
             if ($variantItems->count() > 0) {
                 // ─── حالة 1: يوجد variants مرتبطة ───
                 $this->applyDiscountToVariants($sallaApi, $batch, $variantItems, $discountPercent);
@@ -282,6 +289,47 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
         } catch (\Exception $e) {
             Log::error("[Discount] خطأ في تطبيق الخصم على الباتش {$batch->id}: " . $e->getMessage());
         }
+    }
+
+    /**
+     * التحقق من وجود خصم يدوي مفعل للباتش
+     */
+    private function hasActiveManualDiscount(Batch $batch): bool
+    {
+        return ProductDiscount::where('batch_id', $batch->id)
+            ->where('status', 'active')
+            ->where('is_ai_suggested', false)
+            ->exists();
+    }
+
+    /**
+     * إنشاء ProductDiscount record للخصم التلقائي
+     */
+    private function createAutoDiscountRecord(Product $product, Batch $batch, float $discountPercent): void
+    {
+        // إلغاء أي خصم تلقائي سابق
+        ProductDiscount::where('batch_id', $batch->id)
+            ->where('status', 'active')
+            ->where('is_ai_suggested', true)
+            ->update(['status' => 'cancelled']);
+
+        $endsAt = $batch->expiry_date 
+            ? $batch->expiry_date->toDateTimeString() 
+            : now()->addDays(7)->toDateTimeString();
+
+        ProductDiscount::create([
+            'product_id'          => $product->id,
+            'batch_id'            => $batch->id,
+            'discount_percentage' => $discountPercent,
+            'starts_at'           => now(),
+            'ends_at'             => $endsAt,
+            'status'              => 'active',
+            'is_ai_suggested'     => false,
+            'applied_to_salla'    => true,
+            'ai_reasoning'        => 'خصم تلقائي من نظام Harees - نسبة الخصم تحسب بناءً على الأيام المتبقية',
+        ]);
+
+        Log::info("[Discount] ✅ تم إنشاء ProductDiscount للخصم التلقائي على batch {$batch->id}");
     }
 
     /**
@@ -393,6 +441,11 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
             }
         }
 
+        // ✅ إنشاء ProductDiscount record للخصم التلقائي
+        if ($product && $discountPercent > 0 && !empty($usedVariantIds)) {
+            $this->createAutoDiscountRecord($product, $batch, $discountPercent);
+        }
+
         $batch->update(['applied_sale_price' => $lastPrice ? round($lastPrice * (1 - $discountPercent / 100), 2) : null]);
     }
 
@@ -441,6 +494,9 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
             $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
             
             $batch->update(['applied_sale_price' => $salePrice]);
+            
+            // ✅ إنشاء ProductDiscount record للخصم التلقائي
+            $this->createAutoDiscountRecord($product, $batch, $discountPercent);
             
             Log::info("[Discount] ✅ خصم على المنتج {$product->id}: {$currentPrice} → {$salePrice} SAR");
 

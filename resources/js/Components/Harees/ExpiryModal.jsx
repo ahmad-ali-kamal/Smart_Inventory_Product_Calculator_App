@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X, CalendarPlus, Trash2, PlusCircle, AlertCircle,
-    Package, Layers, ExternalLink, ShoppingBag, ChevronDown,
+    Package, Layers, ExternalLink, ShoppingBag, ChevronDown, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -48,6 +48,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     // Per-batch variant qty map  { [batchId]: [{ salla_variant_id, variant_quantity, ... }] }
     const [batchVariants, setBatchVariants] = useState({});
 
+    // ✅ استخدام variants_data المحلية أولاً (من الـ cache)
+    const localVariants = product.variants_data || [];
+
     // ── Derived ──
     const totalQty        = product.quantity ?? product.dbQty ?? 0;
     const hasBatches      = product.batches && product.batches.length > 0;
@@ -82,6 +85,19 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
         const checkOptions = async () => {
             setVariantsLoading(true);
+            
+            // ✅ أولاً: تحقق من local variants_data (الـ cache)
+            if (localVariants && localVariants.length > 0) {
+                setVariants(localVariants);
+                setHasVariants(true);
+                setOptionsAnswered(true);
+                setVariantsLoaded(true);
+                setVariantsLoading(false);
+                setOptionsChecked(true);
+                return;
+            }
+
+            // ✅ ثانياً: اتصل بالـ API للتحقق من وجود variants في سلة
             try {
                 const res = await fetch(`/harees/api/products/${product.id}/check-options`, {
                     headers: {
@@ -139,15 +155,50 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         }
     };
 
-    const initializeBatchVariants = (batchId) =>
-        variants.map(v => ({
-            batch_id: batchId,
+    // ✅ استخدام useMemo للحفاظ على template ثابت
+    const variantTemplate = useMemo(() => {
+        if (!variants || variants.length === 0) return [];
+        return variants.map(v => ({
             salla_variant_id: v.id,
             variant_quantity: '',
             name: v.name,
             stock_quantity: v.unlimited_quantity ? 999999 : v.stock_quantity,
             unlimited_quantity: v.unlimited_quantity,
         }));
+    }, [variants]);
+
+    const initializeBatchVariants = useCallback((batchId) => {
+        return variantTemplate.map(v => ({
+            batch_id: batchId,
+            ...v,
+        }));
+    }, [variantTemplate]);
+
+    // ✅ دالة refresh للـ variants من سلة
+    const refreshVariants = async () => {
+        setVariantsLoading(true);
+        setVariantsLoaded(false);
+        try {
+            const res = await fetch(`/harees/api/products/${product.id}/variants`, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'include',
+            });
+            const data = await res.json();
+            if (data.success && data.variants) {
+                setVariants(data.variants);
+            }
+            setVariantsLoaded(true);
+        } catch {
+            setVariantsLoaded(true);
+            toast.error('فشل تحديث الـ variants', { duration: 3000, style: toastStyle });
+        } finally {
+            setVariantsLoading(false);
+        }
+    };
 
     // ── Delete all ──
     const handleDeleteAll = async (closeAfter = true) => {
@@ -465,6 +516,18 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                     />
                                 </div>
                             </div>
+
+                            {/* ✅ زر refresh للـ variants */}
+                            {hasVariants && variantsLoaded && (
+                                <button
+                                    onClick={refreshVariants}
+                                    disabled={variantsLoading}
+                                    className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--primary)] bg-[var(--secondary)] px-2 py-1.5 rounded-lg hover:opacity-80 transition-opacity"
+                                >
+                                    <RefreshCw size={12} className={variantsLoading ? 'animate-spin' : ''} />
+                                    تحديث من سلة
+                                </button>
+                            )}
 
                             {/* ── Batches ── */}
                             <div className="space-y-3">

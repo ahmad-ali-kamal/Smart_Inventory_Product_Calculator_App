@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\Harees;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\BatchSetting;
+use App\Models\ProductDiscount;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,8 +53,11 @@ class ProductExpiryController extends Controller
             'batch_variants.*.batch_id'     => 'nullable|integer',
             'batch_variants.*.variants'     => 'nullable|array',
             'batch_variants.*.variants.*.salla_variant_id' => 'integer',
-            'batch_variants.*.variants.*.variant_quantity' => 'integer|min:1',
+            'batch_variants.*.variants.*.variant_quantity' => 'integer|min:0',
         ]);
+
+        // ✅ Server-side variant validation - مطابق لـ ExpiryModal.jsx
+        $this->validateVariants($request, $product);
 
         DB::beginTransaction();
         try {
@@ -254,6 +258,10 @@ class ProductExpiryController extends Controller
         DB::beginTransaction();
         try {
             $batchIds = $product->batchItems()->pluck('batch_id');
+            
+            // ✅ تنظيف الخصومات المرتبطة بالـ batches قبل الحذف
+            $this->cleanupDiscountsOnBatchDeletion($product, $batchIds);
+            
             $product->batchItems()->delete();
             Batch::whereIn('id', $batchIds)->where('merchant_id', auth()->id())->delete();
 
@@ -402,6 +410,161 @@ class ProductExpiryController extends Controller
             $created[] = $batch;
         }
         return $created;
+    }
+
+    /**
+     * تنظيف الخصومات عند حذف الباتشات
+     */
+    protected function cleanupDiscountsOnBatchDeletion(Product $product, $batchIds): void
+    {
+        if ($batchIds->isEmpty()) return;
+
+        // جلب الخصومات النشطة للـ batches المحذوفة
+        $discounts = ProductDiscount::where('product_id', $product->id)
+            ->whereIn('batch_id', $batchIds)
+            ->where('status', 'active')
+            ->where('applied_to_salla', true)
+            ->get();
+
+        if ($discounts->isEmpty()) return;
+
+        // محاولة إزالة sale_price من سلة لكل خصم
+        try {
+            $merchant = $product->merchant;
+            if ($merchant && $product->salla_product_id) {
+                $sallaApi = \App\Services\SallaApiService::for($merchant);
+                
+                foreach ($discounts as $discount) {
+                    $batchItem = $discount->batch?->batchItems->first();
+                    $variantId = $batchItem?->salla_variant_id;
+                    
+                    if ($variantId) {
+                        try {
+                            // جلب بيانات الـ variant الحالية
+                            $variantDetails = $sallaApi->getVariantDetails($variantId);
+                            $variantData = $variantDetails['data'] ?? [];
+                            $currentSku = $variantData['sku'] ?? null;
+                            $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+                            $batchItemQty = (int) ($batchItem?->quantity ?? 0);
+                            
+                            if ($currentSku) {
+                                $sallaApi->updateBatchVariant($variantId, [
+                                    'sku'            => $currentSku,
+                                    'price'          => $currentPrice,
+                                    'stock_quantity' => $batchItemQty,
+                                    'sale_price'     => 0,
+                                ]);
+                                Log::info("[Cleanup] إزالة sale_price من variant {$variantId}");
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning("[Cleanup] فشل إزالة sale_price: " . $e->getMessage());
+                        }
+                    }
+                    
+                    // إلغاء السجل في قاعدة البيانات
+                    $discount->update(['status' => 'cancelled']);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("[Cleanup] فشل تنظيف الخصومات: " . $e->getMessage());
+            // الاستمرار في حذف الباتشات حتى لو فشل تنظيف الخصومات
+        }
+    }
+
+    /**
+     * Server-side validation للـ variants - مطابق لـ ExpiryModal.jsx
+     */
+    protected function validateVariants(Request $request, Product $product): void
+    {
+        // ✅ الحصول على variants_data من المنتج (الـ cache المحلي)
+        $variantsData = $product->variants_data ?? [];
+        
+        // إنشاء خريطة للـ stock quantity
+        $stockMap = [];
+        foreach ($variantsData as $v) {
+            $stockMap[$v['id']] = [
+                'stock_quantity' => $v['stock_quantity'] ?? 0,
+                'unlimited_quantity' => $v['unlimited_quantity'] ?? false,
+            ];
+        }
+
+        // ─── same_expiry: التحقق من variants ───
+        if ($request->same_expiry) {
+            $variants = $request->input('variants', []);
+            if (!empty($variants)) {
+                $totalVariantQty = collect($variants)->sum('variant_quantity');
+                
+                // يجب أن يساوي product.quantity في وضع same_expiry
+                if ($totalVariantQty !== (int) $product->quantity) {
+                    throw new \InvalidArgumentException(
+                        "مجموع كميات الـ variants ({$totalVariantQty}) يجب أن يساوي الكمية الإجمالية للمنتج ({$product->quantity})"
+                    );
+                }
+
+                // التحقق من stock
+                foreach ($variants as $variant) {
+                    $variantId = $variant['salla_variant_id'] ?? null;
+                    $qty = $variant['variant_quantity'] ?? 0;
+                    if (!$variantId) continue;
+                    
+                    $stock = $stockMap[$variantId] ?? null;
+                    if ($stock && !$stock['unlimited_quantity'] && $qty > $stock['stock_quantity']) {
+                        throw new \InvalidArgumentException(
+                            "كمية الـ variant تتجاوز المخزون المتوفر ({$stock['stock_quantity']})"
+                        );
+                    }
+                }
+            }
+        }
+
+        // ─── multi-batch: التحقق من كل batch ───
+        $batches = $request->input('batches', []);
+        $batchVariants = $request->input('batch_variants', []);
+
+        foreach ($batches as $idx => $batch) {
+            $batchQty = (int) ($batch['quantity'] ?? 0);
+            $batchId = $batch['id'] ?? null;
+            
+            // البحث عن variants لهذا الـ batch
+            $linkedVariants = collect($batchVariants)
+                ->firstWhere('batch_id', $batchId);
+            
+            if ($linkedVariants && !empty($linkedVariants['variants'])) {
+                $totalVariantQty = collect($linkedVariants['variants'])
+                    ->sum('variant_quantity');
+
+                // يجب أن يساوي quantity الـ batch
+                if ($totalVariantQty !== $batchQty) {
+                    throw new \InvalidArgumentException(
+                        "Batch " . ($idx + 1) . ": مجموع كميات الـ variants ({$totalVariantQty}) يجب أن يساوي كمية الـ batch ({$batchQty})"
+                    );
+                }
+
+                // التحقق من stock لكل variant
+                foreach ($linkedVariants['variants'] as $variant) {
+                    $variantId = $variant['salla_variant_id'] ?? null;
+                    $qty = $variant['variant_quantity'] ?? 0;
+                    if (!$variantId || $qty <= 0) continue;
+                    
+                    $stock = $stockMap[$variantId] ?? null;
+                    if ($stock && !$stock['unlimited_quantity'] && $qty > $stock['stock_quantity']) {
+                        throw new \InvalidArgumentException(
+                            "كمية الـ variant تتجاوز المخزون المتوفر ({$stock['stock_quantity']})"
+                        );
+                    }
+                }
+            }
+        }
+
+        // ─── التحقق الإجمالي: مجموع كل الدفعات لا يتجاوز product.quantity ───
+        if (!$request->same_expiry) {
+            $totalBatchesQty = collect($batches)->sum('quantity');
+            if ($totalBatchesQty > (int) $product->quantity) {
+                throw new \InvalidArgumentException(
+                    "الكمية الإجمالية ({$totalBatchesQty}) تتجاوز المخزون المتوفر ({$product->quantity})"
+                );
+            }
+        }
     }
 
     protected function respondWithSuccess($message, $data = [])

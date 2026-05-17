@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Inventory\ProductExpiryController;
+use App\Http\Controllers\Harees\ProductExpiryController;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\Product;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class InventoryApiController extends Controller
+class HareesApiController extends Controller
 {
     /**
      * بدء مزامنة المنتجات من سلة عبر Job خلفي
@@ -302,13 +302,15 @@ class InventoryApiController extends Controller
             
             if (!empty($variants)) {
                 // يوجد variants محددة - إنشاء multiple batch_items
+                // ✅ Fix: استخدام variant_quantity الحقيقي بدلاً من quantity الكامل
                 foreach ($variants as $variant) {
+                    $variantQty = $variant['variant_quantity'] ?? $request->quantity;
                     BatchItem::create([
                         'batch_id' => $batch->id,
                         'product_id' => $product->id,
-                        'quantity' => $request->quantity,
+                        'quantity' => $variantQty,
                         'salla_variant_id' => $variant['salla_variant_id'] ?? null,
-                        'variant_quantity' => $variant['variant_quantity'] ?? $request->quantity,
+                        'variant_quantity' => $variantQty,
                     ]);
                 }
             } else {

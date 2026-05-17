@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\Harees;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

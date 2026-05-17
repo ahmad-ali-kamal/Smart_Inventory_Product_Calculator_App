@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Calculator;
+namespace App\Http\Controllers\Mustashar;
 
 use App\Http\Controllers\Controller;
-use App\Models\CalculatorSetting;
+use App\Models\MustasharSetting;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class CalculatorDashboardController extends Controller
+class MustasharDashboardController extends Controller
 {
     /**
      * عرض Dashboard الآلة الحاسبة
@@ -19,7 +19,7 @@ class CalculatorDashboardController extends Controller
         $merchant = Auth::user();
 
         // 2. التحقق مما إذا كان لدى التاجر إعدادات محفوظة مسبقاً
-        $settings = CalculatorSetting::where('merchant_id', $merchant->id)->first();
+        $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
         // ⚠️ توجيه ذكي: إذا لم تكن هناك إعدادات، اعرض صفحة التعليمات
         if (!$settings) {

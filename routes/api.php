@@ -3,9 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApiProductController;
-use App\Http\Controllers\Api\InventoryApiController;
-use App\Http\Controllers\Calculator\ProductCalculatorController;
-use App\Http\Controllers\Calculator\CalculatorSettingsController;
+use App\Http\Controllers\Api\HareesApiController;
+use App\Http\Controllers\Mustashar\ProductMustasharController;
+use App\Http\Controllers\Mustashar\MustasharSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,7 +16,7 @@ use App\Http\Controllers\Calculator\CalculatorSettingsController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/calculator/settings/{salla_product_id}',
-    [CalculatorSettingsController::class, 'getSettingsForStore']
+    [MustasharSettingsController::class, 'getSettingsForStore']
 );
 
     // --- 1. معلومات المستخدم الحالي ---
@@ -32,23 +32,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- 2. إدارة المخزون (Inventory Core) ---
     Route::prefix('inventory')->group(function () {
-        Route::get('/dashboard', [InventoryApiController::class, 'dashboard']);
-        Route::get('/products', [InventoryApiController::class, 'products']);
+        Route::get('/dashboard', [HareesApiController::class, 'dashboard']);
+        Route::get('/products', [HareesApiController::class, 'products']);
         
         // ── مسارات الدفعات الجديدة (بديل السيناريوهات القديمة) ──
         // إضافة دفعة جديدة بالكمية اليدوية والتاريخ
-        Route::post('/products/{product_id}/store-batch', [InventoryApiController::class, 'storeBatch']);
+        Route::post('/products/{product_id}/store-batch', [HareesApiController::class, 'storeBatch']);
         // تعديل بيانات دفعة سابقة
-        Route::put('/batch/{batch_id}', [InventoryApiController::class, 'updateBatch']);
+        Route::put('/batch/{batch_id}', [HareesApiController::class, 'updateBatch']);
 
-        Route::post('/expiry/batch', [InventoryApiController::class, 'storeExpiry']);
-        Route::get('/settings', [InventoryApiController::class, 'settings']);
-        Route::put('/settings/batch', [InventoryApiController::class, 'updateSettings']);
+        Route::post('/expiry/batch', [HareesApiController::class, 'storeExpiry']);
+        Route::get('/settings', [HareesApiController::class, 'settings']);
+        Route::put('/settings/batch', [HareesApiController::class, 'updateSettings']);
         
         // جلب الفاريينت لمنتج من سلة
-        Route::get('/products/{product_id}/variants', [InventoryApiController::class, 'getProductVariants']);
+        Route::get('/products/{product_id}/variants', [HareesApiController::class, 'getProductVariants']);
         // السؤال للتاجر عن خيارات المنتج
-        Route::get('/products/{product_id}/check-options', [InventoryApiController::class, 'checkProductOptions']);
+        Route::get('/products/{product_id}/check-options', [HareesApiController::class, 'checkProductOptions']);
         
         // ملاحظة: تم حذف السيناريو 4 (reconcile) بالكامل بناءً على طلبك
     });
@@ -66,8 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- 4. إعدادات الحاسبة (Mustashar) ---
     Route::prefix('calculator')->group(function () {
-        Route::get('/settings/{product_id}', [ProductCalculatorController::class, 'getSettings']);
-        Route::post('/settings/update', [ProductCalculatorController::class, 'updateSettings']);
+        Route::get('/settings/{product_id}', [ProductMustasharController::class, 'getSettings']);
+        Route::post('/settings/update', [ProductMustasharController::class, 'updateSettings']);
     });
 });
 

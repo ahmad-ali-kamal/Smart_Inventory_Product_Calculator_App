@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\Harees;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 
-class InventoryDashboardController extends Controller
+class HareesDashboardController extends Controller
 {
     /**
      * عرض داشبورد إدارة المخزون (متوافق مع Blade)
