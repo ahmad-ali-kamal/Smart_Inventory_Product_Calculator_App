@@ -21,16 +21,9 @@ async function toggleProductApi(productId) {
     const { data } = await axios.post(
         `/mustashar/api/products/${productId}/toggle`,
     );
-
     if (!data.success) {
         throw new Error(data.message ?? "Failed to toggle product.");
     }
-
-    return data;
-}
-
-async function updateCalcRulesApi(rules) {
-    const { data } = await api.patch("/api/calc-rules", rules);
     return data;
 }
 
@@ -54,7 +47,6 @@ function useProductsData() {
 // ─────────────────────────────────────────────────────────────────────────────
 export function useAllProducts() {
     const { data, isLoading, isError, error, refetch } = useProductsData();
-
     return {
         products: data ?? [],
         isLoading,
@@ -69,10 +61,8 @@ export function useAllProducts() {
 // ─────────────────────────────────────────────────────────────────────────────
 export function useActiveProducts() {
     const { data, isLoading, isError, error } = useProductsData();
-
     const allProducts = data ?? [];
     const activeProducts = allProducts.filter((p) => p.active);
-
     return {
         allProducts,
         activeProducts,
@@ -116,25 +106,8 @@ export function useToggleProduct() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// useUpdateCalcRules  →  used by Settings page (future)
+// useCalculatorSettings  →  returns { waste, configured }
 // ─────────────────────────────────────────────────────────────────────────────
-function useCalcRules() {
-    const { data: settings } = useCalculatorSettings();
-
-    // Return empty array if no settings to avoid rendering anything
-    if (!settings || settings.waste === undefined || settings.waste === null) {
-        return [];
-    }
-
-    /* Return ONLY waste percentage to remove the NaN/Coverage badge */
-    return [
-        {
-            label: "Waste",
-            value: `${Number(settings.waste).toFixed(0)}% waste`,
-        },
-    ];
-}
-
 export function useCalculatorSettings() {
     return useQuery({
         queryKey: ["calculator-settings"],
@@ -153,23 +126,18 @@ export function useSettingsStatus() {
     return { isLoading, isConfigured };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// useUpdateCalculatorSettings  →  only waste_percentage
+// ─────────────────────────────────────────────────────────────────────────────
 export function useUpdateCalculatorSettings() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({
-            waste_percentage,
-            unit_type,
-            min_input_area,
-            max_input_area,
-        }) => {
+        mutationFn: async ({ waste_percentage }) => {
             const { data } = await axios.post(
                 "/mustashar/api/calculator-settings",
                 {
                     waste_percentage,
-                    unit_type,
-                    min_input_area,
-                    max_input_area,
                 },
             );
             return data;
@@ -178,15 +146,15 @@ export function useUpdateCalculatorSettings() {
         onSuccess: (data) => {
             queryClient.setQueryData(["calculator-settings"], {
                 waste: data.waste,
-                unit_type: data.unit_type,
-                min_input_area: data.min_input_area,
-                max_input_area: data.max_input_area,
                 configured: data.configured,
             });
         },
     });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// useUpdateProductCoverage  →  validates on frontend before sending
+// ─────────────────────────────────────────────────────────────────────────────
 export function useUpdateProductCoverage() {
     const queryClient = useQueryClient();
 

@@ -1,3 +1,4 @@
+// resources/js/Components/Mustashar/Settings/SettingsField.jsx
 import { AlertCircle } from 'lucide-react';
 
 export default function SettingsField({
@@ -6,7 +7,6 @@ export default function SettingsField({
 }) {
     return (
         <div className="space-y-1.5">
-            {/* تقليل ثقل الخط وتغيير الحجم ليكون أكثر تناسقاً */}
             <label className="block text-[13px] font-bold text-[var(--foreground)] opacity-80">
                 {label}
             </label>
@@ -21,7 +21,7 @@ export default function SettingsField({
                     value={value}
                     min={min}
                     max={max}
-                    step={step}
+                    step={step ?? '0.01'}
                     onChange={onChange}
                     placeholder={placeholder}
                     className={`

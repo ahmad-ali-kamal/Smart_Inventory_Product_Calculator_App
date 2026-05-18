@@ -1,4 +1,4 @@
-// Pages/Mustashar/Settings.jsx
+// resources/js/Pages/Mustashar/Settings.jsx
 import useMustasharGuard from '../../Hooks/useMustasharGuard';
 import PageShell from '../../Components/Common/PageShell';
 import { useSettingsForm } from '../../Hooks/useSettingsForm';
@@ -11,10 +11,9 @@ export default function Settings() {
 
     const {
         isLoading, isError, error, refetch,
-        waste, unitType, minInputArea, maxInputArea,
+        waste,
         errors, isSaving,
-        handleWasteChange, handleUnitTypeChange,
-        handleMinAreaChange, handleMaxAreaChange, handleSave,
+        handleWasteChange, handleSave,
     } = useSettingsForm();
 
     if (isLoading) {
@@ -26,15 +25,9 @@ export default function Settings() {
             <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
                 <SettingsForm
                     waste={waste}
-                    unitType={unitType}
-                    minInputArea={minInputArea}
-                    maxInputArea={maxInputArea}
                     errors={errors}
                     isSaving={isSaving}
                     onWasteChange={handleWasteChange}
-                    onUnitTypeChange={handleUnitTypeChange}
-                    onMinAreaChange={handleMinAreaChange}
-                    onMaxAreaChange={handleMaxAreaChange}
                     onSave={handleSave}
                 />
             </div>
