@@ -7,7 +7,7 @@ use App\Models\Product;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\BatchSetting;
-use App\Models\ProductDiscount;
+use App\Models\BatchDiscount;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -420,33 +420,29 @@ class ProductExpiryController extends Controller
         if ($batchIds->isEmpty()) return;
 
         // جلب الخصومات النشطة للـ batches المحذوفة
-        $discounts = ProductDiscount::where('product_id', $product->id)
-            ->whereIn('batch_id', $batchIds)
-            ->where('status', 'active')
-            ->where('applied_to_salla', true)
+        $discounts = BatchDiscount::whereIn('batch_id', $batchIds)
+            ->active()
             ->get();
 
         if ($discounts->isEmpty()) return;
 
-        // محاولة إزالة sale_price من سلة لكل خصم
         try {
             $merchant = $product->merchant;
             if ($merchant && $product->salla_product_id) {
                 $sallaApi = \App\Services\SallaApiService::for($merchant);
-                
+
                 foreach ($discounts as $discount) {
                     $batchItem = $discount->batch?->batchItems->first();
                     $variantId = $batchItem?->salla_variant_id;
-                    
+
                     if ($variantId) {
                         try {
-                            // جلب بيانات الـ variant الحالية
                             $variantDetails = $sallaApi->getVariantDetails($variantId);
                             $variantData = $variantDetails['data'] ?? [];
                             $currentSku = $variantData['sku'] ?? null;
                             $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
                             $batchItemQty = (int) ($batchItem?->quantity ?? 0);
-                            
+
                             if ($currentSku) {
                                 $sallaApi->updateBatchVariant($variantId, [
                                     'sku'            => $currentSku,
@@ -460,14 +456,12 @@ class ProductExpiryController extends Controller
                             Log::warning("[Cleanup] فشل إزالة sale_price: " . $e->getMessage());
                         }
                     }
-                    
-                    // إلغاء السجل في قاعدة البيانات
+
                     $discount->update(['status' => 'cancelled']);
                 }
             }
         } catch (\Exception $e) {
             Log::warning("[Cleanup] فشل تنظيف الخصومات: " . $e->getMessage());
-            // الاستمرار في حذف الباتشات حتى لو فشل تنظيف الخصومات
         }
     }
 

@@ -45,10 +45,7 @@ class HareesDashboardController extends Controller
             // 2. جلب المنتجات مع بياناتها (التي تملك دفعات فقط)
             $products = Product::where('merchant_id', $merchant->id)
                 ->with([
-                    'batchItems.batch' => function ($q) {
-                        $q->orderBy('days_until_expiry');
-                    },
-                    'discounts' => function ($q) {
+                    'batchItems.batch.discounts' => function ($q) {
                         $q->where('status', 'active');
                     }
                 ])
@@ -63,15 +60,24 @@ class HareesDashboardController extends Controller
                         })
                         ->first();
 
-                    // تحويل المنتج إلى كائن (Object) ليسهل التعامل معه في الـ Blade
+                    // التحقق من الخصم اليدوي النشط عبر الـ batch
+                    $hasActiveManualDiscount = $product->batchItems
+                        ->flatMap(fn($item) => $item->batch->discounts ?? [])
+                        ->filter(fn($d) => $d->status === 'active')
+                        ->isNotEmpty();
+
+                    // التحقق من الخصم التلقائي (من إعدادات الـ batch)
+                    $batchSettings = BatchSetting::where('merchant_id', $merchant->id)->first();
+                    $hasActiveAutoDiscount = $batchSettings?->auto_discounts && $criticalBatchItem?->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
+
                     return (object) [
                         'id'                 => $product->id,
                         'name'               => $product->name,
-                         'image_url'          => $product->image_url, // ✅ أضف هذا
+                         'image_url'          => $product->image_url,
                         'status'             => $criticalBatchItem?->batch->status ?? 'green',
                         'expiry_date'        => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
-                        'batches' => $product->batchItems->map(fn($item) => $item->batch),// لإظهار عدد الدفعات
-                        'has_active_discount'=> $product->discounts->isNotEmpty(),
+                        'batches' => $product->batchItems->map(fn($item) => $item->batch),
+                        'has_active_discount'=> $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })
                 ->sortBy(function ($p) {

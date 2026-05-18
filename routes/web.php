@@ -57,6 +57,7 @@ Route::prefix('harees')->middleware('auth')->group(function () {
         Route::get('/settings', [HareesApiController::class, 'settings']);
         Route::put('/settings', [HareesApiController::class, 'updateSettings']);
         Route::post('/products/{product}/discounts/apply', [DiscountController::class, 'apply']);
+        Route::post('/discounts/{discount}/cancel', [DiscountController::class, 'cancel']);
         
         // المسار المهم لجلب الخيارات في BatchModal.jsx
         Route::get('/products/{product_id}/options', [HareesApiController::class, 'getProductOptions']);

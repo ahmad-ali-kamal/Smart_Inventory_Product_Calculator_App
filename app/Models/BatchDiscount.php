@@ -4,32 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Batch;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
 
-class ProductDiscount extends Model
+class BatchDiscount extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'product_id',
         'batch_id',
         'discount_percentage',
         'starts_at',
         'ends_at',
         'status',
-        'is_ai_suggested',
-        'applied_to_salla',
-        'salla_special_price_id',
-        'ai_reasoning',
+        'created_by',
     ];
 
     protected $casts = [
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
         'discount_percentage' => 'decimal:2',
-        'is_ai_suggested' => 'boolean',
-        'applied_to_salla' => 'boolean',
     ];
 
     protected $appends = [
@@ -38,18 +32,11 @@ class ProductDiscount extends Model
         'formatted_percentage',
     ];
 
-    // Relationships
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
-    }
-
     public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class, 'batch_id');
     }
 
-    // Boot
     protected static function boot()
     {
         parent::boot();
@@ -59,7 +46,6 @@ class ProductDiscount extends Model
         });
     }
 
-    // Accessors
     public function getIsActiveAttribute(): bool
     {
         return $this->status === 'active' &&
@@ -77,7 +63,6 @@ class ProductDiscount extends Model
         return $this->discount_percentage . '%';
     }
 
-    // Methods
     public function updateStatus(): void
     {
         if ($this->is_expired) {
@@ -105,7 +90,6 @@ class ProductDiscount extends Model
         return $this->save();
     }
 
-    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active')
@@ -127,13 +111,28 @@ class ProductDiscount extends Model
             });
     }
 
-    public function scopeAiSuggested($query)
+    public static function validateNoOverlap(Batch $batch, $startsAt, $endsAt, ?int $excludeId = null): bool
     {
-        return $query->where('is_ai_suggested', true);
+        $query = self::where('batch_id', $batch->id)
+            ->whereIn('status', ['active', 'scheduled'])
+            ->where(function ($q) use ($startsAt, $endsAt) {
+                $q->where(function ($q) use ($startsAt, $endsAt) {
+                    $q->where('starts_at', '<', $endsAt)
+                      ->where('ends_at', '>', $startsAt);
+                });
+            });
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return !$query->exists();
     }
 
-    public function scopeAppliedToSalla($query)
+    public static function getActiveForBatch(Batch $batch): ?self
     {
-        return $query->where('applied_to_salla', true);
+        return self::where('batch_id', $batch->id)
+            ->active()
+            ->first();
     }
 }

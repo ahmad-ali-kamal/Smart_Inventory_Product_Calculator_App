@@ -86,10 +86,7 @@ class HareesApiController extends Controller
 
             $products = Product::where('merchant_id', $merchant->id)
                 ->with([
-                    'batchItems.batch' => function ($q) {
-                        $q->orderBy('days_until_expiry');
-                    },
-                    'discounts' => function ($q) {
+                    'batchItems.batch.discounts' => function ($q) {
                         $q->where('status', 'active');
                     }
                 ])
@@ -118,6 +115,16 @@ class HareesApiController extends Controller
                         ->filter()
                         ->values();
 
+                    // التحقق من الخصم اليدوي النشط عبر الـ batch
+                    $hasActiveManualDiscount = $product->batchItems
+                        ->flatMap(fn($item) => $item->batch->discounts ?? [])
+                        ->filter(fn($d) => $d->status === 'active')
+                        ->isNotEmpty();
+
+                    // التحقق من الخصم التلقائي
+                    $batchSettings = BatchSetting::where('merchant_id', $merchant->id)->first();
+                    $hasActiveAutoDiscount = $batchSettings?->auto_discounts && $criticalBatchItem?->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
+
                     return [
                         'id' => $product->id,
                         'salla_product_id' => $product->salla_product_id,
@@ -126,7 +133,7 @@ class HareesApiController extends Controller
                         'status' => $criticalBatchItem?->batch->status ?? 'green',
                         'expiry_date' => $criticalBatchItem?->batch?->expiry_date?->format('Y-m-d'),
                         'batches' => $batchesGrouped,
-                        'has_active_discount' => $product->discounts->isNotEmpty(),
+                        'has_active_discount' => $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })
                 ->sortBy(function ($product) {

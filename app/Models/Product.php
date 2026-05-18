@@ -75,11 +75,6 @@ class Product extends Model
         return $this->hasMany(BatchItem::class);
     }
 
-    public function discounts(): HasMany
-    {
-        return $this->hasMany(ProductDiscount::class);
-    }
-
     // ====================================================================
     // القانون الذكي (The Logic)
     // ====================================================================
