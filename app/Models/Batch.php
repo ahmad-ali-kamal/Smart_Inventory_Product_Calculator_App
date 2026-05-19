@@ -151,6 +151,16 @@ class Batch extends Model
         return $this->morphMany(ActivityLog::class, 'loggable');
     }
 
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(BatchDiscount::class);
+    }
+
+    public function activeDiscount(): ?BatchDiscount
+    {
+        return $this->discounts()->active()->first();
+    }
+
     // ====================================================================
     // Scopes
     // ====================================================================

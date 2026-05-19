@@ -56,7 +56,7 @@ class Product extends Model
 
     public function calculator(): HasOne
     {
-        return $this->hasOne(ProductCalculator::class);
+        return $this->hasOne(ProductMustashar::class);
     }
 
     /**
@@ -73,11 +73,6 @@ class Product extends Model
     public function batchItems(): HasMany
     {
         return $this->hasMany(BatchItem::class);
-    }
-
-    public function discounts(): HasMany
-    {
-        return $this->hasMany(ProductDiscount::class);
     }
 
     // ====================================================================

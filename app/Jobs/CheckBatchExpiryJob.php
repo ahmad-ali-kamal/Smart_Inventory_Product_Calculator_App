@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\BatchSetting;
+use App\Models\BatchDiscount;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Notifications\BatchExpiryNotification;
@@ -271,6 +272,12 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
                 'days_left'      => $batch->days_until_expiry,
             ]);
 
+            // ✅ التحقق من وجود خصم يدوي مفعل قبل تطبيق الخصم التلقائي
+            if ($this->hasActiveManualDiscount($batch)) {
+                Log::info("[Discount]跳过 batch {$batch->id} - يوجد خصم يدوي مفعل");
+                return;
+            }
+
             if ($variantItems->count() > 0) {
                 // ─── حالة 1: يوجد variants مرتبطة ───
                 $this->applyDiscountToVariants($sallaApi, $batch, $variantItems, $discountPercent);
@@ -282,6 +289,17 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
         } catch (\Exception $e) {
             Log::error("[Discount] خطأ في تطبيق الخصم على الباتش {$batch->id}: " . $e->getMessage());
         }
+    }
+
+    /**
+     * التحقق من وجود خصم يدوي مفعل للباتش
+     * NOTE: Auto discounts don't create BatchDiscount records anymore
+     */
+    private function hasActiveManualDiscount(Batch $batch): bool
+    {
+        return BatchDiscount::where('batch_id', $batch->id)
+            ->active()
+            ->exists();
     }
 
     /**
@@ -393,6 +411,8 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
             }
         }
 
+        // Note: Auto discounts do NOT create BatchDiscount records anymore
+        // They are applied directly via Salla API
         $batch->update(['applied_sale_price' => $lastPrice ? round($lastPrice * (1 - $discountPercent / 100), 2) : null]);
     }
 
@@ -439,14 +459,17 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
 
             // تطبيق الخصم على المنتج
             $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
-            
+
             $batch->update(['applied_sale_price' => $salePrice]);
-            
+
+            // Note: Auto discounts do NOT create BatchDiscount records anymore
+            // They are applied directly via Salla API
+
             Log::info("[Discount] ✅ خصم على المنتج {$product->id}: {$currentPrice} → {$salePrice} SAR");
 
         } catch (\Exception $e) {
             Log::error("[Discount] خطأ في تطبيق الخصم على المنتج {$product->id}: " . $e->getMessage());
-}
+        }
     }
 
     /**

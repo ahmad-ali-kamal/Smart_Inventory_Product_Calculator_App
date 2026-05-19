@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -18,35 +19,40 @@ class FetchProductsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 3;
+    public $backoff = 60;
+
     protected $merchant;
     protected $page;
 
-    /**
-     * عدد محاولات إعادة التشغيل في حال فشل الجووب
-     */
-    public $tries = 3;
-
-    /**
-     * المهلة الزمنية قبل محاولة إعادة التشغيل (بالثواني)
-     */
-    public $backoff = 60;
+    private const SYNC_COUNTER_KEY = 'queue:salla_sync_active_merchants';
+    private const SYNC_COMPLETE_FLAG = 'queue:salla_sync_complete';
 
     public function __construct(Merchant $merchant, $page = 1)
     {
+        $this->afterCommit = true;
         $this->merchant = $merchant;
         $this->page = $page;
+
+        if ($page === 1) {
+            $key = self::SYNC_COUNTER_KEY . ':started:' . $merchant->id;
+            if (!Cache::has($key)) {
+                Cache::put($key, true, now()->addMinutes(30));
+                $this->incrementSyncCounter();
+            }
+        }
     }
 
     public function handle()
     {
         Log::info("--- [Salla Sync] Start fetching page {$this->page} for merchant: {$this->merchant->name} ---");
 
-        // جلب التوكن من جدول salla_apps
-        $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first() 
+        $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first()
                     ?? $this->merchant->sallaApps()->first();
 
         if (!$sallaApp || empty($sallaApp->access_token)) {
             Log::error("Salla Access Token missing for merchant: {$this->merchant->name}. Sync aborted.");
+            $this->decrementSyncCounter();
             return;
         }
 
@@ -54,7 +60,6 @@ class FetchProductsJob implements ShouldQueue
             $response = Http::withToken($sallaApp->access_token)
                 ->get("https://api.salla.dev/admin/v2/products?page={$this->page}");
 
-            // 1. معالجة الـ Rate Limit (إذا سلة عطتك بلوك مؤقت)
             if ($response->status() === 429) {
                 Log::warning("Rate limit hit for {$this->merchant->name}. Holding job for 60 seconds.");
                 return $this->release(now()->addMinute());
@@ -63,14 +68,13 @@ class FetchProductsJob implements ShouldQueue
             if ($response->successful()) {
                 $data = $response->json();
                 $products = $data['data'] ?? [];
-                
+
                 Log::info("Retrieved " . count($products) . " products from Salla API.");
 
                 foreach ($products as $p) {
                     $this->syncProduct($p);
                 }
 
-                // 2. المتابعة التلقائية للصفحة التالية (Pagination)
                 $pagination = $data['pagination'] ?? [];
                 $totalPages = $pagination['total_pages'] ?? 1;
 
@@ -78,7 +82,8 @@ class FetchProductsJob implements ShouldQueue
                     Log::info("Dispatching next page: " . ($this->page + 1));
                     self::dispatch($this->merchant, $this->page + 1)->delay(now()->addSeconds(2));
                 } else {
-                    Log::info("--- [Salla Sync] Completed successfully for {$this->merchant->name} ---");
+                    Log::info("--- [Salla Sync] Completed all pages for {$this->merchant->name} ---");
+                    $this->decrementSyncCounter();
                 }
 
             } else {
@@ -88,7 +93,28 @@ class FetchProductsJob implements ShouldQueue
 
         } catch (\Exception $e) {
             Log::error("Critical Error in FetchProductsJob: " . $e->getMessage());
+            $this->decrementSyncCounter();
             throw $e;
+        }
+    }
+
+    private function incrementSyncCounter(): void
+    {
+        $current = Cache::get(self::SYNC_COUNTER_KEY, 0);
+        Cache::forever(self::SYNC_COUNTER_KEY, $current + 1);
+    }
+
+    private function decrementSyncCounter(): void
+    {
+        $current = Cache::get(self::SYNC_COUNTER_KEY, 0);
+
+        if ($current <= 1) {
+            Cache::forget(self::SYNC_COUNTER_KEY);
+            Log::info("=== [Orchestration] All merchants synced. Dispatching CheckBatchExpiryJob ===");
+            CheckBatchExpiryJob::dispatch();
+        } else {
+            Cache::forever(self::SYNC_COUNTER_KEY, $current - 1);
+            Log::info("[Orchestration] Merchant sync completed. Remaining: " . ($current - 1));
         }
     }
 

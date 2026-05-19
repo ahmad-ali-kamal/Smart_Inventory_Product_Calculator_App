@@ -3,12 +3,12 @@
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\SallaOAuthController;
-use App\Http\Controllers\Calculator\ProductCalculatorController;
-use App\Http\Controllers\Calculator\CalculatorSettingsController;
-use App\Http\Controllers\Api\InventoryApiController;
+use App\Http\Controllers\Mustashar\ProductMustasharController;
+use App\Http\Controllers\Mustashar\MustasharSettingsController;
+use App\Http\Controllers\Api\HareesApiController;
 use App\Http\Controllers\Api\SallaWebhookController;
-use App\Http\Controllers\Inventory\NotificationController;
-use App\Http\Controllers\Inventory\DiscountController;
+use App\Http\Controllers\Harees\NotificationController;
+use App\Http\Controllers\Harees\DiscountController;
 
 
 // الصفحة الرئيسية (Welcome)
@@ -35,12 +35,11 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::get('/settings',     fn() => inertia('Mustashar/Settings'))->name('mustashar.settings');
     Route::get('/instructions', fn() => inertia('Mustashar/Instructions'))->name('mustashar.instructions');
 
-    Route::get('/api/products', [ProductCalculatorController::class, 'index']);
-    Route::post('/api/products/sync', [InventoryApiController::class, 'syncProducts']); 
-    Route::post('/api/products/{id}/toggle', [ProductCalculatorController::class, 'toggle']);
-    Route::post('/api/products/{id}/coverage', [ProductCalculatorController::class, 'updateCoverage']);
-    Route::get('/api/calculator-settings', [CalculatorSettingsController::class, 'show']);
-    Route::post('/api/calculator-settings', [CalculatorSettingsController::class, 'store']);
+    Route::get('/api/products', [ProductMustasharController::class, 'index']);
+    Route::post('/api/products/sync', [HareesApiController::class, 'syncProducts']); 
+    Route::post('/api/products/{id}/toggle', [ProductMustasharController::class, 'toggle']);
+     Route::get('/api/calculator-settings', [MustasharSettingsController::class, 'show']);
+    Route::post('/api/calculator-settings', [MustasharSettingsController::class, 'store']);
 });
 
 // --- تطبيق "حريص" (Inventory App) ---
@@ -52,30 +51,31 @@ Route::prefix('harees')->middleware('auth')->group(function () {
 
     // APIs البيانات الخاصة بواجهة حريص
     Route::prefix('api')->group(function () {
-        Route::get('/products', [InventoryApiController::class, 'products']);
-        Route::post('/products/sync', [InventoryApiController::class, 'syncProducts']);
-        Route::get('/dashboard', [InventoryApiController::class, 'dashboard']);
-        Route::get('/settings', [InventoryApiController::class, 'settings']);
-        Route::put('/settings', [InventoryApiController::class, 'updateSettings']);
+        Route::get('/products', [HareesApiController::class, 'products']);
+        Route::post('/products/sync', [HareesApiController::class, 'syncProducts']);
+        Route::get('/dashboard', [HareesApiController::class, 'dashboard']);
+        Route::get('/settings', [HareesApiController::class, 'settings']);
+        Route::put('/settings', [HareesApiController::class, 'updateSettings']);
         Route::post('/products/{product}/discounts/apply', [DiscountController::class, 'apply']);
+        Route::post('/discounts/{discount}/cancel', [DiscountController::class, 'cancel']);
         
         // المسار المهم لجلب الخيارات في BatchModal.jsx
-        Route::get('/products/{product_id}/options', [InventoryApiController::class, 'getProductOptions']);
+        Route::get('/products/{product_id}/options', [HareesApiController::class, 'getProductOptions']);
 
         // جلب الفاريينت والتأكد من وجود خيارات
-        Route::get('/products/{product_id}/variants', [InventoryApiController::class, 'getProductVariants']);
-        Route::get('/products/{product_id}/check-options', [InventoryApiController::class, 'checkProductOptions']);
+        Route::get('/products/{product_id}/variants', [HareesApiController::class, 'getProductVariants']);
+        Route::get('/products/{product_id}/check-options', [HareesApiController::class, 'checkProductOptions']);
 
         // إدارة تواريخ الانتهاء
-        Route::post('/expiry', [InventoryApiController::class, 'storeExpiry']);
-        Route::delete('/expiry/{id}', [InventoryApiController::class, 'destroyExpiry']);
+        Route::post('/expiry', [HareesApiController::class, 'storeExpiry']);
+        Route::delete('/expiry/{id}', [HareesApiController::class, 'destroyExpiry']);
         
         // التنبيهات
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-        Route::post('/products/{product_id}/store-batch', [InventoryApiController::class, 'storeBatch']);
-        Route::put('/batch/{batch_id}', [InventoryApiController::class, 'updateBatch']);
+        Route::post('/products/{product_id}/store-batch', [HareesApiController::class, 'storeBatch']);
+        Route::put('/batch/{batch_id}', [HareesApiController::class, 'updateBatch']);
     });
 });
