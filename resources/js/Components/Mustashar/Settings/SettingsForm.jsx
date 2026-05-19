@@ -1,8 +1,46 @@
-// resources/js/Components/Mustashar/Settings/SettingsForm.jsx
+
 import { Loader2, SlidersHorizontal } from 'lucide-react';
 import SettingsField from './SettingsField';
 import { WASTE_MIN, WASTE_MAX } from '../../../constants/calculatorSettings';
 
+// ---------------------------------------------------------------------------
+// i18n strings — move these values to your JSON translation file when ready.
+// ---------------------------------------------------------------------------
+const t = {
+    // Card header
+    card_title:           "Calculator Settings",
+    card_subtitle:        "Configure calculation parameters for products",
+
+    // Coverage field
+    coverage_label:       "Unit Coverage (m²)",
+    coverage_hint:        (min, max) => `Area covered by one unit — between ${min} and ${max} m²`,
+    coverage_placeholder: "e.g., 2.56",
+
+    // Waste field
+    waste_label:       "Waste Percentage (%)",
+    waste_hint:        (min, max) => `Extra safety margin — from ${min}% up to ${max}%`,
+    waste_placeholder: "e.g., 10",
+
+    // Save button
+    btn_saving: "Saving...",
+    btn_save:   "Save All Settings",
+};
+
+/**
+ * Renders the settings card containing two `SettingsField` inputs and a save button.
+ *
+ * @param {object}   props
+ * @param {string}   props.coverage         — Controlled value for the coverage input.
+ * @param {string}   props.waste            — Controlled value for the waste input.
+ * @param {{ coverage?: string, waste?: string }} props.errors
+ *                                          — Validation error messages keyed by field name.
+ * @param {boolean}  props.isSaving         — When `true`, the save button shows a spinner
+ *                                            and is disabled.
+ * @param {function} props.onCoverageChange — Change handler for the coverage input.
+ * @param {function} props.onWasteChange    — Change handler for the waste input.
+ * @param {function} props.onSave          — Click handler for the save button.
+ * @returns {JSX.Element}
+ */
 export default function SettingsForm({
     waste,
     errors,
@@ -18,6 +56,8 @@ export default function SettingsForm({
                 <div className="p-3 bg-[var(--primary)]/10 rounded-2xl text-[var(--primary)]">
                     <SlidersHorizontal size={22} />
                 </div>
+
+                {/* Title + subtitle */}
                 <div>
                     <h1 className="text-xl font-bold text-[var(--foreground)]">Calculator Settings</h1>
                     <p className="text-sm text-[var(--muted-foreground)]">

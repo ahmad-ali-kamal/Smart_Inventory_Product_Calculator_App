@@ -24,10 +24,11 @@ import { useToggleProduct, QUERY_KEYS } from "./useProducts";
 // ── i18n strings ──────────────────────────────────────────────────────────────
 // Move to your translation JSON and replace with useTranslation() when ready.
 const t = {
-    toast_coverage_required: "Set a valid unit coverage before activating this product.",
-    toast_activated:         "Product activated",
-    toast_deactivated:       "Product deactivated",
-    toast_error:             "Something went wrong. Please try again.",
+    toast_coverage_required:
+        "Set a valid unit coverage before activating this product.",
+    toast_activated: "Product activated",
+    toast_deactivated: "Product deactivated",
+    toast_error: "Something went wrong. Please try again.",
 };
 
 /**
@@ -40,7 +41,7 @@ const t = {
  * }}
  */
 export function useToggleWithToast() {
-    const queryClient    = useQueryClient();
+    const queryClient = useQueryClient();
     const toggleMutation = useToggleProduct();
 
     /**
@@ -52,8 +53,8 @@ export function useToggleWithToast() {
      */
     const handleToggle = (productId) => {
         // Synchronous cache read — no fetch, no stale closure.
-        const allProducts  = queryClient.getQueryData(QUERY_KEYS.products) ?? [];
-        const product      = allProducts.find((p) => p.id === productId);
+        const allProducts = queryClient.getQueryData(QUERY_KEYS.products) ?? [];
+        const product = allProducts.find((p) => p.id === productId);
         // Infer the intended new state from the current cache value.
         const willBeActive = product ? !product.active : false;
 
@@ -62,9 +63,9 @@ export function useToggleWithToast() {
         if (willBeActive) {
             const coverage = product?.coverage_per_unit;
             const isInvalid =
-                coverage === null      ||
+                coverage === null ||
                 coverage === undefined ||
-                coverage === ""        ||
+                coverage === "" ||
                 Number(coverage) <= 0;
 
             if (isInvalid) {
@@ -77,7 +78,9 @@ export function useToggleWithToast() {
             onSuccess: (data) => {
                 // Prefer the server-confirmed `is_enabled` flag; fall back to the inferred value.
                 const isEnabled = data?.is_enabled ?? willBeActive;
-                toast.success(isEnabled ? t.toast_activated : t.toast_deactivated);
+                toast.success(
+                    isEnabled ? t.toast_activated : t.toast_deactivated,
+                );
             },
             onError: () => {
                 toast.error(t.toast_error);

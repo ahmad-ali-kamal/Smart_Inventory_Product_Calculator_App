@@ -30,8 +30,8 @@ import axios from "axios";
 // instance (and its interceptors, if any) is reused across all API calls.
 const api = axios.create({
     headers: {
-        Accept:           "application/json",
-        "Content-Type":   "application/json",
+        Accept: "application/json",
+        "Content-Type": "application/json",
         "X-Requested-With": "XMLHttpRequest",
     },
 });
@@ -44,7 +44,7 @@ const api = axios.create({
  * @type {{ products: string[], calculatorSettings: string[] }}
  */
 export const QUERY_KEYS = {
-    products:           ["products"],
+    products: ["products"],
     calculatorSettings: ["calculator-settings"],
 };
 
@@ -71,8 +71,11 @@ async function fetchProducts() {
  * @throws {Error} If the server responds with `success: false`.
  */
 async function toggleProductApi(productId) {
-    const { data } = await api.post(`/mustashar/api/products/${productId}/toggle`);
-    if (!data.success) throw new Error(data.message ?? "Failed to toggle product.");
+    const { data } = await api.post(
+        `/mustashar/api/products/${productId}/toggle`,
+    );
+    if (!data.success)
+        throw new Error(data.message ?? "Failed to toggle product.");
     return data;
 }
 
@@ -90,9 +93,9 @@ async function toggleProductApi(productId) {
  */
 function useProductsData() {
     return useQuery({
-        queryKey:        QUERY_KEYS.products,
-        queryFn:         fetchProducts,
-        staleTime:       30_000, // treat data as fresh for 30 s to reduce redundant fetches
+        queryKey: QUERY_KEYS.products,
+        queryFn: fetchProducts,
+        staleTime: 30_000, // treat data as fresh for 30 s to reduce redundant fetches
         placeholderData: (prev) => prev,
     });
 }
@@ -224,8 +227,10 @@ export function useToggleProduct() {
 export function useCalculatorSettings() {
     return useQuery({
         queryKey: QUERY_KEYS.calculatorSettings,
-        queryFn:  async () => {
-            const { data } = await api.get("/mustashar/api/calculator-settings");
+        queryFn: async () => {
+            const { data } = await api.get(
+                "/mustashar/api/calculator-settings",
+            );
             return data;
         },
     });
@@ -259,16 +264,19 @@ export function useUpdateCalculatorSettings() {
 
     return useMutation({
         mutationFn: async ({ waste_percentage }) => {
-            const { data } = await api.post("/mustashar/api/calculator-settings", {
-                waste_percentage,
-            });
+            const { data } = await api.post(
+                "/mustashar/api/calculator-settings",
+                {
+                    waste_percentage,
+                },
+            );
             return data;
         },
 
         onSuccess: (data) => {
             // Write the server-confirmed values directly into the cache.
             queryClient.setQueryData(QUERY_KEYS.calculatorSettings, {
-                waste:      data.waste,
+                waste: data.waste,
                 configured: data.configured,
             });
         },

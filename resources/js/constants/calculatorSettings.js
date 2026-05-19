@@ -2,6 +2,8 @@
 
 // ── Mirrors backend validation exactly ───────────────────────────────────────
 export const WASTE_MIN = 0;
+
+/** @constant {number} WASTE_MAX — Maximum allowed waste percentage. */
 export const WASTE_MAX = 50;
 
 export const COVERAGE_MIN = 0.01;

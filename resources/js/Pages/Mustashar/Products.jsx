@@ -28,9 +28,9 @@ const t = {
 
 import useMustasharGuard from "../../Hooks/useMustasharGuard";
 import PageShell from "../../Components/Common/PageShell";
-import SetupBanner from "../../Components/Common/SetupBanner";
-import TableToolbar from "../../Components/Common/TableToolbar";
-import Card from "../../Components/Common/Card";
+import SetupBanner from "../../Components/Common/Feedback/SetupBanner";
+import TableToolbar from "../../Components/Common/Controls/TableToolbar";
+import Card from "../../Components/Common/UI/Card";
 import ProductRow from "../../Components/Mustashar/ProductRow";
 import ProductTable from "../../Components/Mustashar/ProductTable";
 import { useProductsFilter } from "../../Hooks/useProductsFilter";
@@ -94,6 +94,7 @@ export default function Products() {
                     filterWidth="w-[130px]"
                 />
 
+                {/* ── Products table ─────────────────────────────────────── */}
                 <Card>
                     <ProductTable>
                         {sorted.length > 0 ? (

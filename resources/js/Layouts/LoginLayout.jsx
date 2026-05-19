@@ -1,3 +1,19 @@
+/**
+ * @file LoginLayout.jsx
+ * @description Shared login page layout used across all Salla-integrated apps
+ *              (Mustashar, Harees, and any future apps).
+ *
+ *              Responsibilities:
+ *              - Renders a two-panel (left coloured / right white) login card.
+ *              - Accepts all brand-specific tokens (colours, image, copy) via props,
+ *                keeping individual app Login pages thin and config-only.
+ *              - Owns all entrance animations (Framer Motion variants).
+ *              - Resolves font families through `useFonts` to avoid @import duplication.
+ *              - Adapts layout direction (RTL / LTR) through `useLang`.
+ *
+ * @module Layouts/LoginLayout
+ */
+
 import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useLang } from '@/Hooks/useLang';
@@ -5,24 +21,50 @@ import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 import { useFonts }  from '@/Hooks/useFonts';
 import SplitText     from '@/Components/ui/SplitText';
 
+// ---------------------------------------------------------------------------
+// Static UI strings — not brand copy (that comes via `translations` prop).
+// Extracted here so they can be moved to a JSON i18n file without touching JSX.
+// ---------------------------------------------------------------------------
+const t = {
+    /** Fallback alt text when no imageAlt prop is supplied */
+    image_alt_fallback: 'App hero image',
+};
+
 /**
- * LoginLayout — shared layout for all login pages.
- * Each app (Mustashar, Harees) passes its own translations, hero image, and colors as props.
+ * LoginLayout — shared two-panel login layout for Salla-integrated apps.
  *
- * Props:
- * @param {object}  translations
- * @param {string}  imageSrc
- * @param {string}  imageAlt
- * @param {string}  gradientFrom
- * @param {string}  gradientTo
- * @param {string}  accentColor
- * @param {string}  accentLight
- * @param {string}  shadowColor
- * @param {string}  authHref
- * @param {string}  [imageScale]   - default "scale-[1.25]"
- * @param {boolean} [showBackHome] - default false
- * @param {string}  [status]
- * @param {string}  [bgColor]      - default "#F5F2FA"
+ * @component
+ *
+ * @param {object}  props
+ * @param {object}  props.translations        - Bilingual copy object keyed by locale code
+ *                                              (`ar` / `en`). Each locale must include the
+ *                                              keys consumed in the template (pageTitle,
+ *                                              appName, steps, sallaBtn, note, etc.).
+ * @param {string}  props.imageSrc            - URL / import of the hero image shown in the
+ *                                              left panel.
+ * @param {string}  props.imageAlt            - Accessible alt text for the hero image.
+ * @param {string}  props.gradientFrom        - CSS colour for the start of the left-panel
+ *                                              gradient (e.g. `"#8D82FF"`).
+ * @param {string}  props.gradientTo          - CSS colour for the end of the gradient.
+ * @param {string}  props.accentColor         - Primary brand accent colour used for
+ *                                              interactive elements on the right panel.
+ * @param {string}  props.accentLight         - Light tint of the accent colour used for
+ *                                              step-number circle backgrounds.
+ * @param {string}  props.shadowColor         - RGB triplet string (no alpha) used to build
+ *                                              `rgba()` shadows (e.g. `"141,130,255"`).
+ * @param {string}  props.authHref            - OAuth redirect URL for the Salla CTA button.
+ * @param {string}  [props.imageScale]        - Tailwind scale class applied to the hero
+ *                                              image (default: `"scale-[1.25]"`).
+ * @param {boolean} [props.showBackHome]      - When `true`, renders a "Back to Home" pill
+ *                                              in the left-panel header; when `false` the
+ *                                              link appears below the form instead.
+ *                                              Default: `false`.
+ * @param {string}  [props.status]            - Optional Inertia flash / status message
+ *                                              rendered above the CTA in accent colour.
+ * @param {string}  [props.bgColor]           - Page background colour outside the card.
+ *                                              Default: `"#F5F2FA"`.
+ *
+ * @returns {JSX.Element}
  */
 export default function LoginLayout({
     translations,
@@ -39,37 +81,67 @@ export default function LoginLayout({
     status,
     bgColor = '#F5F2FA',
 }) {
+    // `lang`  — active locale string ("ar" | "en")
+    // `isAr`  — boolean shorthand for RTL-aware conditionals
+    // `dir`   — "rtl" | "ltr" applied to the root container
     const { lang, isAr, dir } = useLang();
-    const { ff, bodyFont }    = useFonts();
+
+    // `ff`       — heading / display font-family string
+    // `bodyFont` — body / secondary font-family string
+    const { ff, bodyFont } = useFonts();
+
+    // Resolve the correct locale slice from the translations map
     const t = translations[lang];
 
     // ── Animation variants ────────────────────────────────────────────────────
+
+    /**
+     * Outer card: fades in, rises slightly, and scales up from 97 % to 100 %.
+     * Acts as the "stage entrance" for the entire login surface.
+     */
     const cardVariants = {
         hidden:  { opacity: 0, y: 48, scale: 0.97 },
         visible: { opacity: 1, y: 0,  scale: 1,
             transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
     };
 
+    /**
+     * Left-panel text elements: simple upward fade, runs after the card settles.
+     */
     const leftVariants = {
         hidden:  { opacity: 0, y: 32 },
         visible: { opacity: 1, y: 0,
             transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.18 } },
     };
 
+    /**
+     * Hero image: fades in with a gentle upward drift and subtle scale,
+     * slightly delayed behind the text to create visual hierarchy.
+     */
     const heroVariants = {
         hidden:  { opacity: 0, y: 40, scale: 0.96 },
         visible: { opacity: 1, y: 0,  scale: 1,
             transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: 0.3 } },
     };
 
-    // Right panel slides in from the correct side based on language direction
+    /**
+     * Right panel: slides in from the viewport edge that matches the reading
+     * direction so the motion feels natural in both RTL and LTR contexts.
+     *   • Arabic (RTL) — panel slides in from the left  (x: -36 → 0)
+     *   • English (LTR) — panel slides in from the right (x: +36 → 0)
+     */
     const rightVariants = {
         hidden:  { opacity: 0, x: isAr ? -36 : 36 },
         visible: { opacity: 1, x: 0,
             transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.42 } },
     };
-    // ─────────────────────────────────────────────────────────────────────────
 
+    // ── Shared inline style for frosted-glass pill buttons (header row) ───────
+    /**
+     * Reusable frosted-glass pill style applied to both the LanguageSwitcher
+     * and the optional "Back to Home" link in the left-panel header.
+     * Defined inline so colour tokens remain co-located with the template.
+     */
     const glassStyle = {
         background: 'rgba(255,255,255,0.18)',
         backdropFilter: 'blur(10px)',
@@ -94,8 +166,16 @@ export default function LoginLayout({
             dir={dir}
             style={{ background: bgColor, fontFamily: ff }}
         >
+            {/* Sets the document <title> via Inertia's Head component */}
             <Head title={t.pageTitle} />
 
+            {/*
+              Global style overrides scoped to this page.
+              - Fonts are imported here as a fallback; the canonical import lives in
+                globalStyles.js and is deduplicated by the browser cache.
+              - `.glass-btn:hover` brightens the frosted pill on pointer entry.
+              - The media query collapses the card to full-width on small screens.
+            */}
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Changa:wght@300;400;500;600;700;800&display=swap');
                 * { font-family: ${ff}; }
@@ -107,6 +187,11 @@ export default function LoginLayout({
             `}</style>
 
             {/* ── Outer card ─────────────────────────────────────────────────── */}
+            {/*
+              The card itself is a Motion wrapper so the entrance animation
+              covers the full surface. `shadowColor` is passed as an RGB triplet
+              so we can control opacity here without needing a separate prop.
+            */}
             <motion.div
                 variants={cardVariants}
                 initial="hidden"
@@ -115,31 +200,37 @@ export default function LoginLayout({
                 style={{ boxShadow: `0 25px 80px rgba(${shadowColor}, 0.22)` }}
             >
                 {/*
-                  This inner div is a flex row container.
-                  Both children MUST be direct flex children with correct widths —
-                  any extra wrapper div (like Reveal) breaks this.
+                  Inner flex container — direct flex parent of both panels.
+                  IMPORTANT: Do NOT wrap either panel in an extra element (e.g. a
+                  Reveal component) at this level — it would break the 50/50 split.
                 */}
                 <div className="w-full h-full rounded-[28px] overflow-hidden flex flex-col md:flex-row bg-white">
 
-                    {/* ── LEFT panel (coloured) ─────────────────────────────── */}
+                    {/* ── LEFT panel (coloured brand panel) ─────────────────── */}
                     <div
                         className="w-full md:w-[50%] relative overflow-hidden p-8 md:p-10 flex flex-col justify-between h-[320px] md:h-full"
                         style={{ background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)` }}
                     >
-                        {/* Radial highlights */}
+                        {/* Decorative radial light bursts — pure visual depth, no semantic content */}
                         <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,white_0,transparent_28%),radial-gradient(circle_at_80%_75%,white_0,transparent_24%)]" />
 
-                        {/* Header row */}
+                        {/* Header row: language switcher + optional back-home link */}
                         <motion.div
                             variants={leftVariants}
                             initial="hidden"
                             animate="visible"
                             className="relative z-10 flex items-center justify-between mb-6"
                         >
+                            {/* Frosted-glass pill wrapping the LanguageSwitcher toggle */}
                             <div style={glassStyle} className="glass-btn">
                                 <LanguageSwitcher />
                             </div>
 
+                            {/*
+                              "Back to Home" pill — conditionally rendered.
+                              When `showBackHome` is false, an equivalent link is
+                              rendered below the form on the right panel instead.
+                            */}
                             {showBackHome && (
                                 <Link href="/" className="glass-btn" style={glassStyle}>
                                     {t.backHome} {isAr ? '←' : '→'}
@@ -147,13 +238,18 @@ export default function LoginLayout({
                             )}
                         </motion.div>
 
-                        {/* Text block */}
+                        {/* App name, subtitle, description, and feature list */}
                         <motion.div
                             variants={leftVariants}
                             initial="hidden"
                             animate="visible"
                             className="relative z-10 flex-1"
                         >
+                            {/*
+                              SplitText animates each character/word of the app name
+                              with a staggered reveal; `wordDelay` controls the stagger
+                              interval in seconds.
+                            */}
                             <h1
                                 className="text-white text-4xl md:text-5xl leading-tight mb-3 drop-shadow-sm"
                                 style={{ fontFamily: ff, fontWeight: 700 }}
@@ -161,14 +257,17 @@ export default function LoginLayout({
                                 <SplitText text={t.appName} wordDelay={0.06} />
                             </h1>
 
+                            {/* One-line value proposition */}
                             <p className="text-white/95 text-base md:text-lg mb-4" style={{ fontFamily: ff }}>
                                 {t.appSub}
                             </p>
 
+                            {/* Multi-sentence app description */}
                             <p className="text-white/90 text-sm leading-relaxed max-w-[410px] mb-5" style={{ fontFamily: ff }}>
                                 {t.appDesc}
                             </p>
 
+                            {/* Feature bullet list — dot marker uses a tiny white circle */}
                             <div className="space-y-3">
                                 {t.features.map((feature, i) => (
                                     <div key={i} className="flex items-center gap-3 text-white text-sm">
@@ -179,33 +278,42 @@ export default function LoginLayout({
                             </div>
                         </motion.div>
 
-                        {/* Hero image */}
-<motion.div
-    variants={heroVariants}
-    initial="hidden"
-    animate="visible"
-    className="relative z-10 flex justify-center items-center flex-1 overflow-visible" // ← add overflow-visible
->
-    <img
-        src={imageSrc}
-        alt={imageAlt}
-        loading="eager"
-        fetchPriority="high"
-        decoding="async"
-        width="600"
-        height="420"
-        className={`login-visual w-full max-w-[480px] ${imageScale} object-contain drop-shadow-2xl`}
-      
-    />
-</motion.div>
+                        {/* Hero / product illustration */}
+                        <motion.div
+                            variants={heroVariants}
+                            initial="hidden"
+                            animate="visible"
+                            className="relative z-10 flex justify-center items-center flex-1 overflow-visible"
+                        >
+                            {/*
+                              `imageScale` is a Tailwind class (e.g. "scale-[1.15]") passed
+                              as a prop so each app can fine-tune its hero crop without
+                              changing shared layout code.
+                            */}
+                            <img
+                                src={imageSrc}
+                                alt={imageAlt ?? t.image_alt_fallback}
+                                loading="eager"
+                                fetchPriority="high"
+                                decoding="async"
+                                width="600"
+                                height="420"
+                                className={`login-visual w-full max-w-[480px] ${imageScale} object-contain drop-shadow-2xl`}
+                            />
+                        </motion.div>
 
-                        {/* Support footer */}
+                        {/* Support / footer label at the bottom of the coloured panel */}
                         <div className="relative z-10 text-white/80 text-sm" style={{ fontFamily: ff }}>
                             {t.support}
                         </div>
                     </div>
 
-                    {/* ── RIGHT panel (white form) ── */}
+                    {/* ── RIGHT panel (white form area) ─────────────────────── */}
+                    {/*
+                      Slides in from the correct edge (see `rightVariants` above).
+                      Corner radius is applied only to the outer edge so it blends
+                      seamlessly with the card's rounded corners.
+                    */}
                     <motion.div
                         variants={rightVariants}
                         initial="hidden"
@@ -223,7 +331,7 @@ export default function LoginLayout({
                     >
                         <div className="w-full max-w-[430px]">
 
-                            {/* Heading */}
+                            {/* Section heading + sub-label */}
                             <div className="mb-8">
                                 <h2
                                     className="text-[#171321] text-3xl md:text-4xl mb-2"
@@ -236,7 +344,11 @@ export default function LoginLayout({
                                 </p>
                             </div>
 
-                            {/* Already have account — only renders if translation key exists */}
+                            {/*
+                              "Already have an account?" line.
+                              Rendered only when the translation key is present,
+                              allowing apps to opt-out by omitting the key.
+                            */}
                             {t.already && (
                                 <div className="mb-6 text-sm text-[#2A2533]" style={{ fontFamily: bodyFont }}>
                                     {t.already}{' '}
@@ -246,17 +358,24 @@ export default function LoginLayout({
                                 </div>
                             )}
 
-                            {/* Inertia status message */}
+                            {/*
+                              Inertia flash / status message (e.g. "Session expired").
+                              Only rendered when the `status` prop is non-empty.
+                            */}
                             {status && (
                                 <div className="mb-4 text-sm" style={{ color: accentColor, fontFamily: bodyFont }}>
                                     {status}
                                 </div>
                             )}
 
-                            {/* Steps */}
+                            {/* Numbered onboarding steps guiding new users */}
                             <div className="space-y-4 mb-8">
                                 {t.steps.map((step, i) => (
                                     <div key={i} className="flex gap-4 items-start">
+                                        {/*
+                                          Step-number circle — uses `accentLight` background
+                                          and `accentColor` text for brand consistency.
+                                        */}
                                         <div
                                             className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm shadow-inner"
                                             style={{ background: accentLight, color: accentColor, fontFamily: ff }}
@@ -281,7 +400,10 @@ export default function LoginLayout({
                                 ))}
                             </div>
 
-                            {/* CTA button */}
+                            {/*
+                              Primary CTA — redirects to the Salla OAuth endpoint.
+                              `authHref` is app-specific and passed via props.
+                            */}
                             <a
                                 href={authHref}
                                 className="w-full h-[52px] rounded-xl text-white font-bold text-base flex items-center justify-center hover:scale-[1.01] active:scale-[0.98] transition"
@@ -295,7 +417,7 @@ export default function LoginLayout({
                                 {t.sallaBtn}
                             </a>
 
-                            {/* Note */}
+                            {/* Contextual note explaining Salla-exclusive access requirement */}
                             <div
                                 className="text-[#9B96AA] text-[12px] leading-relaxed bg-[#FCFBFF] border border-[#EFEAFB] p-4 rounded-2xl mt-6"
                                 style={{ fontFamily: bodyFont }}
@@ -303,7 +425,11 @@ export default function LoginLayout({
                                 {t.note}
                             </div>
 
-                            {/* Back home — bottom fallback when header button is hidden */}
+                            {/*
+                              Fallback "Back to Home" link at the bottom of the form.
+                              Only shown when `showBackHome` is false (i.e. the header
+                              pill is hidden), so the user always has a way to escape.
+                            */}
                             {!showBackHome && (
                                 <Link
                                     href="/"
@@ -322,4 +448,8 @@ export default function LoginLayout({
     );
 }
 
+/**
+ * Opt out of the default Inertia layout so this page owns its own full-screen
+ * layout without being wrapped by the application shell.
+ */
 LoginLayout.layout = page => page;

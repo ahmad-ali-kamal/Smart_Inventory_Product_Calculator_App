@@ -22,7 +22,7 @@ import { usePage } from "@inertiajs/react";
 import { ExternalLink, Pencil, Check } from "lucide-react";
 import RowActionButton from "../Common/RowActionButton";
 import Toggle from "../Common/Toggle";
-import ProductAvatar from "../Common/ProductAvatar";
+import ProductAvatar from "../Common/UI/ProductAvatar";
 import { useUpdateProductCoverage } from "../../Hooks/useProducts";
 import { validateCoverage } from "../../constants/calculatorSettings";
 
@@ -229,6 +229,7 @@ export default function ProductRow({
                     <p className="text-[13px] font-bold text-[var(--foreground)] truncate uppercase tracking-tight">
                         {product.name}
                     </p>
+                    {/* Salla product id displayed in monospace for easy scanning */}
                     <p className="text-[10px] text-[var(--muted-foreground)] font-mono uppercase">
                         {product.salla_product_id}
                     </p>

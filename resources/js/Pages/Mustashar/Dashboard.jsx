@@ -32,7 +32,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Package, CheckCircle2, Pencil } from "lucide-react";
 import useMustasharGuard from "../../Hooks/useMustasharGuard";
 import PageShell from "../../Components/Common/PageShell";
-import SetupBanner from "../../Components/Common/SetupBanner";
+import SetupBanner from "../../Components/Common/FeedBack/SetupBanner";
 import StatCard from "../../Components/Common/StatCard";
 import ProductRow from "../../Components/Mustashar/ProductRow";
 import ProductTable from "../../Components/Mustashar/ProductTable";
@@ -270,8 +270,10 @@ const emptyVariants = {
  * @returns {JSX.Element}
  */
 export default function Dashboard() {
+    // Redirect unauthenticated or unauthorised visitors.
     useMustasharGuard();
 
+    // Server state — full list and pre-filtered active subset.
     const { allProducts, activeProducts, isLoading, isError, error } = useActiveProducts();
     const { handleToggle, isPending, variables } = useToggleWithToast();
     const calcRules = useCalcRules();
@@ -299,18 +301,24 @@ export default function Dashboard() {
 
                 {/* ── Stat cards ── */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    {/* Total product count */}
                     <StatCard
                         label={t.stat_total_label}
                         value={allProducts.length}
                         icon={<Package className="w-4 h-4" />}
                         sub={t.stat_total_sub}
                     />
+
+                    {/* Activated (live) product count */}
                     <StatCard
                         label={t.stat_activated_label}
                         value={liveActiveCount}
                         icon={<CheckCircle2 className="w-4 h-4" />}
                         sub={t.stat_activated_sub}
                     />
+
+                    {/* Calculator rules preview — edit icon links to settings page */}
                     <StatCard type="settings_preview" rules={calcRules}>
                         <Link href="/mustashar/settings">
                             <Pencil size={15} className="text-[var(--primary)]" />

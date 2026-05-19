@@ -11,6 +11,7 @@ export default function SettingsField({
                 {label}
             </label>
 
+            {/* Optional hint — rendered only when the prop is provided */}
             {hint && (
                 <p className="text-[11px] text-[var(--muted-foreground)] leading-relaxed">{hint}</p>
             )}
@@ -35,6 +36,7 @@ export default function SettingsField({
                     `}
                 />
 
+                {/* Inline error message — only rendered when `error` prop is truthy */}
                 {error && (
                     <p className="text-red-500 text-[10px] mt-1.5 flex items-center gap-1">
                         <AlertCircle size={12} />
