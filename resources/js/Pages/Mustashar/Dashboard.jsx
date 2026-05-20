@@ -42,7 +42,7 @@ import { useToggleWithToast } from "../../Hooks/useToggleWithToast";
 // ── i18n strings ──────────────────────────────────────────────────────────────
 // Move to your translation JSON and replace with useTranslation() when ready.
 const t = {
-    setup_banner_description: "Configure coverage per unit and waste percentage so the calculator can generate accurate results.",
+    setup_banner_description: "Set defaults once to configure all products instantly. You can still easily customize any product later.",
     stat_total_label:         "Total Products",
     stat_total_sub:           "In your store",
     stat_activated_label:     "Activated",

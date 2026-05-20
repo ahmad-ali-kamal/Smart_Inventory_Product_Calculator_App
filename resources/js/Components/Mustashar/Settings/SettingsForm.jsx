@@ -1,103 +1,140 @@
+import { Loader2, SlidersHorizontal, AlertCircle, Sparkles } from 'lucide-react';
+import { WASTE_MIN, WASTE_MAX, COVERAGE_MIN, COVERAGE_MAX } from '../../../constants/calculatorSettings';
 
-import { Loader2, SlidersHorizontal } from 'lucide-react';
-import SettingsField from './SettingsField';
-import { WASTE_MIN, WASTE_MAX } from '../../../constants/calculatorSettings';
-
-// ---------------------------------------------------------------------------
-// i18n strings — move these values to your JSON translation file when ready.
-// ---------------------------------------------------------------------------
 const t = {
-    // Card header
-    card_title:           "Calculator Settings",
-    card_subtitle:        "Configure calculation parameters for products",
+    card_title:    "Smart Calculator Settings",
+    card_subtitle: "Set the default calculation rules for your store's products",
 
-    // Coverage field
-    coverage_label:       "Unit Coverage (m²)",
-    coverage_hint:        (min, max) => `Area covered by one unit — between ${min} and ${max} m²`,
-    coverage_placeholder: "e.g., 2.56",
+    banner_body: "The values set below will automatically apply as global defaults to all products to save your time. You can easily customize any specific product independently from the Products page.",
 
-    // Waste field
-    waste_label:       "Waste Percentage (%)",
-    waste_hint:        (min, max) => `Extra safety margin — from ${min}% up to ${max}%`,
-    waste_placeholder: "e.g., 10",
+    coverage_label:       "Default Coverage per Unit (m²)",
+    coverage_hint:        `How many m² does one unit/box cover? (${COVERAGE_MIN}–${COVERAGE_MAX} m²)`,
+    coverage_placeholder: "e.g. 4.00",
 
-    // Save button
+    waste_label:       "Default Waste Percentage (%)",
+    waste_hint:        `Extra material buffer for cutting/offcuts (${WASTE_MIN}–${WASTE_MAX}%). Recommended: 10–20%.`,
+    waste_placeholder: "e.g. 20",
+
     btn_saving: "Saving...",
-    btn_save:   "Save All Settings",
+    btn_save:   "Save Global Settings",
 };
 
-/**
- * Renders the settings card containing two `SettingsField` inputs and a save button.
- *
- * @param {object}   props
- * @param {string}   props.coverage         — Controlled value for the coverage input.
- * @param {string}   props.waste            — Controlled value for the waste input.
- * @param {{ coverage?: string, waste?: string }} props.errors
- *                                          — Validation error messages keyed by field name.
- * @param {boolean}  props.isSaving         — When `true`, the save button shows a spinner
- *                                            and is disabled.
- * @param {function} props.onCoverageChange — Change handler for the coverage input.
- * @param {function} props.onWasteChange    — Change handler for the waste input.
- * @param {function} props.onSave          — Click handler for the save button.
- * @returns {JSX.Element}
- */
+function Field({ label, hint, value, onChange, min, max, step, placeholder, error }) {
+    return (
+        <div className="space-y-2 text-left" dir="ltr">
+            <label className="block text-[14px] font-bold text-[var(--foreground)] opacity-90">
+                {label}
+            </label>
+            {hint && (
+                <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed opacity-85">{hint}</p>
+            )}
+            <div className="pt-1">
+                <input
+                    type="number"
+                    value={value}
+                    min={min}
+                    max={max}
+                    step={step ?? '0.01'}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    className={`
+                        w-full bg-[var(--muted)] border rounded-xl px-4 py-3
+                        text-sm font-medium focus:ring-2 outline-none transition-all
+                        text-[var(--foreground)] placeholder-[var(--muted-foreground)]/40
+                        ${error
+                            ? 'border-red-400 focus:ring-red-400/20'
+                            : 'border-[var(--border)] focus:ring-[var(--primary)]/20'
+                        }
+                    `}
+                />
+                {error && (
+                    <p className="text-red-500 text-[11px] mt-1.5 flex items-center gap-1">
+                        <AlertCircle size={12} />
+                        {error}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function SettingsForm({
-    waste,
-    errors,
-    isSaving,
-    onWasteChange,
-    onSave,
+    coverage, waste, errors, isSaving,
+    onCoverageChange, onWasteChange, onSave,
 }) {
     return (
-        <div className="bg-[var(--card)] p-8 rounded-[1.5rem] border border-[var(--border)] shadow-sm space-y-8 text-[var(--foreground)] max-w-2xl mx-auto">
+        <div className="space-y-6 max-w-2xl mx-auto" dir="ltr">
 
             {/* Header */}
-            <div className="flex items-center gap-4 pb-6 border-b border-[var(--border)]">
-                <div className="p-3 bg-[var(--primary)]/10 rounded-2xl text-[var(--primary)]">
-                    <SlidersHorizontal size={22} />
-                </div>
-
-                {/* Title + subtitle */}
-                <div>
-                    <h1 className="text-xl font-bold text-[var(--foreground)]">Calculator Settings</h1>
-                    <p className="text-sm text-[var(--muted-foreground)]">
-                        Calculation rules for your store — all measurements in square meters
-                    </p>
+            <div className="bg-[var(--card)] px-8 py-6 rounded-[1.5rem] border border-[var(--border)] shadow-sm">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="text-left">
+                        <h1 className="text-xl font-bold text-[var(--foreground)]">{t.card_title}</h1>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t.card_subtitle}</p>
+                    </div>
+                    <div className="p-3 bg-[var(--primary)]/10 rounded-2xl text-[var(--primary)] shrink-0">
+                        <SlidersHorizontal size={22} />
+                    </div>
                 </div>
             </div>
 
-            <div className="space-y-6">
-                <SettingsField
-                    label="Waste Percentage (%)"
-                    hint={`Safety margin added on top of the area — recommended between ${WASTE_MIN}% and ${WASTE_MAX}%`}
-                    value={waste}
+            {/* Form */}
+            <div className="bg-[var(--card)] px-8 py-7 rounded-[1.5rem] border border-[var(--border)] shadow-sm space-y-6">
+
+                {/* Explanation banner */}
+                <div className="bg-[var(--primary)]/[0.04] border border-[var(--primary)]/10 rounded-2xl p-4 flex gap-3 items-start">
+                    <Sparkles size={15} className="text-[var(--primary)] mt-0.5 shrink-0" />
+                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed text-left">
+                        {t.banner_body}
+                    </p>
+                </div>
+
+                {/* Coverage */}
+                <Field
+                    label={t.coverage_label}
+                    hint={t.coverage_hint}
+                    value={coverage ?? ""}
+                    onChange={onCoverageChange}
+                    min={COVERAGE_MIN}
+                    max={COVERAGE_MAX}
+                    step="0.01"
+                    placeholder={t.coverage_placeholder}
+                    error={errors.coverage}
+                />
+
+                <div className="border-t border-[var(--border)] opacity-60" />
+
+                {/* Waste */}
+                <Field
+                    label={t.waste_label}
+                    hint={t.waste_hint}
+                    value={waste ?? ""}
                     onChange={onWasteChange}
                     min={WASTE_MIN}
                     max={WASTE_MAX}
                     step="0.1"
-                    placeholder="10"
+                    placeholder={t.waste_placeholder}
                     error={errors.waste}
                 />
-            </div>
 
-            {/* Save Button */}
-            <div className="pt-4">
-                <button
-                    onClick={onSave}
-                    disabled={isSaving}
-                    className={`
-                        w-full py-4 rounded-xl font-bold text-sm tracking-wide
-                        transition-all flex items-center justify-center gap-2
-                        bg-[var(--primary)] text-white shadow-md
-                        ${isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.98]'}
-                    `}
-                >
-                    {isSaving ? (
-                        <><Loader2 size={18} className="animate-spin" /> Saving...</>
-                    ) : (
-                        'Save Settings'
-                    )}
-                </button>
+                {/* Save */}
+                <div className="pt-2">
+                    <button
+                        onClick={onSave}
+                        disabled={isSaving}
+                        className={`
+                            w-full py-3.5 rounded-xl font-bold text-sm tracking-wide
+                            transition-all flex items-center justify-center gap-2
+                            bg-[var(--primary)] text-white shadow-sm
+                            ${isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]'}
+                        `}
+                    >
+                        {isSaving
+                            ? <><Loader2 size={18} className="animate-spin" /> {t.btn_saving}</>
+                            : t.btn_save
+                        }
+                    </button>
+                </div>
             </div>
         </div>
     );

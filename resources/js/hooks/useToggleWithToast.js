@@ -13,6 +13,11 @@
  * Dashboard and the Products page. Neither page needs to pass a product list
  * as an argument.
  *
+ * FIX: guard يقرأ coverage_per_unit المحلولة (product → global → null).
+ * سابقاً كان الـ guard يرفض التفعيل حتى لو في قيمة عامة في الإعدادات،
+ * لأن الـ cache كان يحفظ القيمة الخام من product_calculator فقط.
+ * الآن بعد إصلاح index() في Backend والـ cache، يعمل الـ guard بشكل صحيح.
+ *
  * Used by: Dashboard, Products
  */
 
@@ -24,8 +29,9 @@ import { useToggleProduct, QUERY_KEYS } from "./useProducts";
 // ── i18n strings ──────────────────────────────────────────────────────────────
 // Move to your translation JSON and replace with useTranslation() when ready.
 const t = {
+    // ✅ FIX: رسالة أوضح — تشير للخيارين (خاص أو عام)
     toast_coverage_required:
-        "Set a valid unit coverage before activating this product.",
+        "Set a unit coverage for this product, or configure a global default in Settings.",
     toast_activated: "Product activated",
     toast_deactivated: "Product deactivated",
     toast_error: "Something went wrong. Please try again.",
@@ -36,8 +42,8 @@ const t = {
  *
  * @returns {{
  *   handleToggle: (productId: number) => void,
- *   isPending:    boolean,  - True while the mutation network request is in-flight.
- *   variables:    number|undefined - The productId currently being mutated (for per-row loading state).
+ *   isPending:    boolean,
+ *   variables:    number|undefined
  * }}
  */
 export function useToggleWithToast() {
@@ -46,37 +52,48 @@ export function useToggleWithToast() {
 
     /**
      * Validates coverage for activation, then fires the toggle mutation.
-     * Reads the product list synchronously from the React Query cache so the
-     * check is always against the latest data — even mid-optimistic-update.
      *
-     * @param {number} productId - ID of the product to toggle.
+     * ✅ FIX: يقرأ coverage_per_unit المحلولة من الـ cache.
+     * بعد إصلاح Backend + useProducts، القيمة في الـ cache هي القيمة الفعلية:
+     *   - رقم صحيح  → سواء جاء من المنتج أو من الإعدادات العامة
+     *   - null       → لا قيمة مضبوطة في أي مكان → نمنع التفعيل
+     *
+     * @param {number} productId
      */
     const handleToggle = (productId) => {
         // Synchronous cache read — no fetch, no stale closure.
         const allProducts = queryClient.getQueryData(QUERY_KEYS.products) ?? [];
         const product = allProducts.find((p) => p.id === productId);
+
         // Infer the intended new state from the current cache value.
         const willBeActive = product ? !product.active : false;
 
-        // ── Coverage validation guard ─────────────────────────────────────────
-        // Only block activation; deactivation is always allowed without restriction.
+        // ── Coverage + Waste validation guard ────────────────────────────────
+        // Both must be configured (product or global) before activation.
         if (willBeActive) {
             const coverage = product?.coverage_per_unit;
-            const isInvalid =
+            const waste = product?.waste_percentage;
+
+            const coverageInvalid =
                 coverage === null ||
                 coverage === undefined ||
-                coverage === "" ||
                 Number(coverage) <= 0;
+            const wasteInvalid = waste === null || waste === undefined;
 
-            if (isInvalid) {
-                toast.error(t.toast_coverage_required, { duration: 4000 });
-                return; // abort — do not fire the mutation
+            if (coverageInvalid || wasteInvalid) {
+                const msg =
+                    coverageInvalid && wasteInvalid
+                        ? "Set coverage and waste percentage before activating — or configure global defaults in Settings."
+                        : coverageInvalid
+                          ? "Set a unit coverage for this product, or configure a global default in Settings."
+                          : "Set a waste percentage for this product, or configure a global default in Settings.";
+                toast.error(msg, { duration: 4000 });
+                return;
             }
         }
 
         toggleMutation.mutate(productId, {
             onSuccess: (data) => {
-                // Prefer the server-confirmed `is_enabled` flag; fall back to the inferred value.
                 const isEnabled = data?.is_enabled ?? willBeActive;
                 toast.success(
                     isEnabled ? t.toast_activated : t.toast_deactivated,
@@ -91,8 +108,6 @@ export function useToggleWithToast() {
     return {
         handleToggle,
         isPending: toggleMutation.isPending,
-        // `variables` holds the productId passed to the last mutate() call.
-        // Consumers compare it to their own product.id to show per-row loading state.
         variables: toggleMutation.variables,
     };
 }

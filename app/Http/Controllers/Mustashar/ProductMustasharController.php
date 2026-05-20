@@ -12,14 +12,63 @@ use Illuminate\Support\Facades\Log;
 
 class ProductMustasharController extends Controller
 {
-    /**
-     * جلب الإعدادات لمنتج معين (يستخدم عادة من قبل واجهة سلة أو API)
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private helpers — resolution using explicit type flags
+    //
+    // coverage_type / waste_type = 'custom' → use product's own value
+    // coverage_type / waste_type = 'global' → inherit from calculator_settings
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function resolveCoverage(?ProductMustashar $calc, ?MustasharSetting $settings): ?float
+    {
+        if ($calc?->coverage_type === 'custom' && !empty($calc->coverage_per_unit)) {
+            return (float) $calc->coverage_per_unit;
+        }
+
+        if ($settings && !empty($settings->coverage_per_unit)) {
+            return (float) $settings->coverage_per_unit;
+        }
+
+        return null;
+    }
+
+    /** @return 'product'|'global'|'none' */
+    private function coverageSource(?ProductMustashar $calc, ?MustasharSetting $settings): string
+    {
+        if ($calc?->coverage_type === 'custom' && !empty($calc->coverage_per_unit)) return 'product';
+        if ($settings && !empty($settings->coverage_per_unit))                       return 'global';
+        return 'none';
+    }
+
+    private function resolveWaste(?ProductMustashar $calc, ?MustasharSetting $settings): ?float
+    {
+        if ($calc?->waste_type === 'custom' && $calc->waste_percentage !== null) {
+            return (float) $calc->waste_percentage;
+        }
+
+        if ($settings && $settings->waste_percentage !== null) {
+            return (float) $settings->waste_percentage;
+        }
+
+        return null; // nothing configured anywhere
+    }
+
+    /** @return 'product'|'global'|'default' */
+    private function wasteSource(?ProductMustashar $calc, ?MustasharSetting $settings): string
+    {
+        if ($calc?->waste_type === 'custom' && $calc->waste_percentage !== null) return 'product';
+        if ($settings && $settings->waste_percentage !== null)                    return 'global';
+        return 'default';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public API
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function getSettings($product_id)
     {
         $merchant = Auth::user();
 
-        // البحث عن المنتج باستخدام salla_product_id + التحقق من الملكية
         $product = Product::where('merchant_id', $merchant->id)
             ->where('salla_product_id', (string) $product_id)
             ->first();
@@ -28,218 +77,185 @@ class ProductMustasharController extends Controller
             return response()->json(['enabled' => false, 'message' => 'Product not found']);
         }
 
-        // تحقق من التفعيل
         $calculator = $product->calculator;
 
         if (!$calculator || !$calculator->is_enabled) {
             return response()->json(['enabled' => false]);
         }
 
-        // جلب إعدادات التاجر
-        $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
-
-        // Overrides per product (optional) via metadata
-        $metaCalc = is_array($product->metadata) ? ($product->metadata['calculator'] ?? null) : null;
-        $unitType = is_array($metaCalc) && !empty($metaCalc['unit_type'])
-            ? (string) $metaCalc['unit_type']
-            : 'box';
-
-        $coveragePerUnit = is_array($metaCalc) && isset($metaCalc['coverage_per_unit'])
-            ? (float) $metaCalc['coverage_per_unit']
-            : ($settings ? (float) $settings->coverage_per_unit : 2.56);
-
-        $waste = is_array($metaCalc) && isset($metaCalc['waste_percentage'])
-            ? (float) $metaCalc['waste_percentage']
-            : ($settings ? (float) $settings->waste_percentage : 10);
-
-        $unitPrice = (float) $product->price;
+        $settings        = MustasharSetting::where('merchant_id', $merchant->id)->first();
+        $coveragePerUnit = $this->resolveCoverage($calculator, $settings);
+        $waste           = $this->resolveWaste($calculator, $settings);
 
         return response()->json([
             'enabled' => true,
             'product' => [
                 'id'    => (string) $product->salla_product_id,
                 'name'  => (string) $product->name,
-                'price' => [
-                    'amount'   => $unitPrice,
-                    'currency' => 'SAR',
-                ],
+                'price' => ['amount' => (float) $product->price, 'currency' => 'SAR'],
             ],
             'calculator' => [
-                'area_unit' => 'm2',
+                'area_unit'    => 'm2',
                 'selling_unit' => [
-                    'type'             => $unitType,
+                    'type'              => 'box',
                     'coverage_per_unit' => $coveragePerUnit,
-                    'rounding'          => $unitType === 'box' ? 'ceil' : 'none',
+                    'rounding'          => 'ceil',
                     'min'               => 1,
-                    'step'              => $unitType === 'box' ? 1 : 0.01,
-                    'decimals'          => $unitType === 'box' ? 0 : 2,
+                    'step'              => 1,
+                    'decimals'          => 0,
                 ],
                 'waste_percentage' => $waste,
             ],
         ]);
     }
 
-    /**
-     * تحديث إعدادات منتج واحد (Overrides) عبر API
-     * يستخدم لتحديد: نوع الوحدة (box|meter) + تغطية الصندوق + هدر
-     */
-    public function updateSettings(Request $request)
-    {
-        $merchant = Auth::user();
-
-        $validated = $request->validate([
-            'salla_product_id'   => 'required|string',
-            'unit_type'          => 'nullable|in:box,meter',
-            'coverage_per_unit'  => 'nullable|numeric|min:0.000001',
-            'waste_percentage'   => 'nullable|numeric|min:0|max:100',
-        ]);
-
-        $product = Product::where('merchant_id', $merchant->id)
-            ->where('salla_product_id', $validated['salla_product_id'])
-            ->firstOrFail();
-
-        $metadata = is_array($product->metadata) ? $product->metadata : [];
-        $metadata['calculator'] = is_array($metadata['calculator'] ?? null) ? $metadata['calculator'] : [];
-
-        if (array_key_exists('unit_type', $validated) && $validated['unit_type'] !== null) {
-            $metadata['calculator']['unit_type'] = $validated['unit_type'];
-        }
-        if (array_key_exists('coverage_per_unit', $validated) && $validated['coverage_per_unit'] !== null) {
-            $metadata['calculator']['coverage_per_unit'] = (float) $validated['coverage_per_unit'];
-        }
-        if (array_key_exists('waste_percentage', $validated) && $validated['waste_percentage'] !== null) {
-            $metadata['calculator']['waste_percentage'] = (float) $validated['waste_percentage'];
-        }
-
-        $product->metadata = $metadata;
-        $product->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Calculator settings updated.',
-            'calculator' => $metadata['calculator'],
-        ]);
-    }
-
-    /**
-     * عرض قائمة المنتجات في لوحة تحكم المستشار
-     */
     public function index(Request $request)
     {
         $merchant = Auth::user();
+        $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
         $products = Product::where('merchant_id', $merchant->id)
             ->with(['calculator', 'mainImage'])
             ->orderBy('name')
             ->get()
-            ->map(function ($product) {
+            ->map(function ($product) use ($settings) {
+                $calc = $product->calculator;
+
                 return [
-                    'id' => $product->id,
+                    'id'               => $product->id,
                     'salla_product_id' => $product->salla_product_id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'price' => (float) $product->price,
-                    'quantity' => $product->quantity,
-                    'category' => $product->category ?? 'Uncategorized',
-                    'image' => $product->image_url,
-                    'active' => (bool) optional($product->calculator)->is_enabled,
-                    'coverage_per_unit' => $product->calculator?->coverage_per_unit,
+                    'name'             => $product->name,
+                    'sku'              => $product->sku,
+                    'price'            => (float) $product->price,
+                    'quantity'         => $product->quantity,
+                    'category'         => $product->category ?? 'Uncategorized',
+                    'image'            => $product->image_url,
+                    'active'           => (bool) optional($calc)->is_enabled,
+
+                    'coverage_per_unit' => $this->resolveCoverage($calc, $settings),
+                    'coverage_source'   => $this->coverageSource($calc, $settings),
+                    'coverage_type'     => $calc?->coverage_type ?? 'global',
+
+                    'waste_percentage'  => $this->resolveWaste($calc, $settings),
+                    'waste_source'      => $this->wasteSource($calc, $settings),
+                    'waste_type'        => $calc?->waste_type ?? 'global',
                 ];
             });
 
-        return response()->json([
-            'data' => $products,
-        ]);
+        return response()->json(['data' => $products]);
     }
 
-    /**
-     * ✅ إصلاح: تفعيل/إيقاف الآلة الحاسبة (Toggle) بأسلوب آمن
-     * حل مشكلة "Double Flip" التي تمنع التفعيل.
-     */
     public function toggle(Request $request, $id)
     {
         $merchant = Auth::user();
 
         try {
-            // 1. التحقق الصارم من ملكية المنتج
-            $product = Product::where('id', $id)
-                              ->where('merchant_id', $merchant->id)
-                              ->firstOrFail();
-
-            // 2. جلب السجل الحالي أو إنشاء واحد جديد إذا لم يوجد
+            $product    = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
             $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
 
-            // 3. تحديد الحالة الجديدة:
-            // إذا تم تمرير حالة محددة من الواجهة نستخدمها، وإلا نعكس الحالة الحالية.
-            if ($request->has('is_enabled')) {
-                $newState = filter_var($request->is_enabled, FILTER_VALIDATE_BOOLEAN);
-            } else {
-                $newState = !$calculator->is_enabled;
-            }
+            $newState = $request->has('is_enabled')
+                ? filter_var($request->is_enabled, FILTER_VALIDATE_BOOLEAN)
+                : !$calculator->is_enabled;
 
-            // 4. حفظ الحالة الجديدة
             $calculator->is_enabled = $newState;
             $calculator->save();
 
-            // 5. الرد لطلبات AJAX
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success'    => true,
-                    'is_enabled' => (bool)$calculator->is_enabled,
-                    'message'    => $calculator->is_enabled ? 'Al-Mustashar activated' : 'Al-Mustashar disabled'
+                    'is_enabled' => (bool) $calculator->is_enabled,
+                    'message'    => $calculator->is_enabled ? 'Al-Mustashar activated' : 'Al-Mustashar disabled',
                 ]);
             }
 
-            // للطلبات العادية (تراجع)
             return back()->with('success', 'Status updated successfully');
 
         } catch (\Exception $e) {
             Log::error("Toggle Error for Product ID {$id}: " . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
     /**
-     * تحديث coverage_per_unit لمنتج واحد
+     * تحديث Coverage لمنتج — يضبط coverage_type='custom' ويحفظ القيمة.
+     * إرسال null يعيد المنتج لـ coverage_type='global'.
      */
     public function updateCoverage(Request $request, $id)
     {
         $merchant = Auth::user();
 
         $validated = $request->validate([
-            'coverage_per_unit' => 'required|numeric|min:0.0001',
+            'coverage_per_unit' => 'nullable|numeric|min:0.01|max:200',
         ]);
 
-        $product = Product::where('id', $id)
-            ->where('merchant_id', $merchant->id)
-            ->firstOrFail();
+        $product    = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
+        $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
 
-        $calculator = ProductCalculator::firstOrCreate(['product_id' => $product->id]);
-        $calculator->coverage_per_unit = (float) $validated['coverage_per_unit'];
+        if (!empty($validated['coverage_per_unit'])) {
+            $calculator->coverage_type     = 'custom';
+            $calculator->coverage_per_unit = (float) $validated['coverage_per_unit'];
+        } else {
+            // null = العودة للعام
+            $calculator->coverage_type     = 'global';
+            $calculator->coverage_per_unit = null;
+        }
+
         $calculator->save();
 
+        $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
+
         return response()->json([
-            'success' => true,
-            'coverage_per_unit' => $calculator->coverage_per_unit,
+            'success'           => true,
+            'coverage_per_unit' => $this->resolveCoverage($calculator, $settings),
+            'coverage_source'   => $this->coverageSource($calculator, $settings),
+            'coverage_type'     => $calculator->coverage_type,
         ]);
     }
 
     /**
-     * تفعيل الحاسبة لمجموعة منتجات مختارة (Bulk Enable)
+     * تحديث Waste لمنتج — يضبط waste_type='custom' ويحفظ القيمة.
+     * إرسال null يعيد المنتج لـ waste_type='global'.
      */
-    public function bulkEnable(Request $request)
+    public function updateWaste(Request $request, $id)
     {
         $merchant = Auth::user();
 
         $validated = $request->validate([
-            'product_ids' => 'required|array',
+            'waste_percentage' => 'nullable|numeric|min:0|max:50',
+        ]);
+
+        $product    = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
+        $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
+
+        if (isset($validated['waste_percentage']) && $validated['waste_percentage'] !== null) {
+            $calculator->waste_type       = 'custom';
+            $calculator->waste_percentage = (float) $validated['waste_percentage'];
+        } else {
+            $calculator->waste_type       = 'global';
+            $calculator->waste_percentage = null;
+        }
+
+        $calculator->save();
+
+        $settings    = MustasharSetting::where('merchant_id', $merchant->id)->first();
+        $wasteSource = $this->wasteSource($calculator, $settings);
+
+        return response()->json([
+            'success'          => true,
+            'waste_percentage' => $this->resolveWaste($calculator, $settings),
+            'waste_source'     => $wasteSource,
+            'waste_type'       => $calculator->waste_type,
+        ]);
+    }
+
+    public function bulkEnable(Request $request)
+    {
+        $merchant  = Auth::user();
+        $validated = $request->validate([
+            'product_ids'   => 'required|array',
             'product_ids.*' => 'exists:products,id',
         ]);
 
-        // جلب المنتجات المملوكة فقط لضمان الأمان
         $products = Product::where('merchant_id', $merchant->id)
                            ->whereIn('id', $validated['product_ids'])
                            ->get();
@@ -254,7 +270,7 @@ class ProductMustasharController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Activated for ' . $products->count() . ' products successfully.'
+                'message' => 'Activated for ' . $products->count() . ' products successfully.',
             ]);
         }
 

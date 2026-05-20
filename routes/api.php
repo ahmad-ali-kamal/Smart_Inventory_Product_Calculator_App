@@ -13,11 +13,12 @@ use App\Http\Controllers\Mustashar\MustasharSettingsController;
 |--------------------------------------------------------------------------
 | المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/calculator/settings/{salla_product_id}',
+   Route::get('/calculator/settings/{salla_product_id}',
     [MustasharSettingsController::class, 'getSettingsForStore']
 );
+
+Route::middleware('auth:sanctum')->group(function () {
+ 
 
     // --- 1. معلومات المستخدم الحالي ---
     Route::get('/user', function (Request $request) {

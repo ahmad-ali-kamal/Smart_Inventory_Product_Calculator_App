@@ -170,7 +170,7 @@ if (type === 'settings_preview') {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <p style={labelStyle}>Calculator Logic</p>
+                    <p style={labelStyle}>Default Settings</p>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {/* Filter rules to remove null, undefined, or NaN values before mapping */}
                         {rules && rules.length > 0 ? (

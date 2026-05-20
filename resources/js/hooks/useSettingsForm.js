@@ -5,26 +5,11 @@ import {
     useCalculatorSettings,
     useUpdateCalculatorSettings,
 } from "./useProducts";
-import { validateWaste } from "../constants/calculatorSettings";
+import {
+    validateWaste,
+    validateCoverage,
+} from "../constants/calculatorSettings";
 
-/**
- * Manages form state, validation, and server synchronisation for the
- * Mustashar Calculator Settings page.
- *
- * @returns {{
- *   isLoading: boolean,
- *   isError:   boolean,
- *   error:     Error|null,
- *   refetch:   function,
- *   coverage:  string,
- *   waste:     string,
- *   errors:    { coverage?: string, waste?: string },
- *   isSaving:  boolean,
- *   handleCoverageChange: function,
- *   handleWasteChange:    function,
- *   handleSave:           function,
- * }}
- */
 export function useSettingsForm() {
     const {
         data: settings,
@@ -34,41 +19,37 @@ export function useSettingsForm() {
         refetch,
     } = useCalculatorSettings();
 
+    const [coverage, setCoverage] = useState("");
     const [waste, setWaste] = useState("10");
-
-    /** Per-field validation error messages keyed by field name. */
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        if (settings) {
-            setWaste(String(settings.waste ?? 10));
-        }
+        if (!settings) return;
+        setCoverage(settings.coverage != null ? String(settings.coverage) : "");
+        setWaste(String(settings.waste ?? 10));
     }, [settings]);
 
     const updateSettings = useUpdateCalculatorSettings();
-
-    /** True while the POST request is in-flight — used to disable the save button. */
     const isSaving = updateSettings.isPending;
+
+    function handleCoverageChange(e) {
+        setCoverage(e.target.value);
+        if (errors.coverage) setErrors((p) => ({ ...p, coverage: undefined }));
+    }
 
     function handleWasteChange(e) {
         setWaste(e.target.value);
-        if (errors.waste) setErrors((prev) => ({ ...prev, waste: undefined }));
+        if (errors.waste) setErrors((p) => ({ ...p, waste: undefined }));
     }
 
-    /**
-     * Validates both fields, then POSTs the settings to the server.
-     *
-     * Flow:
-     *  1. Run client-side validation via `validateFields`.
-     *  2. If errors exist → set error state + show toast, bail out.
-     *  3. Otherwise clear errors and call `updateSettings.mutateAsync`.
-     *  4. On success → success toast.
-     *  5. On failure → extract the most specific server error message and show it.
-     *
-     * @returns {Promise<void>}
-     */
     async function handleSave() {
-        const fieldErrors = validateWaste(waste);
+        const fieldErrors = {};
+
+        const coverageErr = validateCoverage(coverage);
+        if (coverageErr) fieldErrors.coverage = coverageErr;
+
+        const wasteErrs = validateWaste(waste);
+        Object.assign(fieldErrors, wasteErrs);
 
         if (Object.keys(fieldErrors).length > 0) {
             setErrors(fieldErrors);
@@ -80,14 +61,14 @@ export function useSettingsForm() {
 
         try {
             await updateSettings.mutateAsync({
+                coverage_per_unit: parseFloat(coverage),
                 waste_percentage: parseFloat(waste),
             });
             toast.success("Settings saved successfully.");
         } catch (err) {
-            // Prefer the most granular Laravel validation message available,
-            // falling back to a generic copy if the server returns nothing useful.
             const serverMsg =
                 err?.response?.data?.message ||
+                err?.response?.data?.errors?.coverage_per_unit?.[0] ||
                 err?.response?.data?.errors?.waste_percentage?.[0] ||
                 "Failed to save settings. Please try again.";
             toast.error(serverMsg);
@@ -99,9 +80,11 @@ export function useSettingsForm() {
         isError,
         error,
         refetch,
+        coverage,
         waste,
         errors,
         isSaving,
+        handleCoverageChange,
         handleWasteChange,
         handleSave,
     };

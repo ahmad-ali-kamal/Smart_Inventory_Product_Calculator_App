@@ -20,7 +20,7 @@
 // ── i18n strings ──────────────────────────────────────────────────────────────
 // Move to your translation JSON and replace with useTranslation() when ready.
 const t = {
-    setup_banner_description: "Configure coverage per unit and waste percentage so the calculator can generate accurate results.",
+    setup_banner_description: "Set defaults once to configure all products instantly. You can still easily customize any product later.",
     toolbar_banner:           "Ready to start? Just set your product's coverage rate, turn on the toggle, and let your Al mustashar handle the rest!",
     search_placeholder:       "Search products...",
     empty_state:              "No products found.",

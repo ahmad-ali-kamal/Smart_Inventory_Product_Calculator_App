@@ -38,6 +38,8 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::get('/api/products', [ProductMustasharController::class, 'index']);
     Route::post('/api/products/sync', [HareesApiController::class, 'syncProducts']); 
     Route::post('/api/products/{id}/toggle', [ProductMustasharController::class, 'toggle']);
+    Route::post('/api/products/{id}/coverage', [ProductMustasharController::class, 'updateCoverage']);
+    Route::post('/api/products/{id}/waste', [ProductMustasharController::class, 'updateWaste']);
      Route::get('/api/calculator-settings', [MustasharSettingsController::class, 'show']);
     Route::post('/api/calculator-settings', [MustasharSettingsController::class, 'store']);
 });

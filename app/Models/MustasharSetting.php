@@ -10,18 +10,19 @@ class MustasharSetting extends Model
 {
     use HasFactory;
 
+    protected $table = 'calculator_settings';
+
     protected $fillable = [
         'merchant_id',
         'waste_percentage',
+        'coverage_per_unit',
         'unit_type',
-        'min_input_area',
-        'max_input_area',
+        // min_input_area / max_input_area removed — dropped in migration
     ];
 
     protected $casts = [
-        'waste_percentage' => 'decimal:2',
-        'min_input_area' => 'decimal:4',
-        'max_input_area' => 'decimal:4',
+        'waste_percentage'  => 'decimal:2',
+        'coverage_per_unit' => 'decimal:2',
     ];
 
     public function merchant(): BelongsTo
@@ -33,31 +34,5 @@ class MustasharSetting extends Model
     {
         $withWaste = $customerNeed * (1 + ($this->waste_percentage / 100));
         return $withWaste / $coveragePerUnit;
-    }
-
-    public function calculateTotalCoverage(int $units, float $coveragePerUnit): float
-    {
-        return $units * $coveragePerUnit;
-    }
-
-    public function calculateActualCoverage(int $units, float $coveragePerUnit): float
-    {
-        $total = $this->calculateTotalCoverage($units, $coveragePerUnit);
-        $waste = $total * ($this->waste_percentage / 100);
-        return $total - $waste;
-    }
-
-    public function getAreaLimits(): array
-    {
-        return [
-            'min' => (float) ($this->min_input_area ?? 0.01),
-            'max' => (float) ($this->max_input_area ?? 999999),
-        ];
-    }
-
-    public function isValidArea(float $area): bool
-    {
-        $limits = $this->getAreaLimits();
-        return $area >= $limits['min'] && $area <= $limits['max'];
     }
 }

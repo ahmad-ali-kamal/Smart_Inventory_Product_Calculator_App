@@ -15,18 +15,38 @@ class ProductMustashar extends Model
     protected $fillable = [
         'product_id',
         'is_enabled',
+        'coverage_type',        // ✅ NEW: 'global' | 'custom'
         'coverage_per_unit',
+        'waste_type',           // ✅ NEW: 'global' | 'custom'
+        'waste_percentage',
     ];
 
     protected $casts = [
-        'is_enabled' => 'boolean',
+        'is_enabled'        => 'boolean',
         'coverage_per_unit' => 'decimal:2',
+        'waste_percentage'  => 'decimal:2',
     ];
+
+    // ── Type helpers ──────────────────────────────────────────────────────────
+
+    public function coverageIsCustom(): bool
+    {
+        return $this->coverage_type === 'custom';
+    }
+
+    public function wasteIsCustom(): bool
+    {
+        return $this->waste_type === 'custom';
+    }
+
+    // ── Relationships ─────────────────────────────────────────────────────────
 
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
+
+    // ── State helpers ─────────────────────────────────────────────────────────
 
     public function enable(): bool
     {
@@ -54,10 +74,5 @@ class ProductMustashar extends Model
     public function scopeDisabled($query)
     {
         return $query->where('is_enabled', false);
-    }
-
-    public function getCoveragePerUnit(float $default = 1.0): float
-    {
-        return (float) ($this->coverage_per_unit ?? $default);
     }
 }
