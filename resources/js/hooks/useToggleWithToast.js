@@ -2,21 +2,29 @@
  * @file useToggleWithToast.js
  * @module Hooks
  *
- * Composes useToggleProduct with:
- *   1. A coverage validation guard that reads live data directly from the React
- *      Query cache — not from any stale render-time prop — so it is always
- *      accurate even when the Products page is filtered and some products are
- *      hidden from the current view.
- *   2. Toast notifications for success, validation failure, and server error.
+ * Composes `useToggleProduct` with two additional layers:
  *
- * This hook is the single entry point for toggle interactions on both the
- * Dashboard and the Products page. Neither page needs to pass a product list
- * as an argument.
+ *   1. **Validation guard** — reads the resolved `coverage_per_unit` and
+ *      `waste_percentage` directly from the React Query cache before
+ *      allowing a product to be activated. This approach is intentionally
+ *      synchronous (no fetch) and always reflects the latest server-
+ *      confirmed data — even when the Products page is filtered and some
+ *      rows are hidden from the current view.
  *
- * FIX: guard يقرأ coverage_per_unit المحلولة (product → global → null).
- * سابقاً كان الـ guard يرفض التفعيل حتى لو في قيمة عامة في الإعدادات،
- * لأن الـ cache كان يحفظ القيمة الخام من product_calculator فقط.
- * الآن بعد إصلاح index() في Backend والـ cache، يعمل الـ guard بشكل صحيح.
+ *   2. **Toast notifications** — success, validation failure, and server
+ *      error states each surface a distinct `react-hot-toast` message.
+ *
+ * This hook is the single entry point for all toggle interactions across
+ * the Dashboard and the Products page. Neither consumer needs to pass a
+ * product list — the hook reads it from the cache autonomously.
+ *
+ * Background — guard accuracy fix:
+ *   Previously the guard would reject activation even when a global setting
+ *   existed, because the cache stored the raw product-level value only.
+ *   After the Backend `index()` fix and the corresponding cache update in
+ *   `useProducts`, the cache now holds the fully resolved value:
+ *     - A positive number  → product-level or global setting is in place.
+ *     - `null`             → no value anywhere → activation is blocked.
  *
  * Used by: Dashboard, Products
  */
@@ -29,12 +37,12 @@ import { useToggleProduct, QUERY_KEYS } from "./useProducts";
 // ── i18n strings ──────────────────────────────────────────────────────────────
 // Move to your translation JSON and replace with useTranslation() when ready.
 const t = {
-    // ✅ FIX: رسالة أوضح — تشير للخيارين (خاص أو عام)
+    /** Generic fallback — shown when neither coverage nor waste is set. */
     toast_coverage_required:
         "Set a unit coverage for this product, or configure a global default in Settings.",
-    toast_activated: "Product activated",
+    toast_activated:   "Product activated",
     toast_deactivated: "Product deactivated",
-    toast_error: "Something went wrong. Please try again.",
+    toast_error:       "Something went wrong. Please try again.",
 };
 
 /**
@@ -45,35 +53,40 @@ const t = {
  *   isPending:    boolean,
  *   variables:    number|undefined
  * }}
+ *
+ * - `handleToggle` — Call with a product ID to validate then toggle.
+ * - `isPending`    — True while the mutation network request is in-flight.
+ * - `variables`    — The product ID passed to the most recent mutation call;
+ *                    useful for per-row loading indicators.
  */
 export function useToggleWithToast() {
-    const queryClient = useQueryClient();
+    const queryClient    = useQueryClient();
     const toggleMutation = useToggleProduct();
 
     /**
-     * Validates coverage for activation, then fires the toggle mutation.
+     * Validates that both coverage and waste are configured before allowing
+     * activation, then fires the toggle mutation.
      *
-     * ✅ FIX: يقرأ coverage_per_unit المحلولة من الـ cache.
-     * بعد إصلاح Backend + useProducts، القيمة في الـ cache هي القيمة الفعلية:
-     *   - رقم صحيح  → سواء جاء من المنتج أو من الإعدادات العامة
-     *   - null       → لا قيمة مضبوطة في أي مكان → نمنع التفعيل
+     * All reads are synchronous cache lookups — no network call is made here.
+     * The inferred `willBeActive` flag lets us apply the guard only on the
+     * activation path (not on deactivation).
      *
-     * @param {number} productId
+     * @param {number} productId - ID of the product whose toggle was clicked.
      */
     const handleToggle = (productId) => {
-        // Synchronous cache read — no fetch, no stale closure.
+        // Synchronous cache read — no fetch, no stale closure risk.
         const allProducts = queryClient.getQueryData(QUERY_KEYS.products) ?? [];
-        const product = allProducts.find((p) => p.id === productId);
+        const product     = allProducts.find((p) => p.id === productId);
 
-        // Infer the intended new state from the current cache value.
+        // Determine the intended state from the current cached flag.
         const willBeActive = product ? !product.active : false;
 
-        // ── Coverage + Waste validation guard ────────────────────────────────
-        // Both must be configured (product or global) before activation.
+        // ── Validation guard (activation only) ───────────────────────────────
         if (willBeActive) {
             const coverage = product?.coverage_per_unit;
-            const waste = product?.waste_percentage;
+            const waste    = product?.waste_percentage;
 
+            // Treat 0, null, and undefined as "not configured".
             const coverageInvalid =
                 coverage === null ||
                 coverage === undefined ||
@@ -81,6 +94,7 @@ export function useToggleWithToast() {
             const wasteInvalid = waste === null || waste === undefined;
 
             if (coverageInvalid || wasteInvalid) {
+                // Tailor the message to the specific missing field(s).
                 const msg =
                     coverageInvalid && wasteInvalid
                         ? "Set coverage and waste percentage before activating — or configure global defaults in Settings."
@@ -88,12 +102,14 @@ export function useToggleWithToast() {
                           ? "Set a unit coverage for this product, or configure a global default in Settings."
                           : "Set a waste percentage for this product, or configure a global default in Settings.";
                 toast.error(msg, { duration: 4000 });
-                return;
+                return; // Block the mutation.
             }
         }
 
+        // ── Fire the mutation ─────────────────────────────────────────────────
         toggleMutation.mutate(productId, {
             onSuccess: (data) => {
+                // Prefer the server-confirmed state; fall back to inferred state.
                 const isEnabled = data?.is_enabled ?? willBeActive;
                 toast.success(
                     isEnabled ? t.toast_activated : t.toast_deactivated,

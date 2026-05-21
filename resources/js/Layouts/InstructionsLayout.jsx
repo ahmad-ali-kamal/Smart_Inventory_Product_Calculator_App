@@ -204,7 +204,7 @@ export default function InstructionsLayout({
             {/* ── Description ── */}
             {/* Rendered only when the `description` prop is non-empty */}
             {description && (
-              <p className="text-center max-w-xl mx-auto mb-16 leading-relaxed text-[var(--muted-foreground)] opacity-75 text-[0.95rem]">
+              <p className="text-center max-w-xl mx-auto mb-16 leading-relaxed text-[var(--muted-foreground)] opacity-75 text-[0.95rem] whitespace-pre-line text-gray-600">
                 {description}
               </p>
             )}

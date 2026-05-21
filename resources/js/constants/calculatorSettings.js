@@ -1,21 +1,76 @@
-// resources/js/constants/calculatorSettings.js
+/**
+ * @file calculatorSettings.js
+ * @module Constants
+ *
+ * Shared validation rules and utility functions for the Mustashar smart
+ * calculator. This module is the single source of truth for:
+ *
+ *   - Numeric range constraints (waste %, coverage, room dimensions).
+ *   - Field-level validator functions consumed by both the Settings form
+ *     (`useSettingsForm`) and the inline row editors (`ProductRow`).
+ *   - A safe rounding helper used wherever calculated results are displayed.
+ *
+ * All validators return either a descriptive error string / object (on
+ * failure) or null / an empty object (on success), so call-sites can render
+ * errors directly without additional mapping.
+ *
+ * Used by: useSettingsForm, ProductRow, useToggleWithToast
+ */
 
+// ── Waste percentage bounds ───────────────────────────────────────────────────
+
+/** Minimum allowed waste percentage (inclusive). */
 export const WASTE_MIN = 0;
-export const WASTE_MAX = 50;
+
+/** Maximum allowed waste percentage (inclusive). */
+export const WASTE_MAX = 100;
+
+// ── Coverage per-unit bounds ──────────────────────────────────────────────────
+
+/** Minimum coverage a single unit may cover, in m² (exclusive of 0). */
 export const COVERAGE_MIN = 0.01;
+
+/** Maximum coverage a single unit may cover, in m². */
 export const COVERAGE_MAX = 200;
 
+// ── Room dimension bounds ─────────────────────────────────────────────────────
+
+/** Minimum valid room dimension (length or width), in metres. */
 export const DIMENSION_MIN = 0.01;
+
+/** Maximum valid room dimension (length or width), in metres. */
 export const DIMENSION_MAX = 1000;
 
+// ── Utility ───────────────────────────────────────────────────────────────────
+
+/**
+ * Rounds a floating-point number to the specified number of decimal places
+ * using the "round half away from zero" strategy (via string coercion).
+ * Avoids floating-point drift for values like 1.005.
+ *
+ * @param {number} n        - The value to round.
+ * @param {number} decimals - Number of decimal places (non-negative integer).
+ * @returns {number} The rounded value.
+ *
+ * @example
+ * roundSafe(1.005, 2); // → 1.01
+ * roundSafe(9.999,  1); // → 10
+ */
 export function roundSafe(n, decimals) {
     const d = Math.max(0, decimals | 0);
     return Number(Math.round(+(n + Number.EPSILON) + "e" + d) + "e-" + d);
 }
 
+// ── Field validators ──────────────────────────────────────────────────────────
+
 /**
- * Validates waste_percentage — required.
- * Returns { waste?: string } error object.
+ * Validates the `waste_percentage` field.
+ *
+ * Returns an errors object so it can be spread directly into a form-errors
+ * state map: `{ waste?: string }`. An empty object `{}` signals valid input.
+ *
+ * @param {string|number|null} waste - Raw field value from the controlled input.
+ * @returns {{ waste?: string }} Validation errors keyed by field name.
  */
 export function validateWaste(waste) {
     const errors = {};
@@ -33,8 +88,13 @@ export function validateWaste(waste) {
 }
 
 /**
- * Validates coverage_per_unit — required.
- * Returns an error string or null.
+ * Validates the `coverage_per_unit` field.
+ *
+ * Returns a plain error string on failure and `null` on success, matching
+ * the simpler single-field pattern used in `useSettingsForm` and `ProductRow`.
+ *
+ * @param {string|number|null} value - Raw field value from the controlled input.
+ * @returns {string|null} Error message, or null if valid.
  */
 export function validateCoverage(value) {
     const num = parseFloat(value);
@@ -50,8 +110,14 @@ export function validateCoverage(value) {
 }
 
 /**
- * Validates a customer-facing dimension (length / width).
- * Returns an error string or null.
+ * Validates a customer-facing room dimension (length or width).
+ *
+ * The `label` parameter lets call-sites produce field-specific messages
+ * (e.g. "Length must be greater than zero." vs. "Width must be…").
+ *
+ * @param {string|number|null} value       - Raw field value from the controlled input.
+ * @param {string}             [label="Value"] - Human-readable field label for error text.
+ * @returns {string|null} Error message, or null if valid.
  */
 export function validateDimension(value, label = "Value") {
     const num = parseFloat(value);

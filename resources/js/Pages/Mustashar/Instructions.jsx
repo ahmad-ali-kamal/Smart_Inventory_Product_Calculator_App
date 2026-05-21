@@ -34,23 +34,23 @@ import InstructionsLayout from "../../Layouts/InstructionsLayout";
 const t = {
     app_name:          "AL Mustashar",
     subtitle:          "Smart calculator for e-commerce",
-    description:       "Turn measurements into instant orders. Set up once and let the smart engine handle all the complex calculations for you — precision built right in.",
+    description:       "Welcome to your smart helper!\n We will help your customers calculate exactly how many boxes they need to buy based on their room size, including cutting waste. \nLet's get your store ready:",
     footer_note:       "Quantix Smart Calculator · Set up your rules once and automate product calculations across your store",
 
     // Step 1
     step1_title:       "General Settings",
-    step1_desc:        "Define your coverage per unit and waste percentage to power the calculation engine.",
+    step1_desc:        "Enter the default coverage and cutting waste percentage. These numbers will automatically apply to all your products to save your time, but don't worry, you can always set custom numbers for any specific product later",
     step1_badge:       "Coverage per unit (m²) · Waste percentage (%)",
 
     // Step 2
     step2_title:       "Activate Products",
-    step2_desc:        "Select which products use the smart calculator from your product catalogue. Toggle products on or off and filter by category.",
-    step2_badge:       "Toggle products on or off",
+    step2_desc:        "Go to your products list and simply flip the switch to enable the calculator. If a specific product covers more or less space, you can customize any product’s numbers directly from the list",
+    step2_badge:       "Turn on the Calculator for Your Products",
 
     // Step 3
-    step3_title:       "Daily Management",
-    step3_desc:        "Manage active products and edit calculation settings anytime from the dashboard. Live overview always available.",
-    step3_badge:       "Live overview from Dashboard",
+    step3_title:       "Live Preview on Your Store",
+    step3_desc:        "Check exactly how the calculator looks to your customers! Use the Preview button next to any product to see the instant storefront setup, and manage your active items directly from the dashboard.",
+    step3_badge:       "Live Store Preview ",
 };
 
 // ---------------------------------------------------------------------------

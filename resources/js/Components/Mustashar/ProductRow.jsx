@@ -2,18 +2,22 @@
  * @file ProductRow.jsx
  * @module Components/Mustashar
  *
- * Renders a single product as a responsive grid row inside ProductTable.
+ * Renders a single product as a responsive grid row inside `ProductTable`.
  * Handles four independent concerns internally:
  *
- *   1. Row highlight flash — brief green/gray tint after a toggle.
- *   2. Inline coverage editing — number input with validation and optimistic save.
- *   3. Inline waste editing   — identical pattern to coverage.  ✅ NEW
- *   4. Deactivation overlay   — when `exiting=true` (Dashboard only).
+ *   1. **Row highlight flash** — brief green/gray tint for 1.2 s after a toggle.
+ *   2. **Inline coverage editing** — number input with validation and optimistic save.
+ *   3. **Inline waste editing**   — identical pattern to coverage.
+ *   4. **Deactivation overlay**   — when `exiting=true` (Dashboard only), the row
+ *      is dimmed and all interactions are blocked.
  *
- * Both Coverage and Waste cells display:
- *   - The resolved value (product → global → fallback)
- *   - A GLOBAL badge when the value is inherited from global settings
- *   - "—" only when source === 'none' (coverage) or source === 'default' (waste with hard fallback shown)
+ * Both the Coverage and Waste cells display:
+ *   - The resolved value (product-level → global → fallback).
+ *   - A `GLOBAL` badge when the value is inherited from the global settings.
+ *   - `"—"` only when `coverage_source === 'none'` or
+ *     `waste_source === 'default'` (hard backend fallback, not explicitly set).
+ *
+ * Grid layout must stay in sync with the constants in `ProductTable.jsx`.
  *
  * Used by: Dashboard, Products
  */
@@ -28,33 +32,47 @@ import { useUpdateProductCoverage, useUpdateProductWaste } from "../../Hooks/use
 import { validateCoverage, validateWaste } from "../../constants/calculatorSettings";
 
 // ── i18n strings ──────────────────────────────────────────────────────────────
+// Move to your translation JSON and replace with useTranslation() when ready.
 const t = {
-    coverage_save_title:  "Save coverage",
-    coverage_edit_title:  "Edit coverage",
-    coverage_error_save:  "Failed to save. Please try again.",
-    coverage_unit:        "m²",
-    coverage_empty:       "—",
+    coverage_save_title:   "Save coverage",
+    coverage_edit_title:   "Edit coverage",
+    coverage_error_save:   "Failed to save. Please try again.",
+    coverage_unit:         "m²",
+    coverage_empty:        "—",
 
-    waste_save_title:     "Save waste",
-    waste_edit_title:     "Edit waste %",
-    waste_error_save:     "Failed to save. Please try again.",
-    waste_unit:           "%",
+    waste_save_title:      "Save waste",
+    waste_edit_title:      "Edit waste %",
+    waste_error_save:      "Failed to save. Please try again.",
+    waste_unit:            "%",
 
-    badge_global:         "GLOBAL",
+    /** Label rendered inside every GLOBAL inheritance badge. */
+    badge_global:          "GLOBAL",
 
-    status_active:        "Active",
-    status_inactive:      "Inactive",
+    status_active:         "Active",
+    status_inactive:       "Inactive",
 
-    preview_label:        "Preview",
+    preview_label:         "Preview",
+    /** Fallback slug segment used when the product name is empty. */
     product_slug_fallback: "product",
 };
 
-// ✅ UPDATED: grid توسّع ليستوعب عمود Waste الجديد
+// ── Grid column definitions ───────────────────────────────────────────────────
+// Must stay in sync with the matching constants in ProductTable.jsx.
 const COLS_WITH_PREVIEW    = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr_1fr]";
 const COLS_WITHOUT_PREVIEW = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr]";
 
-// ── Shared inline-edit cell styles ────────────────────────────────────────────
-// دالة واحدة تنتج styles الـ input المشتركة بين Coverage و Waste
+// ── Shared inline-edit cell style helpers ─────────────────────────────────────
+// Pure functions — no hooks or side-effects — so they can be called freely
+// during render. Both Coverage and Waste cells use identical visual treatment.
+
+/**
+ * Returns the inline style object for the small number input used in both
+ * the Coverage and Waste edit cells.
+ *
+ * @param {boolean} hasError  - Applies red border when true.
+ * @param {boolean} isSaving  - Dims the input while a network request is in-flight.
+ * @returns {React.CSSProperties}
+ */
 function inputStyle(hasError, isSaving) {
     return {
         width:            "58px",
@@ -74,6 +92,14 @@ function inputStyle(hasError, isSaving) {
     };
 }
 
+/**
+ * Returns the inline style object for the small confirm (✓) button adjacent
+ * to the inline edit input.
+ *
+ * @param {boolean} hasError  - Applies red tones when true.
+ * @param {boolean} isSaving  - Shows a "not-allowed" cursor while saving.
+ * @returns {React.CSSProperties}
+ */
 function confirmBtnStyle(hasError, isSaving) {
     return {
         width:          "22px",
@@ -92,6 +118,12 @@ function confirmBtnStyle(hasError, isSaving) {
     };
 }
 
+/**
+ * Returns the inline style object for the small validation error label
+ * rendered beneath the edit input.
+ *
+ * @returns {React.CSSProperties}
+ */
 function errorLabelStyle() {
     return {
         fontSize:   "9px",
@@ -102,7 +134,19 @@ function errorLabelStyle() {
     };
 }
 
-// ── GLOBAL badge ──────────────────────────────────────────────────────────────
+// ── Internal sub-components ───────────────────────────────────────────────────
+
+/**
+ * GlobalBadge
+ *
+ * A tiny pill shown next to a coverage or waste value that was inherited
+ * from the global calculator settings rather than set per-product.
+ * Clicking the adjacent pencil icon overrides it.
+ *
+ * @param {object} props
+ * @param {string} props.title - Tooltip text explaining the inheritance.
+ * @returns {JSX.Element}
+ */
 function GlobalBadge({ title }) {
     return (
         <span
@@ -126,25 +170,33 @@ function GlobalBadge({ title }) {
     );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 /**
  * ProductRow
  *
- * @param {object}   props
- * @param {object}   props.product
- * @param {number}   props.product.id
- * @param {string}   props.product.name
- * @param {string}   props.product.image
- * @param {string}   props.product.category
- * @param {boolean}  props.product.active
- * @param {number|null} props.product.coverage_per_unit   — resolved value
- * @param {string}   props.product.coverage_source        — 'product'|'global'|'none'
- * @param {number}   props.product.waste_percentage       — resolved value (always a number)
- * @param {string}   props.product.waste_source           — 'product'|'global'|'default'
- * @param {string|number} props.product.salla_product_id
- * @param {function} props.onToggle
- * @param {boolean}  [props.loading=false]
- * @param {boolean}  [props.showPreview=false]
- * @param {boolean}  [props.exiting=false]
+ * @param {object}       props
+ * @param {object}       props.product
+ * @param {number}       props.product.id                  - Unique product identifier.
+ * @param {string}       props.product.name                - Display name.
+ * @param {string}       props.product.image               - Avatar image URL.
+ * @param {string}       props.product.category            - Category label.
+ * @param {boolean}      props.product.active              - Current active state.
+ * @param {number|null}  props.product.coverage_per_unit   - Resolved coverage value
+ *                                                           (product-level → global → null).
+ * @param {string}       props.product.coverage_source     - `'product'|'global'|'none'`
+ * @param {number}       props.product.waste_percentage    - Resolved waste value
+ *                                                           (always a number after backend resolution).
+ * @param {string}       props.product.waste_source        - `'product'|'global'|'default'`
+ * @param {string|number} props.product.salla_product_id  - Salla platform product ID.
+ * @param {function}     props.onToggle                    - Called with `productId` when the toggle is clicked.
+ * @param {boolean}      [props.loading=false]             - Dims the row and disables the toggle while true
+ *                                                           (used when a mutation is in-flight for this product).
+ * @param {boolean}      [props.showPreview=false]         - When true, renders the Salla preview link column.
+ * @param {boolean}      [props.exiting=false]             - When true (Dashboard deactivation), overlays a
+ *                                                           grayscale + opacity treatment and blocks all input.
+ *
+ * @returns {JSX.Element}
  */
 export default function ProductRow({
     product,
@@ -155,42 +207,57 @@ export default function ProductRow({
 }) {
     const { auth }       = usePage().props;
     const updateCoverage = useUpdateProductCoverage();
-    const updateWaste    = useUpdateProductWaste();      // ✅ NEW
+    const updateWaste    = useUpdateProductWaste();
 
-    // ── Row highlight ─────────────────────────────────────────────────────────
-    const [highlight,  setHighlight] = useState(null);
+    // ── Row highlight flash ───────────────────────────────────────────────────
+    // Tracks whether `active` changed since the last render and applies a
+    // brief tinted background to give the toggle action visual confirmation.
+    const [highlight,  setHighlight] = useState(null);  // null | 'active' | 'inactive'
     const prevActive   = useRef(product.active);
-    const highlightRef = useRef(null);
+    const highlightRef = useRef(null);                  // holds the setTimeout id for cleanup
 
     useEffect(() => {
+        // Skip flash during an exiting animation to avoid conflicting styles.
         if (exiting) return;
+        // No change — nothing to flash.
         if (prevActive.current === product.active) return;
         prevActive.current = product.active;
 
         clearTimeout(highlightRef.current);
         setHighlight(product.active ? "active" : "inactive");
+        // Clear the highlight class after 1.2 s so the row returns to normal.
         highlightRef.current = setTimeout(() => setHighlight(null), 1200);
 
         return () => clearTimeout(highlightRef.current);
     }, [product.active, exiting]);
 
     // ── Coverage inline edit ──────────────────────────────────────────────────
+    // Local state drives the controlled input; the mutation updates the cache
+    // on success without requiring a full list refetch.
     const [coverageEditing, setCoverageEditing] = useState(false);
     const [coverageValue,   setCoverageValue]   = useState(product.coverage_per_unit ?? "");
     const [coverageError,   setCoverageError]   = useState(null);
     const [coverageSaving,  setCoverageSaving]  = useState(false);
     const coverageInputRef = useRef(null);
 
+    // Auto-focus and select the input text when edit mode opens.
     useEffect(() => {
         if (coverageEditing) { coverageInputRef.current?.focus(); coverageInputRef.current?.select(); }
     }, [coverageEditing]);
 
+    /**
+     * Opens the coverage edit input, seeding it with the current resolved value.
+     */
     const handleCoverageEditStart = () => {
         setCoverageValue(String(product.coverage_per_unit ?? ""));
         setCoverageError(null);
         setCoverageEditing(true);
     };
 
+    /**
+     * Validates the coverage input and persists the new value via the mutation.
+     * Keeps the input open (with an error message) on validation or network failure.
+     */
     const handleCoverageSave = async () => {
         const err = validateCoverage(coverageValue);
         if (err) { setCoverageError(err); return; }
@@ -210,18 +277,27 @@ export default function ProductRow({
         }
     };
 
+    /**
+     * Closes the coverage input and resets it to the last saved value.
+     */
     const handleCoverageCancel = () => {
         setCoverageEditing(false);
         setCoverageError(null);
         setCoverageValue(String(product.coverage_per_unit ?? ""));
     };
 
+    /**
+     * Keyboard shortcuts for the coverage input: Enter saves, Escape cancels.
+     *
+     * @param {React.KeyboardEvent} e
+     */
     const handleCoverageKeyDown = (e) => {
         if (e.key === "Enter")  { e.preventDefault(); handleCoverageSave(); }
         if (e.key === "Escape") handleCoverageCancel();
     };
 
     // ── Waste inline edit ─────────────────────────────────────────────────────
+    // Identical pattern to the coverage edit block above.
     const [wasteEditing, setWasteEditing] = useState(false);
     const [wasteValue,   setWasteValue]   = useState(
         product.waste_percentage != null ? String(product.waste_percentage) : ""
@@ -230,20 +306,28 @@ export default function ProductRow({
     const [wasteSaving,  setWasteSaving]  = useState(false);
     const wasteInputRef = useRef(null);
 
+    // Auto-focus and select the input text when edit mode opens.
     useEffect(() => {
         if (wasteEditing) { wasteInputRef.current?.focus(); wasteInputRef.current?.select(); }
     }, [wasteEditing]);
 
+    /**
+     * Opens the waste edit input, seeding it with the current resolved value.
+     */
     const handleWasteEditStart = () => {
-        // نبدأ بالقيمة المحلولة الحالية كنقطة بداية للتعديل
+        // Start from the currently resolved value as an edit baseline.
         setWasteValue(product.waste_percentage != null ? String(product.waste_percentage) : "");
         setWasteError(null);
         setWasteEditing(true);
     };
 
+    /**
+     * Validates the waste input and persists the new value via the mutation.
+     * `validateWaste` returns `{ waste?: string }` — the message is extracted
+     * before being stored in the local error state.
+     */
     const handleWasteSave = async () => {
-        // validateWaste تُرجع object { waste?: string } — نستخرج الرسالة
-        const errs = validateWaste(wasteValue);
+        const errs   = validateWaste(wasteValue);
         const errMsg = errs?.waste ?? null;
         if (errMsg) { setWasteError(errMsg); return; }
 
@@ -251,6 +335,7 @@ export default function ProductRow({
         try {
             await updateWaste.mutateAsync({
                 productId:        product.id,
+                // Pass null to clear a per-product override and fall back to global.
                 waste_percentage: wasteValue !== "" ? parseFloat(wasteValue) : null,
             });
             setWasteError(null);
@@ -262,21 +347,32 @@ export default function ProductRow({
         }
     };
 
+    /**
+     * Closes the waste input and resets it to the last saved value.
+     */
     const handleWasteCancel = () => {
         setWasteEditing(false);
         setWasteError(null);
         setWasteValue(product.waste_percentage != null ? String(product.waste_percentage) : "");
     };
 
+    /**
+     * Keyboard shortcuts for the waste input: Enter saves, Escape cancels.
+     *
+     * @param {React.KeyboardEvent} e
+     */
     const handleWasteKeyDown = (e) => {
         if (e.key === "Enter")  { e.preventDefault(); handleWasteSave(); }
         if (e.key === "Escape") handleWasteCancel();
     };
 
     // ── Salla preview URL ─────────────────────────────────────────────────────
+    // Constructs the public Salla product URL from the merchant ID and a
+    // URL-safe slug derived from the product name. Used in the Preview column.
     const sallaMerchantId = auth?.user?.salla_merchant_id;
     const sallaProductId  = product.salla_product_id;
 
+    // Slugify the product name: lowercase, spaces→hyphens, strip non-Arabic/ASCII chars.
     const productSlug = product.name
         ? product.name.toString().toLowerCase()
             .replace(/\s+/g, "-")
@@ -284,26 +380,46 @@ export default function ProductRow({
             .replace(/--+/g, "-")
         : t.product_slug_fallback;
 
+    // Only build the URL when both IDs are available; null suppresses the link.
     const previewUrl =
         sallaMerchantId && sallaProductId
             ? `https://salla.sa/intend/${sallaMerchantId}/${productSlug}/p${sallaProductId}`
             : null;
 
-    // ── Display values ────────────────────────────────────────────────────────
-    const coverageDisplay    = product.coverage_per_unit
+    // ── Display value derivation ──────────────────────────────────────────────
+    // Translate raw product fields into the strings rendered in each cell.
+
+    /** Formatted coverage string, or "—" when no value is set. */
+    const coverageDisplay  = product.coverage_per_unit
         ? `${product.coverage_per_unit} ${t.coverage_unit}`
         : t.coverage_empty;
-    const coverageIsGlobal   = product.coverage_source === "global";
 
-    // 'default' = hard-fallback 10% from backend, treat same as no value set
+    /** True when the coverage value was inherited from the global setting. */
+    const coverageIsGlobal = product.coverage_source === "global";
+
+    /**
+     * Show a value only when the source is explicitly 'product' or 'global'.
+     * 'default' means the backend applied a hard-coded fallback (10 %) that
+     * the user never configured — treat that the same as "not set" (show "—").
+     */
     const wasteDisplay  = (product.waste_source === "product" || product.waste_source === "global") && product.waste_percentage != null
         ? `${product.waste_percentage}${t.waste_unit}`
         : "—";
+
+    /** True when the waste value was inherited from the global setting. */
     const wasteIsGlobal = product.waste_source === "global";
 
+    /**
+     * Prevents the input from losing focus when the confirm button is clicked
+     * (mousedown fires before blur; calling preventDefault() cancels the blur).
+     *
+     * @param {React.MouseEvent} e
+     */
     const preventBlur = (e) => e.preventDefault();
 
     // ── Row style ─────────────────────────────────────────────────────────────
+    // Two mutually exclusive styles: the exiting overlay (dimmed, no pointer
+    // events) or the highlight flash (green / gray tint, fades via transition).
     const rowStyle = exiting
         ? { opacity: 0.38, filter: "grayscale(0.6)", transition: "opacity 0.2s ease, filter 0.2s ease", pointerEvents: "none" }
         : {
@@ -327,7 +443,7 @@ export default function ProductRow({
             }`}
             style={rowStyle}
         >
-            {/* ── Product info ── */}
+            {/* ── Product info (avatar + name + Salla ID) ── */}
             <div className="flex items-center gap-4 min-w-0">
                 <ProductAvatar src={product.image} name={product.name} size={40} radius="rounded-xl" />
                 <div className="min-w-0">
@@ -347,7 +463,7 @@ export default function ProductRow({
                 </span>
             </div>
 
-            {/* ── Unit Coverage ── */}
+            {/* ── Unit Coverage — static display or inline edit ── */}
             <div className="flex justify-center items-center">
                 <div className="flex flex-col items-center gap-1">
                     {coverageEditing ? (
@@ -399,7 +515,7 @@ export default function ProductRow({
                 </div>
             </div>
 
-            {/* ── Waste % ── ✅ NEW */}
+            {/* ── Waste % — static display or inline edit ── */}
             <div className="flex justify-center items-center">
                 <div className="flex flex-col items-center gap-1">
                     {wasteEditing ? (
@@ -451,7 +567,7 @@ export default function ProductRow({
                 </div>
             </div>
 
-            {/* ── Status badge ── */}
+            {/* ── Status badge (dot + label) ── */}
             <div className="flex justify-center items-center gap-2">
                 <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
                     product.active && !exiting
@@ -474,7 +590,7 @@ export default function ProductRow({
                 />
             </div>
 
-            {/* ── Salla preview link (Dashboard only) ── */}
+            {/* ── Salla preview link (Dashboard only, requires showPreview) ── */}
             {showPreview && (
                 <div className="flex justify-center">
                     {previewUrl && !exiting ? (

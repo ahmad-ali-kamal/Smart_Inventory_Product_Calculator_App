@@ -40,7 +40,7 @@ class MustasharSettingsController extends Controller
         $merchant = Auth::user();
 
         $validated = $request->validate([
-            'waste_percentage'  => 'required|numeric|min:0|max:50',
+            'waste_percentage'  => 'required|numeric|min:0|max:100',
             'coverage_per_unit' => 'required|numeric|min:0.01|max:200',
         ]);
 
