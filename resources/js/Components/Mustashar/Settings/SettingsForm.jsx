@@ -125,14 +125,14 @@ export default function SettingsForm({
 
             {/* ── Header card ────────────────────────────────────────────────── */}
             <div className="bg-[var(--card)] px-8 py-6 rounded-[1.5rem] border border-[var(--border)] shadow-sm">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="text-left">
-                        <h1 className="text-xl font-bold text-[var(--foreground)]">{t.card_title}</h1>
-                        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t.card_subtitle}</p>
-                    </div>
+                <div className="flex items-center gap-4">
                     {/* Decorative icon badge */}
                     <div className="p-3 bg-[var(--primary)]/10 rounded-2xl text-[var(--primary)] shrink-0">
                         <SlidersHorizontal size={22} />
+                    </div>
+                    <div className="text-left">
+                        <h1 className="text-xl font-bold text-[var(--foreground)]">{t.card_title}</h1>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t.card_subtitle}</p>
                     </div>
                 </div>
             </div>
