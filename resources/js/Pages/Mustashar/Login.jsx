@@ -143,7 +143,7 @@ export default function MustasharLogin() {
 
             // ── OAuth ────────────────────────────────────────────────────────
             /** Redirect target for the "Continue with Salla" button */
-            authHref="/auth/salla?app=calculator"
+            authHref="/auth/salla?app=mustashar"
 
             // ── Layout tweaks ────────────────────────────────────────────────
             /**

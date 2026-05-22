@@ -92,19 +92,22 @@ class HareesApiController extends Controller
                 ])
                 ->whereHas('batchItems')
                 ->get()
-                ->map(function ($product) {
-                    $criticalBatchItem = $product->batchItems
+                ->map(function ($product) use ($merchant) {
+                    $validItems = $product->batchItems->filter(fn($item) => $item->relationLoaded('batch') && $item->batch);
+
+                    if ($validItems->isEmpty()) return null;
+
+                    $criticalBatchItem = $validItems
                         ->sortBy(function ($item) {
                             $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
                             return $order[$item->batch->status] ?? 99;
                         })
                         ->first();
 
-                    $batchesGrouped = $product->batchItems
+                    $batchesGrouped = $validItems
                         ->groupBy('batch_id')
                         ->map(function ($items) {
                             $batch = $items->first()->batch;
-                            if (!$batch) return null;
                             return [
                                 'id'          => $batch->id,
                                 'batch_code'  => $batch->batch_code,
@@ -112,30 +115,30 @@ class HareesApiController extends Controller
                                 'status'      => $batch->status ?? 'green',
                             ];
                         })
-                        ->filter()
                         ->values();
 
-                    // التحقق من الخصم اليدوي النشط عبر الـ batch
-                    $hasActiveManualDiscount = $product->batchItems
-                        ->flatMap(fn($item) => $item->batch->discounts ?? [])
+                    $hasActiveManualDiscount = $validItems
+                        ->flatMap(fn($item) => $item->batch->discounts ?? collect())
                         ->filter(fn($d) => $d->status === 'active')
                         ->isNotEmpty();
 
-                    // التحقق من الخصم التلقائي
                     $batchSettings = BatchSetting::where('merchant_id', $merchant->id)->first();
-                    $hasActiveAutoDiscount = $batchSettings?->auto_discounts && $criticalBatchItem?->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
+                    $hasActiveAutoDiscount = $batchSettings?->auto_discounts
+                        && $criticalBatchItem->batch->days_until_expiry !== null
+                        && $criticalBatchItem->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
 
                     return [
                         'id' => $product->id,
                         'salla_product_id' => $product->salla_product_id,
                         'name' => $product->name,
                         'image_url' => $product->image_url,
-                        'status' => $criticalBatchItem?->batch->status ?? 'green',
-                        'expiry_date' => $criticalBatchItem?->batch?->expiry_date?->format('Y-m-d'),
+                        'status' => $criticalBatchItem->batch->status ?? 'green',
+                        'expiry_date' => $criticalBatchItem->batch->expiry_date?->format('Y-m-d'),
                         'batches' => $batchesGrouped,
                         'has_active_discount' => $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })
+                ->filter()
                 ->sortBy(function ($product) {
                     $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
                     return $order[$product['status']] ?? 99;

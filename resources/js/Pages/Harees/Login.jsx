@@ -146,7 +146,7 @@ export default function HareesLogin({ status }) {
 
             // ── OAuth ────────────────────────────────────────────────────────
             /** Redirect target for the "Continue with Salla" button */
-            authHref="/auth/salla?app=management"
+            authHref="/auth/salla?app=harees"
 
             // ── Layout tweaks ────────────────────────────────────────────────
             /**

@@ -13,24 +13,38 @@ use Illuminate\Support\Facades\Log;
 
 class SallaOAuthController extends Controller
 {
-    /**
-     * تحديد أي تطبيق يتم استخدامه حالياً بناءً على الجلسة أو المعاملات
-     */
-    private function getAppConfig()
+    private array $validApps = ['mustashar', 'harees'];
+
+    private function validateAppType(string $appType): string
     {
-        $appType = session('salla_app_type', 'harees'); 
+        return in_array($appType, $this->validApps, true) ? $appType : 'harees';
+    }
+
+    private function getAppConfig(?string $appType = null): ?array
+    {
+        $appType = $appType ?? session('salla_app_type', 'harees');
+        $appType = $this->validateAppType($appType);
         return config("services.salla_{$appType}");
     }
 
-    /**
-     * إعادة التوجيه لصفحة تسجيل الدخول في سلة
-     */
     public function redirect(Request $request)
     {
-        $appType = $request->get('app', 'harees'); 
+        $appType = $this->validateAppType($request->get('app', 'harees'));
         session(['salla_app_type' => $appType]);
 
         $config = config("services.salla_{$appType}");
+
+        if (!$config || !isset($config['client_id'], $config['redirect'])) {
+            Log::error('Salla OAuth: Missing config for app type', [
+                'appType' => $appType,
+                'configKey' => "services.salla_{$appType}",
+                'hasClientId' => isset($config['client_id']),
+                'hasRedirect' => isset($config['redirect']),
+            ]);
+            $routeName = $appType === 'mustashar' ? 'mustashar.login' : 'harees.login';
+            return redirect()->route($routeName)->with('error', 'خطأ في الإعدادات الداخلية، حاول مرة أخرى لاحقاً.');
+        }
+
         $state = Str::random(40);
         session(['oauth_state' => $state]);
 
@@ -38,7 +52,7 @@ class SallaOAuthController extends Controller
             'client_id'     => $config['client_id'],
             'redirect_uri'  => $config['redirect'],
             'response_type' => 'code',
-            'scope'         => 'offline_access', 
+            'scope'         => 'offline_access',
             'state'         => $state,
         ]);
 
@@ -50,33 +64,39 @@ class SallaOAuthController extends Controller
      */
   public function callback(Request $request)
 {
+    $appType = $this->validateAppType(session('salla_app_type', 'harees'));
+    $route = $appType === 'mustashar' ? 'mustashar.login' : 'harees.login';
+    $dashboard = $appType === 'mustashar' ? '/mustashar/dashboard' : '/harees/dashboard';
+
     if ($request->state !== session('oauth_state')) {
-        $route = session('salla_app_type') === 'mustashar' ? 'mustashar.login' : 'harees.login';
         return redirect()->route($route)->with('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
     }
 
     if (!$request->has('code')) {
-        $route = session('salla_app_type') === 'mustashar' ? 'mustashar.login' : 'harees.login';
         return redirect()->route($route)->with('error', 'لم يتم الحصول على رمز التفويض.');
     }
 
     try {
-        $config = $this->getAppConfig();
+        $config = $this->getAppConfig($appType);
+
+        if (!$config) {
+            Log::error('Salla OAuth callback: Missing config', ['appType' => $appType]);
+            return redirect()->route($route)->with('error', 'خطأ في الإعدادات الداخلية.');
+        }
+
         $tokenData = $this->getAccessToken($request->code, $config);
         $merchantInfo = $this->getMerchantInfo($tokenData['access_token']);
         $merchant = $this->saveOrUpdateMerchant($merchantInfo, $tokenData, $config);
         Auth::login($merchant);
 
-        return redirect(
-            session('salla_app_type') === 'mustashar'
-                ? '/mustashar/dashboard'
-                : '/harees/dashboard'
-        );
+        return redirect($dashboard);
 
     } catch (\Exception $e) {
-        Log::error('Salla OAuth Error: ' . $e->getMessage());
-        $route = session('salla_app_type') === 'mustashar' ? 'mustashar.login' : 'harees.login';
-        return redirect()->route($route)->with('error', 'خطأ في الربط: ' . $e->getMessage());
+        Log::error('Salla OAuth Error: ' . $e->getMessage(), [
+            'appType' => $appType,
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return redirect()->route($route)->with('error', 'خطأ في الربط، حاول مرة أخرى.');
     }
 }
     /**
@@ -85,7 +105,7 @@ class SallaOAuthController extends Controller
     private function saveOrUpdateMerchant(array $info, array $tokenData, array $config): Merchant
     {
         $merchantData = $info['merchant'] ?? [];
-        $appType = session('salla_app_type', 'harees');
+        $appType = $this->validateAppType(session('salla_app_type', 'harees'));
         
         // 1. تحديث بيانات التاجر الأساسية
         $merchant = Merchant::updateOrCreate(

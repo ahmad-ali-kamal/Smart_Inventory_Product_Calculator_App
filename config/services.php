@@ -38,17 +38,17 @@ return [
 
     // 1. تطبيق المستشار (Mustashar App)
     'salla_mustashar' => [
-        'client_id'      => env('SALLA_CALCULATOR_CLIENT_ID'),
-        'client_secret'  => env('SALLA_CALCULATOR_CLIENT_SECRET'),
-        'webhook_secret' => env('SALLA_CALCULATOR_WEBHOOK_SECRET'),
+        'client_id'      => env('SALLA_MUSTASHAR_CLIENT_ID'),
+        'client_secret'  => env('SALLA_MUSTASHAR_CLIENT_SECRET'),
+        'webhook_secret' => env('SALLA_MUSTASHAR_WEBHOOK_SECRET'),
         'redirect'       => env('SALLA_OAUTH_CALLBACK_URL'),
     ],
 
     // 2. تطبيق حريص (Harees App)
-    'salla_management' => [
-        'client_id'      => env('SALLA_MANAGEMENT_CLIENT_ID'),
-        'client_secret'  => env('SALLA_MANAGEMENT_CLIENT_SECRET'),
-        'webhook_secret' => env('SALLA_MANAGEMENT_WEBHOOK_SECRET'),
+    'salla_harees' => [
+        'client_id'      => env('SALLA_HAREES_CLIENT_ID'),
+        'client_secret'  => env('SALLA_HAREES_CLIENT_SECRET'),
+        'webhook_secret' => env('SALLA_HAREES_WEBHOOK_SECRET'),
         'redirect'       => env('SALLA_OAUTH_CALLBACK_URL'),
     ],
 
