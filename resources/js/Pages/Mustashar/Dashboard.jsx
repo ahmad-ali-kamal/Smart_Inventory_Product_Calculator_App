@@ -36,7 +36,7 @@ import SetupBanner from "../../Components/Common/FeedBack/SetupBanner";
 import StatCard from "../../Components/Common/StatCard";
 import ProductRow from "../../Components/Mustashar/ProductRow";
 import ProductTable from "../../Components/Mustashar/ProductTable";
-import { useActiveProducts, useCalculatorSettings, useSettingsStatus } from "../../Hooks/useProducts";
+import { useActiveProducts, useMustasharSettings, useSettingsStatus } from "../../Hooks/useProducts";
 import { useToggleWithToast } from "../../Hooks/useToggleWithToast";
 
 // ── i18n strings ──────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ const EXIT_ANIM_MS = 380;
  * @returns {{ label: string, value: string }[]}
  */
 function useCalcRules() {
-    const { data: settings } = useCalculatorSettings();
+    const { data: settings } = useMustasharSettings();
     if (!settings) return [];
     return [
         { label: "Coverage", value: `${Number(settings.coverage).toFixed(2)} m²` },

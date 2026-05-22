@@ -28,7 +28,7 @@ Route::post('/logout', [SallaOAuthController::class, 'logout'])->middleware('aut
 Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle'])->name('webhooks.salla');
 Route::post('/api/webhooks/salla', [SallaWebhookController::class, 'handle'])->name('api.webhooks.salla');
 
-// --- تطبيق "مستشار" (Calculator App) ---
+// --- تطبيق "مستشار" (Mustashar App) ---
 Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::get('/dashboard',    fn() => inertia('Mustashar/Dashboard'))->name('mustashar.dashboard');
     Route::get('/products',     fn() => inertia('Mustashar/Products'))->name('mustashar.products');
@@ -40,11 +40,11 @@ Route::prefix('mustashar')->middleware('auth')->group(function () {
     Route::post('/api/products/{id}/toggle', [ProductMustasharController::class, 'toggle']);
     Route::post('/api/products/{id}/coverage', [ProductMustasharController::class, 'updateCoverage']);
     Route::post('/api/products/{id}/waste', [ProductMustasharController::class, 'updateWaste']);
-     Route::get('/api/calculator-settings', [MustasharSettingsController::class, 'show']);
-    Route::post('/api/calculator-settings', [MustasharSettingsController::class, 'store']);
+    Route::get('/api/mustashar-settings', [MustasharSettingsController::class, 'show']);
+    Route::post('/api/mustashar-settings', [MustasharSettingsController::class, 'store']);
 });
 
-// --- تطبيق "حريص" (Inventory App) ---
+// --- تطبيق "حريص" (Harees App) ---
 Route::prefix('harees')->middleware('auth')->group(function () {
     Route::get('/dashboard',    fn() => inertia('Harees/Dashboard'))->name('harees.dashboard');
     Route::get('/products',     fn() => inertia('Harees/Products'))->name('harees.products');

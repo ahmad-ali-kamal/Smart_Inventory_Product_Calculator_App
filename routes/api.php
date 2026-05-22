@@ -13,7 +13,7 @@ use App\Http\Controllers\Mustashar\MustasharSettingsController;
 |--------------------------------------------------------------------------
 | المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
-   Route::get('/calculator/settings/{salla_product_id}',
+   Route::get('/mustashar/settings/{salla_product_id}',
     [MustasharSettingsController::class, 'getSettingsForStore']
 );
 
@@ -31,8 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // --- 2. إدارة المخزون (Inventory Core) ---
-    Route::prefix('inventory')->group(function () {
+    // --- 2. إدارة المخزون (Harees Core) ---
+    Route::prefix('harees')->group(function () {
         Route::get('/dashboard', [HareesApiController::class, 'dashboard']);
         Route::get('/products', [HareesApiController::class, 'products']);
         
@@ -65,8 +65,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // لأن الاعتماد أصبح 100% على (store-batch) وسلة مباشرة
     });
 
-    // --- 4. إعدادات الحاسبة (Mustashar) ---
-    Route::prefix('calculator')->group(function () {
+    // --- 4. إعدادات المستشار (Mustashar) ---
+    Route::prefix('mustashar')->group(function () {
         Route::get('/settings/{product_id}', [ProductMustasharController::class, 'getSettings']);
         Route::post('/settings/update', [ProductMustasharController::class, 'updateSettings']);
     });

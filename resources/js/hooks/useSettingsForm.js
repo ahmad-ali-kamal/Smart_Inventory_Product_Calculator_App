@@ -2,37 +2,37 @@
  * @file useSettingsForm.js
  * @module Hooks
  *
- * Encapsulates all state and behaviour for the Mustashar Calculator Settings
+ * Encapsulates all state and behaviour for the Mustashar Settings
  * form. Separating form logic from the UI component keeps `SettingsForm.jsx`
  * a pure, props-driven view with no data-fetching concerns.
  *
  * Responsibilities:
- *   - Loads current settings via `useCalculatorSettings` and seeds local
+ *   - Loads current settings via `useMustasharSettings` and seeds local
  *     controlled-input state whenever the server data arrives or changes.
  *   - Validates both fields before submission using the shared validators
- *     from `calculatorSettings.js`.
- *   - Delegates the actual save to `useUpdateCalculatorSettings` and
+ *     from `mustasharSettings.js`.
+ *   - Delegates the actual save to `useUpdateMustasharSettings` and
  *     surfaces success / error feedback via `react-hot-toast`.
  *
- * Used by: Settings (page component)
+ * Used by: Mustashar Settings (page component)
  */
 
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import {
-    useCalculatorSettings,
-    useUpdateCalculatorSettings,
+    useMustasharSettings,
+    useUpdateMustasharSettings,
 } from "./useProducts";
 import {
     validateWaste,
     validateCoverage,
-} from "../constants/calculatorSettings";
+} from "../constants/mustasharSettings";
 
 /**
  * useSettingsForm
  *
  * Provides form state, change handlers, and a save handler for the
- * global calculator settings screen.
+ * global mustashar settings screen.
  *
  * @returns {{
  *   isLoading:            boolean,
@@ -56,7 +56,7 @@ export function useSettingsForm() {
         isError,
         error,
         refetch,
-    } = useCalculatorSettings();
+    } = useMustasharSettings();
 
     // ── Local controlled-input state ──────────────────────────────────────────
     // Strings are used (not numbers) so inputs behave naturally while typing.
@@ -72,7 +72,7 @@ export function useSettingsForm() {
     }, [settings]);
 
     // ── Mutation ──────────────────────────────────────────────────────────────
-    const updateSettings = useUpdateCalculatorSettings();
+    const updateSettings = useUpdateMustasharSettings();
     const isSaving = updateSettings.isPending;
 
     // ── Change handlers ───────────────────────────────────────────────────────

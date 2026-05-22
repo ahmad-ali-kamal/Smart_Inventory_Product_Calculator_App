@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class MustasharSettingsController extends Controller
 {
-    // ── GET /mustashar/api/calculator-settings ────────────────────────────────
+    // ── GET /mustashar/api/mustashar-settings ────────────────────────────────
     public function show()
     {
         $merchant = Auth::user();
@@ -34,7 +34,7 @@ class MustasharSettingsController extends Controller
         ]);
     }
 
-    // ── POST /mustashar/api/calculator-settings ───────────────────────────────
+    // ── POST /mustashar/api/mustashar-settings ───────────────────────────────
     public function store(Request $request)
     {
         $merchant = Auth::user();
@@ -60,7 +60,7 @@ class MustasharSettingsController extends Controller
         ]);
     }
 
-    // ── GET /api/calculator/settings/{salla_product_id}  (public — snippet) ──
+    // ── GET /api/mustashar/settings/{salla_product_id}  (public — snippet) ──
     public function getSettingsForStore($salla_product_id)
     {
         $product = Product::where('salla_product_id', $salla_product_id)->first();
@@ -70,11 +70,11 @@ class MustasharSettingsController extends Controller
                 ->header('Access-Control-Allow-Origin', '*');
         }
 
-        $calculator = ProductMustashar::where('product_id', $product->id)
+        $mustashar = ProductMustashar::where('product_id', $product->id)
             ->where('is_enabled', 1)
             ->first();
 
-        if (!$calculator) {
+        if (!$mustashar) {
             return response()->json(['enabled' => false], 404)
                 ->header('Access-Control-Allow-Origin', '*');
         }
@@ -84,8 +84,8 @@ class MustasharSettingsController extends Controller
         // ── Coverage resolution (type flag + fallback) ────────────────────────
         $coveragePerUnit = null;
 
-        if ($calculator->coverage_type === 'custom' && !empty($calculator->coverage_per_unit)) {
-            $coveragePerUnit = (float) $calculator->coverage_per_unit;
+        if ($mustashar->coverage_type === 'custom' && !empty($mustashar->coverage_per_unit)) {
+            $coveragePerUnit = (float) $mustashar->coverage_per_unit;
         } elseif ($settings && !empty($settings->coverage_per_unit)) {
             $coveragePerUnit = (float) $settings->coverage_per_unit;
         }
@@ -97,8 +97,8 @@ class MustasharSettingsController extends Controller
         }
 
         // ── Waste resolution (type flag + fallback) ───────────────────────────
-        $wastePct = ($calculator->waste_type === 'custom' && $calculator->waste_percentage !== null)
-            ? (float) $calculator->waste_percentage
+        $wastePct = ($mustashar->waste_type === 'custom' && $mustashar->waste_percentage !== null)
+            ? (float) $mustashar->waste_percentage
             : ($settings?->waste_percentage !== null ? (float) $settings->waste_percentage : null);
 
         // Guard: widget must not render without a valid waste value

@@ -212,8 +212,8 @@ class ProductExpiryController extends Controller
                 if ($s === 'yellow') { $worstStatus = 'yellow'; }
             }
 
-            Cache::forget("inventory_dashboard_{$merchant->id}");
-            Cache::forget("inventory_dashboard_api_{$merchant->id}");
+            Cache::forget("harees_dashboard_{$merchant->id}");
+            Cache::forget("harees_dashboard_api_{$merchant->id}");
             ActivityLog::log(
                 $merchant->id, 'expiry_added',
                 "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}", $product

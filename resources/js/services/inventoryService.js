@@ -52,12 +52,12 @@ export const updateBatch = async ({ batchId, data }) => {
 
 // Get Product Variants
 export const getProductVariants = async (productId) => {
-  const res = await apiClient.get(`/inventory/products/${productId}/variants`);
+  const res = await apiClient.get(`/harees/products/${productId}/variants`);
   return res.data;
 };
 
 // Check Product Options (ask merchant)
 export const checkProductOptions = async (productId) => {
-  const res = await apiClient.get(`/inventory/products/${productId}/check-options`);
+  const res = await apiClient.get(`/harees/products/${productId}/check-options`);
   return res.data;
 };

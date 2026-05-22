@@ -18,7 +18,7 @@ class SallaOAuthController extends Controller
      */
     private function getAppConfig()
     {
-        $appType = session('salla_app_type', 'management'); 
+        $appType = session('salla_app_type', 'harees'); 
         return config("services.salla_{$appType}");
     }
 
@@ -27,7 +27,7 @@ class SallaOAuthController extends Controller
      */
     public function redirect(Request $request)
     {
-        $appType = $request->get('app', 'management'); 
+        $appType = $request->get('app', 'harees'); 
         session(['salla_app_type' => $appType]);
 
         $config = config("services.salla_{$appType}");
@@ -51,12 +51,12 @@ class SallaOAuthController extends Controller
   public function callback(Request $request)
 {
     if ($request->state !== session('oauth_state')) {
-        $route = session('salla_app_type') === 'calculator' ? 'mustashar.login' : 'harees.login';
+        $route = session('salla_app_type') === 'mustashar' ? 'mustashar.login' : 'harees.login';
         return redirect()->route($route)->with('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');
     }
 
     if (!$request->has('code')) {
-        $route = session('salla_app_type') === 'calculator' ? 'mustashar.login' : 'harees.login';
+        $route = session('salla_app_type') === 'mustashar' ? 'mustashar.login' : 'harees.login';
         return redirect()->route($route)->with('error', 'لم يتم الحصول على رمز التفويض.');
     }
 
@@ -68,14 +68,14 @@ class SallaOAuthController extends Controller
         Auth::login($merchant);
 
         return redirect(
-            session('salla_app_type') === 'calculator'
+            session('salla_app_type') === 'mustashar'
                 ? '/mustashar/dashboard'
                 : '/harees/dashboard'
         );
 
     } catch (\Exception $e) {
         Log::error('Salla OAuth Error: ' . $e->getMessage());
-        $route = session('salla_app_type') === 'calculator' ? 'mustashar.login' : 'harees.login';
+        $route = session('salla_app_type') === 'mustashar' ? 'mustashar.login' : 'harees.login';
         return redirect()->route($route)->with('error', 'خطأ في الربط: ' . $e->getMessage());
     }
 }
@@ -85,7 +85,7 @@ class SallaOAuthController extends Controller
     private function saveOrUpdateMerchant(array $info, array $tokenData, array $config): Merchant
     {
         $merchantData = $info['merchant'] ?? [];
-        $appType = session('salla_app_type', 'management');
+        $appType = session('salla_app_type', 'harees');
         
         // 1. تحديث بيانات التاجر الأساسية
         $merchant = Merchant::updateOrCreate(
@@ -113,7 +113,7 @@ class SallaOAuthController extends Controller
         );
 
         // 3. تحديث الأعلام (Flags)
-        if ($appType === 'calculator') {
+        if ($appType === 'mustashar') {
             $merchant->update(['has_calculator' => true]);
         } else {
             $merchant->update(['has_management' => true]);

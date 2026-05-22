@@ -221,7 +221,7 @@ class DiscountController extends Controller
                 ['discount_id' => $discount->id, 'batch_id' => $batch->id, 'sale_price' => $salePrice]
             );
 
-            \Cache::forget("inventory_dashboard_{$merchant->id}");
+            \Cache::forget("harees_dashboard_{$merchant->id}");
 
             return response()->json([
                 'success'        => true,

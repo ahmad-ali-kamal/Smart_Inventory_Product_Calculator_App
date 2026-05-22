@@ -43,7 +43,7 @@ class BatchExpiryNotification extends Notification
             ->greeting('مرحباً ' . ($notifiable->name ?? 'التاجر'))
             ->line($intro)
             ->line("تاريخ الانتهاء: **{$expiryDate}**")
-            ->action('عرض تفاصيل المنتج', url('/inventory'))
+            ->action('عرض تفاصيل المنتج', url('/harees'))
             ->line('يرجى اتخاذ الإجراء المناسب لتجنب الخسائر.');
     }
 

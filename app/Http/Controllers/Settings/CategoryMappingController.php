@@ -48,7 +48,7 @@ class CategoryMappingController extends Controller
         ->values()
         ->toArray();
 
-    return view('inventory.settings', [
+    return inertia('Harees/Settings', [
         'settings'            => $settings,
         'mappings'            => $formattedMappings,
         'allMappedCategories' => $allMappedCategories,

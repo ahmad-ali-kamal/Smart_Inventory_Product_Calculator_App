@@ -2,8 +2,8 @@
  * @file useProducts.js
  * @module Hooks
  *
- * Central data layer for the Mustashar product catalog and calculator
- * settings. All server communication in the Mustashar feature flows
+ * Central data layer for the Mustashar product catalog and settings.
+ * All server communication in the Mustashar feature flows
  * through the hooks exported here — no component fetches data directly.
  *
  * Architecture overview:
@@ -18,9 +18,9 @@
  *   - useAllProducts                → Products page (full list, unfiltered)
  *   - useActiveProducts             → Dashboard (active subset + all for counters)
  *   - useToggleProduct              → Optimistic active/inactive toggle mutation
- *   - useCalculatorSettings         → Calculator config read
+ *   - useMustasharSettings          → Mustashar config read
  *   - useSettingsStatus             → Derived "is configured?" boolean
- *   - useUpdateCalculatorSettings   → Calculator config write mutation
+ *   - useUpdateMustasharSettings    → Mustashar config write mutation
  *   - useUpdateProductCoverage      → Per-product coverage write mutation
  *   - useUpdateProductWaste         → Per-product waste write mutation
  */
@@ -45,7 +45,7 @@ const api = axios.create({
 // explicit and easy to grep across the codebase.
 export const QUERY_KEYS = {
     products: ["products"],
-    calculatorSettings: ["calculator-settings"],
+    calculatorSettings: ["mustashar-settings"],
 };
 
 // ── API functions ─────────────────────────────────────────────────────────────
@@ -207,10 +207,10 @@ export function useToggleProduct() {
     });
 }
 
-// ── useCalculatorSettings ─────────────────────────────────────────────────────
+// ── useMustasharSettings ─────────────────────────────────────────────────────
 
 /**
- * Fetches the global calculator settings from the server.
+ * Fetches the global mustashar settings from the server.
  *
  * Server response shape:
  *   `{ configured: boolean, coverage: number|null, waste: number|null }`
@@ -221,12 +221,12 @@ export function useToggleProduct() {
  *   waste:      number|null
  * }>}
  */
-export function useCalculatorSettings() {
+export function useMustasharSettings() {
     return useQuery({
         queryKey: QUERY_KEYS.calculatorSettings,
         queryFn: async () => {
             const { data } = await api.get(
-                "/mustashar/api/calculator-settings",
+                "/mustashar/api/mustashar-settings",
             );
             return data;
         },
@@ -234,24 +234,24 @@ export function useCalculatorSettings() {
 }
 
 /**
- * Derived hook — returns a single boolean indicating whether the calculator
+ * Derived hook — returns a single boolean indicating whether mustashar
  * has been configured at least once.
  * Used by the Dashboard guard banner to prompt first-time setup.
  *
  * @returns {{ isLoading: boolean, isConfigured: boolean }}
  */
 export function useSettingsStatus() {
-    const { data, isLoading } = useCalculatorSettings();
+    const { data, isLoading } = useMustasharSettings();
     return {
         isLoading,
         isConfigured: !isLoading && !!data?.configured,
     };
 }
 
-// ── useUpdateCalculatorSettings ───────────────────────────────────────────────
+// ── useUpdateMustasharSettings ───────────────────────────────────────────────
 
 /**
- * Mutation hook for saving the global calculator settings.
+ * Mutation hook for saving the global mustashar settings.
  *
  * On success, the cache entry for `calculatorSettings` is updated in-place
  * (avoiding a redundant GET) and the products cache is invalidated so that
@@ -259,13 +259,13 @@ export function useSettingsStatus() {
  *
  * @returns {import("@tanstack/react-query").UseMutationResult}
  */
-export function useUpdateCalculatorSettings() {
+export function useUpdateMustasharSettings() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async ({ waste_percentage, coverage_per_unit }) => {
             const { data } = await api.post(
-                "/mustashar/api/calculator-settings",
+                "/mustashar/api/mustashar-settings",
                 { coverage_per_unit, waste_percentage },
             );
             return data;

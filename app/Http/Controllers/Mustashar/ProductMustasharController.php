@@ -16,7 +16,7 @@ class ProductMustasharController extends Controller
     // Private helpers — resolution using explicit type flags
     //
     // coverage_type / waste_type = 'custom' → use product's own value
-    // coverage_type / waste_type = 'global' → inherit from calculator_settings
+    // coverage_type / waste_type = 'global' → inherit from mustashar_settings
     // ─────────────────────────────────────────────────────────────────────────
 
     private function resolveCoverage(?ProductMustashar $calc, ?MustasharSetting $settings): ?float
@@ -77,15 +77,15 @@ class ProductMustasharController extends Controller
             return response()->json(['enabled' => false, 'message' => 'Product not found']);
         }
 
-        $calculator = $product->calculator;
+        $mustashar = $product->mustashar;
 
-        if (!$calculator || !$calculator->is_enabled) {
+        if (!$mustashar || !$mustashar->is_enabled) {
             return response()->json(['enabled' => false]);
         }
 
         $settings        = MustasharSetting::where('merchant_id', $merchant->id)->first();
-        $coveragePerUnit = $this->resolveCoverage($calculator, $settings);
-        $waste           = $this->resolveWaste($calculator, $settings);
+        $coveragePerUnit = $this->resolveCoverage($mustashar, $settings);
+        $waste           = $this->resolveWaste($mustashar, $settings);
 
         return response()->json([
             'enabled' => true,
@@ -94,7 +94,7 @@ class ProductMustasharController extends Controller
                 'name'  => (string) $product->name,
                 'price' => ['amount' => (float) $product->price, 'currency' => 'SAR'],
             ],
-            'calculator' => [
+            'mustashar' => [
                 'area_unit'    => 'm2',
                 'selling_unit' => [
                     'type'              => 'box',
@@ -115,11 +115,11 @@ class ProductMustasharController extends Controller
         $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
         $products = Product::where('merchant_id', $merchant->id)
-            ->with(['calculator', 'mainImage'])
+            ->with(['mustashar', 'mainImage'])
             ->orderBy('name')
             ->get()
             ->map(function ($product) use ($settings) {
-                $calc = $product->calculator;
+                $mustashar = $product->mustashar;
 
                 return [
                     'id'               => $product->id,
@@ -130,15 +130,15 @@ class ProductMustasharController extends Controller
                     'quantity'         => $product->quantity,
                     'category'         => $product->category ?? 'Uncategorized',
                     'image'            => $product->image_url,
-                    'active'           => (bool) optional($calc)->is_enabled,
+                    'active'           => (bool) optional($mustashar)->is_enabled,
 
-                    'coverage_per_unit' => $this->resolveCoverage($calc, $settings),
-                    'coverage_source'   => $this->coverageSource($calc, $settings),
-                    'coverage_type'     => $calc?->coverage_type ?? 'global',
+                    'coverage_per_unit' => $this->resolveCoverage($mustashar, $settings),
+                    'coverage_source'   => $this->coverageSource($mustashar, $settings),
+                    'coverage_type'     => $mustashar?->coverage_type ?? 'global',
 
-                    'waste_percentage'  => $this->resolveWaste($calc, $settings),
-                    'waste_source'      => $this->wasteSource($calc, $settings),
-                    'waste_type'        => $calc?->waste_type ?? 'global',
+                    'waste_percentage'  => $this->resolveWaste($mustashar, $settings),
+                    'waste_source'      => $this->wasteSource($mustashar, $settings),
+                    'waste_type'        => $mustashar?->waste_type ?? 'global',
                 ];
             });
 
@@ -151,20 +151,20 @@ class ProductMustasharController extends Controller
 
         try {
             $product    = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
-            $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
+            $mustashar = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
 
             $newState = $request->has('is_enabled')
                 ? filter_var($request->is_enabled, FILTER_VALIDATE_BOOLEAN)
-                : !$calculator->is_enabled;
+                : !$mustashar->is_enabled;
 
-            $calculator->is_enabled = $newState;
-            $calculator->save();
+            $mustashar->is_enabled = $newState;
+            $mustashar->save();
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success'    => true,
-                    'is_enabled' => (bool) $calculator->is_enabled,
-                    'message'    => $calculator->is_enabled ? 'Al-Mustashar activated' : 'Al-Mustashar disabled',
+                    'is_enabled' => (bool) $mustashar->is_enabled,
+                    'message'    => $mustashar->is_enabled ? 'Al-Mustashar activated' : 'Al-Mustashar disabled',
                 ]);
             }
 
@@ -188,27 +188,26 @@ class ProductMustasharController extends Controller
             'coverage_per_unit' => 'nullable|numeric|min:0.01|max:200',
         ]);
 
-        $product    = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
-        $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
+        $product  = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
+        $mustashar = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
 
         if (!empty($validated['coverage_per_unit'])) {
-            $calculator->coverage_type     = 'custom';
-            $calculator->coverage_per_unit = (float) $validated['coverage_per_unit'];
+            $mustashar->coverage_type     = 'custom';
+            $mustashar->coverage_per_unit = (float) $validated['coverage_per_unit'];
         } else {
-            // null = العودة للعام
-            $calculator->coverage_type     = 'global';
-            $calculator->coverage_per_unit = null;
+            $mustashar->coverage_type     = 'global';
+            $mustashar->coverage_per_unit = null;
         }
 
-        $calculator->save();
+        $mustashar->save();
 
         $settings = MustasharSetting::where('merchant_id', $merchant->id)->first();
 
         return response()->json([
             'success'           => true,
-            'coverage_per_unit' => $this->resolveCoverage($calculator, $settings),
-            'coverage_source'   => $this->coverageSource($calculator, $settings),
-            'coverage_type'     => $calculator->coverage_type,
+            'coverage_per_unit' => $this->resolveCoverage($mustashar, $settings),
+            'coverage_source'   => $this->coverageSource($mustashar, $settings),
+            'coverage_type'     => $mustashar->coverage_type,
         ]);
     }
 
@@ -224,27 +223,27 @@ class ProductMustasharController extends Controller
             'waste_percentage' => 'nullable|numeric|min:0|max:50',
         ]);
 
-        $product    = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
-        $calculator = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
+        $product   = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
+        $mustashar = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
 
         if (isset($validated['waste_percentage']) && $validated['waste_percentage'] !== null) {
-            $calculator->waste_type       = 'custom';
-            $calculator->waste_percentage = (float) $validated['waste_percentage'];
+            $mustashar->waste_type       = 'custom';
+            $mustashar->waste_percentage = (float) $validated['waste_percentage'];
         } else {
-            $calculator->waste_type       = 'global';
-            $calculator->waste_percentage = null;
+            $mustashar->waste_type       = 'global';
+            $mustashar->waste_percentage = null;
         }
 
-        $calculator->save();
+        $mustashar->save();
 
         $settings    = MustasharSetting::where('merchant_id', $merchant->id)->first();
-        $wasteSource = $this->wasteSource($calculator, $settings);
+        $wasteSource = $this->wasteSource($mustashar, $settings);
 
         return response()->json([
             'success'          => true,
-            'waste_percentage' => $this->resolveWaste($calculator, $settings),
+            'waste_percentage' => $this->resolveWaste($mustashar, $settings),
             'waste_source'     => $wasteSource,
-            'waste_type'       => $calculator->waste_type,
+            'waste_type'       => $mustashar->waste_type,
         ]);
     }
 

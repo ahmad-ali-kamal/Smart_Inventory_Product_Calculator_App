@@ -476,7 +476,7 @@ return response()->json(['success' => true]);
     /**
      * مزامنة المخزون من سلة (يدوي أو مجدول)
      */
-    public function syncInventory(Merchant $merchant, string $sallaProductId = null): void
+    public function syncHarees(Merchant $merchant, string $sallaProductId = null): void
     {
         $sallaApi = SallaApiService::for($merchant);
 

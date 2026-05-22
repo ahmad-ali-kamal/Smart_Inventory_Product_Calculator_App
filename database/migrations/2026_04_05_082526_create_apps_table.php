@@ -13,7 +13,7 @@ return new class extends Migration
             // الربط مع جدول التجار
             $table->foreignId('merchant_id')->constrained('merchants')->onDelete('cascade');
             
-            $table->string('app_name'); // 'calculator' أو 'management'
+            $table->string('app_name'); // 'mustashar' أو 'harees'
             $table->string('client_id')->unique(); // معرف التطبيق من سلة
             
             $table->text('access_token');

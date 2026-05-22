@@ -10,7 +10,7 @@ class MustasharSetting extends Model
 {
     use HasFactory;
 
-    protected $table = 'calculator_settings';
+    protected $table = 'mustashar_settings';
 
     protected $fillable = [
         'merchant_id',

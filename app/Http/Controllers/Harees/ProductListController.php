@@ -90,7 +90,7 @@ class ProductListController extends Controller
             return $product;
         });
 
-        return view('inventory.products', compact('products', 'settings'));
+        return inertia('Harees/Products', compact('products', 'settings'));
     }
 
     /**
@@ -102,7 +102,7 @@ class ProductListController extends Controller
 
         try {
             FetchProductsJob::dispatch($merchant);
-            Cache::forget("inventory_dashboard_{$merchant->id}");
+            Cache::forget("harees_dashboard_{$merchant->id}");
             return back()->with('success', 'بدأت المزامنة في الخلفية. ستظهر المنتجات هنا فور اكتمال السحب من سلة.');
         } catch (\Exception $e) {
             Log::error('Product sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
@@ -122,6 +122,6 @@ class ProductListController extends Controller
             ->with(['batchItems.batch', 'images'])
             ->firstOrFail();
 
-        return view('inventory.show', compact('product'));
+        return inertia('Harees/Show', compact('product'));
     }
 }

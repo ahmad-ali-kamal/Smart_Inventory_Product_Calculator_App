@@ -102,7 +102,7 @@ const t = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X, CalendarPlus, Trash2, PlusCircle, AlertCircle,
@@ -175,14 +175,8 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     // Per-batch variant qty map: { [batchId]: [{ salla_variant_id, variant_quantity, ... }] }
     const [batchVariants, setBatchVariants] = useState({});
 
-<<<<<<< HEAD
-    // ── Derived values ────────────────────────────────────────────────────────
-=======
-    // ✅ استخدام variants_data المحلية أولاً (من الـ cache)
+    // ── Derived values ──
     const localVariants = product.variants_data || [];
-
-    // ── Derived ──
->>>>>>> Fixing_errors
     const totalQty        = product.quantity ?? product.dbQty ?? 0;
     const hasBatches      = product.batches && product.batches.length > 0;
     const today           = new Date().toISOString().split('T')[0];
@@ -314,26 +308,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         }
     };
 
-<<<<<<< HEAD
-    /**
-     * initializeBatchVariants
-     *
-     * Builds the initial per-variant quantity list for a batch that hasn't
-     * been touched yet.  Unlimited-quantity variants receive a large sentinel
-     * stock value (999999) so stock-cap validation never incorrectly flags them.
-     *
-     * @param {number} batchId - Local batch ID used as the `batchVariants` map key.
-     * @returns {Array<Object>}
-     */
-    const initializeBatchVariants = (batchId) =>
-        variants.map(v => ({
-            batch_id:           batchId,
-            salla_variant_id:   v.id,
-            variant_quantity:   '',
-            name:               v.name,
-            stock_quantity:     v.unlimited_quantity ? 999999 : v.stock_quantity,
-=======
-    // ✅ استخدام useMemo للحفاظ على template ثابت
     const variantTemplate = useMemo(() => {
         if (!variants || variants.length === 0) return [];
         return variants.map(v => ({
@@ -341,7 +315,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             variant_quantity: '',
             name: v.name,
             stock_quantity: v.unlimited_quantity ? 999999 : v.stock_quantity,
->>>>>>> Fixing_errors
             unlimited_quantity: v.unlimited_quantity,
         }));
     }, [variants]);
@@ -353,7 +326,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         }));
     }, [variantTemplate]);
 
-    // ✅ دالة refresh للـ variants من سلة
     const refreshVariants = async () => {
         setVariantsLoading(true);
         setVariantsLoaded(false);
@@ -775,10 +747,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                 </div>
                             </div>
 
-<<<<<<< HEAD
-                            {/* ── Batch cards ───────────────────────────────── */}
-=======
-                            {/* ✅ زر refresh للـ variants */}
+                            {/* ── Refresh variants from basket ── */}
                             {hasVariants && variantsLoaded && (
                                 <button
                                     onClick={refreshVariants}
@@ -791,7 +760,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             )}
 
                             {/* ── Batches ── */}
->>>>>>> Fixing_errors
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-[var(--primary)]">

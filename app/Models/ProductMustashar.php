@@ -10,7 +10,7 @@ class ProductMustashar extends Model
 {
     use HasFactory;
 
-    protected $table = 'product_calculator';
+    protected $table = 'product_mustashar';
 
     protected $fillable = [
         'product_id',

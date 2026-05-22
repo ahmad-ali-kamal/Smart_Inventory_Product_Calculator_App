@@ -89,9 +89,9 @@ class Merchant extends Authenticatable
     }
 
     /**
-     * إعدادات الحاسبة
+     * إعدادات المستشار
      */
-    public function calculatorSettings(): HasOne
+    public function mustasharSettings(): HasOne
     {
         return $this->hasOne(MustasharSetting::class);
     }

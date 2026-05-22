@@ -25,13 +25,13 @@ class HareesDashboardController extends Controller
         // 3.توجيه ذكي: إذا لم تكن هناك إعدادات، اعرض صفحة التعليمات
         
         if (!$settings) {
-         return view('inventory.instructions');
+         return inertia('Harees/Instructions');
      }
 
 
 
         // استخدام Cache لتحسين الأداء
-        $cacheKey = "inventory_dashboard_{$merchant->id}";
+        $cacheKey = "harees_dashboard_{$merchant->id}";
         $cacheDuration = now()->addMinutes(5);
 
         $data = Cache::remember($cacheKey, $cacheDuration, function () use ($merchant) {
@@ -92,7 +92,7 @@ class HareesDashboardController extends Controller
             ];
         });
 
-        return view('inventory.dashboard', [
+        return inertia('Harees/Dashboard', [
             'stats'    => $data['stats'],
             'products' => $data['products'],
              'settings' => $settings,
@@ -131,7 +131,7 @@ class HareesDashboardController extends Controller
         $mappedNames = $existingMappings->pluck('category_name')->toArray();
         $unmappedCategories = array_diff($allCategories, $mappedNames);
 
-        return view('inventory.settings', compact('settings', 'mappings', 'unmappedCategories'));
+        return inertia('Harees/Settings', compact('settings', 'mappings', 'unmappedCategories'));
     }
 
     /**
@@ -139,7 +139,7 @@ class HareesDashboardController extends Controller
      */
     public function instructions()
     {
-        return view('inventory.instructions');
+        return inertia('Harees/Instructions');
     }
 
     /**
@@ -148,7 +148,7 @@ class HareesDashboardController extends Controller
     public function clearCache()
     {
         $merchant = Auth::user();
-        Cache::forget("inventory_dashboard_{$merchant->id}");
+        Cache::forget("harees_dashboard_{$merchant->id}");
 
         return back()->with('success', 'تم تحديث البيانات بنجاح');
     }

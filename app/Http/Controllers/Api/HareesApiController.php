@@ -41,7 +41,7 @@ class HareesApiController extends Controller
 
     FetchProductsJob::dispatch($merchant);
 
-    Cache::forget("inventory_dashboard_api_{$merchant->id}");
+    Cache::forget("harees_dashboard_api_{$merchant->id}");
 
     Log::info("✅ [{$source}] Sync job dispatched successfully", [
         'user_id' => $merchant->id,
@@ -65,7 +65,7 @@ class HareesApiController extends Controller
         if (!$settings) {
             return response()->json([
                 'needs_setup' => true,
-                'message' => 'Inventory settings are not configured yet',
+                'message' => 'Harees settings are not configured yet',
                 'stats' => [
                     'green_batches' => 0,
                     'yellow_batches' => 0,
@@ -75,7 +75,7 @@ class HareesApiController extends Controller
             ]);
         }
 
-        $cacheKey = "inventory_dashboard_api_{$merchant->id}";
+        $cacheKey = "harees_dashboard_api_{$merchant->id}";
 
         $data = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($merchant) {
             $stats = [

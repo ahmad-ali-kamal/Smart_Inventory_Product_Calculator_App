@@ -90,7 +90,7 @@ $dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
         }
     });
 
-    Cache::forget("inventory_dashboard_{$merchant->id}");
+    Cache::forget("harees_dashboard_{$merchant->id}");
 
     return response()->json([
     'success' => true,
@@ -109,7 +109,7 @@ $dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
             BatchSetting::getDefaults()
         );
 
-        Cache::forget("inventory_dashboard_{$merchant->id}");
+        Cache::forget("harees_dashboard_{$merchant->id}");
 
         return back()->with('success', 'تمت إعادة الإعدادات للقيم الافتراضية.');
     }

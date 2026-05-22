@@ -12,7 +12,7 @@
  * making both sides independently testable.
  *
  * Query key convention:
- *   ["inventory", "<resource>"]  — e.g. ["inventory", "dashboard"]
+ *   ["harees", "<resource>"]  — e.g. ["harees", "dashboard"]
  * This namespacing lets targeted `invalidateQueries` calls selectively bust
  * only the affected resource rather than the entire cache.
  */
@@ -43,7 +43,7 @@ import {
  */
 export const useInventoryDashboard = () => {
     return useQuery({
-        queryKey: ['inventory', 'dashboard'],
+        queryKey: ['harees', 'dashboard'],
         queryFn:  getDashboard,
     });
 };
@@ -59,7 +59,7 @@ export const useInventoryDashboard = () => {
  */
 export const useInventoryProducts = () => {
     return useQuery({
-        queryKey: ['inventory', 'products'],
+        queryKey: ['harees', 'products'],
         queryFn:  getProducts,
     });
 };
@@ -75,7 +75,7 @@ export const useInventoryProducts = () => {
  */
 export const useInventorySettings = () => {
     return useQuery({
-        queryKey: ['inventory', 'settings'],
+        queryKey: ['harees', 'settings'],
         queryFn:  getSettings,
     });
 };
@@ -101,8 +101,8 @@ export const useUpdateInventorySettings = () => {
 
         onSuccess: () => {
             // Settings change may affect expiry classification → bust dashboard too.
-            queryClient.invalidateQueries({ queryKey: ['inventory', 'settings']  });
-            queryClient.invalidateQueries({ queryKey: ['inventory', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'settings']  });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
         },
     });
 };
@@ -125,8 +125,8 @@ export const useStoreExpiry = () => {
         onSuccess: async () => {
             // Sequential awaits ensure both queries are re-fetched before any
             // UI that depends on them updates (e.g. closing a modal after refresh).
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'dashboard'] });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
         },
     });
 };
@@ -188,8 +188,8 @@ export const useDeleteExpiry = () => {
         onSuccess: async () => {
             // Await both invalidations so the UI reflects the deletion before
             // the parent component (ExpiryModal) closes.
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'dashboard'] });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
         },
     });
 };
@@ -210,8 +210,8 @@ export const useStoreBatch = () => {
         mutationFn: storeBatch,
 
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'dashboard'] });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
         },
     });
 };
@@ -231,8 +231,8 @@ export const useUpdateBatch = () => {
         mutationFn: updateBatch,
 
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['inventory', 'dashboard'] });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
         },
     });
 };

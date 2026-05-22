@@ -21,25 +21,25 @@ class DashboardController extends Controller
         }
 
         // 2. التوجيه بناءً على التطبيقات المثبتة
-        $hasCalculator = (bool) $merchant->has_calculator; // تطبيق المستشار
-        $hasManagement = (bool) $merchant->has_management; // تطبيق حريص
+        $hasMustashar  = (bool) $merchant->has_calculator; // تطبيق المستشار
+        $hasHarees     = (bool) $merchant->has_management; // تطبيق حريص
 
         // الحالة الأولى: يملك التطبيقين معاً (عرض صفحة الاختيار)
-        if ($hasCalculator && $hasManagement) {
+        if ($hasMustashar && $hasHarees) {
             return view('welcome', [
                 'merchant' => $merchant,
                 'showSelector' => true
             ]);
         }
 
-        // الحالة الثانية: يملك تطبيق المستشار (الآلة الحاسبة) فقط
-        if ($hasCalculator) {
-            return redirect()->route('calculator.dashboard');
+        // الحالة الثانية: يملك تطبيق المستشار فقط
+        if ($hasMustashar) {
+            return redirect()->route('mustashar.dashboard');
         }
 
-        // الحالة الثالثة: يملك تطبيق حريص (إدارة المخزون) فقط
-        if ($hasManagement) {
-            return redirect()->route('inventory.dashboard');
+        // الحالة الثالثة: يملك تطبيق حريص فقط
+        if ($hasHarees) {
+            return redirect()->route('harees.dashboard');
         }
 
         // حالة احتياطية: التاجر مسجل ولكن لم يتم تفعيل أي تطبيق له بعد
@@ -50,13 +50,13 @@ class DashboardController extends Controller
     }
 
     /**
-     * دالة لعرض صفحة عرض منتج محدد (التي طلبناها في ملف الويب)
+     * دالة لعرض صفحة عرض منتج محدد
      */
     public function showProduct($product_id)
     {
         $merchant = Auth::user();
         $product = $merchant->products()->where('salla_product_id', $product_id)->firstOrFail();
 
-        return view('inventory.product_details', compact('product'));
+        return view('harees.product_details', compact('product'));
     }
 }
