@@ -102,7 +102,7 @@ const t = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X, CalendarPlus, Trash2, PlusCircle, AlertCircle,
@@ -173,7 +173,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     const [optionsAnswered, setOptionsAnswered] = useState(false);
 
     // Per-batch variant qty map: { [batchId]: [{ salla_variant_id, variant_quantity, ... }] }
+    // This state is populated once from existing data (edit mode) or from stock (create mode)
+    // and only updated via explicit user input — never overwritten on rerender.
     const [batchVariants, setBatchVariants] = useState({});
+    const batchVariantsRef = useRef({});
 
     // ── Derived values ──
     const localVariants = product.variants_data || [];
@@ -207,14 +210,36 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
     // ── Effect: populate form with existing batches (edit mode) ───────────────
     // Maps the server batch shape to the lean local shape used by the form.
+    // Also loads existing variant distribution from saved batch_items.
     useEffect(() => {
         if (!hasBatches) return;
-        setBatches(product.batches.map(b => ({
+
+        const mappedBatches = product.batches.map(b => ({
             id:      b.id,
             qty:     b.quantity ?? b.qty ?? '',
             date:    b.expiry_date || b.expiryDate || '',
             batchId: b.id,   // preserved so the save payload can send UPDATE vs CREATE
-        })));
+        }));
+        setBatches(mappedBatches);
+
+        // Load existing variant distribution for each batch (edit mode)
+        const existingVariants = {};
+        product.batches.forEach(b => {
+            if (b.variants && b.variants.length > 0) {
+                existingVariants[b.id] = b.variants.map(v => ({
+                    batch_id: b.id,
+                    salla_variant_id: v.salla_variant_id,
+                    variant_quantity: String(v.variant_quantity ?? v.quantity ?? ''),
+                    name: v.name ?? '',
+                    stock_quantity: v.stock_quantity ?? 0,
+                    unlimited_quantity: v.unlimited_quantity ?? false,
+                }));
+            }
+        });
+        if (Object.keys(existingVariants).length > 0) {
+            setBatchVariants(existingVariants);
+            batchVariantsRef.current = existingVariants;
+        }
     }, [hasBatches, product.batches]);
 
     // ── Effect: check-options on mount ────────────────────────────────────────
@@ -312,19 +337,57 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         if (!variants || variants.length === 0) return [];
         return variants.map(v => ({
             salla_variant_id: v.id,
-            variant_quantity: '',
+            // ✅ Auto-fill from real Salla stock_quantity as initial value
+            // التاجر يستطيع تعديلها بعد ذلك
+            variant_quantity: hasBatches ? '' : String(v.stock_quantity ?? 0),
             name: v.name,
             stock_quantity: v.unlimited_quantity ? 999999 : v.stock_quantity,
             unlimited_quantity: v.unlimited_quantity,
         }));
-    }, [variants]);
+    }, [variants, hasBatches]);
 
     const initializeBatchVariants = useCallback((batchId) => {
+        // ✅ Use existing saved data if available (edit mode), never overwrite
+        const existing = batchVariantsRef.current[batchId];
+        if (existing && existing.length > 0) {
+            return existing.map(v => ({
+                ...v,
+                variant_quantity: v.variant_quantity ?? '',
+            }));
+        }
         return variantTemplate.map(v => ({
             batch_id: batchId,
             ...v,
         }));
     }, [variantTemplate]);
+
+    // ✅ Stable effect: once variants are loaded and batches are ready,
+    // populate batchVariants state for any batch that doesn't have it yet.
+    // This runs once per batch and never overwrites existing user edits.
+    useEffect(() => {
+        if (!variantsLoaded || !hasVariants || variants.length === 0) return;
+        if (batches.length === 0) return;
+
+        setBatchVariants(prev => {
+            const next = { ...prev };
+            let changed = false;
+            batches.forEach(batch => {
+                const batchId = batch.id;
+                if (!next[batchId]) {
+                    // Only initialize if this batch has qty + date filled
+                    if (batch.qty && parseInt(batch.qty) > 0 && !!batch.date) {
+                        next[batchId] = initializeBatchVariants(batchId);
+                        changed = true;
+                    }
+                }
+            });
+            if (changed) {
+                batchVariantsRef.current = next;
+                return next;
+            }
+            return prev; // Return same reference if nothing changed
+        });
+    }, [variantsLoaded, hasVariants, variants, batches, initializeBatchVariants]);
 
     const refreshVariants = async () => {
         setVariantsLoading(true);
@@ -772,6 +835,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                 onClick={async () => {
                                                     setBatches([]);
                                                     setBatchVariants({});
+                                                    batchVariantsRef.current = {};
                                                     setError(null);
                                                     setFieldErrors({});
                                                     if (hasBatches) await handleDeleteAll(false);
@@ -797,7 +861,8 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                     const batchReady   = isBatchReady(batch);
                                     const showVariants = batchReady && variantsLoaded && hasVariants && variants.length > 0;
                                     // Initialise variant list lazily on first render for this batch
-                                    const batchLinked   = batchVariants[batch.id] || (showVariants ? initializeBatchVariants(batch.id) : []);
+                                    // ✅ Stable: always reads from batchVariants state (never calls initializeBatchVariants inline)
+                                    const batchLinked   = batchVariants[batch.id] || [];
                                     const batchVarTotal = batchLinked.reduce((s, v) => s + (parseInt(v.variant_quantity) || 0), 0);
                                     const batchQtyNum   = parseInt(batch.qty) || 0;
 
@@ -818,7 +883,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                     <button
                                                         onClick={() => {
                                                             setBatches(p => p.filter(b => b.id !== batch.id));
-                                                            setBatchVariants(p => { const n = { ...p }; delete n[batch.id]; return n; });
+                                                            setBatchVariants(p => { const n = { ...p }; delete n[batch.id]; delete batchVariantsRef.current[batch.id]; return n; });
                                                             setFieldErrors(p => {
                                                                 const n = { ...p };
                                                                 delete n[batch.id];
@@ -941,19 +1006,21 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                                         min="0"
                                                                         max={variant.unlimited_quantity ? 99999 : variant.stock_quantity}
                                                                         value={linked?.variant_quantity || ''}
-                                                                        onChange={e => {
-                                                                            const val = e.target.value.replace(/[^0-9]/g, '');
-                                                                            setBatchVariants(p => {
-                                                                                const current = p[batch.id] || initializeBatchVariants(batch.id);
-                                                                                return {
-                                                                                    ...p,
-                                                                                    [batch.id]: current.map(v =>
-                                                                                        v.salla_variant_id === variant.id
-                                                                                            ? { ...v, variant_quantity: val }
-                                                                                            : v
-                                                                                    ),
-                                                                                };
-                                                                            });
+onChange={e => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                            setBatchVariants(p => {
+                                                const current = p[batch.id] || batchVariantsRef.current[batch.id] || [];
+                                                const updated = current.map(v =>
+                                                    v.salla_variant_id === variant.id
+                                                        ? { ...v, variant_quantity: val }
+                                                        : v
+                                                );
+                                                batchVariantsRef.current = { ...batchVariantsRef.current, [batch.id]: updated };
+                                                return {
+                                                    ...p,
+                                                    [batch.id]: updated,
+                                                };
+                                            });
                                                                             // Clear this specific variant's error on change
                                                                             if (fieldErrors[`batch_${batch.id}_variant_${variant.id}`])
                                                                                 setFieldErrors(p => {

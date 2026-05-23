@@ -9,6 +9,7 @@ use App\Models\BatchItem;
 use App\Models\BatchSetting;
 use App\Models\BatchDiscount;
 use App\Models\ActivityLog;
+use App\Jobs\CheckBatchExpiryJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -197,6 +198,11 @@ class ProductExpiryController extends Controller
 
             DB::commit();
 
+            // ✅ تشغيل CheckBatchExpiryJob بعد نجاح الـ transaction بالكامل
+            // يتم التأكد من اكتمال حفظ: batch, batch_items, variant quantities
+            // ثم بعدها dispatch على الـ queue
+            CheckBatchExpiryJob::dispatch()->afterCommit();
+
             // ✅ الآن BatchItem موجود — نُرسل الـ notifications بأمان
             foreach ($newlyCreatedBatches as $newBatch) {
                 $newBatch->sendExpiryNotificationIfNeeded();
@@ -277,6 +283,7 @@ class ProductExpiryController extends Controller
             }
 
             DB::commit();
+            CheckBatchExpiryJob::dispatch()->afterCommit();
            Cache::forget("inventory_dashboard_{$merchant->id}");
            Cache::forget("inventory_dashboard_api_{$merchant->id}");
             ActivityLog::log($merchant->id, 'expiry_deleted',

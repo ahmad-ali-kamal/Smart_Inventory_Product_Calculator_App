@@ -11,6 +11,7 @@ use App\Models\BatchSetting;
 use App\Models\CategoryMapping;
 use Illuminate\Http\Request;
 use App\Jobs\FetchProductsJob;
+use App\Jobs\CheckBatchExpiryJob;
 use App\Services\SallaApiService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -335,6 +336,8 @@ class HareesApiController extends Controller
             // 3. تحديث خيار سلة "بيانات الدفعة" بالباتشات الصفراء فقط (إذا كان المنتج له variants)
             $this->syncYellowBatchesToSalla($product, $merchant);
 
+            CheckBatchExpiryJob::dispatch()->afterCommit();
+
             return response()->json([
                 'success' => true, 
                 'message' => 'تم إنشاء الدفعة بنجاح',
@@ -371,6 +374,8 @@ class HareesApiController extends Controller
         if ($batchItem) {
             $this->syncYellowBatchesToSalla($batchItem->product, $merchant);
         }
+
+        CheckBatchExpiryJob::dispatch()->afterCommit();
 
         return response()->json(['success' => true, 'message' => 'تم التحديث بنجاح']);
     }
