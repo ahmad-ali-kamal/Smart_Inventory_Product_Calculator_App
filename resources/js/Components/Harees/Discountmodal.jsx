@@ -3,13 +3,18 @@
  * @module Components/Harees
  *
  * @description
- * Controlled modal dialog for manually applying a timed discount to a
- * specific batch.  The modal handles its own field-level validation and
+ * Controlled modal dialog for manually applying or editing a timed discount
+ * on a specific batch.  The modal handles its own field-level validation and
  * loading / success / error states independently from the parent.
  *
  * Responsibilities:
+ *  - Distinguish between "Add Discount" (first time) and "Edit Discount"
+ *    (updating an existing discount) via the `isEdit` prop.
+ *  - Pre-populate the discount percentage field with `existingPct` when in
+ *    edit mode so the merchant can see and adjust the current value.
  *  - Validate discount percentage (1–99) and end-date (must be future).
  *  - Delegate the actual API call to the `onApply` prop (supplied by BatchRow).
+ *  - Pass `isEdit` back to `onApply` so BatchRow can surface the correct toast.
  *  - Display server-side errors inline without closing the modal.
  *  - Close automatically 1.2 s after a confirmed success.
  *
@@ -20,15 +25,18 @@
 
 // ─── i18n strings ────────────────────────────────────────────────────────────
 const t = {
-    modal_title:           'Apply Discount',
+    modal_title_add:       'Apply Discount',
+    modal_title_edit:      'Edit Discount',
     note_title:            'Note:',
     note_body:             'Discounts apply only to Yellow-status batches. Green inventory is always protected.',
     section_title:         'Manual Configuration',
     label_discount_pct:    'Discount Percentage',
     label_end_date:        'End Date',
-    btn_apply:             'Apply Discount',
+    btn_add_apply:         'Apply Discount',
+    btn_edit_apply:        'Update Discount',
     btn_applying:          'Applying…',
     btn_applied:           'Applied Successfully',
+    btn_updated:           'Updated Successfully',
     err_required:          'Required',
     err_pct_range:         'Must be between 1 and 99',
     err_date_future:       'Must be a future date',
@@ -37,19 +45,19 @@ const t = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import { X, Percent, CheckCircle, Info, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Percent, CheckCircle, Info, AlertCircle, Loader2, Edit } from 'lucide-react';
 
 /**
  * DiscountModal
  *
  * A full-screen overlay modal that lets the merchant configure and submit a
- * manual discount for a single batch.
+ * manual discount (or update an existing one) for a single batch.
  *
  * Design decisions:
- *  - `isApplied` state was intentionally removed; the parent closes the modal
- *    after `onApply` resolves, so a separate "applied" flag is redundant.
- *  - A brief `isSuccess` state is kept locally to drive the button's green
- *    confirmation animation before the `onClose` timeout fires.
+ *  - `isEdit` switches title, submit button label, and icon between add / edit modes.
+ *  - `existingPct` pre-populates the discount percentage field in edit mode.
+ *  - A brief `isSuccess` state drives the button's green confirmation animation
+ *    before the `onClose` timeout fires.
  *  - The modal does NOT close on server error; the error is displayed inline
  *    so the user can correct their input without re-opening the form.
  *
@@ -62,14 +70,26 @@ import { X, Percent, CheckCircle, Info, AlertCircle, Loader2 } from 'lucide-reac
  * @param {string}   [props.batch.expiry_date]- Expiry date shown in the UI.
  * @param {Object}   props.product            - Parent product (used for the subtitle).
  * @param {string}   props.product.name       - Product display name.
+ * @param {boolean}  [props.isEdit=false]     - True when updating an existing discount.
+ * @param {number}   [props.existingPct=20]   - Current discount percentage (pre-populates
+ *                                             the input in edit mode).
  * @param {Function} props.onClose            - Called to hide / unmount the modal.
- * @param {Function} props.onApply            - Async callback: `({ batchId, discountPct, endDate }) → Promise<void>`.
+ * @param {Function} props.onApply            - Async callback:
+ *                                             `({ batchId, discountPct, endDate, isEdit }) → Promise<void>`.
  *                                             Must throw an `Error` with a `.message` on failure.
  * @returns {JSX.Element}
  */
-export default function DiscountModal({ batch, product, onClose, onApply }) {
+export default function DiscountModal({
+    batch,
+    product,
+    isEdit = false,
+    existingPct = 20,
+    onClose,
+    onApply,
+}) {
     // ── Form field state ──────────────────────────────────────────────────────
-    const [discountPct, setDiscountPct] = useState('20');
+    // Pre-populate with the existing percentage in edit mode; default to "20".
+    const [discountPct, setDiscountPct] = useState(isEdit ? String(existingPct) : '20');
     const [endDate, setEndDate]         = useState('');
 
     // ── Validation error state ────────────────────────────────────────────────
@@ -146,17 +166,17 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
     /**
      * handleApply
      *
-     * Runs full validation, then calls the `onApply` callback.
+     * Runs full validation, then calls the `onApply` callback with `isEdit`
+     * so the parent can show the correct success toast.
      * On success: briefly shows the green confirmation state, then closes.
      * On failure: displays the server error inline; modal remains open.
      *
      * @async
-     * @returns {Promise<void>}
      */
     const handleApply = async () => {
-        // Run validation on both fields and bail early if either fails.
-        const pErr = validatePct(discountPct);
-        const dErr = validateDate(endDate);
+        // Run both validations and surface errors before sending anything.
+        const pErr  = validatePct(discountPct);
+        const dErr  = validateDate(endDate);
         setPctError(pErr);
         setDateError(dErr);
         if (pErr || dErr) return;
@@ -166,33 +186,43 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
 
         try {
             await onApply({
-                batchId:     batch?.id,
+                batchId:    batch.id,
                 discountPct: parseInt(discountPct, 10),
                 endDate,
+                isEdit,    // ← forwarded so BatchRow can pick the right toast
             });
 
-            // Show success state briefly, then let the parent unmount the modal.
+            // Briefly show the success state before the parent closes the modal.
             setIsSuccess(true);
             setTimeout(onClose, 1200);
         } catch (err) {
-            setServerError(err?.message || t.err_generic);
+            // Keep the modal open and surface the server message inline.
+            setServerError(err.message || t.err_generic);
         } finally {
             setIsLoading(false);
         }
     };
 
+    // ── Derived display values ────────────────────────────────────────────────
+    const modalTitle  = isEdit ? t.modal_title_edit  : t.modal_title_add;
+    const submitLabel = isEdit ? t.btn_edit_apply    : t.btn_add_apply;
+    const successMsg  = isEdit ? t.btn_updated       : t.btn_applied;
+
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        /* Full-screen overlay: clicking outside the card does NOT close the modal
+           (intentional — prevents accidental loss of unsaved discount values). */
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="relative w-full max-w-[500px] bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
 
                 {/* ── Header ────────────────────────────────────────────────── */}
                 <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
                     <div className="w-10 h-10 rounded-xl bg-[var(--muted)] flex items-center justify-center text-[var(--primary)]">
-                        <Percent size={20} />
+                        {/* Edit icon in edit mode, Percent icon for new discounts */}
+                        {isEdit ? <Edit size={20} /> : <Percent size={20} />}
                     </div>
                     <div className="flex-1 text-left">
                         <h3 className="text-sm font-bold text-[var(--foreground)]">
-                            {t.modal_title}
+                            {modalTitle}
                         </h3>
                         {/* Product name doubles as the modal subtitle */}
                         <p className="text-[11px] text-[var(--muted-foreground)]">
@@ -323,11 +353,14 @@ export default function DiscountModal({ batch, product, onClose, onApply }) {
                     >
                         {/* Three visual states: success confirmation → loading spinner → idle */}
                         {isSuccess ? (
-                            <><CheckCircle size={16} /> {t.btn_applied}</>
+                            <><CheckCircle size={16} /> {successMsg}</>
                         ) : isLoading ? (
                             <><Loader2 size={14} className="animate-spin" /> {t.btn_applying}</>
                         ) : (
-                            <><Percent size={14} /> {t.btn_apply}</>
+                            /* Show Edit icon in edit mode, Percent icon for new discounts */
+                            isEdit
+                                ? <><Edit size={14} /> {submitLabel}</>
+                                : <><Percent size={14} /> {submitLabel}</>
                         )}
                     </button>
                 </div>

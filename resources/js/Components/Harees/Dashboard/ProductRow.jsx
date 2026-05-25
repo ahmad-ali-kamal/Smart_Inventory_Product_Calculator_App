@@ -8,18 +8,20 @@
  * accordion beneath the product row that mounts the BatchRow component.
  *
  * Layout (4-column table):
- *   [Product] [Status] [Expiry Info – empty at product level] [Actions]
+ *   [Product] [Status] [Expiry Info – batch count summary] [Actions]
  *
- * The Expiry Info cell is intentionally left blank at the product level;
- * per-batch expiry dates are shown inside the expanded BatchRow accordion.
+ * The Expiry Info cell at the product level shows a batch count chip
+ * (e.g. "3 Batches") so the row is never visually empty while the
+ * accordion is collapsed.  Per-batch expiry dates appear inside the
+ * expanded BatchRow accordion.
  */
 
 // ─── i18n strings ────────────────────────────────────────────────────────────
-// Move these values to your JSON translation file and replace this object with
-// a `useTranslation` call (or equivalent) when you are ready.
 const t = {
-    btn_view_batches: 'View Batches',
-    btn_hide_batches: 'Hide Batches',
+    btn_view_batches:  'View Batches',
+    btn_hide_batches:  'Hide Batches',
+    /** @param {number} n */
+    batch_count: (n) => `${n} ${n === 1 ? 'Batch' : 'Batches'}`,
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,10 @@ import ProductAvatar from '../../Common/UI/ProductAvatar';
  * @param {boolean} props.autoDiscount          - Forwarded to BatchRow to conditionally render
  *                                               the "Auto-Discount Enabled" badge vs. the manual
  *                                               discount button.
+ * @param {number}  props.autoDiscountPercent   - Forwarded to BatchRow so the auto-discount badge
+ *                                               can display the configured percentage.
+ * @param {boolean}  props.autoHide               - Forwarded to BatchRow to show the correct
+ *                                               badge for expired batches (auto-hidden vs disabled).
  * @param {string}  props.statusFilter          - The active filter value from the parent table
  *                                               ('all' | 'expired' | 'approaching' | 'safe').
  *                                               When not 'all', the product header row is hidden
@@ -57,7 +63,7 @@ import ProductAvatar from '../../Common/UI/ProductAvatar';
  *                                               so only the matching batches are visible.
  * @returns {JSX.Element} A React fragment containing two <tr> elements.
  */
-export default function ProductRow({ product, autoDiscount, statusFilter }) {
+export default function ProductRow({ product, autoDiscount, autoDiscountPercent, autoHide, statusFilter }) {
     /**
      * True when the user has picked a specific status filter (anything other
      * than 'all').  In this mode the product header row is hidden and the
@@ -129,9 +135,21 @@ export default function ProductRow({ product, autoDiscount, statusFilter }) {
                     <StatusBadge status={product.status} size="md" />
                 </td>
 
-                {/* Cell 3: Expiry info — intentionally blank at the product level;
-                    per-batch dates appear in the expanded accordion below. */}
-                <td className="py-3.5 px-4 text-center w-[30%]" />
+                {/* Cell 3: Expiry info — batch count at the product level (plain text, no badge).
+                    Shows how many batches belong to this product so the cell
+                    is never empty while the accordion is collapsed.
+                    Per-batch expiry dates appear inside the expanded accordion. */}
+                <td className="py-3.5 px-4 text-center w-[30%]">
+                    {(() => {
+                        const count = (product.batches || []).length;
+                        if (count === 0) return null;
+                        return (
+                            <span className="text-[11px] font-bold text-[var(--muted-foreground)]">
+                                {t.batch_count(count)}
+                            </span>
+                        );
+                    })()}
+                </td>
 
                 {/* Cell 4: Toggle button to show/hide the batch accordion */}
                 <td className="py-3.5 px-4 w-[25%]">
@@ -170,7 +188,12 @@ export default function ProductRow({ product, autoDiscount, statusFilter }) {
                     }`}>
                         <div className="overflow-hidden">
                             <div className="bg-[var(--background)]/30">
-                                <BatchRow product={product} autoDiscount={autoDiscount} />
+                                <BatchRow
+                                    product={product}
+                                    autoDiscount={autoDiscount}
+                                    autoDiscountPercent={autoDiscountPercent}
+                                    autoHide={autoHide}
+                                />
                             </div>
                         </div>
                     </div>

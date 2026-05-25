@@ -103,22 +103,24 @@ function filterProducts(products, statusFilter) {
  * @component
  *
  * @param {Object}    props
- * @param {Array}     props.products        - Array of product objects (with nested `batches`).
- * @param {boolean}   props.autoDiscount    - Whether auto-discount is globally enabled;
- *                                            passed through to each ProductRow → BatchRow.
- * @param {string}    props.statusFilter    - Currently active filter value (controlled by parent).
- * @param {Function}  props.onFilterChange  - Callback invoked when the user picks a new filter.
- * @param {boolean}   props.needsSetup      - When true, hides the product list and shows a
- *                                            setup-required placeholder instead.
- * @param {string}    props.statusFilter    - Currently active filter value; forwarded to
- *                                            ProductRow so it can suppress the product header
- *                                            row and auto-expand batches when a specific
- *                                            status filter is active (i.e. not 'all').
+ * @param {Array}     props.products              - Array of product objects (with nested `batches`).
+ * @param {boolean}   props.autoDiscount          - Whether auto-discount is globally enabled;
+ *                                                  passed through to each ProductRow → BatchRow.
+ * @param {number}    props.autoDiscountPercent   - Configured auto-discount percentage;
+ *                                                  forwarded to BatchRow for badge display.
+ * @param {boolean}   props.autoHide               - Whether auto-hide is enabled for expired products;
+ *                                                  forwarded to BatchRow for expired badge display.
+ * @param {string}    props.statusFilter          - Currently active filter value (controlled by parent).
+ * @param {Function}  props.onFilterChange        - Callback invoked when the user picks a new filter.
+ * @param {boolean}   props.needsSetup            - When true, hides the product list and shows a
+ *                                                  setup-required placeholder instead.
  * @returns {JSX.Element}
  */
 export default function MonitoredProductsTable({
     products,
     autoDiscount,
+    autoDiscountPercent,
+    autoHide,
     statusFilter,
     onFilterChange,
     needsSetup,
@@ -191,6 +193,8 @@ export default function MonitoredProductsTable({
                                     key={`${statusFilter}-${product.id}`}
                                     product={product}
                                     autoDiscount={autoDiscount}
+                                    autoDiscountPercent={autoDiscountPercent}
+                                    autoHide={autoHide}
                                     statusFilter={statusFilter}
                                 />
                             ))
