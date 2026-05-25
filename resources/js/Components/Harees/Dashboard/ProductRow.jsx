@@ -23,7 +23,7 @@ const t = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import RowActionButton from '../../Common/RowActionButton';
 import BatchRow from './BatchRow';
@@ -50,20 +50,58 @@ import ProductAvatar from '../../Common/UI/ProductAvatar';
  * @param {boolean} props.autoDiscount          - Forwarded to BatchRow to conditionally render
  *                                               the "Auto-Discount Enabled" badge vs. the manual
  *                                               discount button.
+ * @param {string}  props.statusFilter          - The active filter value from the parent table
+ *                                               ('all' | 'expired' | 'approaching' | 'safe').
+ *                                               When not 'all', the product header row is hidden
+ *                                               and the batch accordion is expanded automatically
+ *                                               so only the matching batches are visible.
  * @returns {JSX.Element} A React fragment containing two <tr> elements.
  */
-export default function ProductRow({ product, autoDiscount }) {
+export default function ProductRow({ product, autoDiscount, statusFilter }) {
+    /**
+     * True when the user has picked a specific status filter (anything other
+     * than 'all').  In this mode the product header row is hidden and the
+     * batch accordion is always expanded so only the matching batches show.
+     *
+     * @type {boolean}
+     */
+    const isFiltering = statusFilter !== 'all';
+
     /**
      * Controls accordion visibility.
      * `false` = batches hidden (default), `true` = batches expanded.
+     * Ignored when `isFiltering` is true — the accordion is always open then.
      *
      * @type {[boolean, Function]}
      */
     const [showBatches, setShowBatches] = useState(false);
 
+    /**
+     * Reset the manual accordion toggle every time the active filter changes.
+     * Without this, a row that was expanded under one filter would remain
+     * expanded (or half-open) when the user switches to a different filter,
+     * producing inconsistent open/closed states across filter transitions.
+     */
+    useEffect(() => {
+        setShowBatches(false);
+    }, [statusFilter]);
+
+    /**
+     * The effective expanded state of the accordion.
+     * Forced to `true` whenever a specific filter is active so the matching
+     * batches are immediately visible without a manual "View Batches" click.
+     *
+     * @type {boolean}
+     */
+    const batchesOpen = isFiltering || showBatches;
+
     return (
         <>
-            {/* ── Primary product row ──────────────────────────────────────── */}
+            {/* ── Primary product row ──────────────────────────────────────── 
+                Hidden when a specific status filter is active; in that mode
+                only the matching batch rows are shown (no product header).
+            ─────────────────────────────────────────────────────────────── */}
+            {!isFiltering && (
             <tr className="group hover:bg-[var(--accent)]/5 transition-all border-b border-[var(--border)]">
 
                 {/* Cell 1: Product avatar + name + Salla ID */}
@@ -115,17 +153,20 @@ export default function ProductRow({ product, autoDiscount }) {
                     </div>
                 </td>
             </tr>
+            )}
 
             {/* ── Accordion / expandable batch row ────────────────────────────
                 Uses CSS grid-rows transition (0fr → 1fr) for a smooth
                 height animation without JavaScript layout calculations.
                 `overflow-hidden` on the inner div is required for the
                 grid-rows trick to clip the content while animating.
+                When `isFiltering` is true, `batchesOpen` is forced to true
+                so batches render immediately with no animation delay.
             ─────────────────────────────────────────────────────────────── */}
             <tr>
                 <td colSpan="4" className="p-0 border-none">
                     <div className={`grid transition-all duration-500 ease-in-out ${
-                        showBatches ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                        batchesOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                     }`}>
                         <div className="overflow-hidden">
                             <div className="bg-[var(--background)]/30">
