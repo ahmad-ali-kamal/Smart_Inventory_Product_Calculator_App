@@ -104,6 +104,7 @@ const t = {
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     X, CalendarPlus, Trash2, PlusCircle, AlertCircle,
     Package, Layers, ExternalLink, ShoppingBag, ChevronDown, RefreshCw,
@@ -152,12 +153,27 @@ const dateInputStyle = `
  */
 export default function ExpiryModal({ product, onClose, onSave }) {
 
+
+    // ── Salla deep-link URL ──────────────────────────────────────────────────
+    // Uses `salla_product_id` (the Salla platform ID, not the local DB id) to
+    // land the merchant directly on the correct product edit page in their
+    // Salla dashboard. Falls back to the products list when the ID is absent.
+    const sallaProductsUrl = product?.salla_product_id
+        ? `https://s.salla.sa/products/${product.salla_product_id}`
+        : 'https://s.salla.sa/products';
+
+    // ── React Query client ────────────────────────────────────────────────────
+    // Used inside handleDeleteAll to directly invalidate both the products and
+    // dashboard caches after a successful deletion, ensuring the Dashboard page
+    // reflects the change immediately without depending on the parent's refetch.
+    const queryClient = useQueryClient();
+
     // ── Core form state ───────────────────────────────────────────────────────
     // Batch shape: { id (local key), qty (string), date (string), batchId? (server ID) }
     const [batches, setBatches]         = useState([{ id: Date.now(), qty: '', date: '' }]);
     const [isSaving, setIsSaving]       = useState(false);
     const [error, setError]             = useState(null);
-    const [isDeleting, setIsDeleting]   = useState(false);
+    const [isDeleting, setIsDeleting]         = useState(false);
     // Keys: batchId (qty error) and batchId+'_date' (date error)
     const [fieldErrors, setFieldErrors] = useState({});
 
@@ -420,17 +436,42 @@ export default function ExpiryModal({ product, onClose, onSave }) {
      * handleDeleteAll
      *
      * Sends a DELETE request to wipe all expiry batches for this product.
-     * Called by "Clear All" with `closeAfter=false` (lets the merchant
-     * immediately re-enter fresh data) and by full delete with `closeAfter=true`.
+     *
+     * Flow:
+     *  1. Show a native browser confirmation dialog — bail out if the merchant
+     *     cancels, so no accidental deletions occur.
+     *  2. On approval, call the DELETE endpoint (edit mode) or clear local state (create mode).
+     *  3. Notify the parent to bust the React Query cache (`onSave`).
+     *  4. Close the modal immediately (`onClose`).
+     *  5. After a 100 ms delay, fire the success toast so it renders cleanly
+     *     over the now-visible inventory table rather than inside the modal layer.
      *
      * @async
-     * @param {boolean} [closeAfter=true]
      * @returns {Promise<void>}
      */
-    const handleDeleteAll = async (closeAfter = true) => {
+    const handleDeleteAll = async () => {
+        // تأكيد من التاجر قبل أي عملية
+        const confirmed = window.confirm(
+            'Are you sure you want to delete all batches for this product? This action cannot be undone.'
+        );
+        if (!confirmed) return;
+
         setError(null);
         setIsDeleting(true);
+
         try {
+            // وضع الإنشاء: لا يوجد شيء في الداتابيس — امسح local state فقط
+            if (!hasBatches) {
+                setBatches([]);
+                setBatchVariants({});
+                batchVariantsRef.current = {};
+                setIsDeleting(false);
+                onClose();
+                setTimeout(() => toast.success(t.toast_deleted, { duration: 3000 }), 100);
+                return;
+            }
+
+            // وضع التعديل: كلّم DELETE API لحذف من الداتابيس
             const res = await fetch(`/harees/api/expiry/${product.id}`, {
                 method: 'DELETE',
                 headers: {
@@ -446,10 +487,23 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 setIsDeleting(false);
                 return;
             }
-            // Notify the parent so it can bust the React Query cache
+
+            // أبلغ الـ parent فوراً — يُحدّث local state للمنتج
             onSave(product.id, { reset: true });
-            if (closeAfter) onClose();
-            toast.success(t.toast_deleted, { duration: 3000 });
+
+            // invalidate الـ cache في React Query
+            // invalidateQueries وحده يعلّم المشترك النشط بأن البيانات قديمة
+            // ويُرسل refetch فوري لكل صفحة مفتوحة
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'products'],  refetchType: 'all' });
+            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'], refetchType: 'all' });
+
+            // أغلق المودال فوراً
+            onClose();
+
+            // اعرض التوست بعد إغلاق المودال بـ 100ms
+            // حتى يظهر فوق الجدول مش تحت المودال
+            setTimeout(() => toast.success(t.toast_deleted, { duration: 3000 }), 100);
+
         } catch {
             setError(t.err_connection);
             setIsDeleting(false);
@@ -651,9 +705,11 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                 {t.zero_no_stock_body}
                             </p>
                         </div>
-                        {/* Deep link into Salla's product dashboard to add stock */}
+                        {/* Deep link into the merchant's Salla products dashboard to add stock.
+                            Uses the unified shortlink `s.salla.sa/products` which works
+                            regardless of whether the store has a custom domain. */}
                         <a
-                            href="https://salla.sa/dashboard/products"
+                            href={sallaProductsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-[var(--primary)] text-white flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
@@ -731,9 +787,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                 </div>
                             </div>
                             <div className="flex gap-2 pt-2">
-                                {/* "Yes" → merchant goes to Salla to add options, then returns */}
+                                {/* "Yes" → merchant goes to their Salla products dashboard to add options, then returns */}
                                 <button
-                                    onClick={() => window.open('https://salla.sa/dashboard/products', '_blank')}
+                                    onClick={() => window.open(sallaProductsUrl, '_blank')}
                                     className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                                 >
                                     <ExternalLink size={14} />
@@ -829,17 +885,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                         {t.section_title}
                                     </span>
                                     <div className="flex gap-2">
-                                        {/* Clear All: clears local state; also calls DELETE if editing */}
+                                        {/* Clear All: asks for browser confirmation then deletes */}
                                         {batches.length > 0 && (
                                             <button
-                                                onClick={async () => {
-                                                    setBatches([]);
-                                                    setBatchVariants({});
-                                                    batchVariantsRef.current = {};
-                                                    setError(null);
-                                                    setFieldErrors({});
-                                                    if (hasBatches) await handleDeleteAll(false);
-                                                }}
+                                                onClick={handleDeleteAll}
                                                 disabled={isDeleting}
                                                 className="text-[10px] font-bold text-[var(--status-expired-text)] bg-[var(--status-expired-bg)] px-2 py-1 rounded-lg hover:brightness-95 transition-all"
                                             >
