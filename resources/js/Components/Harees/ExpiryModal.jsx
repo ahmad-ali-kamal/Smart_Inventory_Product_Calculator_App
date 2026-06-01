@@ -544,7 +544,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             product_id:  product.id,
             same_expiry: false,
             batches: batches.map(b => ({
-                id:          b.batchId || null,   // null = new, number = update existing
+                // ✅ FIX: Use server ID (batchId) if editing, otherwise use the local React ID (b.id = Date.now())
+                // هذا يضمن تطابق id الباتش مع batch_id في batch_variants عند إنشاء Batch جديد
+                id:          b.batchId || b.id,   // number = update existing, temp ID = new
                 quantity:    parseInt(b.qty),
                 expiry_date: b.date,
                 batch_code:  b.batchId ? undefined : null,

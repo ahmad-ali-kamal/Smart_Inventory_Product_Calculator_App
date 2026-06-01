@@ -47,8 +47,7 @@ class FetchProductsJob implements ShouldQueue
     {
         Log::info("--- [Salla Sync] Start fetching page {$this->page} for merchant: {$this->merchant->name} ---");
 
-        $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first()
-                    ?? $this->merchant->sallaApps()->first();
+        $sallaApp = $this->resolveSallaApp();
 
         if (!$sallaApp || empty($sallaApp->access_token)) {
             Log::error("Salla Access Token missing for merchant: {$this->merchant->name}. Sync aborted.");
@@ -166,6 +165,26 @@ class FetchProductsJob implements ShouldQueue
     }
     
     /**
+     * البحث عن تطبيق التاجر مع دعم الأسماء الجديدة والقديمة
+     */
+    private function resolveSallaApp(): ?\App\Models\SallaApp
+    {
+        $preferred = ['harees', 'management', 'mustashar', 'calculator'];
+
+        foreach ($preferred as $appName) {
+            $app = $this->merchant->sallaApps()
+                ->where('app_name', $appName)
+                ->whereNotNull('access_token')
+                ->first();
+            if ($app) {
+                return $app;
+            }
+        }
+
+        return $this->merchant->sallaApps()->whereNotNull('access_token')->first();
+    }
+
+    /**
      * مزامنة الفاريينت للمنتج وتخزينها
      */
     private function syncProductVariants(Product $product)
@@ -173,8 +192,7 @@ class FetchProductsJob implements ShouldQueue
         if (!$product->salla_product_id) return;
         
         try {
-            $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first() 
-                        ?? $this->merchant->sallaApps()->first();
+            $sallaApp = $this->resolveSallaApp();
             
             if (!$sallaApp || empty($sallaApp->access_token)) return;
             

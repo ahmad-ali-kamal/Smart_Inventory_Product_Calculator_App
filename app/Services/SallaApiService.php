@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Merchant;
+use App\Models\SallaApp;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,22 @@ class SallaApiService
     protected string $oauthUrl = 'https://accounts.salla.sa/oauth2/token';
 
     public const BATCH_OPTION_NAME = 'بيانات الدفعة';
+
+    /**
+     * أسماء التطبيقات المدعومة (الجديدة أولاً، القديمة كـ fallback)
+     */
+    private const APP_NAMES_NEW = ['harees', 'mustashar'];
+    private const APP_NAMES_OLD = ['management', 'calculator'];
+
+    /**
+     * خريطة تحويل: الأسماء القديمة → أسماء config الصحيحة
+     */
+    private const APP_CONFIG_MAP = [
+        'harees'     => 'salla_harees',
+        'management' => 'salla_harees',
+        'mustashar'  => 'salla_mustashar',
+        'calculator' => 'salla_mustashar',
+    ];
 
     public function __construct(Merchant $merchant)
     {
@@ -29,12 +46,74 @@ class SallaApiService
     // Token Management
     // ================================================================
 
+    /**
+     * البحث عن تطبيق التاجر مع دعم الأسماء الجديدة والقديمة
+     *
+     * ترتيب الأولوية:
+     * 1. harees  (الاسم الجديد لتطبيق حريص)
+     * 2. management (الاسم القديم لتطبيق حريص)
+     * 3. mustashar  (الاسم الجديد لتطبيق المستشار)
+     * 4. calculator (الاسم القديم لتطبيق المستشار)
+     * 5. أي تطبيق لديه access_token صالح
+     *
+     * يتم تسجيل كل محاولة في اللوق لسهولة التتبع.
+     */
+    protected function findSallaApp(): ?SallaApp
+    {
+        $merchantId = $this->merchant->id;
+
+        // ── أولاً: البحث بالترتيب (جديد → قديم) ──
+        $preferred = ['harees', 'management', 'mustashar', 'calculator'];
+
+        foreach ($preferred as $appName) {
+            $app = $this->merchant->sallaApps()
+                ->where('app_name', $appName)
+                ->first();
+
+            Log::info('[TOKEN FETCH]', [
+                'merchant_id'    => $merchantId,
+                'searching'      => $appName,
+                'found'          => $app ? $app->id : null,
+                'has_token_raw'  => $app ? (!empty($app->getRawOriginal('access_token')) ? 'yes' : 'no') : 'no-app',
+                'token_decrypted'=> $app ? (!empty($app->access_token) ? 'yes' : 'empty') : 'no-app',
+            ]);
+
+            if ($app && !empty($app->access_token)) {
+                Log::info('[TOKEN SELECTED]', [
+                    'merchant_id' => $merchantId,
+                    'app_id'      => $app->id,
+                    'app_name'    => $app->app_name,
+                ]);
+                return $app;
+            }
+        }
+
+        // ── ثانياً: أي سجل لديه توكن (fallback) ──
+        $app = $this->merchant->sallaApps()
+            ->whereNotNull('access_token')
+            ->first();
+
+        Log::info('[TOKEN FETCH FALLBACK]', [
+            'merchant_id'    => $merchantId,
+            'app_found'      => $app?->id,
+            'app_name'       => $app?->app_name,
+            'token_decrypted'=> $app ? (!empty($app->access_token) ? 'yes' : 'empty') : 'no-app',
+            'all_apps_count' => $this->merchant->sallaApps()->count(),
+        ]);
+
+        return $app;
+    }
+
     protected function getAccessToken(): string
     {
-        $sallaApp = $this->merchant->sallaApp
-            ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
+        $sallaApp = $this->findSallaApp();
 
         if (!$sallaApp || empty($sallaApp->access_token)) {
+            Log::error('[TOKEN MISSING]', [
+                'merchant_id' => $this->merchant->id,
+                'merchant_name' => $this->merchant->name,
+                'all_apps'   => $this->merchant->sallaApps()->get(['id', 'app_name', 'access_token'])->toArray(),
+            ]);
             throw new Exception("لم يتم العثور على access_token للتاجر {$this->merchant->id}");
         }
 
@@ -43,26 +122,57 @@ class SallaApiService
 
     protected function getRefreshToken(): string
     {
-        $sallaApp = $this->merchant->sallaApp
-            ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
+        $sallaApp = $this->findSallaApp();
 
-        return (string) ($sallaApp->refresh_token ?? '');
+        if (!$sallaApp) {
+            Log::warning('[TOKEN REFRESH MISSING] لا يوجد تطبيق للتاجر', [
+                'merchant_id' => $this->merchant->id,
+            ]);
+            return '';
+        }
+
+        $refreshToken = $sallaApp->refresh_token;
+
+        Log::info('[TOKEN REFRESH CHECK]', [
+            'merchant_id'   => $this->merchant->id,
+            'app_id'        => $sallaApp->id,
+            'app_name'      => $sallaApp->app_name,
+            'has_refresh'   => !empty($refreshToken) ? 'yes' : 'no',
+        ]);
+
+        return (string) ($refreshToken ?? '');
     }
 
     protected function updateTokensInDb(string $accessToken, string $refreshToken, $expiresIn): void
     {
-        $sallaApp = $this->merchant->sallaApp
-            ?? $this->merchant->sallaApps()->where('app_name', 'management')->first();
+        $sallaApp = $this->findSallaApp();
 
         if ($sallaApp) {
-            $sallaApp->update([
+            $updateData = [
                 'access_token'  => $accessToken,
                 'refresh_token' => $refreshToken,
-                'expires_in'    => $expiresIn,
+            ];
+
+            // expires_in → token_expires_at (الحقل الصحيح في جدول apps)
+            if ($expiresIn !== null && $expiresIn !== '') {
+                $updateData['token_expires_at'] = now()->addSeconds((int) $expiresIn);
+            }
+
+            $sallaApp->update($updateData);
+
+            Log::info('[TOKEN UPDATED]', [
+                'merchant_id'      => $this->merchant->id,
+                'app_id'           => $sallaApp->id,
+                'app_name'         => $sallaApp->app_name,
+                'token_expires_at' => $updateData['token_expires_at'] ?? null,
             ]);
             return;
         }
 
+        // Fallback: merchant table (قديم)
+        Log::warning('[TOKEN UPDATE FALLBACK] لا يوجد سجل apps — تحديث merchant', [
+            'merchant_id' => $this->merchant->id,
+        ]);
         $this->merchant->update([
             'access_token'  => $accessToken,
             'refresh_token' => $refreshToken,
@@ -74,15 +184,35 @@ class SallaApiService
         $refreshToken = $this->getRefreshToken();
 
         if ($refreshToken === '') {
-            Log::error("[SallaApiService] لا يوجد Refresh Token للتاجر {$this->merchant->id}");
+            Log::error('[SallaApiService] لا يوجد Refresh Token للتاجر', [
+                'merchant_id' => $this->merchant->id,
+            ]);
             return null;
         }
+
+        // ── استخدام client_id/client_secret الصحيح بناءً على app_name ──
+        $sallaApp = $this->findSallaApp();
+        $appName  = $sallaApp?->app_name;
+
+        // الأسماء القديمة (management/calculator) → config الصحيح
+        $configKey = $appName ? (self::APP_CONFIG_MAP[$appName] ?? "salla_{$appName}") : null;
+        $config    = $configKey ? config("services.{$configKey}") : null;
+
+        $clientId     = $config['client_id'] ?? env('SALLA_CLIENT_ID', config('services.salla.client_id'));
+        $clientSecret = $config['client_secret'] ?? env('SALLA_CLIENT_SECRET', config('services.salla.client_secret'));
+
+        Log::info('[TOKEN REFRESH REQUEST]', [
+            'merchant_id'   => $this->merchant->id,
+            'app_name'      => $appName,
+            'client_id'     => $clientId ? substr($clientId, 0, 10) . '...' : 'MISSING',
+            'has_secret'    => !empty($clientSecret) ? 'yes' : 'no',
+        ]);
 
         $response = Http::asForm()->post($this->oauthUrl, [
             'grant_type'    => 'refresh_token',
             'refresh_token' => $refreshToken,
-            'client_id'     => env('SALLA_CLIENT_ID',     config('services.salla.client_id')),
-            'client_secret' => env('SALLA_CLIENT_SECRET', config('services.salla.client_secret')),
+            'client_id'     => $clientId,
+            'client_secret' => $clientSecret,
         ]);
 
         if ($response->successful()) {
@@ -93,11 +223,22 @@ class SallaApiService
                     (string) ($data['refresh_token'] ?? $refreshToken),
                     $data['expires_in'] ?? null
                 );
+
+                Log::info('[TOKEN REFRESH SUCCESS]', [
+                    'merchant_id' => $this->merchant->id,
+                    'app_name'    => $appName,
+                ]);
+
                 return (string) $data['access_token'];
             }
         }
 
-        Log::error('[SallaApiService] فشل تجديد التوكن: ' . $response->body());
+        Log::error('[SallaApiService] فشل تجديد التوكن', [
+            'merchant_id'   => $this->merchant->id,
+            'app_name'      => $appName,
+            'status'        => $response->status(),
+            'body'          => $response->body(),
+        ]);
         return null;
     }
 

@@ -169,7 +169,9 @@ class ProductExpiryController extends Controller
                     Batch::whereIn('id', $idsToDelete)->where('merchant_id', $merchant->id)->delete();
                 }
 
-                foreach ($inputBatches as $b) {
+                $batchVariantsAll = $request->input('batch_variants', []);
+
+                foreach ($inputBatches as $index => $b) {
                     $batchId = !empty($b['id']) ? (int) $b['id'] : null;
 
                     if ($batchId && in_array($batchId, $existingIds)) {
@@ -181,14 +183,55 @@ class ProductExpiryController extends Controller
                                 'expiry_date'       => $b['expiry_date'],
                                 'manufactured_date' => $b['manufactured_date'] ?? null,
                             ]);
+
+                            // ✅ FIX: حذف جميع batch_items القديمة لهذا الـ batch
+                            // ثم إعادة إنشائها بالـ variants الصحيحة
+                            // هذا يضمن عدم ترك batch_items قديمة أو تكرارها
                             $product->batchItems()
                                 ->where('batch_id', $existingBatch->id)
-                                ->update(['quantity' => $b['quantity']]);
+                                ->delete();
+
+                            // البحث عن variant data لهذا الـ batch
+                            $batchVariantData = collect($batchVariantsAll)
+                                ->firstWhere('batch_id', $batchId);
+
+                            $variants = $batchVariantData['variants'] ?? [];
+
+                            if (!empty($variants)) {
+                                // إنشاء BatchItem لكل Variant بكميته المستقلة
+                                foreach ($variants as $variant) {
+                                    BatchItem::create([
+                                        'batch_id'         => $existingBatch->id,
+                                        'product_id'       => $product->id,
+                                        'quantity'         => $variant['variant_quantity'] ?? $b['quantity'],
+                                        'unit_cost'        => $product->price ?? 0,
+                                        'salla_variant_id' => $variant['salla_variant_id'] ?? null,
+                                        'variant_quantity' => $variant['variant_quantity'] ?? null,
+                                    ]);
+                                }
+                            } else {
+                                // بدون variants — BatchItem واحد للمنتج كاملاً
+                                BatchItem::create([
+                                    'batch_id'   => $existingBatch->id,
+                                    'product_id' => $product->id,
+                                    'quantity'   => $b['quantity'] ?? 0,
+                                    'unit_cost'  => $product->price ?? 0,
+                                ]);
+                            }
                         }
                     } else {
                         $b['batch_code'] = $b['batch_code'] ?? 'B-' . Str::upper(Str::random(6));
-                        $batchVariants = $request->input('batch_variants', []);
-                        $batchVariantData = collect($batchVariants)->firstWhere('batch_id', $b['id'] ?? null);
+                        // ✅ FIX: محاولة ربط batch_variants بالـ batch
+                        // أولاً: بالمطابقة عبر batch_id
+                        // ثانياً (fallback): بالمطابقة عبر index في المصفوفة
+                        $batchVariantData = collect($batchVariantsAll)
+                            ->firstWhere('batch_id', $b['id'] ?? null);
+                        
+                        // ✅ Fallback: إذا لم نجد matching بالـ ID، نجرب بالمطابقة عبر index
+                        if (!$batchVariantData && isset($batchVariantsAll[$index])) {
+                            $batchVariantData = $batchVariantsAll[$index];
+                        }
+                        
                         $b['variants'] = $batchVariantData['variants'] ?? [];
                         $createdBatches  = $this->createMultipleBatches($merchant, $product, [$b]);
                         $newlyCreatedBatches = array_merge($newlyCreatedBatches, $createdBatches);
@@ -391,10 +434,10 @@ class ProductExpiryController extends Controller
                     BatchItem::updateOrCreate(
                         [
                             'batch_id'         => $batch->id,
-                            'product_id'       => $product->id,
                             'salla_variant_id' => $variantId,
                         ],
                         [
+                            'product_id'       => $product->id,
                             'quantity'         => $variant['variant_quantity'] ?? ($data['quantity'] ?? 0),
                             'unit_cost'        => $product->price ?? 0,
                             'variant_quantity' => $variant['variant_quantity'] ?? null,
@@ -520,15 +563,21 @@ class ProductExpiryController extends Controller
 
         // ─── multi-batch: التحقق من كل batch ───
         $batches = $request->input('batches', []);
-        $batchVariants = $request->input('batch_variants', []);
+        $batchVariantsAll = $request->input('batch_variants', []);
 
         foreach ($batches as $idx => $batch) {
             $batchQty = (int) ($batch['quantity'] ?? 0);
             $batchId = $batch['id'] ?? null;
             
-            // البحث عن variants لهذا الـ batch
-            $linkedVariants = collect($batchVariants)
+            // ✅ البحث عن variants لهذا الـ batch
+            // أولاً: بالمطابقة عبر batch_id
+            // ثانياً (fallback): بالمطابقة عبر index في المصفوفة
+            $linkedVariants = collect($batchVariantsAll)
                 ->firstWhere('batch_id', $batchId);
+            
+            if (!$linkedVariants && isset($batchVariantsAll[$idx])) {
+                $linkedVariants = $batchVariantsAll[$idx];
+            }
             
             if ($linkedVariants && !empty($linkedVariants['variants'])) {
                 $totalVariantQty = collect($linkedVariants['variants'])
