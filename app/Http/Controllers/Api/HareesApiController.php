@@ -185,19 +185,26 @@ class HareesApiController extends Controller
 
                 $batches = $product->batchItems
                     ->groupBy('batch_id')
-                    ->map(function ($items, $batchId) use ($threshold) {
+                    ->map(function ($items, $batchId) use ($threshold, $product) {
                         $batch = $items->first()->batch;
                         if (!$batch) {
                             return null;
                         }
                         
-                        $variants = $items->map(function ($item) {
+                        $variantsData = $product->variants_data ?? [];
+                        $variants = $items->map(function ($item) use ($variantsData) {
                             if ($item->salla_variant_id) {
+                                $variantInfo = collect($variantsData)
+                                    ->firstWhere('id', $item->salla_variant_id);
+                                
                                 return [
-                                    'batch_item_id'    => $item->id,
-                                    'salla_variant_id' => $item->salla_variant_id,
-                                    'variant_quantity' => $item->variant_quantity,
-                                    'quantity'         => $item->quantity,
+                                    'batch_item_id'      => $item->id,
+                                    'salla_variant_id'   => $item->salla_variant_id,
+                                    'variant_quantity'   => $item->variant_quantity,
+                                    'quantity'           => $item->quantity,
+                                    'name'               => $variantInfo['name'] ?? '',
+                                    'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
+                                    'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
                                 ];
                             }
                             return null;
@@ -715,14 +722,20 @@ class HareesApiController extends Controller
 
     /**
      * تنسيق بيانات الفاريينت القادمة من سلة إلى الشكل الموحّد
+     * - الاسم: من API سلة → SKU → نص وصفي (بدون ID)
      */
     private function formatVariantsFromSalla(array $variants): array
     {
         return array_map(function ($v) {
+            $name = $v['name'] ?? null;
+            if (!$name) {
+                $name = $v['sku'] ?? null;
+            }
+
             return [
                 'id'                   => $v['id'],
                 'sku'                  => $v['sku'] ?? null,
-                'name'                 => $v['name'] ?? 'Variant ' . $v['id'],
+                'name'                 => $name ?? '',
                 'price'                => (float) ($v['price']['amount'] ?? 0),
                 'sale_price'           => (float) ($v['sale_price']['amount'] ?? 0),
                 'stock_quantity'       => (int) ($v['stock_quantity'] ?? 0),

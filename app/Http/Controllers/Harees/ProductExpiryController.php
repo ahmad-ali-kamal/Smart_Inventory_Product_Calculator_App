@@ -268,13 +268,38 @@ class ProductExpiryController extends Controller
                 "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}", $product
             );
 
-            $freshBatches = $request->same_expiry ? [] : $freshProduct->batchItems->map(fn($item) => [
-                'id'          => $item->batch?->id,
-                'batch_code'  => $item->batch?->batch_code,
-                'expiry_date' => $item->batch?->expiry_date?->format('Y-m-d'),
-                'qty'         => $item->quantity,
-                'status'      => $item->batch?->status ?? 'green',
-            ])->values()->toArray();
+            $freshBatches = $request->same_expiry ? [] : $freshProduct->batchItems
+                ->groupBy('batch_id')
+                ->map(function ($items) use ($freshProduct) {
+                    $batch = $items->first()->batch;
+                    if (!$batch) return null;
+
+                    $variantsData = $freshProduct->variants_data ?? [];
+                    $variants = $items->map(function ($item) use ($variantsData) {
+                        if ($item->salla_variant_id) {
+                            $variantInfo = collect($variantsData)
+                                ->firstWhere('id', $item->salla_variant_id);
+                            return [
+                                'salla_variant_id'   => $item->salla_variant_id,
+                                'variant_quantity'   => $item->variant_quantity,
+                                'quantity'           => $item->quantity,
+                                'name'               => $variantInfo['name'] ?? '',
+                                'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
+                                'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
+                            ];
+                        }
+                        return null;
+                    })->filter()->values()->toArray();
+
+                    return [
+                        'id'          => $batch->id,
+                        'batch_code'  => $batch->batch_code,
+                        'expiry_date' => $batch->expiry_date?->format('Y-m-d'),
+                        'qty'         => $items->sum('quantity'),
+                        'status'      => $batch->status ?? 'green',
+                        'variants'    => $variants,
+                    ];
+                })->filter()->values()->toArray();
 
             $savedBatchId = $request->same_expiry
                 ? $freshProduct->batchItems->first()?->batch?->id
