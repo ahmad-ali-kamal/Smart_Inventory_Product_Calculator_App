@@ -487,10 +487,9 @@ class ProductExpiryController extends Controller
 
                     if ($variantId) {
                         try {
-                            $variantDetails = $sallaApi->getVariantDetails($variantId);
-                            $variantData = $variantDetails['data'] ?? [];
+                            $variantData = $product->getVariantById($variantId) ?? [];
                             $currentSku = $variantData['sku'] ?? null;
-                            $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+                            $currentPrice = (float) ($variantData['price'] ?? 0);
                             $batchItemQty = (int) ($batchItem?->quantity ?? 0);
 
                             if ($currentSku) {

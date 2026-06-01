@@ -30,7 +30,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\CheckBatchExpiryJob;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\Merchant;
@@ -392,8 +391,6 @@ class SallaWebhookController extends Controller
             }
         }
 
-        // تشغيل الفحص بعد تحديث الكميات
-        CheckBatchExpiryJob::dispatch()->afterCommit();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -455,8 +452,6 @@ class SallaWebhookController extends Controller
             $this->syncFullStockFromSalla($merchant, $product);
         }
 
-        // تشغيل الفحص بعد تحديث المخزون
-        CheckBatchExpiryJob::dispatch()->afterCommit();
     }
 
     /**
@@ -595,9 +590,6 @@ class SallaWebhookController extends Controller
             'variant_id' => $variantId,
             'stock'      => $stockQty,
         ]);
-
-        // تشغيل الفحص بعد تحديث الـ variant
-        CheckBatchExpiryJob::dispatch()->afterCommit();
     }
 
     /**
@@ -648,9 +640,6 @@ class SallaWebhookController extends Controller
         foreach ($products as $product) {
             $this->syncFullStockFromSalla($merchant, $product);
         }
-
-        // تشغيل الفحص بعد المزامنة الكاملة
-        CheckBatchExpiryJob::dispatch()->afterCommit();
     }
 
     /**

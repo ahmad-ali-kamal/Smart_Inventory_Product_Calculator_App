@@ -144,12 +144,11 @@ class DiscountController extends Controller
             $originalPrice  = (float) ($batchItem?->unit_cost ?? $product->price ?? 0);
             $salePrice      = round($originalPrice * (1 - $discountPct / 100), 2);
 
-            // ✅ جلب جميع بيانات الـ Variant من سلة
-            $variantDetails = $sallaApi->getVariantDetails($variantId);
-            $variantData    = $variantDetails['data'] ?? [];
+            // ✅ جلب بيانات الـ Variant من المخزن المحلي
+            $variantData    = $product->getVariantById($variantId) ?? [];
             // ✅ استخدام SKU: من variant أو من جدول Product
             $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
-            $currentPrice   = (float) ($variantData['price']['amount'] ?? $originalPrice);
+            $currentPrice   = (float) ($variantData['price'] ?? $originalPrice);
 
             if (!$currentSku) {
                 Log::warning('[Discount] لا يوجد SKU للـ variant - لا يمكن التحديث');
@@ -277,12 +276,11 @@ class DiscountController extends Controller
             $originalPrice = (float) ($item->unit_cost ?? $product->price ?? 0);
             $salePrice     = round($originalPrice * (1 - $discountPct / 100), 2);
 
-            // ✅ جلب جميع بيانات الـ Variant من سلة
-            $variantDetails = $sallaApi->getVariantDetails($variantId);
-            $variantData   = $variantDetails['data'] ?? [];
+            // ✅ جلب بيانات الـ Variant من المخزن المحلي
+            $variantData   = $product->getVariantById($variantId) ?? [];
             // ✅ استخدام SKU: من variant أو من جدول Product
             $currentSku    = $variantData['sku'] ?? $product->sku ?? null;
-            $currentPrice  = (float) ($variantData['price']['amount'] ?? $originalPrice);
+            $currentPrice  = (float) ($variantData['price'] ?? $originalPrice);
             $batchItemQty  = (int) ($item->quantity ?? 0);
 
             if (!$currentSku) {
@@ -346,10 +344,9 @@ class DiscountController extends Controller
             if ($variantId && $product) {
                 $sallaApi = SallaApiService::for($product->merchant);
 
-                $variantDetails = $sallaApi->getVariantDetails($variantId);
-                $variantData    = $variantDetails['data'] ?? [];
+                $variantData    = $product->getVariantById($variantId) ?? [];
                 $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
-                $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
+                $currentPrice   = (float) ($variantData['price'] ?? 0);
                 $batchItemQty   = (int) ($batchItem?->quantity ?? 0);
 
                 if ($currentSku) {

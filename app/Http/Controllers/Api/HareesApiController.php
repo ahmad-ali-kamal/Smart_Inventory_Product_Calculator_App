@@ -381,13 +381,25 @@ class HareesApiController extends Controller
     }
 
     /**
-     * جلب الفاريينت لمنتج من سلة
+     * جلب الفاريينت لمنتج — من variants_data أولاً، ومن سلة عند الحاجة
      */
     public function getProductVariants(Request $request, $product_id)
     {
         $merchant = Auth::user();
         $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
 
+        // ── الأولوية الأولى: variants_data المخزّن محلياً ──
+        $localVariants = $product->variants_data ?? [];
+        if (!empty($localVariants)) {
+            return response()->json([
+                'success' => true,
+                'has_variants' => true,
+                'variants' => $localVariants,
+                'source' => 'local',
+            ]);
+        }
+
+        // ── الثاني: جلب من سلة (فقط إذا local فارغ) ──
         if (!$product->salla_product_id) {
             return response()->json([
                 'success' => false,
@@ -396,14 +408,11 @@ class HareesApiController extends Controller
             ]);
         }
 
-try {
-            // جلب من API مباشرة (بدون استخدام الكاش)
+        try {
             $sallaApi = SallaApiService::for($merchant);
-            
-            // جلب الـ Variants الكاملة (الـ SKUs)
             $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
             $variants = $variantsResponse['data'] ?? [];
-            
+
             if (empty($variants)) {
                 return response()->json([
                     'success' => true,
@@ -411,71 +420,19 @@ try {
                     'variants' => [],
                 ]);
             }
-            
-            // نحتاج نجمع كل الـ option IDs من كل variants
-            $allOptionIds = [];
-            foreach ($variants as $v) {
-                foreach ($v['related_options'] ?? [] as $optId) {
-                    $allOptionIds[$optId] = true;
-                }
-            }
-            
-            // جلب كل خيار للحصول على القيم الكاملة (مع names)
-            $valueNames = [];
-            $fetchedOptionIds = [];
-            
-            // جلب كل option ID من الـ variants
-            foreach (array_keys($allOptionIds) as $optionId) {
-                // تخطي إذا جلبناه سابقاً
-                if (in_array($optionId, $fetchedOptionIds)) continue;
-                
-                try {
-                    $optionDetails = $sallaApi->getOptionDetails($optionId);
-                    $optionData = $optionDetails['data'] ?? null;
-                    
-                    if ($optionData && isset($optionData['values'])) {
-                        $fetchedOptionIds[] = $optionId;
-                        foreach ($optionData['values'] as $value) {
-                            $valueNames[$value['id']] = $value['name'];
-                        }
-                    }
-                } catch (\Exception $e) {
-                    // تجاهل إذا فشل
-                }
-            }
 
-            // تجهيز الفاريينت بشكل مدمج
-            $formattedVariants = array_map(function ($v) use ($valueNames) {
-                // تجميع أسماء الخيارات مع بعضهم
-                $optionNames = [];
-                foreach ($v['related_option_values'] ?? [] as $valueId) {
-                    if (isset($valueNames[$valueId])) {
-                        $optionNames[] = $valueNames[$valueId];
-                    }
-                }
-                
-                // استخدام SKU كـ fallback إذا لم توجد option names
-                $displayName = implode(' - ', $optionNames);
-                if (empty($displayName)) {
-                    $displayName = $v['sku'] ?? 'فارينت ' . $v['id'];
-                }
-                
-                return [
-                    'id' => $v['id'],
-                    'sku' => $v['sku'] ?? null,
-                    'name' => $v['name'] ?? $displayName,
-                    'price' => $v['price']['amount'] ?? 0,
-                    'stock_quantity' => $v['stock_quantity'] ?? 0,
-                    'unlimited_quantity' => $v['unlimited_quantity'] ?? false,
-                    'has_special_price' => $v['has_special_price'] ?? false,
-                    'related_option_values' => $v['related_option_values'] ?? [],
-                ];
-            }, $variants);
+            // تجهيز البيانات بالشكل الموحّد
+            $formattedVariants = $this->formatVariantsFromSalla($variants);
+
+            // حفظها محلياً للاستخدام المستقبلي
+            $product->variants_data = $formattedVariants;
+            $product->save();
 
             return response()->json([
                 'success' => true,
                 'has_variants' => count($formattedVariants) > 0,
                 'variants' => $formattedVariants,
+                'source' => 'salla',
             ]);
         } catch (\Exception $e) {
             Log::error('[Get Variants Error] ' . $e->getMessage());
@@ -488,12 +445,23 @@ try {
     }
 
     /**
-     * السؤال للتاجر عن خيارات المنتج
+     * السؤال للتاجر عن خيارات المنتج — من variants_data أولاً
      */
     public function checkProductOptions(Request $request, $product_id)
     {
         $merchant = Auth::user();
         $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
+
+        // استخدام variants_data المخزّن محلياً
+        $localVariants = $product->variants_data ?? [];
+        if (!empty($localVariants)) {
+            return response()->json([
+                'success' => true,
+                'has_variants' => true,
+                'variants_count' => count($localVariants),
+                'source' => 'local',
+            ]);
+        }
 
         if (!$product->salla_product_id) {
             return response()->json([
@@ -505,16 +473,21 @@ try {
 
         try {
             $sallaApi = SallaApiService::for($merchant);
-            
-            // جلب الفاريينت (الـ SKUs)
             $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
             $variants = $variantsResponse['data'] ?? [];
             $hasVariants = count($variants) > 0;
+
+            // حفظ في local cache إذا وجدت
+            if ($hasVariants) {
+                $product->variants_data = $this->formatVariantsFromSalla($variants);
+                $product->save();
+            }
 
             return response()->json([
                 'success' => true,
                 'has_variants' => $hasVariants,
                 'variants_count' => count($variants),
+                'source' => 'salla',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -526,12 +499,23 @@ try {
     }
 
     /**
-     * السؤال للتاجر عن خيارات المنتج (جديد)
+     * السؤال للتاجر عن خيارات المنتج (V2) — من variants_data أولاً
      */
     public function checkProductOptionsV2(Request $request, $product_id)
     {
         $merchant = Auth::user();
         $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
+
+        // استخدام variants_data المخزّن محلياً
+        $localVariants = $product->variants_data ?? [];
+        if (!empty($localVariants)) {
+            return response()->json([
+                'success' => true,
+                'has_variants' => true,
+                'variants_count' => count($localVariants),
+                'source' => 'local',
+            ]);
+        }
 
         if (!$product->salla_product_id) {
             return response()->json([
@@ -547,10 +531,16 @@ try {
             $variants = $variantsResponse['data'] ?? [];
             $hasVariants = count($variants) > 0;
 
+            if ($hasVariants) {
+                $product->variants_data = $this->formatVariantsFromSalla($variants);
+                $product->save();
+            }
+
             return response()->json([
                 'success' => true,
                 'has_variants' => $hasVariants,
                 'variants_count' => count($variants),
+                'source' => 'salla',
                 'message' => $hasVariants 
                     ? 'المنتج لديه خيارات (' . count($variants) . ')'
                     : 'المنتج ليس له خيارات - هل تريد إضافتها؟'
@@ -721,5 +711,27 @@ try {
             'success' => true,
             'settings' => $settings,
         ]);
+    }
+
+    /**
+     * تنسيق بيانات الفاريينت القادمة من سلة إلى الشكل الموحّد
+     */
+    private function formatVariantsFromSalla(array $variants): array
+    {
+        return array_map(function ($v) {
+            return [
+                'id'                   => $v['id'],
+                'sku'                  => $v['sku'] ?? null,
+                'name'                 => $v['name'] ?? 'Variant ' . $v['id'],
+                'price'                => (float) ($v['price']['amount'] ?? 0),
+                'sale_price'           => (float) ($v['sale_price']['amount'] ?? 0),
+                'stock_quantity'       => (int) ($v['stock_quantity'] ?? 0),
+                'unlimited_quantity'   => (bool) ($v['unlimited_quantity'] ?? false),
+                'has_special_price'    => (bool) ($v['has_special_price'] ?? false),
+                'status'               => (string) ($v['status'] ?? 'sale'),
+                'related_option_values'=> $v['related_option_values'] ?? [],
+                'updated_at'           => now()->toISOString(),
+            ];
+        }, $variants);
     }
 }
