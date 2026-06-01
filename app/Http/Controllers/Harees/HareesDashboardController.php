@@ -34,13 +34,15 @@ class HareesDashboardController extends Controller
         $cacheKey = "harees_dashboard_{$merchant->id}";
         $cacheDuration = now()->addMinutes(5);
 
-        $data = Cache::remember($cacheKey, $cacheDuration, function () use ($merchant) {
-            // 1. إحصائيات الحالة (الألوان)
+        $data = Cache::remember($cacheKey, $cacheDuration, function () use ($merchant, $settings) {
             $statusCounts = [
                 'green_batches'  => Batch::forMerchant($merchant->id)->safe()->count(),
                 'yellow_batches' => Batch::forMerchant($merchant->id)->warning()->count(),
                 'red_batches'    => Batch::forMerchant($merchant->id)->expired()->count(),
             ];
+
+            // ✅ BatchSetting خارج الـ loop — بدل N+1 query لكل منتج
+            $batchSettings = $settings;
 
             // 2. جلب المنتجات مع بياناتها (التي تملك دفعات فقط)
             $products = Product::where('merchant_id', $merchant->id)
@@ -51,35 +53,42 @@ class HareesDashboardController extends Controller
                 ])
                 ->whereHas('batchItems')
                 ->get()
-                ->map(function ($product) {
+                ->map(function ($product) use ($batchSettings) {
                     // تحديد الدفعة الأكثر خطورة (الأقرب للانتهاء)
                     $criticalBatchItem = $product->batchItems
+                        ->filter(fn($item) => $item->batch)
                         ->sortBy(function ($item) {
                             $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
                             return $order[$item->batch->status] ?? 99;
                         })
                         ->first();
 
+                    if (!$criticalBatchItem) return null;
+
                     // التحقق من الخصم اليدوي النشط عبر الـ batch
                     $hasActiveManualDiscount = $product->batchItems
-                        ->flatMap(fn($item) => $item->batch->discounts ?? [])
+                        ->flatMap(fn($item) => $item->batch->discounts ?? collect())
                         ->filter(fn($d) => $d->status === 'active')
                         ->isNotEmpty();
 
-                    // التحقق من الخصم التلقائي (من إعدادات الـ batch)
-                    $batchSettings = BatchSetting::where('merchant_id', $merchant->id)->first();
-                    $hasActiveAutoDiscount = $batchSettings?->auto_discounts && $criticalBatchItem?->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
+                    // التحقق من الخصم التلقائي
+                    $hasActiveAutoDiscount = $batchSettings?->auto_discounts
+                        && $criticalBatchItem->batch->days_until_expiry !== null
+                        && $criticalBatchItem->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
 
                     return (object) [
-                        'id'                 => $product->id,
-                        'name'               => $product->name,
-                         'image_url'          => $product->image_url,
-                        'status'             => $criticalBatchItem?->batch->status ?? 'green',
-                        'expiry_date'        => $criticalBatchItem?->batch->expiry_date?->format('Y-m-d'),
-                        'batches' => $product->batchItems->map(fn($item) => $item->batch),
-                        'has_active_discount'=> $hasActiveManualDiscount || $hasActiveAutoDiscount,
+                        'id'                  => $product->id,
+                        'name'                => $product->name,
+                        'image_url'           => $product->image_url,
+                        'status'              => $criticalBatchItem->batch->status ?? 'green',
+                        'expiry_date'         => $criticalBatchItem->batch->expiry_date?->format('Y-m-d'),
+                        'batches'             => $product->batchItems
+                            ->filter(fn($item) => $item->batch)
+                            ->map(fn($item) => $item->batch),
+                        'has_active_discount' => $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })
+                ->filter()
                 ->sortBy(function ($p) {
                     $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
                     return $order[$p->status] ?? 99;
@@ -149,6 +158,7 @@ class HareesDashboardController extends Controller
     {
         $merchant = Auth::user();
         Cache::forget("harees_dashboard_{$merchant->id}");
+        Cache::forget("harees_dashboard_api_{$merchant->id}");
 
         return back()->with('success', 'تم تحديث البيانات بنجاح');
     }

@@ -51,8 +51,9 @@ const STATUS_FILTERS = [
 /**
  * filterProducts
  *
- * Pure helper that narrows a product list to only those containing at least
- * one batch whose status matches the requested filter.
+ * Pure helper that narrows a product list AND their nested batches to only
+ * those batches whose status matches the requested filter.  Products that end
+ * up with zero matching batches are excluded from the returned list entirely.
  *
  * Normalisation note: the API may return either semantic strings
  * ("expired", "approaching", "safe", "valid") or colour codes
@@ -60,22 +61,37 @@ const STATUS_FILTERS = [
  *
  * @param {Array<Object>} products     - Full list of monitored products.
  * @param {string}        statusFilter - One of: 'all' | 'expired' | 'approaching' | 'safe'.
- * @returns {Array<Object>} Filtered subset of products.
+ * @returns {Array<Object>} Filtered subset of products, each with only the
+ *                          batches that match the active filter.
  */
 function filterProducts(products, statusFilter) {
     // 'all' is a no-op; return the full list immediately.
     if (statusFilter === 'all') return products;
 
-    return products.filter(product =>
-        // Keep the product if ANY of its batches match the requested filter.
-        (product.batches || []).some(batch => {
-            const s = batch.status?.toLowerCase();
-            if (statusFilter === 'expired')     return s === 'red'    || s === 'expired';
-            if (statusFilter === 'approaching') return s === 'yellow' || s === 'approaching';
-            if (statusFilter === 'safe')        return s === 'green'  || s === 'safe' || s === 'valid';
-            return false;
-        })
-    );
+    /** Returns true when a single batch's status satisfies the active filter. */
+    function batchMatches(batch) {
+        const s = batch.status?.toLowerCase();
+        if (statusFilter === 'expired')     return s === 'red'    || s === 'expired';
+        if (statusFilter === 'approaching') return s === 'yellow' || s === 'approaching';
+        if (statusFilter === 'safe')        return s === 'green'  || s === 'safe' || s === 'valid';
+        return false;
+    }
+
+    const result = [];
+
+    for (const product of products) {
+        // Keep only the batches that match the requested filter.
+        const matchingBatches = (product.batches || []).filter(batchMatches);
+
+        // Exclude the product entirely when none of its batches match.
+        if (matchingBatches.length === 0) continue;
+
+        // Shallow-clone the product and replace its batches array with the
+        // filtered subset so the original data object is never mutated.
+        result.push({ ...product, batches: matchingBatches });
+    }
+
+    return result;
 }
 
 /**
@@ -87,18 +103,24 @@ function filterProducts(products, statusFilter) {
  * @component
  *
  * @param {Object}    props
- * @param {Array}     props.products        - Array of product objects (with nested `batches`).
- * @param {boolean}   props.autoDiscount    - Whether auto-discount is globally enabled;
- *                                            passed through to each ProductRow → BatchRow.
- * @param {string}    props.statusFilter    - Currently active filter value (controlled by parent).
- * @param {Function}  props.onFilterChange  - Callback invoked when the user picks a new filter.
- * @param {boolean}   props.needsSetup      - When true, hides the product list and shows a
- *                                            setup-required placeholder instead.
+ * @param {Array}     props.products              - Array of product objects (with nested `batches`).
+ * @param {boolean}   props.autoDiscount          - Whether auto-discount is globally enabled;
+ *                                                  passed through to each ProductRow → BatchRow.
+ * @param {number}    props.autoDiscountPercent   - Configured auto-discount percentage;
+ *                                                  forwarded to BatchRow for badge display.
+ * @param {boolean}   props.autoHide               - Whether auto-hide is enabled for expired products;
+ *                                                  forwarded to BatchRow for expired badge display.
+ * @param {string}    props.statusFilter          - Currently active filter value (controlled by parent).
+ * @param {Function}  props.onFilterChange        - Callback invoked when the user picks a new filter.
+ * @param {boolean}   props.needsSetup            - When true, hides the product list and shows a
+ *                                                  setup-required placeholder instead.
  * @returns {JSX.Element}
  */
 export default function MonitoredProductsTable({
     products,
     autoDiscount,
+    autoDiscountPercent,
+    autoHide,
     statusFilter,
     onFilterChange,
     needsSetup,
@@ -160,12 +182,20 @@ export default function MonitoredProductsTable({
                                 </td>
                             </tr>
                         ) : (
-                            /* State 3: render one row per filtered product */
+                            /* State 3: render one row per filtered product.
+                               The composite key (`statusFilter-id`) causes React to fully
+                               unmount and remount each ProductRow whenever the active filter
+                               changes.  This guarantees the accordion's `showBatches` state
+                               resets to `false` instantly — with no visible close animation —
+                               instead of animating shut after the filter switch. */
                             filteredProducts.map(product => (
                                 <ProductRow
-                                    key={product.id}
+                                    key={`${statusFilter}-${product.id}`}
                                     product={product}
                                     autoDiscount={autoDiscount}
+                                    autoDiscountPercent={autoDiscountPercent}
+                                    autoHide={autoHide}
+                                    statusFilter={statusFilter}
                                 />
                             ))
                         )}

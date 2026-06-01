@@ -9,7 +9,7 @@
  * `useHareesGuard` hook before any UI is painted.
  *
  * Data flow:
- *   useHareesStats  →  products, stats, autoDiscount, needsSetup flags
+ *   useHareesStats  →  products, stats, autoDiscount, autoDiscountPercent, needsSetup flags
  *   PageShell       →  wraps the page in a consistent loading / error shell
  */
 
@@ -66,19 +66,22 @@ export default function Dashboard() {
 
     /**
      * Destructure everything the page needs from the centralised stats hook.
-     *  - products      : flat list of monitored products (with nested batches)
-     *  - stats         : { expiredCount, expiringSoon, validCount }
-     *  - autoDiscount  : whether auto-discount is globally enabled
-     *  - needsSetup    : true when required settings haven't been configured yet
-     *  - isLoading     : forwarded to PageShell for skeleton / spinner rendering
-     *  - isError       : forwarded to PageShell for error-state rendering
-     *  - error         : the Error object (or null) forwarded to PageShell
-     *  - refetch       : retry callback passed to PageShell's "Retry" button
+     *  - products             : flat list of monitored products (with nested batches)
+     *  - stats                : { expiredCount, expiringSoon, validCount }
+     *  - autoDiscount         : whether auto-discount is globally enabled
+     *  - autoDiscountPercent  : configured auto-discount percentage (from BatchSetting)
+     *  - needsSetup           : true when required settings haven't been configured yet
+     *  - isLoading            : forwarded to PageShell for skeleton / spinner rendering
+     *  - isError              : forwarded to PageShell for error-state rendering
+     *  - error                : the Error object (or null) forwarded to PageShell
+     *  - refetch              : retry callback passed to PageShell's "Retry" button
      */
     const {
         products,
         stats,
         autoDiscount,
+        autoDiscountPercent,
+        autoHide,
         needsSetup,
         isLoading,
         isError,
@@ -137,10 +140,14 @@ export default function Dashboard() {
                 {/* ── Monitored products table ───────────────────────────────────
                     Renders every tracked product with expandable batch rows.
                     statusFilter / onFilterChange wire the dropdown to local state.
+                    autoDiscountPercent is forwarded so BatchRow can display the
+                    configured percentage inside the auto-discount badge.
                 ─────────────────────────────────────────────────────────────── */}
                 <MonitoredProductsTable
                     products={products}
                     autoDiscount={autoDiscount}
+                    autoDiscountPercent={autoDiscountPercent}
+                    autoHide={autoHide}
                     statusFilter={statusFilter}
                     onFilterChange={setStatusFilter}
                     needsSetup={needsSetup}

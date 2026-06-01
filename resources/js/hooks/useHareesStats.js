@@ -17,6 +17,11 @@
  *    (`expiredCount`, `expiringSoon`, `validCount`).
  *  - Resolve the `autoDiscount` flag from whichever settings shape the API
  *    returns (nested under `settings.settings` or flat).
+ *  - Extract `autoDiscountPercent` from settings so BatchRow can display the
+ *    configured auto-discount percentage inside the badge.
+ *  - Extract `autoHide` from settings so BatchRow can show the correct action
+ *    badge for expired (red) batches — "Auto-hidden" when enabled, or a
+ *    "Auto-hide Disabled" indicator when the feature is off.
  *  - Merge the loading / error states of both queries so the page only needs
  *    to check one `isLoading` and one `isError`.
  */
@@ -50,6 +55,14 @@ import { useInventoryDashboard, useInventorySettings } from "./useInventory";
  * @returns {boolean} return.autoDiscount
  *   Whether the merchant has enabled automatic discounting for approaching batches.
  *
+ * @returns {number}  return.autoDiscountPercent
+ *   The percentage configured for automatic discounts (0 if not set).
+ *   Sourced from `settings.auto_discount_percent` (BatchSetting model).
+ *
+ * @returns {boolean} return.autoHide
+ *   Whether the merchant has enabled automatic hiding of expired products.
+ *   Sourced from `settings.auto_hide` (BatchSetting model).
+ *
  * @returns {boolean} return.needsSetup
  *   True when the merchant has not yet configured their expiry thresholds.
  *
@@ -69,7 +82,7 @@ import { useInventoryDashboard, useInventorySettings } from "./useInventory";
 export function useHareesStats() {
     // ── Raw query results ─────────────────────────────────────────────────────
     const dashboard = useInventoryDashboard();
-    const settings  = useInventorySettings();
+    const settings = useInventorySettings();
 
     // ── needsSetup ────────────────────────────────────────────────────────────
     /**
@@ -101,21 +114,40 @@ export function useHareesStats() {
     const stats = useMemo(() => {
         const raw = dashboard.data?.stats || {};
         return {
-            expiredCount: raw.red_batches    ?? raw.expiredCount ?? 0,
+            expiredCount: raw.red_batches ?? raw.expiredCount ?? 0,
             expiringSoon: raw.yellow_batches ?? raw.expiringSoon ?? 0,
-            validCount:   raw.green_batches  ?? raw.validCount   ?? 0,
+            validCount: raw.green_batches ?? raw.validCount ?? 0,
         };
     }, [dashboard.data]);
 
-    // ── autoDiscount ──────────────────────────────────────────────────────────
+    // ── autoDiscount, autoDiscountPercent & autoHide ──────────────────────────
     /**
-     * The settings payload may be nested (`settings.data.settings.auto_discounts`)
-     * or flat (`settings.data.auto_discounts`) depending on the API version.
+     * The settings payload may be nested (`settings.data.settings.*`)
+     * or flat (`settings.data.*`) depending on the API version.
      * The `|| settings.data` fallback handles the flat shape transparently.
+     *
+     * `autoDiscountPercent` is sourced from `auto_discount_percent` on the
+     * BatchSetting model.  Falls back to 0 if the field is absent.
+     *
+     * `autoHide` is sourced from `auto_hide` on the BatchSetting model.
+     *
+     * ⚠️  Reactivity note:
+     * These values update automatically whenever the settings React Query cache
+     * is refreshed.  For the Dashboard to reflect a change made on the Settings
+     * page, `useUpdateInventorySettings` must call:
+     *   queryClient.invalidateQueries({ queryKey: ['inventory', 'settings'] })
+     * on success.  If the badges appear stale after saving, verify that
+     * invalidation is in place in the mutation hook.
      */
-    const autoDiscount = useMemo(() => {
+    const { autoDiscount, autoDiscountPercent, autoHide } = useMemo(() => {
         const s = settings.data?.settings || settings.data || {};
-        return Boolean(s.auto_discounts);
+        return {
+            autoDiscount: Boolean(s.auto_discounts),
+            autoDiscountPercent: Number(s.auto_discount_percent) || 0,
+            // `auto_hide_expired` controls whether expired products are hidden automatically.
+            // Field name mirrors the BatchSetting model column.
+            autoHide: Boolean(s.auto_hide_expired),
+        };
     }, [settings.data]);
 
     // ── Composed return value ─────────────────────────────────────────────────
@@ -123,6 +155,8 @@ export function useHareesStats() {
         products,
         stats,
         autoDiscount,
+        autoDiscountPercent,
+        autoHide,
         needsSetup,
 
         // Loading: the page should show a skeleton if either query is pending.
