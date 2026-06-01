@@ -47,8 +47,7 @@ class FetchProductsJob implements ShouldQueue
     {
         Log::info("--- [Salla Sync] Start fetching page {$this->page} for merchant: {$this->merchant->name} ---");
 
-        $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first()
-                    ?? $this->merchant->sallaApps()->first();
+        $sallaApp = $this->resolveSallaApp();
 
         if (!$sallaApp || empty($sallaApp->access_token)) {
             Log::error("Salla Access Token missing for merchant: {$this->merchant->name}. Sync aborted.");
@@ -110,8 +109,7 @@ class FetchProductsJob implements ShouldQueue
 
         if ($current <= 1) {
             Cache::forget(self::SYNC_COUNTER_KEY);
-            Log::info("=== [Orchestration] All merchants synced. Dispatching CheckBatchExpiryJob ===");
-            CheckBatchExpiryJob::dispatch();
+            Log::info("=== [Orchestration] All merchants synced ===");
         } else {
             Cache::forever(self::SYNC_COUNTER_KEY, $current - 1);
             Log::info("[Orchestration] Merchant sync completed. Remaining: " . ($current - 1));
@@ -166,6 +164,26 @@ class FetchProductsJob implements ShouldQueue
     }
     
     /**
+     * البحث عن تطبيق التاجر مع دعم الأسماء الجديدة والقديمة
+     */
+    private function resolveSallaApp(): ?\App\Models\SallaApp
+    {
+        $preferred = ['harees', 'management', 'mustashar', 'calculator'];
+
+        foreach ($preferred as $appName) {
+            $app = $this->merchant->sallaApps()
+                ->where('app_name', $appName)
+                ->whereNotNull('access_token')
+                ->first();
+            if ($app) {
+                return $app;
+            }
+        }
+
+        return $this->merchant->sallaApps()->whereNotNull('access_token')->first();
+    }
+
+    /**
      * مزامنة الفاريينت للمنتج وتخزينها
      */
     private function syncProductVariants(Product $product)
@@ -173,8 +191,7 @@ class FetchProductsJob implements ShouldQueue
         if (!$product->salla_product_id) return;
         
         try {
-            $sallaApp = $this->merchant->sallaApps()->where('app_name', 'management')->first() 
-                        ?? $this->merchant->sallaApps()->first();
+            $sallaApp = $this->resolveSallaApp();
             
             if (!$sallaApp || empty($sallaApp->access_token)) return;
             
@@ -235,7 +252,7 @@ class FetchProductsJob implements ShouldQueue
                 }
             }
             
-            // تجهيز الفاريينت بشكل مدمج
+            // تجهيز الفاريينت بشكل مدمج مع كامل البيانات المطلوبة
             $formattedVariants = array_map(function ($v) use ($valueNames) {
                 $optionNames = [];
                 foreach ($v['related_option_values'] ?? [] as $valueId) {
@@ -250,12 +267,17 @@ class FetchProductsJob implements ShouldQueue
                 }
                 
                 return [
-                    'id' => $v['id'],
-                    'sku' => $v['sku'] ?? null,
-                    'name' => $displayName,
-                    'price' => $v['price']['amount'] ?? 0,
-                    'stock_quantity' => $v['stock_quantity'] ?? 0,
-                    'unlimited_quantity' => $v['unlimited_quantity'] ?? false,
+                    'id'                   => $v['id'],
+                    'sku'                  => $v['sku'] ?? null,
+                    'name'                 => $v['name'] ?? $displayName,
+                    'price'                => (float) ($v['price']['amount'] ?? 0),
+                    'sale_price'           => (float) ($v['sale_price']['amount'] ?? 0),
+                    'stock_quantity'       => (int) ($v['stock_quantity'] ?? 0),
+                    'unlimited_quantity'   => (bool) ($v['unlimited_quantity'] ?? false),
+                    'has_special_price'    => (bool) ($v['has_special_price'] ?? false),
+                    'status'               => (string) ($v['status'] ?? 'sale'),
+                    'related_option_values'=> $v['related_option_values'] ?? [],
+                    'updated_at'           => now()->toISOString(),
                 ];
             }, $variants);
             
