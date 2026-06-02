@@ -26,21 +26,6 @@
  *  - Edit (update)     → "Discount updated successfully"
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-const t = {
-    no_batches:                'No batches available.',
-    auto_discount_badge:       'Auto-Discount',
-    auto_hidden_badge:         'Auto-hide enabled',
-    auto_hide_disabled_badge:  'Auto-hide Disabled',
-    btn_add_discount:          'Add Discount',
-    btn_edit_discount:         'Edit Discount',
-    btn_applying:              'Applying...',
-    toast_added:               'Discount applied successfully',
-    toast_updated:             'Discount updated successfully',
-    toast_error_fallback:      'An error occurred while applying the discount',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React, { useState } from 'react';
 import { Tag, Calendar, Loader2, Plus, Edit } from 'lucide-react';
 import DiscountModal from '../DiscountModal';
@@ -48,6 +33,7 @@ import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
 import { useApplyDiscount } from '../../../Hooks/useApplyDiscount';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 /**
  * hasExistingDiscount
@@ -124,6 +110,7 @@ const BTN_BASE = [
  * @returns {JSX.Element}
  */
 export default function BatchRow({ product, autoDiscount, autoDiscountPercent, autoHide }) {
+    const { t } = useTranslation('harees');
     /**
      * Tracks which batch has its DiscountModal open.
      * `null` means no modal is currently visible.
@@ -155,7 +142,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
             toast.success(isEdit ? t.toast_updated : t.toast_added, { duration: 3000 });
             setSelectedBatch(null);
         } catch (error) {
-            toast.error(error.message || t.toast_error_fallback, { duration: 4000 });
+            toast.error(error.message || t('batch_row.toast_error_fallback'), { duration: 4000 });
         }
     };
 
@@ -165,7 +152,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
     if (productBatches.length === 0) {
         return (
             <div className="py-4 px-6 text-[11px] text-[var(--muted-foreground)] text-center">
-                {t.no_batches}
+                {t('batch_row.no_batches')}
             </div>
         );
     }
@@ -255,7 +242,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                         }}
                                     >
                                         <Tag size={10} aria-hidden="true" />
-                                        {autoDiscountPercent}% {t.auto_discount_badge}
+                                        {autoDiscountPercent}% {t('batch_row.auto_discount_badge')}
                                     </span>
 
                                 ) : (
@@ -292,10 +279,10 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                                 <Plus size={10} aria-hidden="true" />
                                             )}
                                             {isThisBatchLoading
-                                                ? t.btn_applying
+                                                ? t('batch_row.btn_applying')
                                                 : hasDiscount
-                                                    ? t.btn_edit_discount
-                                                    : t.btn_add_discount
+                                                    ? t('batch_row.btn_edit_discount')
+                                                    : t('batch_row.btn_add_discount')
                                             }
                                         </button>
                                     </>
@@ -317,7 +304,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                             borderColor: 'color-mix(in srgb, var(--primary) 20%, transparent)',
                                         }}
                                     >
-                                        {t.auto_hidden_badge}
+                                        {t('batch_row.auto_hidden_badge')}
                                     </span>
 
                                 ) : (
@@ -335,7 +322,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                             opacity:     0.65,
                                         }}
                                     >
-                                        {t.auto_hide_disabled_badge}
+                                        {t('batch_row.auto_hide_disabled_badge')}
                                     </span>
                                 )
 

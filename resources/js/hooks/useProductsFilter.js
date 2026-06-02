@@ -17,13 +17,7 @@
 
 import { useState, useMemo } from "react";
 import { useAllProducts } from "./useProducts";
-
-// ── i18n strings ──────────────────────────────────────────────────────────────
-// Move to your translation JSON and replace with useTranslation() when ready.
-const t = {
-    category_all:         "All",
-    category_uncategorized: "Uncategorized",
-};
+import { useTranslation } from "react-i18next";
 
 /**
  * useProductsFilter
@@ -46,19 +40,23 @@ const t = {
  * }}
  */
 export function useProductsFilter() {
+    const { t } = useTranslation("mustashar");
     const { products, isLoading, isError, error, refetch } = useAllProducts();
 
     const [search,         setSearch]         = useState("");
-    const [categoryFilter, setCategoryFilter] = useState(t.category_all);
+    const [categoryFilter, setCategoryFilter] = useState(t("products_filter.category_all"));
 
     // ── Category dropdown options ─────────────────────────────────────────────
     // Built from the live product list so new categories appear automatically
     // after a catalog sync, without requiring a page reload.
     const categoryOptions = useMemo(
         () =>
-            [t.category_all, ...new Set(products.map((p) => p.category || t.category_uncategorized))]
+            [
+                t("products_filter.category_all"),
+                ...new Set(products.map((p) => p.category || t("products_filter.category_uncategorized"))),
+            ]
                 .map((c) => ({ value: c, label: c })),
-        [products],
+        [products, t],
     );
 
     // ── Filtered list — server order preserved ────────────────────────────────
@@ -67,7 +65,7 @@ export function useProductsFilter() {
     const sorted = useMemo(() => {
         return products.filter((p) => {
             // Category match: pass everything when "All" is selected.
-            const matchCat    = categoryFilter === t.category_all || p.category === categoryFilter;
+            const matchCat    = categoryFilter === t("products_filter.category_all") || p.category === categoryFilter;
 
             // Search match: pass everything when the query is empty; otherwise
             // check both the display name and the numeric Salla product ID.

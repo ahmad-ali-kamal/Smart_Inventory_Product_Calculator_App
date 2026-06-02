@@ -16,21 +16,13 @@
  * expanded BatchRow accordion.
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-const t = {
-    btn_view_batches:  'View Batches',
-    btn_hide_batches:  'Hide Batches',
-    /** @param {number} n */
-    batch_count: (n) => `${n} ${n === 1 ? 'Batch' : 'Batches'}`,
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React, { useState, useEffect } from 'react';
 import { Eye } from 'lucide-react';
 import RowActionButton from '../../Common/RowActionButton';
 import BatchRow from './BatchRow';
 import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
+import { useTranslation } from 'react-i18next';
 
 /**
  * ProductRow
@@ -64,6 +56,7 @@ import ProductAvatar from '../../Common/UI/ProductAvatar';
  * @returns {JSX.Element} A React fragment containing two <tr> elements.
  */
 export default function ProductRow({ product, autoDiscount, autoDiscountPercent, autoHide, statusFilter }) {
+    const { t } = useTranslation('harees');
     /**
      * True when the user has picked a specific status filter (anything other
      * than 'all').  In this mode the product header row is hidden and the
@@ -145,7 +138,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                         if (count === 0) return null;
                         return (
                             <span className="text-[11px] font-bold text-[var(--muted-foreground)]">
-                                {t.batch_count(count)}
+                                {t(count === 1 ? 'dashboard_product_row.batch_count_one' : 'dashboard_product_row.batch_count_other', { count })}
                             </span>
                         );
                     })()}
@@ -166,7 +159,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                             }
                             className="w-[120px] h-[32px]"
                         >
-                            {showBatches ? t.btn_hide_batches : t.btn_view_batches}
+                            {showBatches ? t('dashboard_product_row.btn_hide_batches') : t('dashboard_product_row.btn_view_batches')}
                         </RowActionButton>
                     </div>
                 </td>

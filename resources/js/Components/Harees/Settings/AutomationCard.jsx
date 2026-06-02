@@ -21,46 +21,29 @@
 import { Zap, EyeOff, BadgePercent, Percent, Calendar } from 'lucide-react';
 import Card from '../../Common/UI/Card';
 import Toggle from '../../Common/Toggle';
-
-// ---------------------------------------------------------------------------
-// i18n strings — move these values to a JSON translation file when ready.
-// ---------------------------------------------------------------------------
-const t = {
-    // Card header
-    card_title: "Automation",
-
-    // Toggle row labels and descriptions
-    auto_hide_title: "Auto-Hide Expired",
-    auto_hide_desc:  "Hide products automatically when expired",
-    auto_discount_title: "Auto Discounts",
-    auto_discount_desc:  "Apply discounts to Yellow-status products",
-
-    // Discount panel field labels and suffixes
-    discount_percent_label:  "Discount %",
-    discount_duration_label: "Duration",
-    suffix_percent:          "%",
-    suffix_days:             "days",
-};
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Automation row definitions
 // Each entry maps to a single toggle row rendered inside the card.
 // Defined outside the component so the array reference is stable across renders.
 // ---------------------------------------------------------------------------
-const AUTOMATION_ROWS = [
-    {
-        key:   'autoHide',
-        icon:  <EyeOff size={18} />,
-        title: t.auto_hide_title,
-        desc:  t.auto_hide_desc,
-    },
-    {
-        key:   'autoDiscount',
-        icon:  <BadgePercent size={18} />,
-        title: t.auto_discount_title,
-        desc:  t.auto_discount_desc,
-    },
-];
+function getAutomationRows(t) {
+    return [
+        {
+            key: 'autoHide',
+            icon: <EyeOff size={18} />,
+            title: t('automation_card.auto_hide_title'),
+            desc: t('automation_card.auto_hide_desc'),
+        },
+        {
+            key: 'autoDiscount',
+            icon: <BadgePercent size={18} />,
+            title: t('automation_card.auto_discount_title'),
+            desc: t('automation_card.auto_discount_desc'),
+        },
+    ];
+}
 
 /**
  * Automation settings card containing toggle rows and the conditional
@@ -86,6 +69,7 @@ export default function AutomationCard({
     onToggle,
     onInputChange,
 }) {
+    const { t } = useTranslation('harees');
     return (
         <Card className="p-5 space-y-1">
 
@@ -94,11 +78,11 @@ export default function AutomationCard({
                 <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0">
                     <Zap size={15} />
                 </div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">{t.card_title}</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">{t('automation_card.card_title')}</p>
             </div>
 
             {/* ── Toggle rows ────────────────────────────────────────────── */}
-            {AUTOMATION_ROWS.map(({ key, icon, title, desc }) => (
+            {getAutomationRows(t).map(({ key, icon, title, desc }) => (
                 <div key={key}>
 
                     {/* Toggle row — border-b removed on the last row via last:border-0 */}
@@ -122,6 +106,7 @@ export default function AutomationCard({
                             discountConfig={discountConfig}
                             errors={errors}
                             onInputChange={onInputChange}
+                            t={t}
                         />
                     )}
                 </div>
@@ -142,7 +127,7 @@ export default function AutomationCard({
  * @param {function} props.onInputChange — `(field, value, group) => void`
  * @returns {JSX.Element}
  */
-function DiscountPanel({ discountConfig, errors, onInputChange }) {
+function DiscountPanel({ discountConfig, errors, onInputChange, t }) {
     return (
         <div className="mx-1 mb-3 mt-1 p-4 rounded-2xl bg-[var(--muted)]/40 border border-[var(--primary)]/20 space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -150,7 +135,7 @@ function DiscountPanel({ discountConfig, errors, onInputChange }) {
                 {/* ── Discount % ─────────────────────────────────────────── */}
                 <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase flex items-center gap-1">
-                        <Percent size={9} /> {t.discount_percent_label}
+                        <Percent size={9} /> {t('automation_card.discount_percent_label')}
                     </label>
                     <div className={`relative rounded-xl border bg-[var(--muted)] transition-all ${
                         errors['discount.percent']
@@ -164,7 +149,7 @@ function DiscountPanel({ discountConfig, errors, onInputChange }) {
                             className="w-full p-3 pr-7 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs">
-                            {t.suffix_percent}
+                            {t('automation_card.suffix_percent')}
                         </span>
                     </div>
                     {errors['discount.percent'] && (
@@ -175,7 +160,7 @@ function DiscountPanel({ discountConfig, errors, onInputChange }) {
                 {/* ── Duration ───────────────────────────────────────────── */}
                 <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase flex items-center gap-1">
-                        <Calendar size={9} /> {t.discount_duration_label}
+                        <Calendar size={9} /> {t('automation_card.discount_duration_label')}
                     </label>
                     <div className={`relative rounded-xl border bg-[var(--muted)] transition-all ${
                         errors['discount.durationDays']
@@ -189,7 +174,7 @@ function DiscountPanel({ discountConfig, errors, onInputChange }) {
                             className="w-full p-3 pr-10 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-[9px]">
-                            {t.suffix_days}
+                            {t('automation_card.suffix_days')}
                         </span>
                     </div>
                     {errors['discount.durationDays'] && (

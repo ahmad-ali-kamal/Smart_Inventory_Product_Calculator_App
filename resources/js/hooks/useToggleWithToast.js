@@ -33,17 +33,7 @@ import { useRef } from "react";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToggleProduct, QUERY_KEYS } from "./useProducts";
-
-// ── i18n strings ──────────────────────────────────────────────────────────────
-// Move to your translation JSON and replace with useTranslation() when ready.
-const t = {
-    /** Generic fallback — shown when neither coverage nor waste is set. */
-    toast_coverage_required:
-        "Set a unit coverage for this product, or configure a global default in Settings.",
-    toast_activated:   "Product activated",
-    toast_deactivated: "Product deactivated",
-    toast_error:       "Something went wrong. Please try again.",
-};
+import { useTranslation } from "react-i18next";
 
 /**
  * useToggleWithToast
@@ -60,6 +50,7 @@ const t = {
  *                    useful for per-row loading indicators.
  */
 export function useToggleWithToast() {
+    const { t } = useTranslation("mustashar");
     const queryClient    = useQueryClient();
     const toggleMutation = useToggleProduct();
 
@@ -99,7 +90,7 @@ export function useToggleWithToast() {
                     coverageInvalid && wasteInvalid
                         ? "Set coverage and waste percentage before activating — or configure global defaults in Settings."
                         : coverageInvalid
-                          ? "Set a unit coverage for this product, or configure a global default in Settings."
+                          ? t("toggle_with_toast.toast_coverage_required")
                           : "Set a waste percentage for this product, or configure a global default in Settings.";
                 toast.error(msg, { duration: 4000 });
                 return; // Block the mutation.
@@ -112,11 +103,11 @@ export function useToggleWithToast() {
                 // Prefer the server-confirmed state; fall back to inferred state.
                 const isEnabled = data?.is_enabled ?? willBeActive;
                 toast.success(
-                    isEnabled ? t.toast_activated : t.toast_deactivated,
+                    isEnabled ? t("toggle_with_toast.toast_activated") : t("toggle_with_toast.toast_deactivated"),
                 );
             },
             onError: () => {
-                toast.error(t.toast_error);
+                toast.error(t("toggle_with_toast.toast_error"));
             },
         });
     };

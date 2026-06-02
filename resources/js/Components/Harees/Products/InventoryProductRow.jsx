@@ -23,27 +23,12 @@
  *   batch sub-rows open/closed without layout thrashing.
  */
 
-// ─── i18n strings ─────────────────────────────────────────────────────────────
-// Move these values to your JSON translation file and replace this object with
-// a `useTranslation` call (or equivalent) when you are ready.
-const t = {
-    btn_hide_batches:    'Batches',   // prefix: count is prepended dynamically
-    btn_no_batches:      '-',
-    btn_batch_singular:  'Batch',
-    btn_batch_plural:    'Batches',
-    btn_edit_expiry:     'Edit Expiry Date',
-    btn_add_expiry:      'Add Expiry Date',
-    batch_label:         'Batch:',
-    stock_unlimited:     'Unlimited',
-    stock_label:         'Stock:',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React, { useState } from 'react';
 import { Eye, EyeOff, Pencil, PlusCircle } from 'lucide-react';
 import RowActionButton from '../../Common/RowActionButton';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
 import { normalizeStatus, getStatusStyle } from '../StatusBadge';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Shared Tailwind classes for the status / category pill badges.
@@ -54,26 +39,6 @@ import { normalizeStatus, getStatusStyle } from '../StatusBadge';
  */
 const PILL =
     'inline-flex items-center justify-center w-[110px] h-[26px] rounded-full text-[9px] font-black uppercase border transition-all duration-200';
-
-/**
- * getStatusConfig
- *
- * Maps a normalised status label to its display config (inline style + label).
- * Delegates colour token resolution to `getStatusStyle` from StatusBadge so
- * the two components always stay visually in sync.
- *
- * @param {'Expired'|'Approaching'|'Safe'} normalizedStatus
- * @returns {{ style: Object, label: string }}
- */
-const getStatusConfig = (normalizedStatus) => {
-    const config = {
-        Expired:     { style: getStatusStyle('Expired'),     label: 'Expired'     },
-        Approaching: { style: getStatusStyle('Approaching'), label: 'Approaching' },
-        Safe:        { style: getStatusStyle('Safe'),        label: 'Safe'        },
-    };
-    // Default to Safe for any unmapped value
-    return config[normalizedStatus] || config.Safe;
-};
 
 /**
  * InventoryProductRow
@@ -99,6 +64,28 @@ const getStatusConfig = (normalizedStatus) => {
  * @returns {JSX.Element} A React fragment containing two `<tr>` elements.
  */
 export default function InventoryProductRow({ product, onExpiry }) {
+    const { t } = useTranslation('harees');
+
+    /**
+     * getStatusConfig
+     *
+     * Maps a normalised status label to its display config (inline style + label).
+     * Delegates colour token resolution to `getStatusStyle` from StatusBadge so
+     * the two components always stay visually in sync.
+     *
+     * @param {'Expired'|'Approaching'|'Safe'} normalizedStatus
+     * @returns {{ style: Object, label: string }}
+     */
+    const getStatusConfig = (normalizedStatus) => {
+        const config = {
+            Expired:     { style: getStatusStyle('Expired'),     label: t('status_badge.expired') },
+            Approaching: { style: getStatusStyle('Approaching'), label: t('status_badge.approaching') },
+            Safe:        { style: getStatusStyle('Safe'),        label: t('status_badge.safe') },
+        };
+        // Default to Safe for any unmapped value
+        return config[normalizedStatus] || config.Safe;
+    };
+
     /**
      * Controls accordion visibility for the batch detail sub-rows.
      * `false` = collapsed (default), `true` = expanded.
@@ -195,11 +182,14 @@ export default function InventoryProductRow({ product, onExpiry }) {
                             onClick={() => setShowBatches(v => !v)}
                             icon={showBatches ? <EyeOff size={12} /> : <Eye size={12} />}
                         >
-                            {batches.length} {batches.length === 1 ? t.btn_batch_singular : t.btn_batch_plural}
+                            {batches.length}{' '}
+                            {batches.length === 1
+                                ? t('inventory_product_row.btn_batch_singular')
+                                : t('inventory_product_row.btn_batch_plural')}
                         </RowActionButton>
                     ) : (
                         <span className="text-[11px] text-[var(--muted-foreground)]">
-                            {t.btn_no_batches}
+                            {t('inventory_product_row.btn_no_batches')}
                         </span>
                     )}
                 </td>
@@ -210,7 +200,9 @@ export default function InventoryProductRow({ product, onExpiry }) {
                         onClick={() => onExpiry(product)}
                         icon={hasBatches ? <Pencil size={11} /> : <PlusCircle size={11} />}
                     >
-                        {hasBatches ? t.btn_edit_expiry : t.btn_add_expiry}
+                        {hasBatches
+                            ? t('inventory_product_row.btn_edit_expiry')
+                            : t('inventory_product_row.btn_add_expiry')}
                     </RowActionButton>
                 </td>
             </tr>
@@ -238,7 +230,7 @@ export default function InventoryProductRow({ product, onExpiry }) {
                                         {/* Batch code — indented to align under the product name */}
                                         <div className="pl-10 py-3.5 text-[12px] text-[var(--muted-foreground)]">
                                             <span className="font-bold text-[var(--foreground)]">
-                                                {t.batch_label}
+                                                {t('inventory_product_row.batch_label')}
                                             </span>{' '}
                                             {batch.code}
                                         </div>

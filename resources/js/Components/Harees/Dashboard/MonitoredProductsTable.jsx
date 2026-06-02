@@ -12,28 +12,11 @@
  * selected filter value can be shared with other parts of the page if needed.
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move these values to your JSON translation file and replace this object with
-// a `useTranslation` call (or equivalent) when you are ready.
-const t = {
-    panel_title:                 'Monitored Products',
-    filter_all:                  'All',
-    filter_expired:              'Expired',
-    filter_approaching:          'Approaching',
-    filter_safe:                 'Safe',
-    col_product:                 'Product',
-    col_status:                  'Status',
-    col_expiry_info:             'Expiry Info',
-    col_actions:                 'Actions',
-    empty_needs_setup:           'Configure your settings to start monitoring products.',
-    empty_no_items:              'No monitored items found.',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React from 'react';
 import { ListFilter } from 'lucide-react';
 import DropdownFilter from '../../Common/Controls/DropdownFilter';
 import ProductRow from './ProductRow';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Available status filter options shown in the dropdown.
@@ -41,12 +24,14 @@ import ProductRow from './ProductRow';
  *
  * @type {Array<{ value: string, label: string }>}
  */
-const STATUS_FILTERS = [
-    { value: 'all',         label: t.filter_all         },
-    { value: 'expired',     label: t.filter_expired     },
-    { value: 'approaching', label: t.filter_approaching },
-    { value: 'safe',        label: t.filter_safe        },
-];
+function getStatusFilters(t) {
+    return [
+        { value: 'all',         label: t('monitored_products_table.filter_all') },
+        { value: 'expired',     label: t('monitored_products_table.filter_expired') },
+        { value: 'approaching', label: t('monitored_products_table.filter_approaching') },
+        { value: 'safe',        label: t('monitored_products_table.filter_safe') },
+    ];
+}
 
 /**
  * filterProducts
@@ -125,6 +110,7 @@ export default function MonitoredProductsTable({
     onFilterChange,
     needsSetup,
 }) {
+    const { t } = useTranslation('harees');
     // Apply the client-side filter before rendering rows.
     const filteredProducts = filterProducts(products, statusFilter);
 
@@ -138,11 +124,11 @@ export default function MonitoredProductsTable({
                 <div className="flex items-center gap-2">
                     <ListFilter className="w-4 h-4 text-[var(--primary)]" />
                     <h2 className="text-sm font-bold text-[var(--foreground)]">
-                        {t.panel_title}
+                        {t('monitored_products_table.panel_title')}
                     </h2>
                 </div>
                 <DropdownFilter
-                    options={STATUS_FILTERS}
+                    options={getStatusFilters(t)}
                     value={statusFilter}
                     onChange={onFilterChange}
                     width="w-[130px]"
@@ -159,10 +145,10 @@ export default function MonitoredProductsTable({
                 <table className="w-full border-collapse">
                     <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
                         <tr className="text-[11px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-                            <th className="p-4 w-[25%]">{t.col_product}</th>
-                            <th className="p-4 text-center w-[20%]">{t.col_status}</th>
-                            <th className="p-4 text-center w-[30%]">{t.col_expiry_info}</th>
-                            <th className="p-4 text-center w-[25%]">{t.col_actions}</th>
+                            <th className="p-4 w-[25%]">{t('monitored_products_table.col_product')}</th>
+                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.col_status')}</th>
+                            <th className="p-4 text-center w-[30%]">{t('monitored_products_table.col_expiry_info')}</th>
+                            <th className="p-4 text-center w-[25%]">{t('monitored_products_table.col_actions')}</th>
                         </tr>
                     </thead>
 
@@ -171,14 +157,14 @@ export default function MonitoredProductsTable({
                             /* State 1: merchant hasn't configured thresholds yet */
                             <tr>
                                 <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
-                                    {t.empty_needs_setup}
+                                    {t('monitored_products_table.empty_needs_setup')}
                                 </td>
                             </tr>
                         ) : filteredProducts.length === 0 ? (
                             /* State 2: valid setup but the filter yields no results */
                             <tr>
                                 <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
-                                    {t.empty_no_items}
+                                    {t('monitored_products_table.empty_no_items')}
                                 </td>
                             </tr>
                         ) : (

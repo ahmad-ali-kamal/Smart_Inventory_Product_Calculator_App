@@ -16,18 +16,9 @@
 // ─── i18n strings ────────────────────────────────────────────────────────────
 // Move these values to your JSON translation file and replace this object with
 // a `useTranslation` call (or equivalent) when you are ready.
-const t = {
-    stat_expired_label:      'Expired',
-    stat_expired_sub:        'Requires immediate action',
-    stat_approaching_label:  'Approaching',
-    stat_approaching_sub:    'Under close monitoring',
-    stat_safe_label:         'Safe',
-    stat_safe_sub:           'Stable inventory',
-    setup_banner_description:
-        'Set up your expiry thresholds first so products and batches can be tracked.',
-};
-// ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { AlertCircle, ShieldCheck, Clock } from 'lucide-react';
 import useHareesGuard from '../../Hooks/useHareesGuard';
@@ -52,6 +43,7 @@ import { useHareesStats } from '../../Hooks/useHareesStats';
  * <Route path="/harees" element={<Dashboard />} />
  */
 export default function Dashboard() {
+        const { t } = useTranslation('harees');
     // Guard: redirects unauthenticated / unauthorised users away from this page.
     useHareesGuard();
 
@@ -100,7 +92,7 @@ export default function Dashboard() {
                 {needsSetup && (
                     <SetupBanner
                         href="/harees/settings"
-                        description={t.setup_banner_description}
+                        description={t('dashboard.setup_banner_description')}
                     />
                 )}
 
@@ -111,29 +103,29 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {/* Expired: batches that have already passed their expiry date */}
                     <StatCard
-                        label={t.stat_expired_label}
+                        label={t('dashboard.stat_expired_label')}
                         value={stats.expiredCount}
                         icon={<AlertCircle className="w-5 h-5" />}
                         variant="critical"
-                        sub={t.stat_expired_sub}
+                        sub={t('dashboard.stat_expired_sub')}
                     />
 
                     {/* Approaching: batches within the configured warning threshold */}
                     <StatCard
-                        label={t.stat_approaching_label}
+                        label={t('dashboard.stat_approaching_label')}
                         value={stats.expiringSoon}
                         icon={<Clock className="w-5 h-5" />}
                         variant="warning"
-                        sub={t.stat_approaching_sub}
+                        sub={t('dashboard.stat_approaching_sub')}
                     />
 
                     {/* Safe: batches well within their expiry date */}
                     <StatCard
-                        label={t.stat_safe_label}
+                        label={t('dashboard.stat_safe_label')}
                         value={stats.validCount}
                         icon={<ShieldCheck className="w-5 h-5" />}
                         variant="success"
-                        sub={t.stat_safe_sub}
+                        sub={t('dashboard.stat_safe_sub')}
                     />
                 </div>
 

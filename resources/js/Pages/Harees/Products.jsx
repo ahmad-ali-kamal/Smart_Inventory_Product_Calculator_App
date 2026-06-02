@@ -14,18 +14,7 @@
  *   ExpiryModal                 →  opened with `expiryTarget` (product object)
  *                                  closed by setting `expiryTarget` back to null
  */
-
-// ─── i18n strings ─────────────────────────────────────────────────────────────
-// Move these values to your JSON translation file and replace this object with
-// a `useTranslation` call (or equivalent) when you are ready.
-const t = {
-    setup_banner_description:
-        'Set up your expiry thresholds first so products and batches can be tracked.',
-    toolbar_banner:
-        'Add expiry dates to track freshness and avoid waste, then tap Batch to review each batch\'s details and remaining stock.',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
+import { useTranslation } from 'react-i18next';
 import { useState } from "react";
 import useHareesGuard from '../../Hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
@@ -51,6 +40,7 @@ import { useHareesStats } from '../../Hooks/useHareesStats';
  * <Route path="/harees/products" element={<Products />} />
  */
 export default function Products() {
+       const { t } = useTranslation('harees');
     // Guard: redirects unauthenticated / unauthorised users away from this page.
     useHareesGuard();
 
@@ -80,6 +70,14 @@ export default function Products() {
         isLoading, isError, error, refetch,
     } = useInventoryProductsFilter();
 
+    /**
+     * Translate filter options based on current locale
+     */
+    const translatedFilterOptions = FILTER_OPTIONS.map(opt => ({
+        value: opt.value,
+        label: t(`products.filter_${opt.value}`)
+    }));
+
     return (
         <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
             <div className="space-y-4">
@@ -91,7 +89,7 @@ export default function Products() {
                 {needsSetup && (
                     <SetupBanner
                         href="/harees/settings"
-                        description={t.setup_banner_description}
+                      description={t('products.setup_banner_description')}
                     />
                 )}
 
@@ -101,10 +99,10 @@ export default function Products() {
                     pulled from Salla appear immediately without a page reload.
                 ─────────────────────────────────────────────────────────────── */}
                 <TableToolbar
-                    banner={t.toolbar_banner}
+                    banner={t('products.toolbar_banner')}
                     search={search}
                     onSearch={setSearch}
-                    filterOptions={FILTER_OPTIONS}
+                    filterOptions={translatedFilterOptions}
                     filterValue={filter}
                     onFilter={setFilter}
                     syncEndpoint="/harees/api/products/sync"

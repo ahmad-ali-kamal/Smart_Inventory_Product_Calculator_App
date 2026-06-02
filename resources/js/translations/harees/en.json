@@ -1,0 +1,225 @@
+{
+  "_meta": {
+    "app": "harees",
+    "locale": "en"
+  },
+
+  "dashboard": {
+    "stat_expired_label": "Expired",
+    "stat_expired_sub": "Requires immediate action",
+    "stat_approaching_label": "Approaching",
+    "stat_approaching_sub": "Under close monitoring",
+    "stat_safe_label": "Safe",
+    "stat_safe_sub": "Stable inventory",
+    "setup_banner_description": "Set up your expiry thresholds first so products and batches can be tracked."
+  },
+
+  "products": {
+    "setup_banner_description": "Set up your expiry thresholds first so products and batches can be tracked.",
+    "toolbar_banner": "Add expiry dates to track freshness and avoid waste, then tap Batch to review each batch's details and remaining stock.",
+    "filter_all": "All",
+    "filter_short": "Short",
+    "filter_medium": "Medium",
+    "filter_long": "Long"
+  },
+
+  "instructions": {
+    "app_name": "Harees",
+    "subtitle": "Three simple steps to get started",
+    "description": "Track product expiry dates intelligently. Set up categories once and let the system monitor everything and set your own discounts with one click, while the system auto-hides products when all its batches have fully expired.",
+    "footer_note": "Harees · All Channels · All Products",
+
+    "step1_title": "Classify Products",
+    "step1_desc": "Categorize your products: long-term, medium-term, or short-term.",
+    "step1_badge": "Organize products",
+
+    "step2_title": "Set Alert Period",
+    "step2_desc": "Define when you want to be notified before expiration.",
+    "step2_badge": "Notifications",
+
+    "step3_title": "Auto-Hide & Discount",
+    "step3_desc": "Set custom discounts for products nearing expiry. The product will be hidden automatically only when all its batches have fully expired.",
+    "step3_badge": "Manage product expiry"
+  },
+
+  "setup_banner": {
+    "default_description": "Set up your expiry thresholds first so products and batches can be tracked."
+  },
+
+  "inventory_table": {
+    "col_product": "Product",
+    "col_category": "Category",
+    "col_status": "Status",
+    "col_qty": "Qty",
+    "col_expiry_info": "Expiry Info",
+    "col_action": "Action",
+    "empty_message": "No products found."
+  },
+
+  "inventory_product_row": {
+    "btn_hide_batches": "Batches",
+    "btn_no_batches": "-",
+    "btn_batch_singular": "Batch",
+    "btn_batch_plural": "Batches",
+    "btn_edit_expiry": "Edit Expiry Date",
+    "btn_add_expiry": "Add Expiry Date",
+    "batch_label": "Batch:",
+    "stock_unlimited": "Unlimited",
+    "stock_label": "Stock:"
+  },
+
+  "monitored_products_table": {
+    "panel_title": "Monitored Products",
+    "filter_all": "All",
+    "filter_expired": "Expired",
+    "filter_approaching": "Approaching",
+    "filter_safe": "Safe",
+    "col_product": "Product",
+    "col_status": "Status",
+    "col_expiry_info": "Expiry Info",
+    "col_actions": "Actions",
+    "empty_needs_setup": "Configure your settings to start monitoring products.",
+    "empty_no_items": "No monitored items found."
+  },
+
+  "dashboard_product_row": {
+    "btn_view_batches": "View Batches",
+    "btn_hide_batches": "Hide Batches",
+    "batch_count_one": "{{count}} Batch",
+    "batch_count_other": "{{count}} Batches"
+  },
+
+  "batch_row": {
+    "no_batches": "No batches available.",
+    "auto_discount_badge": "Auto-Discount",
+    "auto_hidden_badge": "Auto-hide enabled",
+    "auto_hide_disabled_badge": "Auto-hide Disabled",
+    "btn_add_discount": "Add Discount",
+    "btn_edit_discount": "Edit Discount",
+    "btn_applying": "Applying...",
+    "toast_added": "Discount applied successfully",
+    "toast_updated": "Discount updated successfully",
+    "toast_error_fallback": "An error occurred while applying the discount"
+  },
+
+  "discount_modal": {
+    "modal_title_add": "Apply Discount",
+    "modal_title_edit": "Edit Discount",
+    "note_title": "Note:",
+    "note_body": "Discounts apply only to Yellow-status batches. Green inventory is always protected.",
+    "section_title": "Manual Configuration",
+    "label_discount_pct": "Discount Percentage",
+    "label_end_date": "End Date",
+    "btn_add_apply": "Apply Discount",
+    "btn_edit_apply": "Update Discount",
+    "btn_applying": "Applying…",
+    "btn_applied": "Applied Successfully",
+    "btn_updated": "Updated Successfully",
+    "err_required": "Required",
+    "err_pct_range": "Must be between 1 and 99",
+    "err_date_future": "Must be a future date",
+    "err_generic": "Something went wrong. Please try again."
+  },
+
+  "expiry_modal": {
+    "zero_title": "Add Expiry Date",
+    "zero_no_stock_title": "No stock available",
+    "zero_no_stock_body": "To create expiry batches, your product needs stock in the inventory. Add quantity in Salla first, then come back to set expiry dates.",
+    "zero_go_to_salla": "Go to Salla to add stock",
+    "zero_close": "Close",
+
+    "modal_title_edit": "Edit Expiry Date",
+    "modal_title_add": "Add Expiry Date",
+
+    "spinner_checking": "Checking product options...",
+    "spinner_loading": "Loading product options...",
+
+    "question_title": "Does this product have options?",
+    "question_subtitle": "e.g. size, color or any other variant — quantity will be split per option.",
+    "question_yes": "Yes — add options in Salla first",
+    "question_no": "No — single product",
+
+    "stock_label": "Available Stock",
+    "stock_unit": "units",
+
+    "progress_exceeded": "⚠ Exceeded by",
+    "progress_distributed": "✓ All distributed",
+    "progress_remaining": "units remaining",
+
+    "section_title": "MULTIPLE BATCHES",
+    "btn_clear_all": "Clear All",
+    "btn_clearing": "Clearing...",
+    "btn_add_batch": "Add Batch",
+    "batch_label": "Batch",
+
+    "field_quantity": "Quantity",
+    "field_expiry_date": "Expiry Date",
+
+    "err_date_past": "Date is in the past",
+    "err_date_required": "Required",
+
+    "variant_panel_prefix": "Distribute options — Batch",
+    "variant_stock_unlimited": "Unlimited",
+    "variant_stock_label": "Stock:",
+
+    "btn_saving": "Saving...",
+    "btn_update": "Update Expiry Date",
+    "btn_save": "Save Expiry Information",
+
+    "toast_deleted": "All batches deleted successfully",
+    "toast_updated": "Expiry date updated successfully",
+    "toast_added": "Expiry date added successfully",
+
+    "err_delete_failed": "Failed to delete batches",
+    "err_connection": "Connection failed",
+    "err_save_failed": "An error occurred while saving"
+  },
+
+  "threshold_card": {
+    "card_title": "Alert Thresholds",
+    "card_subtitle": "Set days before expiry (1 – 1095 days)",
+    "short_term": "Short term",
+    "medium_term": "Medium term",
+    "long_term": "Long term",
+    "field_suffix": "days",
+    "label_suffix": "-term"
+  },
+
+  "status_badge": {
+    "expired": "Expired",
+    "approaching": "Approaching",
+    "safe": "Safe"
+  },
+
+  "automation_card": {
+    "card_title": "Automation",
+    "auto_hide_title": "Auto-Hide Expired",
+    "auto_hide_desc": "Hide products automatically when expired",
+    "auto_discount_title": "Auto Discounts",
+    "auto_discount_desc": "Apply discounts to Yellow-status products",
+    "discount_percent_label": "Discount %",
+    "discount_duration_label": "Duration",
+    "suffix_percent": "%",
+    "suffix_days": "days"
+  },
+
+  "save_button": {
+    "label_saved": "Saved Successfully!",
+    "label_saving": "Saving...",
+    "label_save": "Save All Settings"
+  },
+
+  "category_mapping_card": {
+    "card_title": "Category Mapping",
+    "bucket_drop_cta": "Drop here",
+    "threshold_suffix": "d",
+    "bucket_label_short": "Short-term",
+    "bucket_label_medium": "Medium-term",
+    "bucket_label_long": "Long-term"
+  },
+
+  "inventory_settings": {
+    "field_required": "Required",
+    "field_limit": "Limit: {{min}}–{{max}}"
+  }
+}

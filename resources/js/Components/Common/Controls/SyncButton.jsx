@@ -23,21 +23,10 @@
  * />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "sync_button": { … })
-const t = {
-    /** Tooltip / title attribute shown on hover */
-    button_title: 'Sync Data',
-    /** Toast message shown on successful sync */
-    toast_success: 'Synced successfully!',
-    /** Toast message shown when the sync request fails */
-    toast_error: 'Sync failed.',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 /**
  * SyncButton
@@ -49,6 +38,7 @@ import { toast } from 'react-hot-toast';
  * @returns {JSX.Element}
  */
 export default function SyncButton({ endpoint, onSyncSuccess }) {
+    const { t } = useTranslation('shared');
     /** Tracks whether a sync request is currently in-flight */
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -95,13 +85,13 @@ export default function SyncButton({ endpoint, onSyncSuccess }) {
             // Treat both HTTP errors and API-level failures as exceptions
             if (!res.ok || !data.success) throw new Error('Sync failed');
 
-            toast.success(t.toast_success, { style: toastStyle });
+            toast.success(t('sync_button.toast_success'), { style: toastStyle });
 
             // Delay the success callback slightly so the toast is visible first
             if (onSyncSuccess) setTimeout(() => onSyncSuccess(), 2000);
 
         } catch {
-            toast.error(t.toast_error, { style: toastStyle });
+            toast.error(t('sync_button.toast_error'), { style: toastStyle });
         } finally {
             // Always re-enable the button regardless of outcome
             setIsSyncing(false);
@@ -112,8 +102,8 @@ export default function SyncButton({ endpoint, onSyncSuccess }) {
         <button
             onClick={handleSync}
             disabled={isSyncing}
-            title={t.button_title}
-            aria-label={t.button_title}
+            title={t('sync_button.button_title')}
+            aria-label={t('sync_button.button_title')}
             className="h-9 w-9 rounded-xl bg-[var(--accent)] text-[var(--primary)] hover:opacity-80 transition-opacity flex items-center justify-center border border-[var(--primary)]/5 flex-shrink-0"
         >
             {/* Icon spins while the request is in-flight */}

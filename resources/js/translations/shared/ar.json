@@ -1,0 +1,90 @@
+{
+  "header": {
+    "app_mustashar": "المستشار",
+    "app_harees": "حريص",
+    "nav": {
+      "instructions": "التعليمات",
+      "dashboard": "لوحة التحكم",
+      "products": "المنتجات",
+      "settings": "الإعدادات"
+    },
+    "user_menu": {
+      "language": "اللغة",
+      "logout": "تسجيل الخروج"
+    },
+    "notifications_title": "الإشعارات",
+    "notifications_mark_read": "تعيين الكل مقروءاً",
+    "notifications_empty": "لا توجد إشعارات",
+    "notif_expired_title": "منتج منتهي الصلاحية!",
+    "notif_expiring_title": "صلاحية قريبة من الانتهاء",
+    "notif_expired_msg": "دُفعة {{batch_code}} من «{{product_name}}» انتهت صلاحيتها.",
+    "notif_expiring_msg": "دُفعة {{batch_code}} من «{{product_name}}» تقترب من تاريخ انتهاء صلاحيتها."
+  },
+  "language_switcher": {
+    "switch_to_en": "ENGLISH",
+    "switch_to_ar": "العربية"
+  },
+
+  "search_input": {
+    "default_placeholder": "بحث…"
+  },
+
+  "table_toolbar": {
+    "default_placeholder": "بحث…"
+  },
+
+  "dropdown_filter": {
+    "filter_button_label": "خيارات التصفية"
+  },
+
+  "sync_button": {
+    "button_title": "مزامنة البيانات",
+    "toast_success": "تمت المزامنة بنجاح!",
+    "toast_error": "فشلت المزامنة."
+  },
+
+  "setup_banner": {
+    "title": "الإعدادات غير مُعدّة",
+    "cta_label": "الإعدادات"
+  },
+
+  "stat_card": {
+    "settings_preview_label": "منطق الحاسبة",
+    "settings_preview_placeholder_area": "8.00 م²",
+    "settings_preview_placeholder_waste": "10% هدر"
+  },
+
+  "page_banner": {
+    "banner_toggle_label": "إظهار/إخفاء التنبيه",
+    "banner_icon": "ℹ"
+  },
+
+  "error_state": {
+    "heading": "تعذّر تحميل المنتجات",
+    "default_message": "نواجه مشكلة في الاتصال بكتالوج متجرك. تحقق من الاتصال ثم أعد المحاولة.",
+    "cta_label": "إعادة المحاولة"
+  },
+
+  "error_boundary": {
+    "heading": "حدث خطأ غير متوقع",
+    "description": "واجه النظام مشكلة غير متوقعة. جرّب تحديث الصفحة أو عُد لاحقاً.",
+    "cta_label": "تحديث الصفحة"
+  },
+
+  "toast": {
+    "toast_label_success": "نجاح",
+    "toast_label_error": "خطأ",
+    "toast_label_loading": "جارٍ التنفيذ",
+    "toast_fallback_message": "تمت العملية"
+  },
+
+  "product_avatar": {
+    "image_alt": "صورة {{name}}",
+    "image_alt_fallback": "صورة المنتج",
+    "fallback_initial": "؟"
+  },
+
+  "login_layout": {
+    "image_alt_fallback": "صورة توضيحية للتطبيق"
+  }
+}

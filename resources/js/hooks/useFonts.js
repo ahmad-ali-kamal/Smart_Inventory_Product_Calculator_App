@@ -9,6 +9,6 @@ export function useFonts() {
 
     return {
         ff: isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif",
-        bodyFont: "'Cairo', sans-serif",
+        bodyFont: isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif",
     };
 }

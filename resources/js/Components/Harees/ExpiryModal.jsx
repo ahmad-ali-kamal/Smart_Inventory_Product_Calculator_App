@@ -30,78 +30,6 @@
  * because they must send the Laravel CSRF token read from the `<meta>` tag.
  */
 
-// ─── i18n strings ─────────────────────────────────────────────────────────────
-// Move these values to your JSON translation file and replace this object with
-// a `useTranslation` call (or equivalent) when you are ready.
-const t = {
-    // ── Zero-quantity screen ──
-    zero_title:              'Add Expiry Date',
-    zero_no_stock_title:     'No stock available',
-    zero_no_stock_body:
-        'To create expiry batches, your product needs stock in the inventory. Add quantity in Salla first, then come back to set expiry dates.',
-    zero_go_to_salla:        'Go to Salla to add stock',
-    zero_close:              'Close',
-
-    // ── Main modal header ──
-    modal_title_edit:        'Edit Expiry Date',
-    modal_title_add:         'Add Expiry Date',
-
-    // ── Body spinners ──
-    spinner_checking:        'Checking product options...',
-    spinner_loading:         'Loading product options...',
-
-    // ── Question card ──
-    question_title:          'Does this product have options?',
-    question_subtitle:       'e.g. size, color or any other variant — quantity will be split per option.',
-    question_yes:            'Yes — add options in Salla first',
-    question_no:             'No — single product',
-
-    // ── Stock badge ──
-    stock_label:             'Available Stock',
-    stock_unit:              'units',
-
-    // ── Progress bar states ──
-    progress_exceeded:       '⚠ Exceeded by',
-    progress_distributed:    '✓ All distributed',
-    progress_remaining:      'units remaining',
-
-    // ── Batch section ──
-    section_title:           'MULTIPLE BATCHES',
-    btn_clear_all:           'Clear All',
-    btn_clearing:            'Clearing...',
-    btn_add_batch:           'Add Batch',
-    batch_label:             'Batch',
-
-    // ── Field labels ──
-    field_quantity:          'Quantity',
-    field_expiry_date:       'Expiry Date',
-
-    // ── Field-level validation messages ──
-    err_date_past:           'Date is in the past',
-    err_date_required:       'Required',
-
-    // ── Variant panel ──
-    variant_panel_prefix:    'Distribute options — Batch',
-    variant_stock_unlimited: 'Unlimited',
-    variant_stock_label:     'Stock:',
-
-    // ── Footer button ──
-    btn_saving:              'Saving...',
-    btn_update:              'Update Expiry Date',
-    btn_save:                'Save Expiry Information',
-
-    // ── Toast messages (shown by AppToaster) ──
-    toast_deleted:           'All batches deleted successfully',
-    toast_updated:           'Expiry date updated successfully',
-    toast_added:             'Expiry date added successfully',
-
-    // ── Inline error messages (set via setError) ──
-    err_delete_failed:       'Failed to delete batches',
-    err_connection:          'Connection failed',
-    err_save_failed:         'An error occurred while saving',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -110,6 +38,7 @@ import {
     Package, Layers, ExternalLink, ShoppingBag, ChevronDown, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Scoped CSS that forces the browser's native date-picker icon to respect the
@@ -152,6 +81,7 @@ const dateInputStyle = `
  * @returns {JSX.Element} A React portal rendering into `document.body`.
  */
 export default function ExpiryModal({ product, onClose, onSave }) {
+    const { t } = useTranslation('harees');
 
 
     // ── Salla deep-link URL ──────────────────────────────────────────────────
@@ -467,7 +397,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 batchVariantsRef.current = {};
                 setIsDeleting(false);
                 onClose();
-                setTimeout(() => toast.success(t.toast_deleted, { duration: 3000 }), 100);
+                setTimeout(() => toast.success(t('expiry_modal.toast_deleted'), { duration: 3000 }), 100);
                 return;
             }
 
@@ -483,7 +413,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             });
             const data = await res.json();
             if (!res.ok || !data.success) {
-                setError(data.message || t.err_delete_failed);
+                setError(data.message || t('expiry_modal.err_delete_failed'));
                 setIsDeleting(false);
                 return;
             }
@@ -502,10 +432,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
             // اعرض التوست بعد إغلاق المودال بـ 100ms
             // حتى يظهر فوق الجدول مش تحت المودال
-            setTimeout(() => toast.success(t.toast_deleted, { duration: 3000 }), 100);
+            setTimeout(() => toast.success(t('expiry_modal.toast_deleted'), { duration: 3000 }), 100);
 
         } catch {
-            setError(t.err_connection);
+            setError(t('expiry_modal.err_connection'));
             setIsDeleting(false);
         }
     };
@@ -641,7 +571,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             });
             const data = await res.json();
             if (!res.ok || !data.success) {
-                setError(data.message || t.err_save_failed);
+                setError(data.message || t('expiry_modal.err_save_failed'));
                 setIsSaving(false);
                 return;
             }
@@ -649,11 +579,11 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             onSave(product.id, data);
             onClose();
             toast.success(
-                hasBatches ? t.toast_updated : t.toast_added,
+                hasBatches ? t('expiry_modal.toast_updated') : t('expiry_modal.toast_added'),
                 { duration: 3000 }
             );
         } catch {
-            setError(t.err_connection);
+            setError(t('expiry_modal.err_connection'));
             setIsSaving(false);
         }
     };
@@ -690,7 +620,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             <CalendarPlus size={20} />
                         </div>
                         <div className="flex-1 text-left">
-                            <h3 className="text-sm font-bold text-[var(--foreground)]">{t.zero_title}</h3>
+                            <h3 className="text-sm font-bold text-[var(--foreground)]">{t('expiry_modal.zero_title')}</h3>
                             <p className="text-[11px] text-[var(--muted-foreground)]">{product.name}</p>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--foreground)]">
@@ -702,9 +632,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             <Package size={28} className="text-[var(--primary)]" />
                         </div>
                         <div className="space-y-2">
-                            <p className="text-sm font-black text-[var(--foreground)]">{t.zero_no_stock_title}</p>
+                            <p className="text-sm font-black text-[var(--foreground)]">{t('expiry_modal.zero_no_stock_title')}</p>
                             <p className="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
-                                {t.zero_no_stock_body}
+                                {t('expiry_modal.zero_no_stock_body')}
                             </p>
                         </div>
                         {/* Deep link into the merchant's Salla products dashboard to add stock.
@@ -717,14 +647,14 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             className="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-[var(--primary)] text-white flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
                         >
                             <ShoppingBag size={15} />
-                            {t.zero_go_to_salla}
+                            {t('expiry_modal.zero_go_to_salla')}
                             <ExternalLink size={13} className="opacity-70" />
                         </a>
                         <button
                             onClick={onClose}
                             className="text-[11px] font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
                         >
-                            {t.zero_close}
+                            {t('expiry_modal.zero_close')}
                         </button>
                     </div>
                 </div>
@@ -750,7 +680,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                     <div className="flex-1 text-left">
                         {/* Title switches between Add and Edit based on whether batches already exist */}
                         <h3 className="text-sm font-bold text-[var(--foreground)]">
-                            {hasBatches ? t.modal_title_edit : t.modal_title_add}
+                            {hasBatches ? t('expiry_modal.modal_title_edit') : t('expiry_modal.modal_title_add')}
                         </h3>
                         <p className="text-[11px] text-[var(--muted-foreground)]">{product.name}</p>
                     </div>
@@ -769,7 +699,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         <div className="flex items-center justify-center py-8 gap-2">
                             <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
                             <span className="text-xs font-bold text-[var(--muted-foreground)]">
-                                {t.spinner_checking}
+                                {t('expiry_modal.spinner_checking')}
                             </span>
                         </div>
                     )}
@@ -782,9 +712,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             <div className="flex items-start gap-3">
                                 <Layers size={20} className="text-[var(--primary)] flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-bold text-[var(--foreground)]">{t.question_title}</p>
+                                    <p className="text-sm font-bold text-[var(--foreground)]">{t('expiry_modal.question_title')}</p>
                                     <p className="text-[11px] text-[var(--muted-foreground)] mt-1">
-                                        {t.question_subtitle}
+                                        {t('expiry_modal.question_subtitle')}
                                     </p>
                                 </div>
                             </div>
@@ -795,7 +725,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                     className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-[var(--secondary)] text-[var(--primary)] flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                                 >
                                     <ExternalLink size={14} />
-                                    {t.question_yes}
+                                    {t('expiry_modal.question_yes')}
                                 </button>
                                 {/* "No" → skip variants, unlock the main form */}
                                 <button
@@ -805,7 +735,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                     }}
                                     className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-[var(--muted)] text-[var(--muted-foreground)] hover:opacity-80 transition-opacity"
                                 >
-                                    {t.question_no}
+                                    {t('expiry_modal.question_no')}
                                 </button>
                             </div>
                         </div>
@@ -818,7 +748,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         <div className="flex items-center justify-center py-4 gap-2">
                             <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
                             <span className="text-xs font-bold text-[var(--muted-foreground)]">
-                                {t.spinner_loading}
+                                {t('expiry_modal.spinner_loading')}
                             </span>
                         </div>
                     )}
@@ -831,10 +761,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                 <Package size={16} className="text-[var(--primary)] flex-shrink-0" />
                                 <div>
                                     <p className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wide">
-                                        {t.stock_label}
+                                        {t('expiry_modal.stock_label')}
                                     </p>
                                     <p className="text-sm font-bold text-[var(--foreground)]">
-                                        {totalQty} {t.stock_unit}
+                                        {totalQty} {t('expiry_modal.stock_unit')}
                                     </p>
                                 </div>
                             </div>
@@ -849,10 +779,10 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                         : 'text-[var(--primary)]'
                                     }>
                                         {isOverLimit
-                                            ? `${t.progress_exceeded} ${usedQty - totalQty}`
+                                            ? `${t('expiry_modal.progress_exceeded')} ${usedQty - totalQty}`
                                             : allDistributed
-                                                ? t.progress_distributed
-                                                : `${remainingQty} ${t.progress_remaining}`}
+                                                ? t('expiry_modal.progress_distributed')
+                                                : `${remainingQty} ${t('expiry_modal.progress_remaining')}`}
                                     </span>
                                     <span className="text-[var(--muted-foreground)]">{usedQty} / {totalQty}</span>
                                 </div>
@@ -884,7 +814,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-[var(--primary)]">
-                                        {t.section_title}
+                                        {t('expiry_modal.section_title')}
                                     </span>
                                     <div className="flex gap-2">
                                         {/* Clear All: asks for browser confirmation then deletes */}
@@ -894,7 +824,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                 disabled={isDeleting}
                                                 className="text-[10px] font-bold text-[var(--status-expired-text)] bg-[var(--status-expired-bg)] px-2 py-1 rounded-lg hover:brightness-95 transition-all"
                                             >
-                                                {isDeleting ? t.btn_clearing : t.btn_clear_all}
+                                                {isDeleting ? t('expiry_modal.btn_clearing') : t('expiry_modal.btn_clear_all')}
                                             </button>
                                         )}
                                         {/* Add Batch: appends a new empty entry */}
@@ -902,7 +832,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                             onClick={() => setBatches(p => [...p, { id: Date.now(), qty: '', date: '' }])}
                                             className="text-[10px] font-bold text-[var(--primary)] bg-[var(--secondary)] px-2 py-1 rounded-lg flex items-center gap-1 hover:opacity-80 transition-opacity"
                                         >
-                                            <PlusCircle size={10} /> {t.btn_add_batch}
+                                            <PlusCircle size={10} /> {t('expiry_modal.btn_add_batch')}
                                         </button>
                                     </div>
                                 </div>
@@ -928,7 +858,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                             }`}>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-[11px] font-bold text-[var(--foreground)]">
-                                                        {t.batch_label} {idx + 1}
+                                                        {t('expiry_modal.batch_label')} {idx + 1}
                                                     </span>
                                                     {/* Remove this batch from local state */}
                                                     <button
@@ -954,7 +884,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                         Blocks -/+/e/E/. keys to prevent invalid number strings */}
                                                     <div className="space-y-1">
                                                         <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-wide">
-                                                            {t.field_quantity}
+                                                            {t('expiry_modal.field_quantity')}
                                                         </label>
                                                         <input
                                                             type="number"
@@ -979,7 +909,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                     {/* Expiry date field — `min={today}` blocks past dates in the picker */}
                                                     <div className="space-y-1">
                                                         <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-wide">
-                                                            {t.field_expiry_date}
+                                                            {t('expiry_modal.field_expiry_date')}
                                                         </label>
                                                         <input
                                                             type="date"
@@ -996,8 +926,8 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                             <p className="text-[9px] font-bold text-[var(--status-expired-text)] mt-0.5">
                                                                 {/* 'past' vs 'required' map to different user-facing messages */}
                                                                 {fieldErrors[batch.id + '_date'] === 'past'
-                                                                    ? t.err_date_past
-                                                                    : t.err_date_required}
+                                                                    ? t('expiry_modal.err_date_past')
+                                                                    : t('expiry_modal.err_date_required')}
                                                             </p>
                                                         )}
                                                     </div>
@@ -1011,7 +941,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                         <div className="flex items-center gap-1.5">
                                                             <ChevronDown size={12} className="text-[var(--primary)]" />
                                                             <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wide">
-                                                                {t.variant_panel_prefix} {idx + 1}
+                                                                {t('expiry_modal.variant_panel_prefix')} {idx + 1}
                                                             </span>
                                                         </div>
                                                         {/* Running total vs batch qty — colour signals over / exact / under */}
@@ -1041,9 +971,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                                             {variant.name}
                                                                         </p>
                                                                         <p className={`text-[9px] ${variant.unlimited_quantity ? 'text-[var(--status-safe-text)]' : 'text-[var(--muted-foreground)]'}`}>
-                                                                            {t.variant_stock_label}{' '}
+                                                                            {t('expiry_modal.variant_stock_label')}{' '}
                                                                             {variant.unlimited_quantity
-                                                                                ? t.variant_stock_unlimited
+                                                                                ? t('expiry_modal.variant_stock_unlimited')
                                                                                 : variant.stock_quantity}
                                                                         </p>
                                                                         {hasError && (
@@ -1119,10 +1049,10 @@ onChange={e => {
                     >
                         {isSaving ? (
                             /* Spinner via pure CSS border animation — no external library needed */
-                            <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> {t.btn_saving}</>
+                            <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> {t('expiry_modal.btn_saving')}</>
                         ) : (
                             /* Label: Update (edit mode) vs Save (add mode) */
-                            hasBatches ? t.btn_update : t.btn_save
+                            hasBatches ? t('expiry_modal.btn_update') : t('expiry_modal.btn_save')
                         )}
                     </button>
                 </div>

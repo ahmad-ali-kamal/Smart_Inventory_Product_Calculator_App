@@ -21,15 +21,7 @@
  * <ProductAvatar name="Cement Bag" size={48} radius="rounded-full" />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "product_avatar": { … })
-const t = {
-    /** Alt text for the product image (receives the product name at runtime) */
-    image_alt: (name) => name ?? 'Product image',
-    /** Character shown when no name is available */
-    fallback_initial: '?',
-};
-// ─────────────────────────────────────────────────────────────────────────────
+import { useTranslation } from 'react-i18next';
 
 /**
  * ProductAvatar
@@ -42,9 +34,10 @@ const t = {
  * @returns {JSX.Element}
  */
 export default function ProductAvatar({ src, name, size = 40, radius = 'rounded-lg' }) {
+    const { t } = useTranslation('shared');
 
     /** Derive the uppercase initial; default to '?' when name is absent */
-    const initial = name?.charAt(0)?.toUpperCase() ?? t.fallback_initial;
+    const initial = name?.charAt(0)?.toUpperCase() ?? t('product_avatar.fallback_initial');
 
     return (
         <div
@@ -59,7 +52,7 @@ export default function ProductAvatar({ src, name, size = 40, radius = 'rounded-
             {src ? (
                 <img
                     src={src}
-                    alt={t.image_alt(name)}
+                    alt={name ? t('product_avatar.image_alt', { name }) : t('product_avatar.image_alt_fallback')}
                     className="w-full h-full object-cover"
                     onError={e => {
                         // Hide the broken image tag

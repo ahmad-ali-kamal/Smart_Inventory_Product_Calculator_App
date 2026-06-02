@@ -35,17 +35,7 @@
  *   variant: "critical" | "warning" | "success"
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "stat_card": { … })
-const t = {
-    /** Label for the settings preview card */
-    settings_preview_label: 'Calculator Logic',
-    /** Placeholder badges shown in settings preview when no rules are supplied */
-    settings_preview_placeholder_area: '8.00 m²',
-    settings_preview_placeholder_waste: '10% waste',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
+import { useTranslation } from 'react-i18next';
 import { Settings } from 'lucide-react';
 
 /**
@@ -65,6 +55,7 @@ import { Settings } from 'lucide-react';
  * @returns {JSX.Element}
  */
 export default function StatCard({ label, title, value, icon: IconProp, type, rules, children, sub, variant }) {
+    const { t } = useTranslation('mustashar');
 
     /** Accept either `label` or `title` as the display heading */
     const displayLabel = label || title;
@@ -170,7 +161,7 @@ if (type === 'settings_preview') {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <p style={labelStyle}>Default Settings</p>
+                    <p style={labelStyle}>{t('calc_rules.settings_preview_label')}</p>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {/* Filter rules to remove null, undefined, or NaN values before mapping */}
                         {rules && rules.length > 0 ? (
@@ -183,7 +174,7 @@ if (type === 'settings_preview') {
                                 ))
                         ) : (
                             /* Fallback if no valid rules exist */
-                            <PurpleBadge>Default Settings</PurpleBadge>
+                            <PurpleBadge>{t('calc_rules.settings_preview_label')}</PurpleBadge>
                         )}
                     </div>
                 </div>

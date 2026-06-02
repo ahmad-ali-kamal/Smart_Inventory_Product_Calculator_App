@@ -1,0 +1,114 @@
+{
+  "_meta": {
+    "app": "mustashar",
+    "locale": "en",
+    "description": "Smart calculator for flooring quantities — coverage & waste estimation tool for e-commerce merchants on Salla."
+  },
+
+  "dashboard": {
+    "setup_banner_description": "Set your defaults once to instantly configure all products. You can still customize any product individually at any time.",
+    "stat_total_label": "Total Products",
+    "stat_total_sub": "In your store",
+    "stat_activated_label": "Activated",
+    "stat_activated_sub": "Live on storefront",
+    "empty_state": "No active products"
+  },
+
+  "products": {
+    "setup_banner_description": "Set your defaults once to instantly configure all products. You can still customize any product individually at any time.",
+    "toolbar_banner": "Ready to start? Set your coverage rate, flip the toggle, and let Al Mustashar handle the rest.",
+    "search_placeholder": "Search products…",
+    "empty_state": "No products found"
+  },
+
+  "product_row": {
+    "coverage_save_title": "Save coverage",
+    "coverage_edit_title": "Edit coverage",
+    "coverage_error_save": "Failed to save. Please try again.",
+    "coverage_unit": "m²",
+    "coverage_empty": "—",
+
+    "waste_save_title": "Save waste",
+    "waste_edit_title": "Edit waste %",
+    "waste_error_save": "Failed to save. Please try again.",
+    "waste_unit": "%",
+
+    "badge_global": "GLOBAL",
+
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+
+    "preview_label": "Preview",
+    "product_slug_fallback": "product",
+
+    "global_badge_tooltip_coverage": "Inherited from global settings — click the pencil to set a product-specific value",
+    "global_badge_tooltip_waste": "Inherited from global settings — click the pencil to set a product-specific value"
+  },
+
+  "product_table": {
+    "col_product": "Product",
+    "col_category": "Category",
+    "col_unit_coverage": "Unit Coverage",
+    "col_waste": "Waste %",
+    "col_status": "Status",
+    "col_active": "Active",
+    "col_preview": "Preview"
+  },
+
+  "settings": {
+    "card_title": "Smart Calculator Settings",
+    "card_subtitle": "Set the default calculation rules for your store's products",
+
+    "banner_body": "The values below apply automatically as global defaults across all products — saving you time. You can always customize any individual product from the Products page.",
+
+    "coverage_label": "Default Coverage per Unit (m²)",
+    "coverage_hint": "How many square meters (m²) does one box or unit cover?",
+    "coverage_placeholder": "e.g. 4.00",
+
+    "waste_label": "Default Waste Percentage (%)",
+    "waste_hint": "Extra material added to account for cutting waste and installation layout.",
+    "waste_placeholder": "e.g. 20",
+
+    "btn_saving": "Saving…",
+    "btn_save": "Save Settings"
+  },
+
+  "instructions": {
+    "app_name": "AL Mustashar",
+    "subtitle": "Smart calculator for e-commerce",
+    "description": "Welcome to your smart helper!\nWe help your customers calculate exactly how many boxes they need based on their room size — including cutting waste.\nLet's get your store ready:",
+    "footer_note": "Quantix Smart Calculator · Set up your rules once and automate product calculations across your store",
+
+    "step1_title": "General Settings",
+    "step1_desc": "Enter your default coverage and cutting waste percentage. These values apply automatically to all products to save you time — but you can always set custom numbers for any specific product later.",
+    "step1_badge": "Coverage per unit (m²) · Waste percentage (%)",
+
+    "step2_title": "Activate Products",
+    "step2_desc": "Go to your products list and flip the switch to enable the calculator. If a product covers more or less space than the default, you can customize its numbers directly from the list.",
+    "step2_badge": "Turn on the Calculator for Your Products",
+
+    "step3_title": "Live Preview on Your Store",
+    "step3_desc": "See exactly how the calculator looks to your customers. Use the Preview button next to any product to check the live storefront view, and manage active items directly from the dashboard.",
+    "step3_badge": "Live Store Preview"
+  },
+
+  "calc_rules": {
+    "coverage_label": "Coverage",
+    "coverage_value": "{{value}} m²",
+    "waste_label": "Waste",
+    "waste_value": "{{value}}% waste",
+    "settings_preview_label": "Default Settings"
+  },
+
+  "toggle_with_toast": {
+    "toast_coverage_required": "Set a unit coverage for this product, or configure a global default in Settings.",
+    "toast_activated": "Product activated",
+    "toast_deactivated": "Product deactivated",
+    "toast_error": "Something went wrong. Please try again."
+  },
+
+  "products_filter": {
+    "category_all": "All",
+    "category_uncategorized": "Uncategorized"
+  }
+}

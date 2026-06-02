@@ -20,15 +20,7 @@ import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 import { useFonts }  from '@/Hooks/useFonts';
 import SplitText     from '@/Components/ui/SplitText';
-
-// ---------------------------------------------------------------------------
-// Static UI strings — not brand copy (that comes via `translations` prop).
-// Extracted here so they can be moved to a JSON i18n file without touching JSX.
-// ---------------------------------------------------------------------------
-const t = {
-    /** Fallback alt text when no imageAlt prop is supplied */
-    image_alt_fallback: 'App hero image',
-};
+import { useTranslation } from 'react-i18next';
 
 /**
  * LoginLayout — shared two-panel login layout for Salla-integrated apps.
@@ -81,6 +73,7 @@ export default function LoginLayout({
     status,
     bgColor = '#F5F2FA',
 }) {
+    const { t: tShared } = useTranslation('shared');
     // `lang`  — active locale string ("ar" | "en")
     // `isAr`  — boolean shorthand for RTL-aware conditionals
     // `dir`   — "rtl" | "ltr" applied to the root container
@@ -292,7 +285,7 @@ export default function LoginLayout({
                             */}
                             <img
                                 src={imageSrc}
-                                alt={imageAlt ?? t.image_alt_fallback}
+                                alt={imageAlt ?? tShared('login_layout.image_alt_fallback')}
                                 loading="eager"
                                 fetchPriority="high"
                                 decoding="async"

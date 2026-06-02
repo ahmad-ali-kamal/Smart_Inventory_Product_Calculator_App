@@ -15,17 +15,8 @@
  * </PageBanner>
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "page_banner": { … })
-const t = {
-    /** Accessible label for the collapse / info toggle button */
-    banner_toggle_label: 'Toggle info banner',
-    /** Unicode info symbol rendered inside the pill button */
-    banner_icon: 'ℹ',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 /**
  * PageBanner
@@ -38,6 +29,8 @@ import { motion, AnimatePresence } from 'framer-motion';
  * @returns {JSX.Element}
  */
 export default function PageBanner({ children, visible, onToggle }) {
+    const { t } = useTranslation('shared');
+
     return (
         <div className="flex items-center flex-1 min-w-0">
             {/*
@@ -63,12 +56,12 @@ export default function PageBanner({ children, visible, onToggle }) {
                         {/* Collapse button — clicking it hides the banner */}
                         <button
                             onClick={onToggle}
-                            aria-label={t.banner_toggle_label}
+                            aria-label={t('page_banner.banner_toggle_label')}
                             className="w-5 h-5 flex items-center justify-center bg-white
                                 rounded-full shadow-sm flex-shrink-0 text-[10px] font-black
                                 text-[var(--primary)] hover:opacity-70 transition-opacity"
                         >
-                            {t.banner_icon}
+                            {t('page_banner.banner_icon')}
                         </button>
 
                         {/* Contextual help text passed as children */}
@@ -81,7 +74,7 @@ export default function PageBanner({ children, visible, onToggle }) {
                     <motion.button
                         key="closed"
                         onClick={onToggle}
-                        aria-label={t.banner_toggle_label}
+                        aria-label={t('page_banner.banner_toggle_label')}
                         className="w-9 h-9 flex items-center justify-center flex-shrink-0
                             bg-[var(--accent)] border border-[var(--primary)]/10 rounded-xl
                             text-[var(--primary)] hover:opacity-70 transition-opacity"
@@ -92,7 +85,7 @@ export default function PageBanner({ children, visible, onToggle }) {
                     >
                         <span className="w-5 h-5 flex items-center justify-center bg-white
                             rounded-full shadow-sm text-[10px] font-black text-[var(--primary)]">
-                            {t.banner_icon}
+                            {t('page_banner.banner_icon')}
                         </span>
                     </motion.button>
 

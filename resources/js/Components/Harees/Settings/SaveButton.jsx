@@ -17,15 +17,7 @@
  */
 
 import { Save, AlertCircle } from 'lucide-react';
-
-// ---------------------------------------------------------------------------
-// i18n strings — move these values to a JSON translation file when ready.
-// ---------------------------------------------------------------------------
-const t = {
-    label_saved:   "Saved Successfully!",
-    label_saving:  "Saving...",
-    label_save:    "Save All Settings",
-};
+import { useTranslation } from 'react-i18next';
 
 /**
  * Save button with three visual states (idle / saving / saved) and optional
@@ -44,6 +36,7 @@ const t = {
  * @returns {JSX.Element}
  */
 export default function SaveButton({ onSave, saving, saved, disabled, saveError }) {
+    const { t } = useTranslation('harees');
 
     // Build the button class string from the current state combination.
     // Priority: disabled > saved > idle (saving uses the same style as idle).
@@ -58,7 +51,11 @@ export default function SaveButton({ onSave, saving, saved, disabled, saveError 
     ].join(' ');
 
     // Derive the label from the current state; evaluated once per render.
-    const label = saved ? t.label_saved : saving ? t.label_saving : t.label_save;
+    const label = saved
+        ? t('save_button.label_saved')
+        : saving
+            ? t('save_button.label_saving')
+            : t('save_button.label_save');
 
     return (
         <div className="flex flex-col items-center justify-center pt-6 space-y-3">

@@ -23,15 +23,8 @@
  * />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "search_input": { … })
-const t = {
-    /** Default placeholder text when none is provided via props */
-    default_placeholder: 'Search...',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Lightweight input sanitizer.
@@ -59,7 +52,8 @@ const sanitize = (val) => {
  *                                                    calling `onChange`. Defaults to `false`.
  * @returns {JSX.Element}
  */
-export default function SearchInput({ value, onChange, placeholder = t.default_placeholder, sanitize: doSanitize = false }) {
+export default function SearchInput({ value, onChange, placeholder, sanitize: doSanitize = false }) {
+    const { t } = useTranslation('shared');
 
     /**
      * Handles the native input change event.
@@ -81,7 +75,7 @@ export default function SearchInput({ value, onChange, placeholder = t.default_p
             <input
                 value={value}
                 onChange={handleChange}
-                placeholder={placeholder}
+                placeholder={placeholder ?? t('search_input.default_placeholder')}
                 className="bg-transparent text-xs text-[var(--primary)] outline-none border-none focus:ring-0 w-full placeholder:text-[var(--primary)]/40 caret-[var(--primary)] p-0"
             />
         </div>

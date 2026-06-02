@@ -30,31 +30,7 @@ import Toggle from "../Common/Toggle";
 import ProductAvatar from "../Common/UI/ProductAvatar";
 import { useUpdateProductCoverage, useUpdateProductWaste } from "../../Hooks/useProducts";
 import { validateCoverage, validateWaste } from "../../constants/calculatorSettings";
-
-// ── i18n strings ──────────────────────────────────────────────────────────────
-// Move to your translation JSON and replace with useTranslation() when ready.
-const t = {
-    coverage_save_title:   "Save coverage",
-    coverage_edit_title:   "Edit coverage",
-    coverage_error_save:   "Failed to save. Please try again.",
-    coverage_unit:         "m²",
-    coverage_empty:        "—",
-
-    waste_save_title:      "Save waste",
-    waste_edit_title:      "Edit waste %",
-    waste_error_save:      "Failed to save. Please try again.",
-    waste_unit:            "%",
-
-    /** Label rendered inside every GLOBAL inheritance badge. */
-    badge_global:          "GLOBAL",
-
-    status_active:         "Active",
-    status_inactive:       "Inactive",
-
-    preview_label:         "Preview",
-    /** Fallback slug segment used when the product name is empty. */
-    product_slug_fallback: "product",
-};
+import { useTranslation } from "react-i18next";
 
 // ── Grid column definitions ───────────────────────────────────────────────────
 // Must stay in sync with the matching constants in ProductTable.jsx.
@@ -148,6 +124,8 @@ function errorLabelStyle() {
  * @returns {JSX.Element}
  */
 function GlobalBadge({ title }) {
+    const { t } = useTranslation('mustashar');
+
     return (
         <span
             title={title}
@@ -165,7 +143,7 @@ function GlobalBadge({ title }) {
                 whiteSpace:    "nowrap",
             }}
         >
-            {t.badge_global}
+            {t("product_row.badge_global")}
         </span>
     );
 }
@@ -205,6 +183,7 @@ export default function ProductRow({
     showPreview = false,
     exiting     = false,
 }) {
+    const { t } = useTranslation("mustashar");
     const { auth }       = usePage().props;
     const updateCoverage = useUpdateProductCoverage();
     const updateWaste    = useUpdateProductWaste();
@@ -271,7 +250,7 @@ export default function ProductRow({
             setCoverageError(null);
             setCoverageEditing(false);
         } catch {
-            setCoverageError(t.coverage_error_save);
+            setCoverageError(t("product_row.coverage_error_save"));
         } finally {
             setCoverageSaving(false);
         }
@@ -341,7 +320,7 @@ export default function ProductRow({
             setWasteError(null);
             setWasteEditing(false);
         } catch {
-            setWasteError(t.waste_error_save);
+            setWasteError(t("product_row.waste_error_save"));
         } finally {
             setWasteSaving(false);
         }
@@ -378,7 +357,7 @@ export default function ProductRow({
             .replace(/\s+/g, "-")
             .replace(/[^\u0621-\u064A\w-]+/g, "")
             .replace(/--+/g, "-")
-        : t.product_slug_fallback;
+        : t("product_row.product_slug_fallback");
 
     // Only build the URL when both IDs are available; null suppresses the link.
     const previewUrl =
@@ -391,8 +370,8 @@ export default function ProductRow({
 
     /** Formatted coverage string, or "—" when no value is set. */
     const coverageDisplay  = product.coverage_per_unit
-        ? `${product.coverage_per_unit} ${t.coverage_unit}`
-        : t.coverage_empty;
+        ? `${product.coverage_per_unit} ${t("product_row.coverage_unit")}`
+        : t("product_row.coverage_empty");
 
     /** True when the coverage value was inherited from the global setting. */
     const coverageIsGlobal = product.coverage_source === "global";
@@ -403,7 +382,7 @@ export default function ProductRow({
      * the user never configured — treat that the same as "not set" (show "—").
      */
     const wasteDisplay  = (product.waste_source === "product" || product.waste_source === "global") && product.waste_percentage != null
-        ? `${product.waste_percentage}${t.waste_unit}`
+        ? `${product.waste_percentage}${t("product_row.waste_unit")}`
         : "—";
 
     /** True when the waste value was inherited from the global setting. */
@@ -485,7 +464,7 @@ export default function ProductRow({
                                     onMouseDown={preventBlur}
                                     onClick={handleCoverageSave}
                                     disabled={coverageSaving}
-                                    title={t.coverage_save_title}
+                                    title={t("product_row.coverage_save_title")}
                                     style={confirmBtnStyle(!!coverageError, coverageSaving)}
                                 >
                                     <Check size={12} strokeWidth={3} />
@@ -501,12 +480,12 @@ export default function ProductRow({
                                 {coverageDisplay}
                             </span>
                             {coverageIsGlobal && (
-                                <GlobalBadge title="Inherited from global settings — click the pencil to set a product-specific value" />
+                                <GlobalBadge title={t("product_row.global_badge_tooltip_coverage")} />
                             )}
                             <button
                                 onClick={handleCoverageEditStart}
                                 className="p-1 text-[var(--muted-foreground)] opacity-40 hover:opacity-100 hover:text-[var(--primary)] transition-all"
-                                title={t.coverage_edit_title}
+                                title={t("product_row.coverage_edit_title")}
                             >
                                 <Pencil size={12} strokeWidth={2.5} />
                             </button>
@@ -537,7 +516,7 @@ export default function ProductRow({
                                     onMouseDown={preventBlur}
                                     onClick={handleWasteSave}
                                     disabled={wasteSaving}
-                                    title={t.waste_save_title}
+                                    title={t("product_row.waste_save_title")}
                                     style={confirmBtnStyle(!!wasteError, wasteSaving)}
                                 >
                                     <Check size={12} strokeWidth={3} />
@@ -553,12 +532,12 @@ export default function ProductRow({
                                 {wasteDisplay}
                             </span>
                             {wasteIsGlobal && (
-                                <GlobalBadge title="Inherited from global settings — click the pencil to set a product-specific value" />
+                                <GlobalBadge title={t("product_row.global_badge_tooltip_waste")} />
                             )}
                             <button
                                 onClick={handleWasteEditStart}
                                 className="p-1 text-[var(--muted-foreground)] opacity-40 hover:opacity-100 hover:text-[var(--primary)] transition-all"
-                                title={t.waste_edit_title}
+                                title={t("product_row.waste_edit_title")}
                             >
                                 <Pencil size={12} strokeWidth={2.5} />
                             </button>
@@ -577,7 +556,7 @@ export default function ProductRow({
                 <span className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${
                     product.active && !exiting ? "text-emerald-600" : "text-[var(--muted-foreground)]"
                 }`}>
-                    {product.active && !exiting ? t.status_active : t.status_inactive}
+                    {product.active && !exiting ? t("product_row.status_active") : t("product_row.status_inactive")}
                 </span>
             </div>
 
@@ -595,11 +574,11 @@ export default function ProductRow({
                 <div className="flex justify-center">
                     {previewUrl && !exiting ? (
                         <RowActionButton href={previewUrl} target="_blank" variant="active" icon={<ExternalLink size={11} />}>
-                            {t.preview_label}
+                            {t("product_row.preview_label")}
                         </RowActionButton>
                     ) : (
                         <RowActionButton variant="disabled" icon={<ExternalLink size={11} />}>
-                            {t.preview_label}
+                            {t("product_row.preview_label")}
                         </RowActionButton>
                     )}
                 </div>

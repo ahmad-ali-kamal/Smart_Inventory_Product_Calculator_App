@@ -27,19 +27,8 @@
  * />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "setup_banner": { … })
-const t = {
-    /** Main heading shown inside the banner */
-    title: 'Settings not configured',
-    /** Default description when none is supplied via props */
-    default_description: 'Set up your expiry thresholds first so products and batches can be tracked.',
-    /** Label for the CTA navigation button */
-    cta_label: 'Settings',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Settings2, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * SetupBanner
@@ -54,8 +43,11 @@ import { Settings2, ArrowRight } from 'lucide-react';
  */
 export default function SetupBanner({
     href        = '/harees/settings',
-    description = t.default_description,
+    description,
 }) {
+    const { t: tShared } = useTranslation('shared');
+    const { t: tHarees } = useTranslation('harees');
+
     return (
         <div
             className="rounded-2xl p-5 flex items-center justify-between gap-4"
@@ -75,10 +67,10 @@ export default function SetupBanner({
                 {/* Title + description copy */}
                 <div>
                     <p className="text-[12px] font-black" style={{ color: 'var(--foreground)' }}>
-                        {t.title}
+                        {tShared('setup_banner.title')}
                     </p>
                     <p className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
-                        {description}
+                        {description ?? tHarees('setup_banner.default_description')}
                     </p>
                 </div>
             </div>
@@ -89,7 +81,7 @@ export default function SetupBanner({
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wide shrink-0 transition-opacity hover:opacity-80"
                 style={{ background: 'var(--primary)', color: 'white' }}
             >
-                {t.cta_label}
+                {tShared('setup_banner.cta_label')}
                 <ArrowRight size={11} />
             </a>
         </div>

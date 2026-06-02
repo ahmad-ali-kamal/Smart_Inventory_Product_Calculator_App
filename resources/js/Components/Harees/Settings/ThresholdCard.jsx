@@ -18,21 +18,17 @@
 
 import { Settings2, AlertCircle } from 'lucide-react';
 import Card from '../../Common/UI/Card';
-
-// ---------------------------------------------------------------------------
-// i18n strings — move these values to a JSON translation file when ready.
-// ---------------------------------------------------------------------------
-const t = {
-    card_title:    "Alert Thresholds",
-    card_subtitle: "Set days before expiry (1 – 1095 days)",
-    field_suffix:  "days",            // unit label appended to each input
-    label_suffix:  "-term",          // appended to each key to form the field label
-};
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Threshold field keys — order determines left-to-right column order.
 // ---------------------------------------------------------------------------
 const THRESHOLD_KEYS = ['short', 'medium', 'long'];
+const TERM_LABEL_KEYS = {
+    short:  'threshold_card.short_term',
+    medium: 'threshold_card.medium_term',
+    long:   'threshold_card.long_term',
+};
 
 /**
  * Alert Thresholds card with three numeric day inputs.
@@ -48,6 +44,7 @@ const THRESHOLD_KEYS = ['short', 'medium', 'long'];
  * @returns {JSX.Element}
  */
 export default function ThresholdCard({ thresholds, errors, onInputChange }) {
+    const { t } = useTranslation('harees');
     return (
         <Card className="p-5 space-y-4">
 
@@ -57,8 +54,8 @@ export default function ThresholdCard({ thresholds, errors, onInputChange }) {
                     <Settings2 size={15} />
                 </div>
                 <div>
-                    <p className="text-sm font-semibold text-[var(--foreground)]">{t.card_title}</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">{t.card_subtitle}</p>
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{t('threshold_card.card_title')}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{t('threshold_card.card_subtitle')}</p>
                 </div>
             </div>
 
@@ -72,8 +69,8 @@ export default function ThresholdCard({ thresholds, errors, onInputChange }) {
                         <div key={key} className="space-y-1">
 
                             {/* Field label — e.g. "short-term" */}
-                            <label className="text-xs text-[var(--muted-foreground)] block capitalize">
-                                {key}{t.label_suffix}
+                            <label className="text-xs text-[var(--muted-foreground)] block">
+                                {t(TERM_LABEL_KEYS[key])}
                             </label>
 
                             {/* Input wrapper — border colour driven by error state */}
@@ -91,7 +88,7 @@ export default function ThresholdCard({ thresholds, errors, onInputChange }) {
                                 />
                                 {/* Unit suffix — always visible for clarity */}
                                 <span className="text-xs text-[var(--muted-foreground)] flex-shrink-0">
-                                    {t.field_suffix}
+                                    {t('threshold_card.field_suffix')}
                                 </span>
                             </div>
 
