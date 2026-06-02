@@ -128,6 +128,8 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     const localVariants = product.variants_data || [];
     const totalQty        = product.quantity ?? product.dbQty ?? 0;
     const hasBatches      = product.batches && product.batches.length > 0;
+    const isEditMode      = hasBatches;
+    const [isLoading, setIsLoading] = useState(false);
     const today           = new Date().toISOString().split('T')[0];
     const usedQty         = batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0);
     const remainingQty    = totalQty - usedQty;
@@ -195,15 +197,53 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
     // ── Effect: check-options on mount ────────────────────────────────────────
     // Decision tree:
-    //   has_variants = true  → loadVariants() silently, skip question card
-    //   has_variants = false → show question card, block form (`optionsAnswered=false`)
-    //   API / catch          → skip variants, show form regardless
+    //   edit mode + initial DB variants -> load instantly and skip API
+    //   local cache variants            -> load instantly and skip API
+    //   has_variants = true             -> loadVariants() silently, skip question card
+    //   has_variants = false            -> show question card, block form (`optionsAnswered=false`)
+    //   API / catch                     -> skip variants, show form regardless
+    const initialVariantCandidates = useMemo(() => {
+        if (!isEditMode) return [];
+
+        const batchVariants = (product.batches || []).flatMap(batch => batch.variants_data || []);
+        const source = product.variants_data?.length > 0 ? product.variants_data : batchVariants;
+
+        const unique = [];
+        const seen = new Set();
+        source.forEach(v => {
+            const id = v.id ?? v.salla_variant_id ?? v.variant_id;
+            if (!id || seen.has(id)) return;
+            seen.add(id);
+            unique.push({
+                id,
+                name: v.name || v.title || '',
+                stock_quantity: v.stock_quantity ?? v.stock ?? 0,
+                unlimited_quantity: v.unlimited_quantity ?? false,
+            });
+        });
+        return unique;
+    }, [isEditMode, product.batches, product.variants_data]);
+
+    const hasInitialSavedVariants = initialVariantCandidates.length > 0;
+
     useEffect(() => {
         if (optionsChecked || totalQty === 0) return;
 
         const checkOptions = async () => {
             setVariantsLoading(true);
-            
+            setIsLoading(true);
+
+            if (hasInitialSavedVariants) {
+                setVariants(initialVariantCandidates);
+                setHasVariants(true);
+                setOptionsAnswered(true);
+                setVariantsLoaded(true);
+                setVariantsLoading(false);
+                setOptionsChecked(true);
+                setIsLoading(false);
+                return;
+            }
+
             // ✅ أولاً: تحقق من local variants_data (الـ cache)
             if (localVariants && localVariants.length > 0) {
                 setVariants(localVariants);
@@ -212,6 +252,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 setVariantsLoaded(true);
                 setVariantsLoading(false);
                 setOptionsChecked(true);
+                setIsLoading(false);
                 return;
             }
 
@@ -232,7 +273,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                     if (data.has_variants) {
                         setHasVariants(true);
                         setOptionsAnswered(true);   // skip question, go straight to form
-                        loadVariants();
+                        await loadVariants();
                     } else {
                         setHasVariants(false);
                         // optionsAnswered stays false → question card blocks the form
@@ -249,12 +290,13 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 setVariantsLoaded(true);
             } finally {
                 setVariantsLoading(false);
+                setIsLoading(false);
             }
         };
 
         checkOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [product.id]);
+    }, [product.id, hasInitialSavedVariants, initialVariantCandidates]);
 
     /**
      * loadVariants
@@ -266,6 +308,18 @@ export default function ExpiryModal({ product, onClose, onSave }) {
      * @returns {Promise<void>}
      */
     const loadVariants = async () => {
+        if (hasInitialSavedVariants) {
+            setVariantsLoaded(true);
+            setVariantsLoading(false);
+            return;
+        }
+
+        if (variants.length > 0) {
+            setVariantsLoaded(true);
+            setVariantsLoading(false);
+            return;
+        }
+
         try {
             const res = await fetch(`/harees/api/products/${product.id}/variants`, {
                 headers: {
@@ -339,6 +393,34 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             return prev; // Return same reference if nothing changed
         });
     }, [variantsLoaded, hasVariants, variants, batches, initializeBatchVariants]);
+
+    const isFormInvalid = useMemo(() => {
+        if (isSaving || variantsLoading || !optionsAnswered) return true;
+        if (batches.length === 0) return true;
+        if (isOverLimit || usedQty < totalQty) return true;
+
+        const invalidBatch = batches.some(batch => {
+            const qty = parseInt(batch.qty);
+            return !batch.qty || isNaN(qty) || qty <= 0 || !batch.date || batch.date < today;
+        });
+        if (invalidBatch) return true;
+
+        if (hasVariants) {
+            if (!variantsLoaded || variants.length === 0) return true;
+
+            const batchMismatch = batches.some(batch => {
+                const batchQtyNum = parseInt(batch.qty) || 0;
+                const batchTotal = (batchVariants[batch.id] || []).reduce(
+                    (sum, v) => sum + (parseInt(v.variant_quantity) || 0),
+                    0
+                );
+                return batchTotal !== batchQtyNum;
+            });
+            if (batchMismatch) return true;
+        }
+
+        return false;
+    }, [isSaving, variantsLoading, optionsAnswered, batches, isOverLimit, usedQty, totalQty, today, hasVariants, variantsLoaded, variants.length, batchVariants]);
 
     const refreshVariants = async () => {
         setVariantsLoading(true);
@@ -496,8 +578,8 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         variantErrors[`batch_${batch.id}_variant_${v.salla_variant_id}`] = 'Exceeds available stock';
                 });
 
-                // Variant totals must exactly match the batch qty when quantities are entered
-                if (batchTotal > 0 && batchTotal !== batchQtyNum)
+                // Variant totals must exactly match the batch qty for every batch
+                if (batchTotal !== batchQtyNum)
                     return `Batch ${i + 1}: distributed qty (${batchTotal}) must equal batch qty (${batchQtyNum})`;
             }
             if (Object.keys(variantErrors).length) {
@@ -743,18 +825,6 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                     {t('expiry_modal.question_no')}
                                 </button>
                             </div>
-                        </div>
-                    )}
-
-                    {/* State C: Variant-list loading spinner
-                        Shown after auto-detect confirms variants exist but before
-                        the /variants endpoint has returned. */}
-                    {optionsChecked && hasVariants === true && variantsLoading && (
-                        <div className="flex items-center justify-center py-4 gap-2">
-                            <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs font-bold text-[var(--muted-foreground)]">
-                                {t('expiry_modal.spinner_loading')}
-                            </span>
                         </div>
                     )}
 
@@ -1028,6 +1098,16 @@ onChange={e => {
                                 })}
                             </div>
 
+                            {/* State C: Variant-list loading spinner shown under the batch section */}
+                            {optionsChecked && hasVariants === true && variantsLoading && (
+                                <div className="flex items-center justify-center py-4 gap-2">
+                                    <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-xs font-bold text-[var(--muted-foreground)]">
+                                        {t('expiry_modal.spinner_loading')}
+                                    </span>
+                                </div>
+                            )}
+
                             {/* Inline error alert — summary / server errors displayed below the batch list */}
                             {error && (
                                 <div className="flex items-start gap-2 p-3 rounded-xl bg-[var(--status-expired-bg)] border border-[var(--status-expired-border)] text-[var(--status-expired-text)] text-[11px] font-bold">
@@ -1043,20 +1123,19 @@ onChange={e => {
                 <div className="p-5 border-t border-[var(--border)] bg-[var(--card)]">
                     <button
                         onClick={handleSave}
-                        disabled={isSaving || !optionsAnswered || batches.length === 0}
+                        disabled={isFormInvalid}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                            isSaving
-                                ? 'bg-[var(--primary)]/60 text-white cursor-wait'
-                                : !optionsAnswered || batches.length === 0
-                                    ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
-                                    : 'bg-[var(--primary)] text-white hover:opacity-90 active:scale-[0.98]'
+                            isFormInvalid
+                                ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
+                                : 'bg-[var(--primary)] text-white hover:opacity-90 active:scale-[0.98]'
                         }`}
                     >
                         {isSaving ? (
                             /* Spinner via pure CSS border animation — no external library needed */
                             <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> {t('expiry_modal.btn_saving')}</>
+                        ) : variantsLoading ? (
+                            <>{t('expiry_modal.btn_checking_options') || 'Checking options...'}</>
                         ) : (
-                            /* Label: Update (edit mode) vs Save (add mode) */
                             hasBatches ? t('expiry_modal.btn_update') : t('expiry_modal.btn_save')
                         )}
                     </button>

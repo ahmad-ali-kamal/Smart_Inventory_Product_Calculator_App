@@ -162,6 +162,7 @@
     "variant_stock_unlimited": "Unlimited",
     "variant_stock_label": "Stock:",
 
+    "btn_checking_options": "Checking product options...",
     "btn_saving": "Saving...",
     "btn_update": "Update Expiry Date",
     "btn_save": "Save Expiry Information",
