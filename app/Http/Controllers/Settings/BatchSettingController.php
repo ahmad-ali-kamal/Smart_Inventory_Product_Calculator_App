@@ -92,6 +92,7 @@ $dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
     });
 
     Cache::forget("harees_dashboard_{$merchant->id}");
+    Cache::forget("harees_dashboard_api_{$merchant->id}");
 
     // ✅ Non-Retroactive: عند تفعيل Auto Discount
     // نُشغل Job في الخلفية لتطبيق الخصم على الباتشات المعلقة فقط
@@ -117,6 +118,7 @@ $dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
         );
 
         Cache::forget("harees_dashboard_{$merchant->id}");
+        Cache::forget("harees_dashboard_api_{$merchant->id}");
 
         return back()->with('success', 'تمت إعادة الإعدادات للقيم الافتراضية.');
     }

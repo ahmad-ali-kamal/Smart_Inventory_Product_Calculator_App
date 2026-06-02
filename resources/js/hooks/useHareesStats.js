@@ -170,6 +170,8 @@ export function useHareesStats() {
 
         // Refetch: only the dashboard is wired to the "Retry" button because
         // it carries all the data the page primarily depends on.
-        refetch: dashboard.refetch,
+        refetch: async () => {
+            await Promise.all([dashboard.refetch(), settings.refetch()]);
+        },
     };
 }

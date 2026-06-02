@@ -132,7 +132,7 @@ class DiscountController extends Controller
 
             // ✅ استخدام salla_variant_id من BatchItem وليس من Batch
             $variantId = $batchItem?->salla_variant_id;
-            
+
             if (!$variantId) {
                 return response()->json([
                     'success' => false,
@@ -223,6 +223,7 @@ class DiscountController extends Controller
             );
 
             \Cache::forget("harees_dashboard_{$merchant->id}");
+            \Cache::forget("harees_dashboard_api_{$merchant->id}");
 
             return response()->json([
                 'success'        => true,

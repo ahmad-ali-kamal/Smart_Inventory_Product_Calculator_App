@@ -79,6 +79,7 @@
     "col_product": "المنتج",
     "col_status": "الحالة",
     "col_expiry_info": "معلومات الصلاحية",
+    "discount_status": "حالة الخصم",
     "col_actions": "الإجراءات",
     "empty_needs_setup": "أكمل الإعدادات لبدء مراقبة المنتجات.",
     "empty_no_items": "لا توجد عناصر مطابقة."
@@ -93,6 +94,10 @@
 
   "batch_row": {
     "no_batches": "لا توجد دُفعات متاحة.",
+    "pending": "قيد الانتظار",
+    "auto_discounted": "خصم تلقائي",
+    "manually_discounted": "خصم يدوي",
+    "manual_discount": "خصم يدوي",
     "auto_discount_badge": "خصم تلقائي",
     "auto_hidden_badge": "إخفاء تلقائي مفعّل",
     "auto_hide_disabled_badge": "الإخفاء التلقائي متوقف",

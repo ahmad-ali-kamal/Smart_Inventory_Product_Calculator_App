@@ -146,9 +146,10 @@ export default function MonitoredProductsTable({
                     <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
                         <tr className="text-[11px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
                             <th className="p-4 w-[25%]">{t('monitored_products_table.col_product')}</th>
-                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.col_status')}</th>
-                            <th className="p-4 text-center w-[30%]">{t('monitored_products_table.col_expiry_info')}</th>
-                            <th className="p-4 text-center w-[25%]">{t('monitored_products_table.col_actions')}</th>
+                            <th className="p-4 text-center w-[15%]">{t('monitored_products_table.col_status')}</th>
+                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.col_expiry_info')}</th>
+                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.discount_status')}</th>
+                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.col_actions')}</th>
                         </tr>
                     </thead>
 
@@ -156,14 +157,14 @@ export default function MonitoredProductsTable({
                         {needsSetup ? (
                             /* State 1: merchant hasn't configured thresholds yet */
                             <tr>
-                                <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
+                                <td colSpan="5" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
                                     {t('monitored_products_table.empty_needs_setup')}
                                 </td>
                             </tr>
                         ) : filteredProducts.length === 0 ? (
                             /* State 2: valid setup but the filter yields no results */
                             <tr>
-                                <td colSpan="4" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
+                                <td colSpan="5" className="p-10 text-center text-sm text-[var(--muted-foreground)]">
                                     {t('monitored_products_table.empty_no_items')}
                                 </td>
                             </tr>

@@ -77,6 +77,7 @@
     "col_product": "Product",
     "col_status": "Status",
     "col_expiry_info": "Expiry Info",
+    "discount_status": "Discount Status",
     "col_actions": "Actions",
     "empty_needs_setup": "Configure your settings to start monitoring products.",
     "empty_no_items": "No monitored items found."
@@ -91,6 +92,10 @@
 
   "batch_row": {
     "no_batches": "No batches available.",
+    "pending": "Pending",
+    "auto_discounted": "Auto Discounted",
+    "manually_discounted": "Manually Discounted",
+    "manual_discount": "Manual Discount",
     "auto_discount_badge": "Auto-Discount",
     "auto_hidden_badge": "Auto-hide enabled",
     "auto_hide_disabled_badge": "Auto-hide Disabled",

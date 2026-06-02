@@ -7,8 +7,8 @@
  * The row is interactive: clicking "View Batches" toggles an animated
  * accordion beneath the product row that mounts the BatchRow component.
  *
- * Layout (4-column table):
- *   [Product] [Status] [Expiry Info – batch count summary] [Actions]
+ * Layout (5-column table):
+ *   [Product] [Status] [Expiry Info – batch count summary] [Discount Status] [Actions]
  *
  * The Expiry Info cell at the product level shows a batch count chip
  * (e.g. "3 Batches") so the row is never visually empty while the
@@ -124,7 +124,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                 </td>
 
                 {/* Cell 2: Aggregate product status badge */}
-                <td className="py-3.5 px-4 text-center w-[20%]">
+                <td className="py-3.5 px-4 text-center w-[15%]">
                     <StatusBadge status={product.status} size="md" />
                 </td>
 
@@ -132,7 +132,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                     Shows how many batches belong to this product so the cell
                     is never empty while the accordion is collapsed.
                     Per-batch expiry dates appear inside the expanded accordion. */}
-                <td className="py-3.5 px-4 text-center w-[30%]">
+                <td className="py-3.5 px-4 text-center w-[20%]">
                     {(() => {
                         const count = (product.batches || []).length;
                         if (count === 0) return null;
@@ -144,8 +144,11 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                     })()}
                 </td>
 
-                {/* Cell 4: Toggle button to show/hide the batch accordion */}
-                <td className="py-3.5 px-4 w-[25%]">
+                {/* Cell 4: Discount status — populated per batch inside the accordion */}
+                <td className="py-3.5 px-4 w-[20%]" />
+
+                {/* Cell 5: Toggle button to show/hide the batch accordion */}
+                <td className="py-3.5 px-4 w-[20%]">
                     <div className="flex justify-center">
                         <RowActionButton
                             onClick={() => setShowBatches(!showBatches)}
@@ -175,7 +178,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                 so batches render immediately with no animation delay.
             ─────────────────────────────────────────────────────────────── */}
             <tr>
-                <td colSpan="4" className="p-0 border-none">
+                <td colSpan="5" className="p-0 border-none">
                     <div className={`grid transition-all duration-500 ease-in-out ${
                         batchesOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                     }`}>

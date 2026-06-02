@@ -508,11 +508,9 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             // أبلغ الـ parent فوراً — يُحدّث local state للمنتج
             onSave(product.id, { reset: true });
 
-            // invalidate الـ cache في React Query
-            // invalidateQueries وحده يعلّم المشترك النشط بأن البيانات قديمة
-            // ويُرسل refetch فوري لكل صفحة مفتوحة
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'products'],  refetchType: 'all' });
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'], refetchType: 'all' });
+            // invalidate React Query caches so dashboard re-fetches fresh data
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
 
             // أغلق المودال فوراً
             onClose();
