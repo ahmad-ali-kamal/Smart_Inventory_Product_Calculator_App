@@ -519,10 +519,8 @@ class ProductExpiryController extends Controller
 
                             if ($currentSku) {
                                 $sallaApi->updateBatchVariant($variantId, [
-                                    'sku'            => $currentSku,
-                                    'price'          => $currentPrice,
-                                    'stock_quantity' => $batchItemQty,
-                                    'sale_price'     => 0,
+                                    'price'      => $currentPrice,
+                                    'sale_price' => 0,
                                 ]);
                                 Log::info("[Cleanup] إزالة sale_price من variant {$variantId}");
                             }

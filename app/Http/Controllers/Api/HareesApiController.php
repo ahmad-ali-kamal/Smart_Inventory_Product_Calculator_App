@@ -12,6 +12,7 @@ use App\Models\CategoryMapping;
 use Illuminate\Http\Request;
 use App\Jobs\FetchProductsJob;
 use App\Jobs\CheckBatchExpiryJob;
+use App\Jobs\ApplyAutoDiscountToPendingBatches;
 use App\Services\SallaApiService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -712,6 +713,14 @@ class HareesApiController extends Controller
                     ]);
                 }
             }
+        }
+
+        // ✅ Non-Retroactive: عند تفعيل Auto Discount
+        // نُشغل Job في الخلفية لتطبيق الخصم على الباتشات المعلقة فقط
+        // هذا لا يؤثر على الباتشات التي تم خصمها سابقاً بأي شكل
+        if ($request->boolean('auto_discounts')) {
+            ApplyAutoDiscountToPendingBatches::dispatch($merchant->id)
+                ->onQueue('default');
         }
 
         return response()->json([

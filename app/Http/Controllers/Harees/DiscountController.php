@@ -172,12 +172,10 @@ class DiscountController extends Controller
                 'stock_quantity' => $batchItemQty,
             ]);
 
-            // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
+            // ✅ تحديث الـ Variant — updateBatchVariant يحافظ على المخزون الحالي
             $variantRes = $sallaApi->updateBatchVariant($variantId, [
-                'sku'            => $currentSku,
-                'price'          => $currentPrice,
-                'stock_quantity' => $batchItemQty,
-                'sale_price'     => $salePrice,
+                'price'      => $currentPrice,
+                'sale_price' => $salePrice,
             ]);
 
             if (!$variantRes) {
@@ -211,6 +209,10 @@ class DiscountController extends Controller
                 'status'              => 'active',
                 'created_by'         => auth()->id(),
             ]);
+
+            // ✅ تحديث discount_type → manually_discounted
+            // الخصم التلقائي لن يلمس هذا الباتش مستقبلاً
+            $batch->markAsManuallyDiscounted();
 
             ActivityLog::log(
                 $merchant->id,
@@ -287,12 +289,10 @@ class DiscountController extends Controller
                 continue; // تخطي إذا لا يوجد SKU
             }
 
-            // ✅ تحديث الـ Variant مع stock_quantity من BatchItem
+            // ✅ تحديث الـ Variant — updateBatchVariant يحافظ على المخزون الحالي
             $res = $sallaApi->updateBatchVariant($variantId, [
-                'sku'            => $currentSku,
-                'price'          => $currentPrice,
-                'stock_quantity' => $batchItemQty,
-                'sale_price'     => $salePrice,
+                'price'      => $currentPrice,
+                'sale_price' => $salePrice,
             ]);
 
             if ($res) {
@@ -309,6 +309,10 @@ class DiscountController extends Controller
                     'status'              => 'active',
                     'created_by'          => auth()->id(),
                 ]);
+
+                // ✅ Non-Retroactive: وضع علامة manual على الباتش
+                // الخصم التلقائي لن يلمس هذا الباتش مستقبلاً
+                $batch->markAsManuallyDiscounted();
                 $applied++;
             }
         }
@@ -351,15 +355,19 @@ class DiscountController extends Controller
 
                 if ($currentSku) {
                     $sallaApi->updateBatchVariant($variantId, [
-                        'sku'            => $currentSku,
-                        'price'          => $currentPrice,
-                        'stock_quantity' => $batchItemQty,
-                        'sale_price'     => 0,
+                        'price'      => $currentPrice,
+                        'sale_price' => 0,
                     ]);
                 }
             }
 
             $discount->cancel();
+
+            // ✅ Non-Retroactive: إعادة الحالة إلى pending بعد الإلغاء اليدوي
+            // حتى يتمكن الخصم التلقائي من إعادة تطبيقه إذا توفرت الشروط
+            if ($batch) {
+                $batch->markAsPending();
+            }
 
             if ($product) {
                 ActivityLog::log(
