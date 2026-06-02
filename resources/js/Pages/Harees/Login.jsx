@@ -46,13 +46,6 @@ const T = {
         appSub:     'إدارة المخزون الذكية',
         /** Longer descriptive paragraph about the app */
         appDesc:    'نظام متكامل لمتابعة تواريخ الصلاحية، يُنظّم مخزونك دفعةً بدفعة ويحمي أرباحك من الهدر.',
-        /** Bullet-point feature list displayed on the left panel */
-        features: [
-            'تتبع تواريخ الصلاحية دفعةً بدفعة',
-            'تنبيهات المنتجات قريبة الانتهاء',
-            ' تطبيق خصومات لتجنب الهدر',
-            'تكامل مباشر مع منصة سلة',
-        ],
         /** Numbered onboarding steps guiding new users through setup */
         steps: [
             { title: 'افتح متجرك في سلة',    sub: 'أنشئ حساب تاجر مجاني في منصة سلة' },
@@ -67,8 +60,6 @@ const T = {
         sallaBtn:  'دخول عبر سلة ←',
         /** Disclaimer note explaining Salla-only access */
         note:      'حريص متاح حصرياً لتجار سلة — ثبّت التطبيق من متجر سلة للحصول على حسابك',
-        /** Support contact label in the left-panel footer */
-        support:   'حريص / الدعم الفني',
         /** "Already have an account?" prompt */
         already:   'لديك حساب بالفعل؟',
         /** Inline login link label following the `already` prompt */
@@ -82,12 +73,6 @@ const T = {
         appName:    'Harees',
         appSub:     'Smart Inventory Management',
         appDesc:    'A complete expiry monitoring system that organizes your inventory batch by batch and protects your profits from waste.',
-        features: [
-            'Batch-by-batch expiry date tracking',
-            'Near-expiry product alerts',
-            'Discount application to minimize waste',
-            'Direct Salla platform integration',
-        ],
         steps: [
             { title: 'Open your Salla store',  sub: 'Create a free merchant account on Salla' },
             { title: 'Install Harees app',     sub: 'Search for "Harees" in the Salla App Market' },
@@ -97,7 +82,6 @@ const T = {
         loginSub:  'Access directly via your Salla account',
         sallaBtn:  'Continue with Salla →',
         note:      'Harees is exclusively available to Salla merchants — install from the Salla App Market to get your account',
-        support:   'Harees / Support',
         already:   'Already have an account?',
         loginLink: 'Log in',
     },

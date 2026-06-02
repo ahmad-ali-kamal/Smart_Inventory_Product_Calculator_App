@@ -46,13 +46,6 @@ const T = {
         appSub:     'دليلك الذكي لحساب الكميات بدقة',
         /** Longer descriptive paragraph about the app */
         appDesc:    'ودّع أخطاء القياس وهدر المخزون. المستشار يساعد عملائك على حساب احتياجهم الدقيق من (الأمتار، المساحات، أو القطع) بذكاء وسهولة، مباشرة من صفحة المنتج.',
-        /** Bullet-point feature list displayed on the left panel */
-        features: [
-            'حساب دقيق لاحتياج العميل بناءً على القياسات',
-            'تخصيص نسبة الهدر المناسبة لك',
-            'واجهة ذكية تندمج بتصميم متجرك',
-            'تحسين تجربة الشراء وتقليل استفسارات الدعم',
-        ],
         /** Numbered onboarding steps guiding new users through setup */
         steps: [
             { title: 'امتلك متجراً في سلة',     sub: 'تأكد من تفعيل متجرك على منصة سلة' },
@@ -67,8 +60,6 @@ const T = {
         sallaBtn:  'الدخول عبر سلة ←',
         /** Disclaimer note explaining Salla-only access */
         note:      'تطبيق المستشار مصمم خصيصاً لخدمة تجار سلة. تأكد من تثبيت التطبيق أولاً لتتمكن من الدخول.',
-        /** Support contact label in the left-panel footer */
-        support:   'مركز المساعدة والدعم الفني',
         /** "Already have an account?" prompt */
         already:   'لديك حساب بالفعل؟',
         /** Inline login link label following the `already` prompt */
@@ -82,12 +73,6 @@ const T = {
         appName:    'Mustashar',
         appSub:     'The Smart Quantity Guide for Your Store',
         appDesc:    'Say goodbye to measurement errors and stock waste. Mustashar helps your customers calculate exactly what they need (Meters, Areas, or Units) directly from the product page.',
-        features: [
-            'Precise quantity calculation based on customer input',
-            'Customizable waste percentage per product',
-            'Seamless UI snippet that matches your store identity',
-            'Enhanced shopping experience & fewer support inquiries',
-        ],
         steps: [
             { title: 'Have a Salla Store',  sub: 'Ensure your merchant account is active on Salla' },
             { title: 'Install Mustashar',   sub: 'Find us easily in the Salla App Store' },
@@ -97,7 +82,6 @@ const T = {
         loginSub:  'Fast and secure access via your Salla account',
         sallaBtn:  'Continue with Salla →',
         note:      'Mustashar is exclusively built for Salla merchants. Please install the app first to gain access.',
-        support:   'Help Center & Support',
         already:   'Already have an account?',
         loginLink: 'Log in',
     },

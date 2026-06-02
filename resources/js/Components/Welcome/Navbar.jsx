@@ -23,7 +23,7 @@ import { motion } from 'framer-motion';
 import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 
 /** Ordered list of in-page anchor targets, aligned with t.nav labels. */
-const NAV_ANCHORS = ['#features', '#platforms', '#stats'];
+const NAV_ANCHORS = ['#features', '#platforms'];
 
 /**
  * Navbar
@@ -49,6 +49,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
 
     /** Tracks the previous scroll Y position to determine scroll direction. */
     const lastY = useRef(0);
+    const navItems = t.nav ? t.nav.slice(0, 2) : [];
 
     useEffect(() => {
         /**
@@ -129,7 +130,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
                         direction: dir, // Respect locale direction inside the pill
                     }}
                 >
-                    {t.nav.map((item, i) => (
+                    {navItems.map((item, i) => (
                         <a
                             key={i}
                             href={NAV_ANCHORS[i]}
