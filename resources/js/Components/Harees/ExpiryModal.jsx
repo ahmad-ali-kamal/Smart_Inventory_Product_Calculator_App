@@ -170,16 +170,21 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
         // Load existing variant distribution for each batch (edit mode)
         const existingVariants = {};
+        const localVariantsData = product.variants_data || [];
         product.batches.forEach(b => {
             if (b.variants && b.variants.length > 0) {
-                existingVariants[b.id] = b.variants.map(v => ({
-                    batch_id: b.id,
-                    salla_variant_id: v.salla_variant_id,
-                    variant_quantity: String(v.variant_quantity ?? v.quantity ?? ''),
-                    name: v.name ?? '',
-                    stock_quantity: v.stock_quantity ?? 0,
-                    unlimited_quantity: v.unlimited_quantity ?? false,
-                }));
+                existingVariants[b.id] = b.variants.map(v => {
+                    // Lookup extra info from variants_data if API didn't include it
+                    const variantInfo = localVariantsData.find(lv => lv.id === v.salla_variant_id) || {};
+                    return {
+                        batch_id: b.id,
+                        salla_variant_id: v.salla_variant_id,
+                        variant_quantity: String(v.variant_quantity ?? v.quantity ?? ''),
+                        name: v.name || variantInfo.name || '',
+                        stock_quantity: v.stock_quantity ?? variantInfo.stock_quantity ?? 0,
+                        unlimited_quantity: v.unlimited_quantity ?? variantInfo.unlimited_quantity ?? false,
+                    };
+                });
             }
         });
         if (Object.keys(existingVariants).length > 0) {

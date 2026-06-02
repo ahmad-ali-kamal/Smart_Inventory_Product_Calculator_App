@@ -253,7 +253,7 @@ class FetchProductsJob implements ShouldQueue
             }
             
             // تجهيز الفاريينت بشكل مدمج مع كامل البيانات المطلوبة
-            $formattedVariants = array_map(function ($v) use ($valueNames) {
+            $formattedVariants = array_map(function ($v) use ($valueNames, $product) {
                 $optionNames = [];
                 foreach ($v['related_option_values'] ?? [] as $valueId) {
                     if (isset($valueNames[$valueId])) {
@@ -263,13 +263,19 @@ class FetchProductsJob implements ShouldQueue
                 
                 $displayName = implode(' - ', $optionNames);
                 if (empty($displayName)) {
-                    $displayName = $v['sku'] ?? 'فارينت ' . $v['id'];
+                    $displayName = $v['sku'] ?? '';
+                }
+                
+                $name = $v['name'] ?? $displayName;
+                
+                if (empty($name)) {
+                    Log::warning("[FetchVariants] No name found for variant ID {$v['id']} in product {$product->id}");
                 }
                 
                 return [
                     'id'                   => $v['id'],
                     'sku'                  => $v['sku'] ?? null,
-                    'name'                 => $v['name'] ?? $displayName,
+                    'name'                 => $name,
                     'price'                => (float) ($v['price']['amount'] ?? 0),
                     'sale_price'           => (float) ($v['sale_price']['amount'] ?? 0),
                     'stock_quantity'       => (int) ($v['stock_quantity'] ?? 0),
