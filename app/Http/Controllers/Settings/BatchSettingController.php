@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\BatchSetting;
 use App\Models\CategoryMapping;
+use App\Jobs\ApplyAutoDiscountToPendingBatches;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -91,6 +92,12 @@ $dataToSave['auto_discounts']       = $request->boolean('auto_discounts');
     });
 
     Cache::forget("harees_dashboard_{$merchant->id}");
+
+    // ✅ Non-Retroactive: عند تفعيل Auto Discount
+    // نُشغل Job في الخلفية لتطبيق الخصم على الباتشات المعلقة فقط
+    if ($request->boolean('auto_discounts')) {
+        ApplyAutoDiscountToPendingBatches::dispatch($merchant->id);
+    }
 
     return response()->json([
     'success' => true,

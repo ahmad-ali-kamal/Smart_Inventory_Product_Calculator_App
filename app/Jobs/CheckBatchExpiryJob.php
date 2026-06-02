@@ -241,65 +241,87 @@ class CheckBatchExpiryJob implements ShouldQueue
             return;
         }
 
-        Log::info("[Discount] 🟡 بدء تطبيق الخصومات على {$yellowBatches->count()} باتش");
+        Log::info("[Discount] 🟡 معالجة {$yellowBatches->count()} باتش (auto_discounts=" . ($settings->auto_discounts ? 'ON' : 'OFF') . ")");
 
         $yellowBatches->each(function ($batch) use ($sallaApi, $settings) {
             $this->applyDiscountToBatch($sallaApi, $batch, $settings);
         });
     }
 
-private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, BatchSetting $settings): void
+    /**
+     * تطبيق الخصم لكل باتش بناءً على discount_type و auto_discounts
+     *
+     * ─── Non-Retroactive Rules (قواعد عدم التأثير الرجعي) ──────────────
+     * manually_discounted → ممنوع اللمس بأي حال
+     * auto_discounted     → ممنوع إعادة التطبيق (Non-Retroactive)
+     * pending + ON        → طبق الخصم → auto_discounted
+     * pending + OFF       → لا شيء (يبقى pending)
+     */
+    private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, BatchSetting $settings): void
     {
         try {
-            // جلب الـ batch_items المرتبطة بالـ batch (من العلاقة المحملة مسبقاً أو جديد)
-            $batchItems = $batch->batchItems;
-            if ($batchItems->isEmpty()) {
-                $batchItems = $batch->batchItems()->get();
-            }
-            
-            // البحث عن variants مرتبطة في batch_items
-            $variantItems = $batchItems->filter(function($item) {
-                return $item->salla_variant_id && $item->salla_variant_id > 0;
-            });
-            
-            // حساب نسبة الخصم
-            $discountPercent = $this->calculateDiscountPercentage($batch, $settings);
-            
-            Log::info('[Discount] نسبة الخصم المحسوبة:', [
-                'batch_id'       => $batch->id,
-                'discount_pct'   => $discountPercent,
-                'has_variants'   => $variantItems->count() > 0,
-                'days_left'      => $batch->days_until_expiry,
-            ]);
-
-            // ✅ التحقق من وجود خصم يدوي مفعل قبل تطبيق الخصم التلقائي
-            if ($this->hasActiveManualDiscount($batch)) {
-                Log::info("[Discount]跳过 batch {$batch->id} - يوجد خصم يدوي مفعل");
+            // ─── قاعدة 1: الخصم اليدوي — ممنوع اللمس قطعياً ────────────
+            if ($batch->isManuallyDiscounted()) {
+                Log::info("[Discount] تخطي batch {$batch->id} — manually_discounted (ممنوع اللمس)");
                 return;
             }
 
-            if ($variantItems->count() > 0) {
-                // ─── حالة 1: يوجد variants مرتبطة ───
-                $this->applyDiscountToVariants($sallaApi, $batch, $variantItems, $discountPercent);
-            } else {
-                // ─── حالة 2: لا يوجد variants → تطبيق الخصم على المنتج ───
-                $this->applyDiscountToProduct($sallaApi, $batch, $discountPercent);
+            // ─── قاعدة 2: الخصم التلقائي السابق — Non-Retroactive ──────
+            if ($batch->isAutoDiscounted()) {
+                Log::info("[Discount] تخطي batch {$batch->id} — auto_discounted (Non-Retroactive)");
+                return;
+            }
+
+            // ─── قاعدة 3: pending + Auto Discount OFF → لا تفعل شيئاً ──
+            if ($batch->isPending() && !$settings->auto_discounts) {
+                Log::info("[Discount] تخطي batch {$batch->id} — pending + auto_discounts=OFF");
+                return;
+            }
+
+            // ─── قاعدة 4: pending + Auto Discount ON → طبق الخصم ──────
+            if ($batch->isPending() && $settings->auto_discounts) {
+                $this->executeDiscountAndMark($sallaApi, $batch, $settings);
             }
 
         } catch (\Exception $e) {
-            Log::error("[Discount] خطأ في تطبيق الخصم على الباتش {$batch->id}: " . $e->getMessage());
+            Log::error("[Discount] خطأ في الباتش {$batch->id}: " . $e->getMessage());
         }
     }
 
     /**
-     * التحقق من وجود خصم يدوي مفعل للباتش
-     * NOTE: Auto discounts don't create BatchDiscount records anymore
+     * تنفيذ الخصم وتحديث الحالة إلى auto_discounted
      */
-    private function hasActiveManualDiscount(Batch $batch): bool
+    private function executeDiscountAndMark(SallaApiService $sallaApi, Batch $batch, BatchSetting $settings): void
     {
-        return BatchDiscount::where('batch_id', $batch->id)
-            ->active()
-            ->exists();
+        $batchItems = $batch->batchItems;
+        if ($batchItems->isEmpty()) {
+            $batchItems = $batch->batchItems()->get();
+        }
+
+        $variantItems = $batchItems->filter(fn($item) => $item->salla_variant_id && $item->salla_variant_id > 0);
+        $discountPercent = $this->calculateDiscountPercentage($batch, $settings);
+
+        Log::info('[Discount] نسبة الخصم المحسوبة:', [
+            'batch_id'       => $batch->id,
+            'discount_pct'   => $discountPercent,
+            'has_variants'   => $variantItems->count() > 0,
+            'days_left'      => $batch->days_until_expiry,
+        ]);
+
+        if ($discountPercent <= 0) {
+            Log::info("[Discount] نسبة الخصم 0 للباتش {$batch->id} — تم التجاوز");
+            return;
+        }
+
+        if ($variantItems->count() > 0) {
+            $this->applyDiscountToVariants($sallaApi, $batch, $variantItems, $discountPercent);
+        } else {
+            $this->applyDiscountToProduct($sallaApi, $batch, $discountPercent);
+        }
+
+        // تحديث الحالة بعد تطبيق الخصم بنجاح
+        $batch->markAsAutoDiscounted();
+        Log::info("[Discount] ✅ الباتش {$batch->id} → auto_discounted");
     }
 
     /**
@@ -381,10 +403,8 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
                 // ─── إزالة الخصم ───
                 if ($discountPercent <= 0) {
                     $sallaApi->updateBatchVariant($variantId, [
-                        'sku'            => $currentSku,
-                        'price'          => $currentPrice,
-                        'stock_quantity' => $batchItemQuantity,
-                        'sale_price'     => 0,
+                        'price'      => $currentPrice,
+                        'sale_price' => 0,
                     ]);
                     continue;
                 }
@@ -397,10 +417,8 @@ private function applyDiscountToBatch(SallaApiService $sallaApi, Batch $batch, B
 
                 // ─── تطبيق الخصم ───
                 $sallaApi->updateBatchVariant($variantId, [
-                    'sku'            => $currentSku,
-                    'price'          => $currentPrice,
-                    'stock_quantity' => $batchItemQuantity,
-                    'sale_price'     => $salePrice,
+                    'price'      => $currentPrice,
+                    'sale_price' => $salePrice,
                 ]);
                 
                 $usedVariantIds[] = $variantId;

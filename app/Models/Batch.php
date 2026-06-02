@@ -17,6 +17,16 @@ class Batch extends Model
 
     public $afterCommit = true;
 
+    const DISCOUNT_PENDING         = 'pending';
+    const DISCOUNT_AUTO_DISCOUNTED  = 'auto_discounted';
+    const DISCOUNT_MANUALLY_DISCOUNTED = 'manually_discounted';
+
+    const VALID_DISCOUNT_TYPES = [
+        self::DISCOUNT_PENDING,
+        self::DISCOUNT_AUTO_DISCOUNTED,
+        self::DISCOUNT_MANUALLY_DISCOUNTED,
+    ];
+
     protected $fillable = [
         'merchant_id',
         'salla_variant_id',
@@ -27,12 +37,14 @@ class Batch extends Model
         'status',
         'days_until_expiry',
         'notes',
+        'discount_type',
     ];
 
     protected $casts = [
         'manufactured_date' => 'date',
         'expiry_date'       => 'date:Y-m-d',
         'days_until_expiry' => 'integer',
+        'discount_type'     => 'string',
     ];
 
     protected $appends = [
@@ -162,6 +174,53 @@ class Batch extends Model
     }
 
     // ====================================================================
+    // Discount Type Helpers
+    // ====================================================================
+
+    public function isPending(): bool
+    {
+        return $this->discount_type === self::DISCOUNT_PENDING;
+    }
+
+    public function isAutoDiscounted(): bool
+    {
+        return $this->discount_type === self::DISCOUNT_AUTO_DISCOUNTED;
+    }
+
+    public function isManuallyDiscounted(): bool
+    {
+        return $this->discount_type === self::DISCOUNT_MANUALLY_DISCOUNTED;
+    }
+
+    /**
+     * هل يمكن للخصم التلقائي التعديل على هذا الباتش؟
+     * فقط pending هي المؤهلة. auto_discounted ممنوع (Non-Retroactive),
+     * manually_discounted ممنوع تماماً.
+     */
+    public function canAutoDiscount(): bool
+    {
+        return $this->discount_type === self::DISCOUNT_PENDING;
+    }
+
+    public function markAsAutoDiscounted(): void
+    {
+        $this->discount_type = self::DISCOUNT_AUTO_DISCOUNTED;
+        $this->save();
+    }
+
+    public function markAsManuallyDiscounted(): void
+    {
+        $this->discount_type = self::DISCOUNT_MANUALLY_DISCOUNTED;
+        $this->save();
+    }
+
+    public function markAsPending(): void
+    {
+        $this->discount_type = self::DISCOUNT_PENDING;
+        $this->save();
+    }
+
+    // ====================================================================
     // Scopes
     // ====================================================================
 
@@ -183,6 +242,26 @@ class Batch extends Model
     public function scopeSafe($query)
     {
         return $query->where('status', 'green');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('discount_type', self::DISCOUNT_PENDING);
+    }
+
+    public function scopeAutoDiscounted($query)
+    {
+        return $query->where('discount_type', self::DISCOUNT_AUTO_DISCOUNTED);
+    }
+
+    public function scopeManuallyDiscounted($query)
+    {
+        return $query->where('discount_type', self::DISCOUNT_MANUALLY_DISCOUNTED);
+    }
+
+    public function scopeDiscountable($query)
+    {
+        return $query->where('discount_type', self::DISCOUNT_PENDING);
     }
 
     // ====================================================================

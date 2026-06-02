@@ -334,11 +334,17 @@ class SallaApiService
 /**
      * تحديث بيانات Variant موجود
      * PUT /products/variants/{variant}
-     * 
-     * عند إرسال sale_price فقط: لا نرسل price أو stock_quantity
-     * عند إرسال بيانات كاملة: نرسل everything
+     *
+     * ⚠️ الأهمية القصوى: نرسل ALL الحقول الموجودة حالياً من سلة
+     * حتى لا تقوم سلة بتصفير أي قيمة غير مرسلة (خاصة stock_quantity).
+     *
+     * الترتيب:
+     * 1. جلب بيانات الفاريينت الحالية من سلة
+     * 2. بناء payload يحتوي على جميع القيم الحالية
+     * 3. فقط override الحقول التي يريد المتصل تغييرها (sale_price, price)
+     * 4. تجاهل stock_quantity من المتصل — نستخدم المخزون الحالي من سلة
      */
-public function updateBatchVariant(string $variantId, array $data): array
+    public function updateBatchVariant(string $variantId, array $data): array
     {
         $variant = $this->getVariantDetails($variantId);
         $variantData = $variant['data'] ?? [];
@@ -347,21 +353,46 @@ public function updateBatchVariant(string $variantId, array $data): array
             throw new Exception("Variant {$variantId} غير موجود");
         }
 
-        $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
-        $currentSku = $variantData['sku'] ?? null;
+        // ── استخراج القيم الحالية من سلة ────────────────
+        $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
+        $currentSku     = $variantData['sku'] ?? null;
+        $currentStock   = (int) ($variantData['stock_quantity'] ?? 0);
+        $currentSale    = (float) ($variantData['sale_price']['amount'] ?? 0);
+        $currentBarcode = $variantData['barcode'] ?? null;
+        $currentCost    = $variantData['cost_price']['amount'] ?? $variantData['cost_price'] ?? null;
+        $currentWeight  = $variantData['weight'] ?? null;
+        $currentMpn     = $variantData['mpn'] ?? null;
+        $currentGtin    = $variantData['gtin'] ?? null;
 
+        // ── بناء payload كامل ──────────────────────────
+        // نستخدم القيم الحالية من سلة كـ default
+        // ونسمح للمتصل بتغيير price + sale_price فقط
         $payload = [
-            'price' => $data['price'] ?? $currentPrice,
+            'price'          => $data['price'] ?? $currentPrice,
+            'stock_quantity' => $currentStock,
+            'sale_price'     => $currentSale,
         ];
 
         if ($currentSku) {
             $payload['sku'] = $currentSku;
         }
-
-        if (array_key_exists('stock_quantity', $data)) {
-            $payload['stock_quantity'] = (int) $data['stock_quantity'];
+        if ($currentBarcode) {
+            $payload['barcode'] = $currentBarcode;
+        }
+        if ($currentCost !== null) {
+            $payload['cost_price'] = (float) $currentCost;
+        }
+        if ($currentWeight !== null) {
+            $payload['weight'] = (int) $currentWeight;
+        }
+        if ($currentMpn !== null) {
+            $payload['mpn'] = $currentMpn;
+        }
+        if ($currentGtin !== null) {
+            $payload['gtin'] = $currentGtin;
         }
 
+        // ── تطبيق sale_price المطلوب ──────────────────
         if (array_key_exists('sale_price', $data)) {
             $salePrice = $data['sale_price'];
             if ($salePrice === null || $salePrice === 0) {
@@ -373,15 +404,32 @@ public function updateBatchVariant(string $variantId, array $data): array
             }
         }
 
-        Log::info("[Salla FIX] تحديث variant {$variantId}", $payload);
+        Log::info('[SALLA VARIANT UPDATE]', [
+            'variant_id' => $variantId,
+            'payload'    => $payload,
+        ]);
 
         try {
-            return $this->request('put', "products/variants/{$variantId}", $payload);
+            $response = $this->request('put', "products/variants/{$variantId}", $payload);
+
+            Log::info('[SALLA VARIANT RESPONSE]', [
+                'variant_id' => $variantId,
+                'response'   => $response,
+            ]);
+
+            return $response;
         } catch (\Exception $e) {
             if (strpos($e->getMessage(), '422') !== false || strpos($e->getMessage(), 'invalid_fields') !== false) {
                 Log::warning('[Variant Update] SKU مكرر - إعادة المحاولة بدون SKU');
                 unset($payload['sku']);
-                return $this->request('put', "products/variants/{$variantId}", $payload);
+                $response = $this->request('put', "products/variants/{$variantId}", $payload);
+
+                Log::info('[SALLA VARIANT RESPONSE (no SKU)]', [
+                    'variant_id' => $variantId,
+                    'response'   => $response,
+                ]);
+
+                return $response;
             }
             throw $e;
         }
@@ -442,6 +490,9 @@ public function updateBatchVariant(string $variantId, array $data): array
     /**
      * تحديث سعر المنتج (للمنتجات بدون variants)
      * PUT /products/{product}
+     *
+     * ⚠️ نرسل price + sale_price فقط ولا نغير أي شيء آخر.
+     * API سلة تحافظ على بقية الحقول عند إرسال حقول محددة.
      */
     public function updateProductPrice(string $sallaProductId, float $price, ?float $salePrice = null): array
     {
@@ -453,7 +504,19 @@ public function updateBatchVariant(string $variantId, array $data): array
             $payload['sale_price'] = $salePrice;
         }
 
-        return $this->request('put', "products/{$sallaProductId}", $payload);
+        Log::info('[SALLA PRODUCT PRICE UPDATE]', [
+            'product_id' => $sallaProductId,
+            'payload'    => $payload,
+        ]);
+
+        $response = $this->request('put', "products/{$sallaProductId}", $payload);
+
+        Log::info('[SALLA PRODUCT PRICE RESPONSE]', [
+            'product_id' => $sallaProductId,
+            'response'   => $response,
+        ]);
+
+        return $response;
     }
 
     // ================================================================
