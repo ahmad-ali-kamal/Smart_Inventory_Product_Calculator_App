@@ -215,7 +215,7 @@ useEffect(() => {
                                         </div>
                                     </div>
                                     <div className="p-1">
-                                        <div className="flex items-center justify-between px-2 py-1.5 hover:bg-[var(--accent)] rounded-lg transition-colors group">
+                                        <div className="flex items-center justify-between px-2 py-1.5 rounded-lg">
                                             <div className="flex items-center gap-2">
                                                 <Globe className="w-3.5 h-3.5 opacity-60" />
                                                 <span className="text-[11px] font-medium">{t('header.user_menu.language')}</span>
