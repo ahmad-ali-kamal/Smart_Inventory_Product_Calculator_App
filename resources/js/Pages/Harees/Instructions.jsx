@@ -8,9 +8,9 @@ const CheckIcon = () => (
   </svg>
 );
 
-const BellIcon = () => (
+const PenIcon = () => (
   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
   </svg>
 );
 
@@ -37,7 +37,7 @@ function buildSteps(t) {
             title:         t('instructions.step2_title'),
             desc:          t('instructions.step2_desc'),
             badge:         t('instructions.step2_badge'),
-            badgeIcon:     <BellIcon />,
+            badgeIcon:     <PenIcon />,
             rotate:        "-rotate-12",
             counterRotate: "rotate-12",
             offset:        "md:ml-20",

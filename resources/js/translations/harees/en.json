@@ -25,21 +25,21 @@
 
   "instructions": {
     "app_name": "Harees",
-    "subtitle": "Three simple steps to get started",
-    "description": "Track product expiry dates intelligently. Set up categories once and let the system monitor everything and set your own discounts with one click, while the system auto-hides products when all its batches have fully expired.",
-    "footer_note": "Harees · All Channels · All Products",
+    "subtitle": "Your Quick Guide to Efficient Expiry Management",
+    "description": "An intelligent system that monitors your inventory step-by-step, alerts you before expiration, and secures your revenue through automated discounts and smart product visibility control.",
+    "footer_note": "Harees · Your smart partner against inventory waste",
 
-    "step1_title": "Classify Products",
-    "step1_desc": "Categorize your products: long-term, medium-term, or short-term.",
-    "step1_badge": "Organize products",
+    "step1_title": "1. Categorize Products & Set Monitoring Periods",
+    "step1_desc": "Move your store categories into Long, Medium, or Short-term sections based on product natural life, enabling the system to precisely track each category for its specific duration.",
+    "step1_badge": "Inventory Mapping & Categorization",
 
-    "step2_title": "Set Alert Period",
-    "step2_desc": "Define when you want to be notified before expiration.",
-    "step2_badge": "Notifications",
+    "step2_title": "2. Track Product Batches & Manage Product Options",
+    "step2_desc": "On the products page, click 'Add Expiry Date' to open the entry form. If stock is zero or product options like: colors and sizes are missing, a button will link you to Salla store dashboard to update them, to distribute your expiry dates.",
+    "step2_badge": "Batch & Stock Allocation",
 
-    "step3_title": "Auto-Hide & Discount",
-    "step3_desc": "Set custom discounts for products nearing expiry. The product will be hidden automatically only when all its batches have fully expired.",
-    "step3_badge": "Manage product expiry"
+    "step3_title": "3. Smart Automation Settings",
+    "step3_desc": "The system tracks batches and sends instant alerts for approaching and expired batches. Enable 'Auto-Discount' to instantly apply discounts for approaching batches; if disabled later, current active discounts remain until their set duration ends. A 'Manual Discount' button appears only if auto-discount is off, and disappears when active to prevent overlap. Finally, 'Auto-Hide' conceals the product from your store only when all its batches are fully expired, with all states cleanly tracked in the dashboard table.",
+    "step3_badge": "Automations & Notifications"
   },
 
   "setup_banner": {
@@ -185,7 +185,6 @@
     "card_title": "Expiry Alert Settings",
     "card_subtitle": "Set the remaining days to classify a batch under \"Yellow Status\" and receive an instant notification.",
     "card_hint": "Example: Mark the batch as Yellow Status and remind me [10] days before the expiration date.",
-     "short_term": "Short term",
     "short_term": "Short term",
     "medium_term": "Medium term",
     "long_term": "Long term",
