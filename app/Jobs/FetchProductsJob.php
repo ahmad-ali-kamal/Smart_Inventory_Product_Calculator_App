@@ -185,6 +185,15 @@ class FetchProductsJob implements ShouldQueue
 
     /**
      * مزامنة الفاريينت للمنتج وتخزينها
+     *
+     * ⚠️ Salla API لا ترجع اسم الفاريينت (name) في endpoint:
+     *    GET /products/{product}/variants
+     * لذلك نبني الاسم من:
+     *    - option values names (مثلاً "White / XL")
+     *    - fallback: SKU
+     *
+     * نستخدم getProductDetails التي ترجع الخيارات مع قيمها مباشرة
+     * بدلاً من استدعاء getOptionDetails لكل خيار (توفير API calls)
      */
     private function syncProductVariants(Product $product)
     {
@@ -192,12 +201,11 @@ class FetchProductsJob implements ShouldQueue
         
         try {
             $sallaApp = $this->resolveSallaApp();
-            
             if (!$sallaApp || empty($sallaApp->access_token)) return;
             
             $sallaApi = new SallaApiService($this->merchant);
             
-            // جلب الفاريينت
+            // ─── 1. جلب الفاريينت من سلة ──────────────────
             $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
             $variants = $variantsResponse['data'] ?? [];
             
@@ -206,54 +214,21 @@ class FetchProductsJob implements ShouldQueue
                 return;
             }
             
-            // نحتاج نجمع كل الـ option IDs من كل variants
-            $allOptionIds = [];
-            foreach ($variants as $v) {
-                foreach ($v['related_options'] ?? [] as $optId) {
-                    $allOptionIds[$optId] = true;
-                }
-            }
-            
-            // جلب الخيارات لأسماء القيم
+            // ─── 2. بناء خريطة value_id → value_name ─────
+            // من getProductDetails مباشرة (لا نحتاج getOptionDetails منفصل)
             $valueNames = [];
-            $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
-            $options = $optionsResponse['data'] ?? [];
+            $productDetail = $sallaApi->getProductDetails($product->salla_product_id);
+            $productOptions = $productDetail['data']['options'] ?? [];
             
-            // من product options
-            foreach ($options as $option) {
-                $optionId = $option['id'] ?? null;
-                if (!$optionId) continue;
-                
-                $optionDetails = $sallaApi->getOptionDetails($optionId);
-                $optionData = $optionDetails['data'] ?? null;
-                
-                if ($optionData && isset($optionData['values'])) {
-                    foreach ($optionData['values'] as $value) {
-                        $valueNames[$value['id']] = $value['name'];
-                    }
+            foreach ($productOptions as $option) {
+                foreach ($option['values'] ?? [] as $value) {
+                    $valueNames[$value['id']] = $value['name'];
                 }
             }
             
-            // من related_options في variants (إذا ما كانت موجودة)
-            foreach (array_keys($allOptionIds) as $optId) {
-                if (!isset($valueNames[$optId])) {
-                    try {
-                        $optionDetails = $sallaApi->getOptionDetails($optId);
-                        $optionData = $optionDetails['data'] ?? null;
-                        
-                        if ($optionData && isset($optionData['values'])) {
-                            foreach ($optionData['values'] as $value) {
-                                $valueNames[$value['id']] = $value['name'];
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        // تجاهل
-                    }
-                }
-            }
-            
-            // تجهيز الفاريينت بشكل مدمج مع كامل البيانات المطلوبة
-            $formattedVariants = array_map(function ($v) use ($valueNames, $product) {
+            // ─── 3. تجهيز كل فاريينت ─────────────────────
+            $formattedVariants = array_map(function ($v) use ($valueNames) {
+                // بناء الاسم من option values
                 $optionNames = [];
                 foreach ($v['related_option_values'] ?? [] as $valueId) {
                     if (isset($valueNames[$valueId])) {
@@ -261,15 +236,16 @@ class FetchProductsJob implements ShouldQueue
                     }
                 }
                 
-                $displayName = implode(' - ', $optionNames);
-                if (empty($displayName)) {
-                    $displayName = $v['sku'] ?? '';
-                }
-                
-                $name = $v['name'] ?? $displayName;
+                $builtName = implode(' / ', $optionNames);
+                $name = $builtName ?: ($v['sku'] ?? '');
                 
                 if (empty($name)) {
-                    Log::warning("[FetchVariants] No name found for variant ID {$v['id']} in product {$product->id}");
+                    Log::warning('[FetchVariants] لا يوجد اسم للفاريينت', [
+                        'variant_id'  => $v['id'],
+                        'product_id'  => $product->id,
+                        'sku'         => $v['sku'] ?? null,
+                        'option_ids'  => $v['related_option_values'] ?? [],
+                    ]);
                 }
                 
                 return [
@@ -287,7 +263,13 @@ class FetchProductsJob implements ShouldQueue
                 ];
             }, $variants);
             
-            // حفظ variants_data كـ JSON في قاعدة البيانات
+            Log::info('[VARIANTS BEFORE SAVE]', [
+                'product_id' => $product->id,
+                'salla_product_id' => $product->salla_product_id,
+                'variants'   => $formattedVariants,
+            ]);
+            
+            // ─── 4. حفظ في قاعدة البيانات ────────────────
             $product->variants_data = $formattedVariants;
             $product->save();
             

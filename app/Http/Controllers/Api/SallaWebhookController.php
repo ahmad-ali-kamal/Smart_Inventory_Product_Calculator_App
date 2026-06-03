@@ -467,15 +467,38 @@ class SallaWebhookController extends Controller
             if (empty($variants)) return;
 
             $totalStock = 0;
+            // بناء اسماء الفاريينت من option values
+            // لأن getProductVariants لا ترجع name
+            $valueNames = [];
+            try {
+                $productDetail = $sallaApi->getProductDetails($product->salla_product_id);
+                foreach ($productDetail['data']['options'] ?? [] as $option) {
+                    foreach ($option['values'] ?? [] as $value) {
+                        $valueNames[$value['id']] = $value['name'];
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('[Webhook] فشل جلب أسماء الخيارات', ['product' => $product->id]);
+            }
+
             $variantsData = [];
 
             foreach ($variants as $v) {
                 $stockQty = (int) ($v['stock_quantity'] ?? 0);
 
+                // بناء الاسم من option values
+                $optionParts = [];
+                foreach ($v['related_option_values'] ?? [] as $valueId) {
+                    if (isset($valueNames[$valueId])) {
+                        $optionParts[] = $valueNames[$valueId];
+                    }
+                }
+                $name = implode(' / ', $optionParts) ?: ($v['sku'] ?? '');
+
                 $variantsData[] = [
                     'id'                   => $v['id'],
                     'sku'                  => $v['sku'] ?? null,
-                    'name'                 => $v['name'] ?? 'Variant ' . $v['id'],
+                    'name'                 => $name,
                     'price'                => $v['price']['amount'] ?? 0,
                     'stock_quantity'       => $stockQty,
                     'unlimited_quantity'   => $v['unlimited_quantity'] ?? false,
@@ -544,10 +567,12 @@ class SallaWebhookController extends Controller
 
         foreach ($variantsData as $key => $variant) {
             if (($variant['id'] ?? null) == $variantId) {
+                $name = $data['name'] ?? $variant['name'] ?? $data['sku'] ?? $variant['sku'] ?? '';
+
                 $variantsData[$key] = array_merge($variant, [
                     'id'                 => $variantId,
                     'sku'                => $data['sku'] ?? $variant['sku'] ?? null,
-                    'name'               => $data['name'] ?? $variant['name'] ?? 'Variant ' . $variantId,
+                    'name'               => $name,
                     'price'              => $data['price']['amount'] ?? $variant['price'] ?? 0,
                     'stock_quantity'     => $data['stock_quantity'] ?? $variant['stock_quantity'] ?? 0,
                     'unlimited_quantity' => $data['unlimited_quantity'] ?? $variant['unlimited_quantity'] ?? false,
@@ -561,10 +586,12 @@ class SallaWebhookController extends Controller
         }
 
         if (!$found) {
+            $name = $data['name'] ?? $data['sku'] ?? '';
+
             $variantsData[] = [
                 'id'                   => $variantId,
                 'sku'                  => $data['sku'] ?? null,
-                'name'                 => $data['name'] ?? 'Variant ' . $variantId,
+                'name'                 => $name,
                 'price'                => $data['price']['amount'] ?? 0,
                 'stock_quantity'       => $data['stock_quantity'] ?? 0,
                 'unlimited_quantity'   => $data['unlimited_quantity'] ?? false,
@@ -652,7 +679,7 @@ class SallaWebhookController extends Controller
             $variantsData[] = [
                 'id'                   => $sku['id'] ?? null,
                 'sku'                  => $sku['sku'] ?? null,
-                'name'                 => $sku['name'] ?? 'Variant ' . ($sku['id'] ?? ''),
+                'name'                 => $sku['name'] ?? $sku['sku'] ?? '',
                 'price'                => $sku['price']['amount'] ?? 0,
                 'stock_quantity'       => $sku['stock_quantity'] ?? 0,
                 'unlimited_quantity'   => $sku['unlimited_quantity'] ?? false,

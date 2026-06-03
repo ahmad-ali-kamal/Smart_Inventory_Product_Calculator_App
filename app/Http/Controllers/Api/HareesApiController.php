@@ -203,7 +203,7 @@ class HareesApiController extends Controller
                                     'salla_variant_id'   => $item->salla_variant_id,
                                     'variant_quantity'   => $item->variant_quantity,
                                     'quantity'           => $item->quantity,
-                                    'name'               => $variantInfo['name'] ?? '',
+                                    'name'               => ($variantInfo['name'] ?? $variantInfo['sku'] ?? ''),
                                     'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
                                     'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
                                 ];
@@ -429,8 +429,15 @@ class HareesApiController extends Controller
                 ]);
             }
 
-            // تجهيز البيانات بالشكل الموحّد
-            $formattedVariants = $this->formatVariantsFromSalla($variants);
+            // تجهيز البيانات بالشكل الموحّد مع أسماء الفاريينت
+            $valueNames = $this->loadValueNamesFromProduct($sallaApi, $product->salla_product_id);
+            $formattedVariants = $this->formatVariantsFromSalla($variants, $valueNames);
+
+            Log::info('[VARIANTS BEFORE SAVE]', [
+                'product_id' => $product->id,
+                'salla_product_id' => $product->salla_product_id,
+                'variants'   => $formattedVariants,
+            ]);
 
             // حفظها محلياً للاستخدام المستقبلي
             $product->variants_data = $formattedVariants;
@@ -485,9 +492,10 @@ class HareesApiController extends Controller
             $variants = $variantsResponse['data'] ?? [];
             $hasVariants = count($variants) > 0;
 
-            // حفظ في local cache إذا وجدت
+            // حفظ في local cache إذا وجدت (مع أسماء الفاريينت)
             if ($hasVariants) {
-                $product->variants_data = $this->formatVariantsFromSalla($variants);
+                $valueNames = $this->loadValueNamesFromProduct($sallaApi, $product->salla_product_id);
+                $product->variants_data = $this->formatVariantsFromSalla($variants, $valueNames);
                 $product->save();
             }
 
@@ -540,7 +548,8 @@ class HareesApiController extends Controller
             $hasVariants = count($variants) > 0;
 
             if ($hasVariants) {
-                $product->variants_data = $this->formatVariantsFromSalla($variants);
+                $valueNames = $this->loadValueNamesFromProduct($sallaApi, $product->salla_product_id);
+                $product->variants_data = $this->formatVariantsFromSalla($variants, $valueNames);
                 $product->save();
             }
 
@@ -731,12 +740,30 @@ class HareesApiController extends Controller
 
     /**
      * تنسيق بيانات الفاريينت القادمة من سلة إلى الشكل الموحّد
-     * - الاسم: من API سلة → SKU → نص وصفي (بدون ID)
+     *
+     * ⚠️ مهم: API سلة لا ترجع اسم الفاريينت (name) في
+     *    GET /products/{product}/variants
+     * لذلك نبني الاسم من option value names (مثلاً "White / XL")
+     *
+     * @param array $variants    مصفوفة الفاريينت الخام من سلة
+     * @param array $valueNames  [value_id => value_name] اختياري
      */
-    private function formatVariantsFromSalla(array $variants): array
+    private function formatVariantsFromSalla(array $variants, array $valueNames = []): array
     {
-        return array_map(function ($v) {
-            $name = $v['name'] ?? null;
+        return array_map(function ($v) use ($valueNames) {
+            // بناء الاسم من option values (مثلاً "أبيض / XL")
+            if (!empty($valueNames)) {
+                $parts = [];
+                foreach ($v['related_option_values'] ?? [] as $valueId) {
+                    if (isset($valueNames[$valueId])) {
+                        $parts[] = $valueNames[$valueId];
+                    }
+                }
+                $name = implode(' / ', $parts);
+            } else {
+                $name = $v['name'] ?? null;
+            }
+
             if (!$name) {
                 $name = $v['sku'] ?? null;
             }
@@ -755,5 +782,29 @@ class HareesApiController extends Controller
                 'updated_at'           => now()->toISOString(),
             ];
         }, $variants);
+    }
+
+    /**
+     * بناء خريطة value_id → value_name من Product Details API
+     * GET /products/{product} ترجع الخيارات مع قيمها مباشرة
+     */
+    private function loadValueNamesFromProduct(SallaApiService $sallaApi, string $sallaProductId): array
+    {
+        $valueNames = [];
+        try {
+            $productDetail = $sallaApi->getProductDetails($sallaProductId);
+            $options = $productDetail['data']['options'] ?? [];
+            foreach ($options as $option) {
+                foreach ($option['values'] ?? [] as $value) {
+                    $valueNames[$value['id']] = $value['name'];
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('[loadValueNames] فشل جلب أسماء الخيارات', [
+                'product_id' => $sallaProductId,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+        return $valueNames;
     }
 }

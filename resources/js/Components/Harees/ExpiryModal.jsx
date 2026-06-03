@@ -1043,7 +1043,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                                 >
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className="text-xs font-bold text-[var(--foreground)] truncate">
-                                                                            {variant.name}
+                                                                            {variant.name || variant.sku || `(${variant.id})`}
                                                                         </p>
                                                                         <p className={`text-[9px] ${variant.unlimited_quantity ? 'text-[var(--status-safe-text)]' : 'text-[var(--muted-foreground)]'}`}>
                                                                             {t.variant_stock_label}{' '}
