@@ -20,6 +20,7 @@
 
 import { Zap, EyeOff, BadgePercent, Percent, Calendar } from 'lucide-react';
 import Card from '../../Common/UI/Card';
+import HintBox from './HintBox';
 import Toggle from '../../Common/Toggle';
 import { useTranslation } from 'react-i18next';
 
@@ -73,31 +74,32 @@ export default function AutomationCard({
     return (
         <Card className="p-5 space-y-1">
 
-            {/* ── Card header ───────────────────────────────────────────── */}
-            <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0">
-                    <Zap size={15} />
-                </div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">{t('automation_card.card_title')}</p>
-            </div>
-
             {/* ── Toggle rows ────────────────────────────────────────────── */}
             {getAutomationRows(t).map(({ key, icon, title, desc }) => (
                 <div key={key}>
 
                     {/* Toggle row — border-b removed on the last row via last:border-0 */}
-                    <div className="flex items-start justify-between gap-4 py-3 border-b border-[var(--border)] last:border-0">
-                        <div className="flex items-start gap-3">
-                            <span className="mt-0.5 text-[var(--muted-foreground)]">{icon}</span>
-                            <div>
-                                <p className="text-sm font-medium text-[var(--foreground)]">{title}</p>
-                                <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{desc}</p>
+                    <div className={`py-3 border-b border-[var(--border)] last:border-0`}>
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                                <span className="mt-0.5 text-[var(--muted-foreground)]">{icon}</span>
+                                <div>
+                                    <p className="text-sm font-medium text-[var(--foreground)]">{title}</p>
+                                    <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{desc}</p>
+                                </div>
                             </div>
+                            <Toggle
+                                checked={automation[key]}
+                                onChange={() => onToggle(key)}
+                            />
                         </div>
-                        <Toggle
-                            checked={automation[key]}
-                            onChange={() => onToggle(key)}
-                        />
+
+                        {/* Hint box — indented to align with title/desc text, matching icon width (w-8) + gap-3 */}
+                        {key === 'autoDiscount' && automation.autoDiscount && (
+                            <div className="mt-2">
+                                <HintBox message={t('automation_card.auto_discount_hint')} />
+                            </div>
+                        )}
                     </div>
 
                     {/* Discount config panel — only mounted when autoDiscount is on */}
@@ -130,6 +132,7 @@ export default function AutomationCard({
 function DiscountPanel({ discountConfig, errors, onInputChange, t }) {
     return (
         <div className="mx-1 mb-3 mt-1 p-4 rounded-2xl bg-[var(--muted)]/40 border border-[var(--primary)]/20 space-y-3">
+
             <div className="grid grid-cols-2 gap-3">
 
                 {/* ── Discount % ─────────────────────────────────────────── */}

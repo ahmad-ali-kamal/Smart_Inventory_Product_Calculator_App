@@ -18,6 +18,7 @@
 
 import { Settings2, AlertCircle } from 'lucide-react';
 import Card from '../../Common/UI/Card';
+import HintBox from './HintBox';
 import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
@@ -49,15 +50,18 @@ export default function ThresholdCard({ thresholds, errors, onInputChange }) {
         <Card className="p-5 space-y-4">
 
             {/* ── Card header ───────────────────────────────────────────── */}
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0">
+            <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0 mt-0.5">
                     <Settings2 size={15} />
                 </div>
-                <div>
+                <div className="space-y-1">
                     <p className="text-sm font-semibold text-[var(--foreground)]">{t('threshold_card.card_title')}</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">{t('threshold_card.card_subtitle')}</p>
+                    <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">{t('threshold_card.card_subtitle')}</p>
                 </div>
             </div>
+
+            {/* ── Validation hint — shared HintBox, consistent across cards ── */}
+            <HintBox message={t('threshold_card.card_hint')} />
 
             {/* ── Threshold fields ───────────────────────────────────────── */}
             <div className="grid grid-cols-3 gap-3">

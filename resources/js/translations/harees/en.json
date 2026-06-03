@@ -182,8 +182,10 @@
   },
 
   "threshold_card": {
-    "card_title": "Alert Thresholds",
-    "card_subtitle": "Set days before expiry (1 – 1095 days)",
+    "card_title": "Expiry Alert Settings",
+    "card_subtitle": "Set the remaining days to classify a batch under \"Yellow Status\" and receive an instant notification.",
+    "card_hint": "Example: Mark the batch as Yellow Status and remind me [10] days before the expiration date.",
+     "short_term": "Short term",
     "short_term": "Short term",
     "medium_term": "Medium term",
     "long_term": "Long term",
@@ -198,11 +200,12 @@
   },
 
   "automation_card": {
-    "card_title": "Automation",
-    "auto_hide_title": "Auto-Hide Expired",
-    "auto_hide_desc": "Hide products automatically when expired",
-    "auto_discount_title": "Auto Discounts",
-    "auto_discount_desc": "Apply discounts to Yellow-status products",
+    "card_title": "Smart Automation Settings",
+    "auto_hide_title": "Auto-Hide",
+    "auto_hide_desc": "Hide the product from your Salla store once all of its batches expire.",
+    "auto_discount_title": "Auto-Discounts",
+    "auto_discount_desc": "Apply an automatic discount to all batches nearing expiration",
+    "auto_discount_hint": "Note: If disabled later, active discounts on current batches will remain until the discount duration ends.",
     "discount_percent_label": "Discount %",
     "discount_duration_label": "Duration",
     "suffix_percent": "%",
@@ -216,7 +219,8 @@
   },
 
   "category_mapping_card": {
-    "card_title": "Category Mapping",
+    "card_title": "Organize Categories by Expiration",
+    "card_description": "Your store categories are ready. Move each into the correct section to start monitoring and tracking product expiry.",
     "bucket_drop_cta": "Drop here",
     "threshold_suffix": "d",
     "bucket_label_short": "Short-term",

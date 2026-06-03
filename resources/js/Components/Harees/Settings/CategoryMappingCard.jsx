@@ -130,11 +130,15 @@ export default function CategoryMappingCard({
         <Card className="p-5 space-y-4">
 
             {/* ── Card header ───────────────────────────────────────────── */}
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0">
+            <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0 mt-0.5">
                     <Tag size={15} />
                 </div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">{t('category_mapping_card.card_title')}</p>
+                <div className="space-y-1">
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{t('category_mapping_card.card_title')}</p>
+                    {/* Contextual description — helps merchants understand what to do before interacting */}
+                    <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">{t('category_mapping_card.card_description')}</p>
+                </div>
             </div>
 
             {/* ── Unassigned pool ────────────────────────────────────────── */}
