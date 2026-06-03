@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ApplyAutoDiscountToPendingBatches implements ShouldQueue
@@ -142,6 +143,9 @@ class ApplyAutoDiscountToPendingBatches implements ShouldQueue
             'skipped'     => $skipped,
             'failed'      => $failed,
         ]);
+
+        Cache::forget("harees_dashboard_{$this->merchantId}");
+        Cache::forget("harees_dashboard_api_{$this->merchantId}");
 
         // ─── تشغيل CheckBatchExpiryJob لمزامنة خيارات سلة ───
         // الـ Job هذا يقوم بإنشاء/تحديث خيار "بيانات الدفعة" لكل منتج

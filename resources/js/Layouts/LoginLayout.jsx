@@ -19,7 +19,6 @@ import { motion } from 'framer-motion';
 import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 import { useFonts }  from '@/Hooks/useFonts';
-import SplitText     from '@/Components/ui/SplitText';
 
 // ---------------------------------------------------------------------------
 // Static UI strings — not brand copy (that comes via `translations` prop).
@@ -53,7 +52,6 @@ const t = {
  * @param {string}  props.shadowColor         - RGB triplet string (no alpha) used to build
  *                                              `rgba()` shadows (e.g. `"141,130,255"`).
  * @param {string}  props.authHref            - OAuth redirect URL for the Salla CTA button.
- * @param {string}  [props.imageScale]        - Tailwind scale class applied to the hero
  *                                              image (default: `"scale-[1.25]"`).
  * @param {boolean} [props.showBackHome]      - When `true`, renders a "Back to Home" pill
  *                                              in the left-panel header; when `false` the
@@ -76,7 +74,6 @@ export default function LoginLayout({
     accentLight,
     shadowColor,
     authHref,
-    imageScale = 'scale-[1.25]',
     showBackHome = false,
     status,
     bgColor = '#F5F2FA',
@@ -112,16 +109,6 @@ export default function LoginLayout({
         hidden:  { opacity: 0, y: 32 },
         visible: { opacity: 1, y: 0,
             transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.18 } },
-    };
-
-    /**
-     * Hero image: fades in with a gentle upward drift and subtle scale,
-     * slightly delayed behind the text to create visual hierarchy.
-     */
-    const heroVariants = {
-        hidden:  { opacity: 0, y: 40, scale: 0.96 },
-        visible: { opacity: 1, y: 0,  scale: 1,
-            transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: 0.3 } },
     };
 
     /**
@@ -251,11 +238,13 @@ export default function LoginLayout({
                               interval in seconds.
                             */}
                             <h1
-                                className="text-white text-4xl md:text-5xl leading-tight mb-3 drop-shadow-sm"
-                                style={{ fontFamily: ff, fontWeight: 700 }}
+                            className="text-white text-4xl md:text-5xl leading-normal mb-3 drop-shadow-sm"
+                            style={{ fontFamily: ff, fontWeight: 700 }}
                             >
-                                <SplitText text={t.appName} wordDelay={0.06} />
-                            </h1>
+                            <span className="inline-block pb-4">
+                            {t.appName}
+                           </span>
+                           </h1>
 
                             {/* One-line value proposition */}
                             <p className="text-white/95 text-base md:text-lg mb-4" style={{ fontFamily: ff }}>
@@ -266,41 +255,22 @@ export default function LoginLayout({
                             <p className="text-white/90 text-sm leading-relaxed max-w-[410px] mb-5" style={{ fontFamily: ff }}>
                                 {t.appDesc}
                             </p>
-
-                            {/* Feature bullet list — dot marker uses a tiny white circle */}
-                            <div className="space-y-3">
-                                {t.features.map((feature, i) => (
-                                    <div key={i} className="flex items-center gap-3 text-white text-sm">
-                                        <div className="w-2 h-2 rounded-full bg-white/80 shrink-0" />
-                                        <span style={{ fontFamily: ff }}>{feature}</span>
-                                    </div>
-                                ))}
-                            </div>
                         </motion.div>
 
                         {/* Hero / product illustration */}
-                        <motion.div
-                            variants={heroVariants}
-                            initial="hidden"
-                            animate="visible"
-                            className="relative z-10 flex justify-center items-center flex-1 overflow-visible"
-                        >
-                            {/*
-                              `imageScale` is a Tailwind class (e.g. "scale-[1.15]") passed
-                              as a prop so each app can fine-tune its hero crop without
-                              changing shared layout code.
-                            */}
-                            <img
-                                src={imageSrc}
-                                alt={imageAlt ?? t.image_alt_fallback}
-                                loading="eager"
-                                fetchPriority="high"
-                                decoding="async"
-                                width="600"
-                                height="420"
-                                className={`login-visual w-full max-w-[480px] ${imageScale} object-contain drop-shadow-2xl`}
-                            />
-                        </motion.div>
+                       <div className="flex justify-center items-center flex-1 overflow-visible my-auto">
+                       <img
+                       src={imageSrc}
+                       alt={imageAlt ?? t.image_alt_fallback}
+                       loading="eager"
+                       fetchPriority="high"
+                       decoding="async"
+                       width="600"
+                       height="420"
+                       className="login-visual w-full max-w-[480px] object-contain drop-shadow-2xl"
+                       style={{ transform: 'none', animation: 'none', transition: 'none' }}
+                       />
+                      </div>
 
                         {/* Support / footer label at the bottom of the coloured panel */}
                         <div className="relative z-10 text-white/80 text-sm" style={{ fontFamily: ff }}>

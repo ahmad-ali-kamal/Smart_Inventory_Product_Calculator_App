@@ -21,22 +21,9 @@
  * toast.loading('Syncing…');
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "toast": { … })
-const t = {
-    /** Label shown above the toast message for success toasts */
-    toast_label_success: 'Success',
-    /** Label shown above the toast message for error toasts */
-    toast_label_error: 'Error',
-    /** Label shown above the toast message for loading toasts */
-    toast_label_loading: 'Processing',
-    /** Fallback body text when `toast.message` is not a plain string */
-    toast_fallback_message: 'Operation complete',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Toaster } from 'react-hot-toast';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CustomToast — individual toast renderer
@@ -56,6 +43,7 @@ import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
  * @returns {JSX.Element}
  */
 function CustomToast({ toast: t_toast }) {
+    const { t } = useTranslation('shared');
     // Derive variant flags from the toast type for clean conditional rendering
     const isSuccess = t_toast.type === 'success';
     const isError   = t_toast.type === 'error';
@@ -100,12 +88,17 @@ function CustomToast({ toast: t_toast }) {
             <div className="flex-1 min-w-0">
                 {/* Variant label (SUCCESS / ERROR / PROCESSING) */}
                 <p className="text-xs font-black uppercase tracking-widest text-[var(--muted-foreground)] mb-0.5">
-                    {isSuccess ? t.toast_label_success : isError ? t.toast_label_error : t.toast_label_loading}
+                    {isSuccess
+                        ? t('toast.toast_label_success')
+                        : isError
+                            ? t('toast.toast_label_error')
+                            : t('toast.toast_label_loading')
+                    }
                 </p>
 
                 {/* Main toast message — guarded against non-string values */}
                 <p className="text-sm font-medium text-[var(--foreground)] leading-snug">
-                    {typeof t_toast.message === 'string' ? t_toast.message : t.toast_fallback_message}
+                    {typeof t_toast.message === 'string' ? t_toast.message : t('toast.toast_fallback_message')}
                 </p>
             </div>
 

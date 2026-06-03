@@ -24,17 +24,10 @@
  * />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "dropdown_filter": { … })
-const t = {
-    /** Accessible label for the trigger button (used by screen readers) */
-    filter_button_label: 'Filter options',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useClickOutside } from '../../../Hooks/useClickOutside';
+import { useTranslation } from 'react-i18next';
 
 /**
  * DropdownFilter
@@ -51,6 +44,7 @@ import { useClickOutside } from '../../../Hooks/useClickOutside';
  * @returns {JSX.Element}
  */
 export default function DropdownFilter({ options, value, onChange, width = 'w-[115px]' }) {
+    const { t } = useTranslation('shared');
     /** Controls visibility of the options list */
     const [open, setOpen] = useState(false);
 
@@ -73,7 +67,7 @@ export default function DropdownFilter({ options, value, onChange, width = 'w-[1
                 onClick={() => setOpen(o => !o)}
                 aria-haspopup="listbox"
                 aria-expanded={open}
-                aria-label={t.filter_button_label}
+                aria-label={t('dropdown_filter.filter_button_label')}
                 className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all justify-between border ${width} ${
                     // Highlight with primary color when open OR when a non-default filter is active
                     open || isFiltering

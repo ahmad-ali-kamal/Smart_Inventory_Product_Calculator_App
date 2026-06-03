@@ -30,19 +30,8 @@
  * />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "error_state": { … })
-const t = {
-    /** Page heading shown above the error message */
-    heading: 'Unable to Load Products',
-    /** Fallback body text used when no `message` prop is provided */
-    default_message: "We're having trouble connecting to your store's catalog. Please check your connection and try again.",
-    /** Label for the retry action button */
-    cta_label: 'Try Again',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * ErrorState
@@ -56,6 +45,8 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
  * @returns {JSX.Element}
  */
 export default function ErrorState({ message, onRetry }) {
+    const { t } = useTranslation('shared');
+
     return (
         <div className="flex flex-col items-center justify-center py-32 px-6 text-center animate-in fade-in duration-500">
 
@@ -66,12 +57,12 @@ export default function ErrorState({ message, onRetry }) {
 
             {/* Heading */}
             <h3 className="text-xl font-bold text-[var(--foreground)] mb-2">
-                {t.heading}
+                {t('error_state.heading')}
             </h3>
 
             {/* Error message — uses prop value when provided, generic fallback otherwise */}
             <p className="text-[var(--muted-foreground)] max-w-sm mb-10 text-sm leading-relaxed">
-                {message || t.default_message}
+                {message || t('error_state.default_message')}
             </p>
 
             {/*
@@ -83,7 +74,7 @@ export default function ErrorState({ message, onRetry }) {
                 className="flex items-center gap-2 px-8 py-3 bg-[var(--foreground)] text-[var(--background)] rounded-full text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
             >
                 <RefreshCw className="w-4 h-4" />
-                {t.cta_label}
+                {t('error_state.cta_label')}
             </button>
         </div>
     );

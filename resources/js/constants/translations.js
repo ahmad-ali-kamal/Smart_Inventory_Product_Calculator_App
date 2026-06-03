@@ -1,6 +1,6 @@
 const T = {
     en: {
-        nav: ["Features", "Platforms", "Stats"],
+        nav: ["Features", "Platforms"],
         heroSub:
             "Welcome to Quantix.. Your Intelligent system for Salla management. Because successful come numbers, not expectations",
         exploreCta: "Explore more",
@@ -46,25 +46,14 @@ const T = {
             ],
             cta: "Explore Mustashar",
         },
-        footer: {
+       footer: {
             desc: "Your intelligent system for Salla management. Because successful commerce relies on numbers, not expectations.",
-            product: {
-                label: "PRODUCT",
-                links: ["Harees", "Mustashar", "Integrations", "Pricing"],
-            },
-            company: {
-                label: "COMPANY",
-                links: ["About", "Blog", "Careers", "Press Kit"],
-            },
-            support: {
-                label: "SUPPORT",
-                links: [
-                    "Documentation",
-                    "API Reference",
-                    "Contact Us",
-                    "Status",
-                ],
-            },
+            platformsLabel: "Digital Platforms",
+            hareesLink: "Harees ",
+            mustasharLink: "Mustashar ",
+            quickLinksLabel: "Discover More",
+            featuresLink: "Features",
+            platformsLink: " Apps",
             copyright: "All rights reserved to Quantix Digital Platform © 2026",
         },
         statusLabels: {
@@ -74,7 +63,7 @@ const T = {
         },
     },
     ar: {
-        nav: ["المميزات", "المنصات", "الإحصاء"],
+        nav: ["المميزات", "المنصات"],
         heroSub:
             "أهلاً بك في كوانتيكس.. نظامك الذكي لإدارة متجرك في سلة. لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.",
         exploreCta: "استكشف المزيد",
@@ -120,20 +109,14 @@ const T = {
             ],
             cta: "استكشف مستشار",
         },
-        footer: {
+       footer: {
             desc: "نظامك الذكي لإدارة متجرك في سلة. لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.",
-            product: {
-                label: "المنتجات",
-                links: ["حريص", "مستشار", "التكاملات", "الأسعار"],
-            },
-            company: {
-                label: "الشركة",
-                links: ["من نحن", "المدونة", "الوظائف", "الصحافة"],
-            },
-            support: {
-                label: "الدعم",
-                links: ["التوثيق", "مرجع API", "تواصل معنا", "الحالة"],
-            },
+            platformsLabel: "المنصات الرقمية",
+            hareesLink: " حريص",
+            mustasharLink: " المستشار",
+            quickLinksLabel: "اكتشف المزيد",
+            featuresLink: "المميزات",
+            platformsLink: " التطبيقات",
             copyright: "جميع الحقوق محفوظة لمنصة كوانتيكس الرقمية © 2026",
         },
         statusLabels: { safe: "آمن", approaching: "يقترب", expired: "منتهي" },

@@ -23,18 +23,7 @@
  * Used by: Dashboard, Products
  */
 
-// ── i18n strings ──────────────────────────────────────────────────────────────
-// Move to your translation JSON and replace with useTranslation() when ready.
-const t = {
-    col_product:       "Product",
-    col_category:      "Category",
-    col_unit_coverage: "Unit Coverage",
-    col_waste:         "Waste %",
-    col_status:        "Status",
-    col_active:        "Active",
-    col_preview:       "Preview",
-};
-
+import { useTranslation } from 'react-i18next';
 // ── Grid column definitions ───────────────────────────────────────────────────
 // Must stay in sync with the matching constants in ProductRow.jsx.
 // First column (220 px) is fixed-width for the product avatar + name;
@@ -53,6 +42,7 @@ const COLS_WITHOUT_PREVIEW = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr]";
  * @returns {JSX.Element}
  */
 export default function ProductTable({ children, showPreview = false }) {
+     const { t } = useTranslation('mustashar');
     return (
         <div className="w-full">
 
@@ -68,28 +58,28 @@ export default function ProductTable({ children, showPreview = false }) {
                 `}
             >
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-left">
-                    {t.col_product}
+                {t('product_table.col_product')}
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
-                    {t.col_category}
+                  {t('product_table.col_category')}
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
-                    {t.col_unit_coverage}
+                    {t('product_table.col_unit_coverage')}
                 </span>
                 {/* Waste % column — always visible regardless of showPreview */}
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
-                    {t.col_waste}
+                    {t('product_table.col_waste')}
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
-                    {t.col_status}
+                    {t('product_table.col_status')}
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
-                    {t.col_active}
+                    {t('product_table.col_active')}
                 </span>
                 {/* Preview column — Dashboard only */}
                 {showPreview && (
                     <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
-                        {t.col_preview}
+                        {t('product_table.col_preview')}
                     </span>
                 )}
             </div>

@@ -6,17 +6,19 @@
  * Renders the expandable batch list for a single product inside the
  * MonitoredProductsTable accordion.
  *
- * Each batch is shown as a horizontal flex row with four zones that
- * mirror the parent table's column widths (25 / 20 / 30 / 25 %).
+ * Each batch is shown as a horizontal flex row with five zones that
+ * mirror the parent table's column widths (25 / 15 / 20 / 20 / 20 %).
+ *
+ * Discount Status zone — localized badge driven by `discount_type`:
+ *   'pending' | 'auto_discounted' | 'manually_discounted'
  *
  * Actions zone — unified visual language (all items share the same pill shape,
  * height 28 px, rounded-full, same font size and padding; only colour/content
  * differs per status):
  *
- *   Approaching + autoDiscount ON  → pill  "{pct}% Auto-Discount"   (yellow palette)
- *   Approaching + autoDiscount OFF, no discount → pill-btn  "+ Add Discount"   (primary)
- *   Approaching + autoDiscount OFF, has discount →
- *       yellow pct pill  +  pill-btn  "✎ Edit Discount"  (primary)
+ *   Approaching + discount_type 'pending'           → pill-btn  "+ Add Discount"   (primary)
+ *   Approaching + discount_type 'auto_discounted'   → pill  "{pct}% Auto-Discount"   (yellow palette)
+ *   Approaching + discount_type 'manually_discounted' → pill  "{pct}% Manual Discount" (yellow palette)
  *   Expired + autoHide ON  → pill  "Auto-hide enabled"        (primary/purple palette — matches discount btn)
  *   Expired + autoHide OFF → pill  "Auto-hide Disabled" (muted/grey + opacity:0.65 — looks disabled)
  *   Safe        → centred "—" dash
@@ -26,28 +28,14 @@
  *  - Edit (update)     → "Discount updated successfully"
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-const t = {
-    no_batches:                'No batches available.',
-    auto_discount_badge:       'Auto-Discount',
-    auto_hidden_badge:         'Auto-hide enabled',
-    auto_hide_disabled_badge:  'Auto-hide Disabled',
-    btn_add_discount:          'Add Discount',
-    btn_edit_discount:         'Edit Discount',
-    btn_applying:              'Applying...',
-    toast_added:               'Discount applied successfully',
-    toast_updated:             'Discount updated successfully',
-    toast_error_fallback:      'An error occurred while applying the discount',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React, { useState } from 'react';
-import { Tag, Calendar, Loader2, Plus, Edit } from 'lucide-react';
+import { Tag, Calendar, Loader2, Plus } from 'lucide-react';
 import DiscountModal from '../DiscountModal';
 import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
 import { useApplyDiscount } from '../../../Hooks/useApplyDiscount';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 /**
  * hasExistingDiscount
@@ -124,6 +112,7 @@ const BTN_BASE = [
  * @returns {JSX.Element}
  */
 export default function BatchRow({ product, autoDiscount, autoDiscountPercent, autoHide }) {
+    const { t } = useTranslation('harees');
     /**
      * Tracks which batch has its DiscountModal open.
      * `null` means no modal is currently visible.
@@ -152,10 +141,10 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
     const handleApplyDiscount = async ({ batchId, discountPct, endDate, isEdit }) => {
         try {
             await mutateAsync({ batchId, discountPct, endDate });
-            toast.success(isEdit ? t.toast_updated : t.toast_added, { duration: 3000 });
+            toast.success(isEdit ? t('batch_row.toast_updated') : t('batch_row.toast_added'), { duration: 3000 });
             setSelectedBatch(null);
         } catch (error) {
-            toast.error(error.message || t.toast_error_fallback, { duration: 4000 });
+            toast.error(error.message || t('batch_row.toast_error_fallback'), { duration: 4000 });
         }
     };
 
@@ -165,7 +154,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
     if (productBatches.length === 0) {
         return (
             <div className="py-4 px-6 text-[11px] text-[var(--muted-foreground)] text-center">
-                {t.no_batches}
+                {t('batch_row.no_batches')}
             </div>
         );
     }
@@ -188,6 +177,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                  */
                 const hasDiscount = hasExistingDiscount(batch);
                 const existingPct = getDiscountPct(batch);
+                const discountType = batch.discount_type;
 
                 // Normalise status for reliable comparisons.
                 const batchStatus   = batch.status?.toLowerCase();
@@ -220,32 +210,63 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                             </div>
                         </div>
 
-                        {/* Zone 2 (20%): Batch-level status badge */}
-                        <div className="w-[20%] py-3.5 px-4 flex justify-center">
+                        {/* Zone 2 (15%): Batch-level status badge */}
+                        <div className="w-[15%] py-3.5 px-4 flex justify-center">
                             <StatusBadge status={batch.status} size="md" />
                         </div>
 
-                        {/* Zone 3 (30%): Human-readable expiry date */}
-                        <div className="w-[30%] py-3.5 px-4 flex justify-center">
+                        {/* Zone 3 (20%): Human-readable expiry date */}
+                        <div className="w-[20%] py-3.5 px-4 flex justify-center">
                             <span className="text-[12px] font-bold flex items-center gap-1.5 text-[var(--foreground)]">
                                 <Calendar size={11} className="opacity-50" />
                                 {expiryDate}
                             </span>
                         </div>
 
-                        {/* ── Zone 4 (25%): Actions ──────────────────────────────────────────
+                        {/* ── Zone 4 (20%): Discount Status ─────────────────────────────────
+                            Displays the persisted `discount_type` from the backend.
+                        ─────────────────────────────────────────────────────────────────── */}
+                        <div className="w-[20%] py-3.5 px-4 flex justify-center">
+                            {discountType && (
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color:       'var(--muted-foreground)',
+                                        background:  'color-mix(in srgb, var(--muted-foreground) 6%, transparent)',
+                                        borderColor: 'color-mix(in srgb, var(--muted-foreground) 18%, transparent)',
+                                    }}
+                                >
+                                    {t(`batch_row.${discountType}`)}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* ── Zone 5 (20%): Actions ──────────────────────────────────────────
                             Design rule: every element in this column uses PILL_BASE or BTN_BASE
                             so height, border-radius, font, and padding are always identical.
                             Only colour tokens and content text differ between states.
                         ─────────────────────────────────────────────────────────────────── */}
-                        <div className="w-[25%] py-3.5 px-4 flex justify-center items-center gap-2">
+                        <div className="w-[20%] py-3.5 px-4 flex justify-center items-center gap-2">
 
-                            {isApproaching ? (
-                                autoDiscount ? (
+                            {isApproaching && batch.discount_type === 'pending' && (
+                                    <button
+                                        onClick={() => setSelectedBatch(batch)}
+                                        disabled={isPending}
+                                        className={`${BTN_BASE} border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]`}
+                                    >
+                                        {isThisBatchLoading ? (
+                                            <Loader2 size={10} className="animate-spin" aria-hidden="true" />
+                                        ) : (
+                                            <Plus size={10} aria-hidden="true" />
+                                        )}
+                                        {isThisBatchLoading
+                                            ? t('batch_row.btn_applying')
+                                            : t('batch_row.btn_add_discount')
+                                        }
+                                    </button>
+                            )}
 
-                                    /* ── Approaching + Auto-discount ON ──────────────────────────
-                                       Informational pill — yellow palette, no interaction.
-                                    ─────────────────────────────────────────────────────────── */
+                            {isApproaching && batch.discount_type === 'auto_discounted' && (
                                     <span
                                         className={PILL_BASE}
                                         style={{
@@ -255,53 +276,25 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                         }}
                                     >
                                         <Tag size={10} aria-hidden="true" />
-                                        {autoDiscountPercent}% {t.auto_discount_badge}
+                                        {autoDiscountPercent}% {t('batch_row.auto_discount_badge')}
                                     </span>
+                            )}
 
-                                ) : (
+                            {isApproaching && batch.discount_type === 'manually_discounted' && (
+                                    <span
+                                        className={PILL_BASE}
+                                        style={{
+                                            color:       'var(--status-approaching-text)',
+                                            background:  'var(--status-approaching-bg)',
+                                            borderColor: 'var(--status-approaching-border)',
+                                        }}
+                                    >
+                                        <Tag size={10} aria-hidden="true" />
+                                        {existingPct}% {t('batch_row.manual_discount')}
+                                    </span>
+                            )}
 
-                                    /* ── Approaching + Auto-discount OFF ─────────────────────────
-                                       Optional yellow pct pill (when discount exists) + action btn.
-                                       Both share PILL_BASE/BTN_BASE so they sit on the same baseline.
-                                    ─────────────────────────────────────────────────────────── */
-                                    <>
-                                        {hasDiscount && (
-                                            <span
-                                                className={`${PILL_BASE} !min-w-0 !px-2.5`}
-                                                style={{
-                                                    color:       'var(--status-approaching-text)',
-                                                    background:  'var(--status-approaching-bg)',
-                                                    borderColor: 'var(--status-approaching-border)',
-                                                }}
-                                            >
-                                                <Tag size={9} aria-hidden="true" />
-                                                {existingPct}%
-                                            </span>
-                                        )}
-
-                                        <button
-                                            onClick={() => setSelectedBatch(batch)}
-                                            disabled={isPending}
-                                            className={`${BTN_BASE} border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]`}
-                                        >
-                                            {isThisBatchLoading ? (
-                                                <Loader2 size={10} className="animate-spin" aria-hidden="true" />
-                                            ) : hasDiscount ? (
-                                                <Edit size={10} aria-hidden="true" />
-                                            ) : (
-                                                <Plus size={10} aria-hidden="true" />
-                                            )}
-                                            {isThisBatchLoading
-                                                ? t.btn_applying
-                                                : hasDiscount
-                                                    ? t.btn_edit_discount
-                                                    : t.btn_add_discount
-                                            }
-                                        </button>
-                                    </>
-                                )
-
-                            ) : isExpired ? (
+                            {!isApproaching && isExpired ? (
                                 autoHide ? (
 
                                     /* ── Expired + Auto-hide ON ───────────────────────────────────
@@ -317,7 +310,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                             borderColor: 'color-mix(in srgb, var(--primary) 20%, transparent)',
                                         }}
                                     >
-                                        {t.auto_hidden_badge}
+                                        {t('batch_row.auto_hidden_badge')}
                                     </span>
 
                                 ) : (
@@ -335,20 +328,17 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                             opacity:     0.65,
                                         }}
                                     >
-                                        {t.auto_hide_disabled_badge}
+                                        {t('batch_row.auto_hide_disabled_badge')}
                                     </span>
                                 )
 
-                            ) : isSafe ? (
+                            ) : !isApproaching && isSafe ? (
 
-                                /* ── Safe (green) batches ─────────────────────────────────────
-                                   Em-dash centred; no interaction needed.
-                                ─────────────────────────────────────────────────────────── */
                                 <span className="text-[var(--muted-foreground)] text-sm font-medium select-none">
                                     —
                                 </span>
 
-                            ) : null /* Unknown / future status — render nothing */}
+                            ) : null}
 
                         </div>
                     </div>

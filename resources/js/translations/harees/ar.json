@@ -1,0 +1,233 @@
+{
+  "_meta": {
+    "app": "harees",
+    "locale": "ar",
+    "dir": "rtl",
+    "font": "Almarai"
+  },
+
+  "dashboard": {
+    "stat_expired_label": "منتهي الصلاحية",
+    "stat_expired_sub": "يتطلب إجراءً فورياً",
+    "stat_approaching_label": "قريب من الانتهاء",
+    "stat_approaching_sub": "تحت المراقبة الدقيقة",
+    "stat_safe_label": "سليم",
+    "stat_safe_sub": "مخزون مستقر",
+    "setup_banner_description": "أعدّ حدود انتهاء الصلاحية أولاً حتى يمكن تتبع المنتجات والدُّفعات."
+  },
+
+  "products": {
+    "setup_banner_description": "أعدّ حدود انتهاء الصلاحية أولاً حتى يمكن تتبع المنتجات والدُّفعات.",
+    "toolbar_banner": "أضف تواريخ انتهاء الصلاحية لتتبع الحداثة وتجنب الهدر، ثم انقر على «الدُّفعة» لمراجعة تفاصيل كل دفعة والمخزون المتبقي.",
+    "filter_all": "الكل",
+    "filter_short": "قصير المدى",
+    "filter_medium": "متوسط المدى",
+    "filter_long": "طويل المدى"
+  },
+
+  "instructions": {
+    "app_name": "حريص",
+    "subtitle": "ثلاث خطوات بسيطة للبدء",
+    "description": "تتبع تواريخ انتهاء صلاحية المنتجات بذكاء. أعدّ الفئات مرة واحدة ودع النظام يراقب كل شيء، وحدّد خصوماتك بنقرة واحدة بينما يُخفي النظام المنتجات تلقائياً عند انتهاء صلاحية جميع دُفعاتها.",
+    "footer_note": "حريص · جميع القنوات · جميع المنتجات",
+
+    "step1_title": "تصنيف المنتجات",
+    "step1_desc": "صنّف منتجاتك: طويل الأمد، متوسط الأمد، أو قصير الأمد.",
+    "step1_badge": "تنظيم المنتجات",
+
+    "step2_title": "تحديد فترة التنبيه",
+    "step2_desc": "حدّد متى تريد أن تُنبَّه قبل انتهاء الصلاحية.",
+    "step2_badge": "الإشعارات",
+
+    "step3_title": "الإخفاء والخصم التلقائي",
+    "step3_desc": "عيّن خصومات مخصصة للمنتجات المقتربة من الانتهاء. يُخفى المنتج تلقائياً فقط عند انتهاء صلاحية جميع دُفعاته.",
+    "step3_badge": "إدارة انتهاء صلاحية المنتجات"
+  },
+
+  "setup_banner": {
+    "default_description": "أعدّ حدود انتهاء الصلاحية أولاً حتى يمكن تتبع المنتجات والدُّفعات."
+  },
+
+  "inventory_table": {
+    "col_product": "المنتج",
+    "col_category": "الفئة",
+    "col_status": "الحالة",
+    "col_qty": "الكمية",
+    "col_expiry_info": "معلومات الصلاحية",
+    "col_action": "الإجراء",
+    "empty_message": "لا توجد منتجات."
+  },
+
+  "inventory_product_row": {
+    "btn_hide_batches": "الدُّفعات",
+    "btn_no_batches": "-",
+    "btn_batch_singular": "دفعة",
+    "btn_batch_plural": "دُفعات",
+    "btn_edit_expiry": "تعديل تاريخ الصلاحية",
+    "btn_add_expiry": "إضافة تاريخ صلاحية",
+    "batch_label": "الدُّفعة:",
+    "stock_unlimited": "غير محدود",
+    "stock_label": "المخزون:"
+  },
+
+  "monitored_products_table": {
+    "panel_title": "المنتجات المُراقبة",
+    "filter_all": "الكل",
+    "filter_expired": "منتهي",
+    "filter_approaching": "قريب من الانتهاء",
+    "filter_safe": "سليم",
+    "col_product": "المنتج",
+    "col_status": "الحالة",
+    "col_expiry_info": "معلومات الصلاحية",
+    "discount_status": "حالة الخصم",
+    "col_actions": "الإجراءات",
+    "empty_needs_setup": "أكمل الإعدادات لبدء مراقبة المنتجات.",
+    "empty_no_items": "لا توجد عناصر مطابقة."
+  },
+
+  "dashboard_product_row": {
+    "btn_view_batches": "عرض الدُّفعات",
+    "btn_hide_batches": "إخفاء الدُّفعات",
+    "batch_count_one": "دفعة واحدة",
+    "batch_count_other": "{{count}} دُفعات"
+  },
+
+  "batch_row": {
+    "no_batches": "لا توجد دُفعات متاحة.",
+    "pending": "قيد الانتظار",
+    "auto_discounted": "خصم تلقائي",
+    "manually_discounted": "خصم يدوي",
+    "manual_discount": "خصم يدوي",
+    "auto_discount_badge": "خصم تلقائي",
+    "auto_hidden_badge": "إخفاء تلقائي مفعّل",
+    "auto_hide_disabled_badge": "الإخفاء التلقائي متوقف",
+    "btn_add_discount": "إضافة خصم",
+    "btn_edit_discount": "تعديل الخصم",
+    "btn_applying": "جارٍ التطبيق...",
+    "toast_added": "تم تطبيق الخصم بنجاح",
+    "toast_updated": "تم تحديث الخصم بنجاح",
+    "toast_error_fallback": "حدث خطأ أثناء تطبيق الخصم"
+  },
+
+  "discount_modal": {
+    "modal_title_add": "تطبيق خصم",
+    "modal_title_edit": "تعديل الخصم",
+    "note_title": "ملاحظة:",
+    "note_body": "تُطبَّق الخصومات فقط على الدُّفعات ذات الحالة الصفراء. المخزون الأخضر محمي دائماً.",
+    "section_title": "إعداد يدوي",
+    "label_discount_pct": "نسبة الخصم",
+    "label_end_date": "تاريخ الانتهاء",
+    "btn_add_apply": "تطبيق الخصم",
+    "btn_edit_apply": "تحديث الخصم",
+    "btn_applying": "جارٍ التطبيق…",
+    "btn_applied": "تم التطبيق بنجاح",
+    "btn_updated": "تم التحديث بنجاح",
+    "err_required": "مطلوب",
+    "err_pct_range": "يجب أن تكون بين 1 و 99",
+    "err_date_future": "يجب أن يكون تاريخاً مستقبلياً",
+    "err_generic": "حدث خطأ. حاول مرة أخرى."
+  },
+
+  "expiry_modal": {
+    "zero_title": "إضافة تاريخ صلاحية",
+    "zero_no_stock_title": "لا توجد كمية متاحة",
+    "zero_no_stock_body": "لإنشاء دُفعات صلاحية، يجب توفر مخزون للمنتج. أضف الكمية في سلة أولاً، ثم ارجع لتحديد تواريخ الصلاحية.",
+    "zero_go_to_salla": "الذهاب إلى سلة لإضافة الكمية",
+    "zero_close": "إغلاق",
+
+    "modal_title_edit": "تعديل تاريخ الصلاحية",
+    "modal_title_add": "إضافة تاريخ صلاحية",
+
+    "spinner_checking": "جارٍ التحقق من خيارات المنتج...",
+    "spinner_loading": "جارٍ تحميل خيارات المنتج...",
+
+    "question_title": "هل لدى هذا المنتج خيارات؟",
+    "question_subtitle": "مثل المقاس أو اللون أو أي خيار آخر — سيتم تقسيم الكمية حسب الخيار.",
+    "question_yes": "نعم — أضف الخيارات في سلة أولاً",
+    "question_no": "لا — منتج واحد",
+
+    "stock_label": "المخزون المتاح",
+    "stock_unit": "وحدة",
+
+    "progress_exceeded": "⚠ تجاوزت بـ",
+    "progress_distributed": "✓ تم توزيع الكمية بالكامل",
+    "progress_remaining": "وحدة متبقية",
+
+    "section_title": "دُفعات متعددة",
+    "btn_clear_all": "مسح الكل",
+    "btn_clearing": "جارٍ المسح...",
+    "btn_add_batch": "إضافة دفعة",
+    "batch_label": "الدُّفعة",
+
+    "field_quantity": "الكمية",
+    "field_expiry_date": "تاريخ الصلاحية",
+
+    "err_date_past": "التاريخ في الماضي",
+    "err_date_required": "مطلوب",
+
+    "variant_panel_prefix": "توزيع الخيارات — الدُّفعة",
+    "variant_stock_unlimited": "غير محدود",
+    "variant_stock_label": "المخزون:",
+
+    "btn_checking_options": "جارٍ التحقق من الخيارات...",
+    "btn_saving": "جارٍ الحفظ...",
+    "btn_update": "تحديث تاريخ الصلاحية",
+    "btn_save": "حفظ بيانات الصلاحية",
+
+    "toast_deleted": "تم حذف جميع الدُّفعات بنجاح",
+    "toast_updated": "تم تحديث بيانات الصلاحية بنجاح",
+    "toast_added": "تمت إضافة بيانات الصلاحية بنجاح",
+
+    "err_delete_failed": "فشل حذف الدُّفعات",
+    "err_connection": "فشل الاتصال",
+    "err_save_failed": "حدث خطأ أثناء الحفظ"
+  },
+
+  "threshold_card": {
+    "card_title": "حدود التنبيه",
+    "card_subtitle": "حدد الأيام قبل انتهاء الصلاحية (1 – 1095 يوم)",
+    "short_term": "قصير المدى",
+    "medium_term": "متوسط المدى",
+    "long_term": "طويل المدى",
+    "field_suffix": "يوم",
+    "label_suffix": ""
+  },
+
+  "status_badge": {
+    "expired": "منتهي الصلاحية",
+    "approaching": "قريب الانتهاء",
+    "safe": "آمن"
+  },
+
+  "automation_card": {
+    "card_title": "الأتمتة",
+    "auto_hide_title": "إخفاء تلقائي عند الانتهاء",
+    "auto_hide_desc": "يخفي المنتجات تلقائياً عند انتهاء صلاحيتها",
+    "auto_discount_title": "خصومات تلقائية",
+    "auto_discount_desc": "يطبّق خصومات على المنتجات ذات الحالة الصفراء",
+    "discount_percent_label": "نسبة الخصم",
+    "discount_duration_label": "المدة",
+    "suffix_percent": "%",
+    "suffix_days": "يوم"
+  },
+
+  "save_button": {
+    "label_saved": "تم الحفظ بنجاح!",
+    "label_saving": "جارٍ الحفظ...",
+    "label_save": "حفظ جميع الإعدادات"
+  },
+
+  "category_mapping_card": {
+    "card_title": "تعيين الفئات",
+    "bucket_drop_cta": "اسحب هنا",
+    "threshold_suffix": "ي",
+    "bucket_label_short": "قصير المدى",
+    "bucket_label_medium": "متوسط المدى",
+    "bucket_label_long": "طويل المدى"
+  },
+
+  "inventory_settings": {
+    "field_required": "مطلوب",
+    "field_limit": "الحد: {{min}}–{{max}}"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "header": {
+    "app_mustashar": "Al Mustashar",
+    "app_harees": "Harees",
+    "nav": {
+      "instructions": "Instructions",
+      "dashboard": "Dashboard",
+      "products": "Products",
+      "settings": "Settings"
+    },
+    "user_menu": {
+      "language": "Language",
+      "logout": "Log Out"
+    },
+    "notifications_title": "Notifications",
+    "notifications_mark_read": "Mark all read",
+    "notifications_empty": "No notifications",
+    "notif_expired_title": "Expired Product!",
+    "notif_expiring_title": "Expiry Approaching",
+    "notif_expired_msg": "Batch {{batch_code}} of \"{{product_name}}\" has expired.",
+    "notif_expiring_msg": "Batch {{batch_code}} of \"{{product_name}}\" is approaching its expiry date."
+  },
+  "language_switcher": {
+    "switch_to_en": "ENGLISH",
+    "switch_to_ar": "العربية"
+  },
+
+  "search_input": {
+    "default_placeholder": "Search…"
+  },
+
+  "table_toolbar": {
+    "default_placeholder": "Search…"
+  },
+
+  "dropdown_filter": {
+    "filter_button_label": "Filter options"
+  },
+
+  "sync_button": {
+    "button_title": "Sync data",
+    "toast_success": "Synced successfully!",
+    "toast_error": "Sync failed."
+  },
+
+  "setup_banner": {
+    "title": "Settings not configured",
+    "cta_label": "Settings"
+  },
+
+  "stat_card": {
+    "settings_preview_label": "Calculator Logic",
+    "settings_preview_placeholder_area": "8.00 m²",
+    "settings_preview_placeholder_waste": "10% waste"
+  },
+
+  "page_banner": {
+    "banner_toggle_label": "Toggle info banner",
+    "banner_icon": "ℹ"
+  },
+
+  "error_state": {
+    "heading": "Unable to Load Products",
+    "default_message": "We're having trouble connecting to your store's catalog. Please check your connection and try again.",
+    "cta_label": "Try Again"
+  },
+
+  "error_boundary": {
+    "heading": "Something went wrong",
+    "description": "The system encountered an unexpected issue. Please try refreshing the page or come back later.",
+    "cta_label": "Refresh Page"
+  },
+
+  "toast": {
+    "toast_label_success": "Success",
+    "toast_label_error": "Error",
+    "toast_label_loading": "Processing",
+    "toast_fallback_message": "Operation complete"
+  },
+
+  "product_avatar": {
+    "image_alt": "{{name}} image",
+    "image_alt_fallback": "Product image",
+    "fallback_initial": "?"
+  },
+
+  "login_layout": {
+    "image_alt_fallback": "App hero image"
+  }
+}

@@ -45,6 +45,7 @@ export const useInventoryDashboard = () => {
     return useQuery({
         queryKey: ['harees', 'dashboard'],
         queryFn:  getDashboard,
+        refetchOnWindowFocus: true,
     });
 };
 
@@ -99,10 +100,17 @@ export const useUpdateInventorySettings = () => {
     return useMutation({
         mutationFn: updateSettings,
 
-        onSuccess: () => {
-            // Settings change may affect expiry classification → bust dashboard too.
-            queryClient.invalidateQueries({ queryKey: ['harees', 'settings']  });
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['harees', 'settings'] });
             queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
+
+            if (variables?.auto_discounts) {
+                setTimeout(() => {
+                    queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+                    queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
+                }, 4000);
+            }
         },
     });
 };
@@ -122,11 +130,9 @@ export const useStoreExpiry = () => {
     return useMutation({
         mutationFn: storeExpiry,
 
-        onSuccess: async () => {
-            // Sequential awaits ensure both queries are re-fetched before any
-            // UI that depends on them updates (e.g. closing a modal after refresh).
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
         },
     });
 };
@@ -185,11 +191,9 @@ export const useDeleteExpiry = () => {
     return useMutation({
         mutationFn: deleteExpiryApi,
 
-        onSuccess: async () => {
-            // Await both invalidations so the UI reflects the deletion before
-            // the parent component (ExpiryModal) closes.
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
         },
     });
 };
@@ -209,9 +213,9 @@ export const useStoreBatch = () => {
     return useMutation({
         mutationFn: storeBatch,
 
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
         },
     });
 };
@@ -230,9 +234,9 @@ export const useUpdateBatch = () => {
     return useMutation({
         mutationFn: updateBatch,
 
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'products']  });
-            await queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
         },
     });
 };

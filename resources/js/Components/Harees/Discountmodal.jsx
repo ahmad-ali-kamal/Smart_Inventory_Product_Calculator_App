@@ -23,29 +23,9 @@
  * the success animation timeout.
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-const t = {
-    modal_title_add:       'Apply Discount',
-    modal_title_edit:      'Edit Discount',
-    note_title:            'Note:',
-    note_body:             'Discounts apply only to Yellow-status batches. Green inventory is always protected.',
-    section_title:         'Manual Configuration',
-    label_discount_pct:    'Discount Percentage',
-    label_end_date:        'End Date',
-    btn_add_apply:         'Apply Discount',
-    btn_edit_apply:        'Update Discount',
-    btn_applying:          'Applying…',
-    btn_applied:           'Applied Successfully',
-    btn_updated:           'Updated Successfully',
-    err_required:          'Required',
-    err_pct_range:         'Must be between 1 and 99',
-    err_date_future:       'Must be a future date',
-    err_generic:           'Something went wrong. Please try again.',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React, { useState } from 'react';
 import { X, Percent, CheckCircle, Info, AlertCircle, Loader2, Edit } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * DiscountModal
@@ -87,6 +67,7 @@ export default function DiscountModal({
     onClose,
     onApply,
 }) {
+    const { t } = useTranslation('harees');
     // ── Form field state ──────────────────────────────────────────────────────
     // Pre-populate with the existing percentage in edit mode; default to "20".
     const [discountPct, setDiscountPct] = useState(isEdit ? String(existingPct) : '20');
@@ -118,9 +99,9 @@ export default function DiscountModal({
      * @returns {string} Error message, or empty string when valid.
      */
     const validatePct = (val) => {
-        if (!val) return t.err_required;
+        if (!val) return t('discount_modal.err_required');
         const num = parseInt(val, 10);
-        if (isNaN(num) || num < 1 || num > 99) return t.err_pct_range;
+        if (isNaN(num) || num < 1 || num > 99) return t('discount_modal.err_pct_range');
         return '';
     };
 
@@ -131,8 +112,8 @@ export default function DiscountModal({
      * @returns {string} Error message, or empty string when valid.
      */
     const validateDate = (val) => {
-        if (!val) return t.err_required;
-        if (val <= todayStr) return t.err_date_future;
+        if (!val) return t('discount_modal.err_required');
+        if (val <= todayStr) return t('discount_modal.err_date_future');
         return '';
     };
 
@@ -197,16 +178,16 @@ export default function DiscountModal({
             setTimeout(onClose, 1200);
         } catch (err) {
             // Keep the modal open and surface the server message inline.
-            setServerError(err.message || t.err_generic);
+            setServerError(err.message || t('discount_modal.err_generic'));
         } finally {
             setIsLoading(false);
         }
     };
 
     // ── Derived display values ────────────────────────────────────────────────
-    const modalTitle  = isEdit ? t.modal_title_edit  : t.modal_title_add;
-    const submitLabel = isEdit ? t.btn_edit_apply    : t.btn_add_apply;
-    const successMsg  = isEdit ? t.btn_updated       : t.btn_applied;
+    const modalTitle  = isEdit ? t('discount_modal.modal_title_edit') : t('discount_modal.modal_title_add');
+    const submitLabel = isEdit ? t('discount_modal.btn_edit_apply')   : t('discount_modal.btn_add_apply');
+    const successMsg  = isEdit ? t('discount_modal.btn_updated')      : t('discount_modal.btn_applied');
 
     return (
         /* Full-screen overlay: clicking outside the card does NOT close the modal
@@ -245,7 +226,7 @@ export default function DiscountModal({
                     <div className="flex items-start gap-2 p-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10">
                         <Info size={14} className="text-[var(--primary)] mt-0.5 shrink-0" />
                         <p className="text-[11px] text-[var(--primary)] leading-relaxed">
-                            <span className="font-black">{t.note_title}</span> {t.note_body}
+                            <span className="font-black">{t('discount_modal.note_title')}</span> {t('discount_modal.note_body')}
                         </p>
                     </div>
 
@@ -262,7 +243,7 @@ export default function DiscountModal({
                     {/* ── Form fields ────────────────────────────────────────── */}
                     <div className="p-5 rounded-2xl bg-[var(--muted)]/40 border border-[var(--primary)]/20 space-y-4">
                         <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wider">
-                            {t.section_title}
+                            {t('discount_modal.section_title')}
                         </span>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -270,7 +251,7 @@ export default function DiscountModal({
                             {/* Discount percentage input */}
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-tighter">
-                                    {t.label_discount_pct}
+                                    {t('discount_modal.label_discount_pct')}
                                 </label>
                                 <div className="relative">
                                     <input
@@ -306,7 +287,7 @@ export default function DiscountModal({
                             {/* End date input */}
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-tighter">
-                                    {t.label_end_date}
+                                    {t('discount_modal.label_end_date')}
                                 </label>
                                 <input
                                     type="date"
@@ -355,7 +336,7 @@ export default function DiscountModal({
                         {isSuccess ? (
                             <><CheckCircle size={16} /> {successMsg}</>
                         ) : isLoading ? (
-                            <><Loader2 size={14} className="animate-spin" /> {t.btn_applying}</>
+                            <><Loader2 size={14} className="animate-spin" /> {t('discount_modal.btn_applying')}</>
                         ) : (
                             /* Show Edit icon in edit mode, Percent icon for new discounts */
                             isEdit

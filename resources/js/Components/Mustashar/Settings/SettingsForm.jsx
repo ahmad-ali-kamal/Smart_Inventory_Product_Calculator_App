@@ -13,29 +13,9 @@
  *
  * Used by: Settings (page component)
  */
-
+import { useTranslation } from 'react-i18next';
 import { Loader2, SlidersHorizontal, AlertCircle, Sparkles } from 'lucide-react';
 import { WASTE_MIN, WASTE_MAX, COVERAGE_MIN, COVERAGE_MAX } from '../../../constants/calculatorSettings';
-
-// ── i18n strings ──────────────────────────────────────────────────────────────
-// Move to your translation JSON and replace with useTranslation() when ready.
-const t = {
-    card_title:    "Smart Calculator Settings",
-    card_subtitle: "Set the default calculation rules for your store's products",
-
-    banner_body: "The values set below will automatically apply as global defaults to all products to save your time. You can easily customize any specific product independently from the Products page.",
-
-    coverage_label:       "Default Coverage per Unit (m²)",
-    coverage_hint:        `Enter how many square meters (m²) one box or unit covers`,
-    coverage_placeholder: "e.g. 4.00",
-
-    waste_label:       "Default Waste Percentage (%)",
-    waste_hint:        `Additional material added to account for cutting and installation layout`,
-    waste_placeholder: "e.g. 20",
-
-    btn_saving: "Saving...",
-    btn_save:   "Save Settings",
-};
 
 // ── Internal sub-components ───────────────────────────────────────────────────
 
@@ -62,7 +42,7 @@ function Field({ label, hint, value, onChange, min, max, step, placeholder, erro
     return (
         <div className="space-y-2 text-left" dir="ltr">
             <label className="block text-[14px] font-bold text-[var(--foreground)] opacity-90">
-                {label}
+               {label}
             </label>
             {/* Render the hint paragraph only when content is provided */}
             {hint && (
@@ -120,6 +100,7 @@ export default function SettingsForm({
     coverage, waste, errors, isSaving,
     onCoverageChange, onWasteChange, onSave,
 }) {
+       const { t } = useTranslation('mustashar');
     return (
         <div className="space-y-6 max-w-2xl mx-auto" dir="ltr">
 
@@ -131,8 +112,8 @@ export default function SettingsForm({
                         <SlidersHorizontal size={22} />
                     </div>
                     <div className="text-left">
-                        <h1 className="text-xl font-bold text-[var(--foreground)]">{t.card_title}</h1>
-                        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t.card_subtitle}</p>
+                        <h1 className="text-xl font-bold text-[var(--foreground)]">{t('settings.card_title')}</h1>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-1">{t('settings.card_subtitle')}</p>
                     </div>
                 </div>
             </div>
@@ -144,20 +125,20 @@ export default function SettingsForm({
                 <div className="bg-[var(--primary)]/[0.04] border border-[var(--primary)]/10 rounded-2xl p-4 flex gap-3 items-start">
                     <Sparkles size={15} className="text-[var(--primary)] mt-0.5 shrink-0" />
                     <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed text-left">
-                        {t.banner_body}
+                        {t('settings.banner_body')}
                     </p>
                 </div>
 
                 {/* Coverage field */}
                 <Field
-                    label={t.coverage_label}
-                    hint={t.coverage_hint}
+                    label={t('settings.coverage_label')}
+                    hint={t('settings.coverage_hint')}
                     value={coverage ?? ""}
                     onChange={onCoverageChange}
                     min={COVERAGE_MIN}
                     max={COVERAGE_MAX}
                     step="0.01"
-                    placeholder={t.coverage_placeholder}
+                    placeholder={t('settings.coverage_placeholder')}
                     error={errors.coverage}
                 />
 
@@ -166,14 +147,14 @@ export default function SettingsForm({
 
                 {/* Waste field */}
                 <Field
-                    label={t.waste_label}
-                    hint={t.waste_hint}
+                    label={t('settings.waste_label')}
+                    hint={t('settings.waste_hint')}
                     value={waste ?? ""}
                     onChange={onWasteChange}
                     min={WASTE_MIN}
                     max={WASTE_MAX}
                     step="0.1"
-                    placeholder={t.waste_placeholder}
+                    placeholder={t('settings.waste_placeholder')}
                     error={errors.waste}
                 />
 
@@ -190,8 +171,8 @@ export default function SettingsForm({
                         `}
                     >
                         {isSaving
-                            ? <><Loader2 size={18} className="animate-spin" /> {t.btn_saving}</>
-                            : t.btn_save
+                            ? <><Loader2 size={18} className="animate-spin" /> {t('settings.btn_saving')}</>
+                            : t('settings.btn_save')
                         }
                     </button>
                 </div>

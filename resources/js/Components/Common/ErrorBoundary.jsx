@@ -25,20 +25,9 @@
  * </ErrorBoundary>
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "error_boundary": { … })
-const t = {
-    /** Main heading shown in the error fallback card */
-    heading: 'Something went wrong',
-    /** Body text explaining what happened and suggesting a next step */
-    description: 'The system encountered an unexpected issue. Please try refreshing the page or come back later.',
-    /** Label for the page-refresh action button */
-    cta_label: 'Refresh Page',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import React from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import i18n from "../../i18n";
 
 /**
  * ErrorBoundary
@@ -104,12 +93,12 @@ export default class ErrorBoundary extends React.Component {
 
                         {/* Heading */}
                         <h2 className="text-xl font-bold text-[var(--foreground)] mb-3">
-                            {t.heading}
+                            {i18n.t('error_boundary.heading', { ns: 'shared' })}
                         </h2>
 
                         {/* Explanatory body text */}
                         <p className="text-sm text-[var(--muted-foreground)] mb-8 leading-relaxed">
-                            {t.description}
+                            {i18n.t('error_boundary.description', { ns: 'shared' })}
                         </p>
 
                         {/* Full-width refresh CTA */}
@@ -118,7 +107,7 @@ export default class ErrorBoundary extends React.Component {
                             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[var(--primary)] text-white font-semibold hover:brightness-95 active:scale-[0.98] transition-all shadow-sm"
                         >
                             <RefreshCw size={18} />
-                            {t.cta_label}
+                            {i18n.t('error_boundary.cta_label', { ns: 'shared' })}
                         </button>
                     </div>
                 </div>

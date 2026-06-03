@@ -13,6 +13,7 @@
  */
 
 import Reveal from '@/Components/ui/Reveal';
+import { Link } from '@inertiajs/react';
 
 /**
  * Footer
@@ -61,7 +62,7 @@ export default function Footer({ t, ff, bodyFont }) {
                         className="q-footer-grid"
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: 'minmax(160px, 220px) 1fr 1fr 1fr',
+                            gridTemplateColumns: 'minmax(160px, 220px) 1fr 1fr',
                             gap: '2rem',
                             marginBottom: '2.5rem',
                             flexWrap: 'wrap',
@@ -94,43 +95,86 @@ export default function Footer({ t, ff, bodyFont }) {
                         </div>
 
                         {/* ── Link columns: Product / Company / Support ── */}
-                        {cols.map((col, i) => (
-                            <div key={i}>
-                                {/* Column heading */}
-                                <h4 style={{
-                                    fontFamily: ff,
-                                    fontSize: '0.7rem', fontWeight: 800,
-                                    letterSpacing: '0.14em', color: '#9CA3AF',
-                                    marginBottom: '1rem',
-                                }}>
-                                    {col.label}
-                                </h4>
-
-                                {/* Individual link items */}
-                                <ul style={{
-                                    listStyle: 'none', padding: 0, margin: 0,
-                                    display: 'flex', flexDirection: 'column', gap: 9,
-                                }}>
-                                    {col.links.map((link, li) => (
-                                        <li key={li}>
-                                            <a
-                                                href="#"
-                                                style={{
-                                                    fontFamily: bodyFont,
-                                                    fontSize: '0.84rem', color: '#4B5563',
-                                                    textDecoration: 'none', transition: 'color 0.2s',
-                                                }}
-                                                /* Hover: highlight link with brand purple */
-                                                onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
-                                                onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
-                                            >
-                                                {link}
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
+                        <div>
+                            <h4 style={{
+                                fontFamily: ff,
+                                fontSize: '0.7rem', fontWeight: 800,
+                                letterSpacing: '0.14em', color: '#9CA3AF',
+                                marginBottom: '1rem',
+                            }}>
+                                {t.footer.platformsLabel}
+                            </h4>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                <li>
+                                    <Link
+                                        href="/harees/login"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: '0.84rem', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        {t.footer.hareesLink}
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
+                                        href="/mustashar/login"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: '0.84rem', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        {t.footer.mustasharLink}
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style={{
+                                fontFamily: ff,
+                                fontSize: '0.7rem', fontWeight: 800,
+                                letterSpacing: '0.14em', color: '#9CA3AF',
+                                marginBottom: '1rem',
+                            }}>
+                                {t.footer.quickLinksLabel}
+                            </h4>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                <li>
+                                    <a
+                                        href="#features"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: '0.84rem', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        {t.footer.featuresLink}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="#platforms"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: '0.84rem', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        {t.footer.platformsLink}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </Reveal>
 

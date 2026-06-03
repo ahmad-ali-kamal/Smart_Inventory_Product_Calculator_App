@@ -15,34 +15,21 @@
  * via a matching CSS grid template.
  */
 
-// ─── i18n strings ─────────────────────────────────────────────────────────────
-// Move these values to your JSON translation file and replace this object with
-// a `useTranslation` call (or equivalent) when you are ready.
-const t = {
-    col_product:     'Product',
-    col_category:    'Category',
-    col_status:      'Status',
-    col_qty:         'Qty',
-    col_expiry_info: 'Expiry Info',
-    col_action:      'Action',
-    empty_message:   'No products found.',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import Card from "../../Common/UI/Card";
 import InventoryProductRow from "./InventoryProductRow";
+import { useTranslation } from 'react-i18next';
 
 /**
  * Table column header labels — order must match `WIDTHS`.
  * @type {string[]}
  */
-const HEADERS = [
-    t.col_product,
-    t.col_category,
-    t.col_status,
-    t.col_qty,
-    t.col_expiry_info,
-    t.col_action,
+const HEADER_KEYS = [
+    'inventory_table.col_product',
+    'inventory_table.col_category',
+    'inventory_table.col_status',
+    'inventory_table.col_qty',
+    'inventory_table.col_expiry_info',
+    'inventory_table.col_action',
 ];
 
 /**
@@ -71,6 +58,8 @@ const WIDTHS = ["16%", "16%", "16%", "16%", "16%", "20%"];
  * @returns {JSX.Element}
  */
 export default function InventoryTable({ products, onExpiry }) {
+    const { t } = useTranslation('harees');
+
     return (
         <Card>
             {/* overflow-x-auto + min-w ensures the table is horizontally scrollable
@@ -81,15 +70,15 @@ export default function InventoryTable({ products, onExpiry }) {
                     {/* ── Column headers ──────────────────────────────────────── */}
                     <thead>
                         <tr className="border-b border-[var(--border)] bg-[var(--muted)]/20">
-                            {HEADERS.map((h, i) => (
+                            {HEADER_KEYS.map((k, i) => (
                                 <th
-                                    key={h}
+                                    key={k}
                                     style={{ width: WIDTHS[i] }}
                                     className={`p-4 text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider ${
                                         i === 0 ? 'text-left' : 'text-center'
                                     }`}
                                 >
-                                    {h}
+                                    {t(k)}
                                 </th>
                             ))}
                         </tr>
@@ -110,7 +99,7 @@ export default function InventoryTable({ products, onExpiry }) {
                             // Empty state: no products match the current search / filter
                             <tr>
                                 <td colSpan={6} className="py-16 text-center text-sm text-[var(--muted-foreground)]">
-                                    {t.empty_message}
+                                    {t('inventory_table.empty_message')}
                                 </td>
                             </tr>
                         )}

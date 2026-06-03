@@ -31,19 +31,12 @@
  * />
  */
 
-// ─── i18n strings ────────────────────────────────────────────────────────────
-// Move to your JSON locale file when ready (e.g. en.json → "table_toolbar": { … })
-const t = {
-    /** Default placeholder for the SearchInput when none is provided via props */
-    default_placeholder: 'Search...',
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 import SearchInput from './SearchInput';
 import DropdownFilter from './DropdownFilter';
 import SyncButton from './SyncButton';
 import PageBanner from '../PageBanner';
 import { useAutoClose } from '../../../Hooks/useAutoClose';
+import { useTranslation } from 'react-i18next';
 
 /**
  * TableToolbar
@@ -72,11 +65,12 @@ export default function TableToolbar({
     onFilter,
     syncEndpoint,
     onSyncSuccess,
-    placeholder = t.default_placeholder,
+    placeholder,
     filterWidth,
     className = '',
     banner,
 }) {
+    const { t } = useTranslation('shared');
     /**
      * `bannerVisible` drives the open/closed state of <PageBanner>.
      * `toggleBanner` is passed as the `onToggle` prop.
@@ -104,7 +98,7 @@ export default function TableToolbar({
             <SearchInput
                 value={search}
                 onChange={onSearch}
-                placeholder={placeholder}
+                placeholder={placeholder ?? t('table_toolbar.default_placeholder')}
                 sanitize={true}
             />
 

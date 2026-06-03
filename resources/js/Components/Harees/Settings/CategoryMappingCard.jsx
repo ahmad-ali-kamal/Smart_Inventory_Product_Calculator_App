@@ -23,15 +23,7 @@
 import { Tag } from 'lucide-react';
 import Card from '../../Common/UI/Card';
 import { BUCKET_CONFIG } from '../../../constants/inventorySettings';
-
-// ---------------------------------------------------------------------------
-// i18n strings — move these values to a JSON translation file when ready.
-// ---------------------------------------------------------------------------
-const t = {
-    card_title:      "Category Mapping",
-    bucket_drop_cta: "Drop here",         // empty-bucket placeholder text
-    threshold_suffix: "d",                // appended to threshold value badge (e.g. "30d")
-};
+import { useTranslation } from 'react-i18next';
 
 // ── Private: draggable category pill ───────────────────────────────────────
 
@@ -77,7 +69,8 @@ function CategoryCard({ label, bucket, onDragStart }) {
  * @param {function} props.onDragStart     — `(e, label, bucketKey) => void`
  * @returns {JSX.Element}
  */
-function BucketColumn({ config, thresholdValue, categories, onDrop, onDragStart }) {
+function BucketColumn({ config, thresholdValue, categories, onDrop, onDragStart, t }) {
+    const translatedLabel = t(`category_mapping_card.bucket_label_${config.key}`);
     return (
         <div
             onDrop={(e) => onDrop(e, config.key)}
@@ -88,10 +81,10 @@ function BucketColumn({ config, thresholdValue, categories, onDrop, onDragStart 
             <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
                     <span className={`w-2 h-2 rounded-full ${config.dot}`} />
-                    <span className="text-xs font-semibold text-[var(--foreground)]">{config.label}</span>
+                    <span className="text-xs font-semibold text-[var(--foreground)]">{translatedLabel}</span>
                 </div>
                 <span className={`text-xs font-bold ${config.count_color} bg-[var(--muted)] px-1.5 py-0.5 rounded-md`}>
-                    {thresholdValue}{t.threshold_suffix}
+                    {thresholdValue}{t('category_mapping_card.threshold_suffix')}
                 </span>
             </div>
 
@@ -103,7 +96,7 @@ function BucketColumn({ config, thresholdValue, categories, onDrop, onDragStart 
             {/* Empty-state drop placeholder — shown when the bucket has no categories */}
             {categories.length === 0 && (
                 <div className="flex-1 flex items-center justify-center border border-dashed border-[var(--border)] rounded-lg text-xs text-[var(--muted-foreground)] py-4">
-                    {t.bucket_drop_cta}
+                    {t('category_mapping_card.bucket_drop_cta')}
                 </div>
             )}
         </div>
@@ -132,6 +125,7 @@ export default function CategoryMappingCard({
     onDragStart,
     onDrop,
 }) {
+    const { t } = useTranslation('harees');
     return (
         <Card className="p-5 space-y-4">
 
@@ -140,7 +134,7 @@ export default function CategoryMappingCard({
                 <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)] flex-shrink-0">
                     <Tag size={15} />
                 </div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">{t.card_title}</p>
+                <p className="text-sm font-semibold text-[var(--foreground)]">{t('category_mapping_card.card_title')}</p>
             </div>
 
             {/* ── Unassigned pool ────────────────────────────────────────── */}
@@ -170,6 +164,7 @@ export default function CategoryMappingCard({
                         categories={categories[config.key]}
                         onDrop={onDrop}
                         onDragStart={onDragStart}
+                        t={t}
                     />
                 ))}
             </div>

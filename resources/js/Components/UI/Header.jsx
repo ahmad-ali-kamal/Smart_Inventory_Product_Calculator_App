@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useTheme } from '../../Context/ThemeContext';
+import { useTranslation } from 'react-i18next';  // ← أضف هذا
 import { Sun, Moon, User, LayoutGrid, ChevronDown, Globe, LogOut, BellRing, CheckCheck } from 'lucide-react';
 import LangToggle from './LangToggle';
 
@@ -11,8 +12,10 @@ export default function Header() {
     const userName = user?.name || user?.store_info?.merchant?.username || 'المستخدم';
     const userEmail = user?.email || user?.store_info?.merchant?.email || '';
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const [isAr, setIsAr] = useState(false);
-
+  const { t, i18n } = useTranslation('shared');
+   const isAr = i18n.language === 'ar';
+    const toggleLang = () => i18n.changeLanguage(isAr ? 'en' : 'ar');
+  
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [notifications, setNotifications] = useState([]);
@@ -48,23 +51,21 @@ useEffect(() => {
     return () => clearInterval(interval);
 }, [isInventory, isNotifOpen]);
 
-    const calculatorNav = [
-        { label: 'Instructions', href: '/mustashar/instructions' },
-        { label: 'Dashboard',    href: '/mustashar/dashboard' },
-        { label: 'Products',     href: '/mustashar/products' },
-        { label: 'Settings',     href: '/mustashar/settings' },
+     const calculatorNav = [
+        { label: t('header.nav.instructions'), href: '/mustashar/instructions' },
+        { label: t('header.nav.dashboard'),    href: '/mustashar/dashboard' },
+        { label: t('header.nav.products'),     href: '/mustashar/products' },
+        { label: t('header.nav.settings'),     href: '/mustashar/settings' },
     ];
 
     const inventoryNav = [
-        { label: 'Instructions', href: '/harees/instructions' },
-        { label: 'Dashboard',    href: '/harees/dashboard' },
-        { label: 'Products',     href: '/harees/products' },
-        { label: 'Settings',     href: '/harees/settings' },
+        { label: t('header.nav.instructions'), href: '/harees/instructions' },
+        { label: t('header.nav.dashboard'),    href: '/harees/dashboard' },
+        { label: t('header.nav.products'),     href: '/harees/products' },
+        { label: t('header.nav.settings'),     href: '/harees/settings' },
     ];
-
-    
-    const navItems = isInventory ? inventoryNav : calculatorNav;
-    const appName = isInventory ? 'Harees' : 'Al-mustashar';
+       const navItems = isInventory ? inventoryNav : calculatorNav;
+    const appName  = isInventory ? t('header.app_harees') : t('header.app_mustashar');
 
     return (
         <header className="sticky top-0 z-50 bg-[var(--background)] border-b border-[var(--border)] transition-colors duration-300">
@@ -159,14 +160,14 @@ useEffect(() => {
                             className="flex items-center gap-1 text-[10px] font-bold text-[var(--primary)] hover:underline"
                         >
                             <CheckCheck className="w-3 h-3" />
-                            Mark all read
+                            {t('header.notifications_mark_read')}
                         </button>
                     </div>
 
                     <div className="max-h-64 overflow-y-auto p-1 text-left" dir="ltr">
                         {notifications.length === 0 ? (
     <div className="p-4 text-center text-[11px] text-[var(--muted-foreground)]">
-        No notifications
+         {t('header.notifications_empty')}
     </div>
 ) : (
     notifications.map((n) => (
@@ -197,12 +198,11 @@ useEffect(() => {
             <ChevronDown className={`w-3.5 h-3.5 text-[var(--muted-foreground)] transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
         </button>
 
+                        
                         {isUserMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-[60]" onClick={() => setIsUserMenuOpen(false)}></div>
                                 <div className="absolute end-0 mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl z-[70] overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
-                                    
-                                    {/* User Info */}
                                     <div className="px-3 py-2.5 border-b border-[var(--border)] bg-[var(--accent)]/10">
                                         <div className="flex items-center gap-2">
                                             <div className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center text-white shrink-0">
@@ -214,17 +214,15 @@ useEffect(() => {
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Menu Items */}
                                     <div className="p-1">
                                         <div className="flex items-center justify-between px-2 py-1.5 hover:bg-[var(--accent)] rounded-lg transition-colors group">
                                             <div className="flex items-center gap-2">
                                                 <Globe className="w-3.5 h-3.5 opacity-60" />
-                                                <span className="text-[11px] font-medium">Language</span>
+                                                <span className="text-[11px] font-medium">{t('header.user_menu.language')}</span>
                                             </div>
                                             <LangToggle
                                                 isAr={isAr}
-                                                toggle={() => setIsAr(!isAr)}
+                                                toggle={toggleLang}
                                                 style={{ fontSize: '8px', padding: '2px 6px' }}
                                             />
                                         </div>
@@ -236,10 +234,9 @@ useEffect(() => {
                                             className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[11px] text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                         >
                                             <LogOut className="w-3.5 h-3.5" />
-                                            <span className="font-bold uppercase">Log Out</span>
+                                            <span className="font-bold uppercase">{t('header.user_menu.logout')}</span>
                                         </Link>
                                     </div>
-
                                 </div>
                             </>
                         )}
@@ -247,7 +244,6 @@ useEffect(() => {
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto border-t border-[var(--border)] pt-2 mt-1 scrollbar-hide">
                 {navItems.map((item) => (
                     <Link
@@ -264,7 +260,7 @@ useEffect(() => {
         </header>
     );
 }
-// Notification item component
+
 function NotificationItem({ title, msg, color, unread }) {
     return (
         <div className={`p-3 rounded-lg hover:bg-[var(--accent)]/50 transition-colors cursor-pointer group relative ${unread ? 'bg-[var(--accent)]/20' : ''}`}>

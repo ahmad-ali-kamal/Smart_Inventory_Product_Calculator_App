@@ -110,11 +110,18 @@ class HareesApiController extends Controller
                         ->groupBy('batch_id')
                         ->map(function ($items) {
                             $batch = $items->first()->batch;
+                            $activeDiscount = collect($batch->discounts ?? [])
+                                ->firstWhere('status', 'active');
+
                             return [
-                                'id'          => $batch->id,
-                                'batch_code'  => $batch->batch_code,
-                                'expiry_date'  => $batch->expiry_date?->format('Y-m-d'),
-                                'status'      => $batch->status ?? 'green',
+                                'id'                   => $batch->id,
+                                'batch_code'           => $batch->batch_code,
+                                'expiry_date'          => $batch->expiry_date?->format('Y-m-d'),
+                                'status'               => $batch->status ?? 'green',
+                                'discount_type'        => $batch->discount_type ?? 'pending',
+                                'discount_percentage'  => $activeDiscount
+                                    ? (float) $activeDiscount->discount_percentage
+                                    : null,
                             ];
                         })
                         ->values();

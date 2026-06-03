@@ -23,6 +23,8 @@
  *
  * @type {Record<string, string>}
  */
+import { useTranslation } from 'react-i18next';
+
 const STATUS_MAP = {
     red:         'Expired',
     yellow:      'Approaching',
@@ -108,9 +110,12 @@ const SIZE = {
  * @returns {JSX.Element}
  */
 export default function StatusBadge({ status, size = 'md', className = '' }) {
+    const { t } = useTranslation('harees');
+
     // Normalise once; both the display label and the style object derive from it.
     const normalized = normalizeStatus(status);
     const style      = getStatusStyle(normalized);
+    const label      = t(`status_badge.${normalized.toLowerCase()}`, normalized);
 
     return (
         <span
@@ -122,7 +127,7 @@ export default function StatusBadge({ status, size = 'md', className = '' }) {
                 ${className}
             `}
         >
-            {normalized}
+            {label}
         </span>
     );
 }

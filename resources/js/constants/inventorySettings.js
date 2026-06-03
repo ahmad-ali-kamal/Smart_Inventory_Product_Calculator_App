@@ -29,15 +29,7 @@
 // i18n placeholder for future translation
 // ---------------------------------------------------------------------------
 
-/**
- * @type {Object.<string, string>}
- * Validation error messages used by `validateNumericField`, ready for i18n extraction.
- * The `{{min}}` and `{{max}}` tokens are interpolated at call-time.
- */
-const t = {
-    field_required: "Required",
-    field_limit: "Limit: {{min}}–{{max}}",
-};
+import i18n from "../i18n";
 
 // ---------------------------------------------------------------------------
 // Bucket configuration — drives both the drag-drop UI and category mapping
@@ -167,13 +159,15 @@ export const FIELD_RULES = {
  */
 export function validateNumericField(clean, min, max) {
     // Treat empty or missing input as a required-field violation
-    if (clean === "" || clean === undefined) return t.field_required;
+    if (clean === "" || clean === undefined) {
+        return i18n.t("inventory_settings.field_required", { ns: "harees" });
+    }
 
     const n = parseInt(clean, 10);
 
     // Reject non-integers and out-of-range values
     if (isNaN(n) || n < min || n > max) {
-        return t.field_limit.replace("{{min}}", min).replace("{{max}}", max);
+        return i18n.t("inventory_settings.field_limit", { ns: "harees", min, max });
     }
 
     return null;
