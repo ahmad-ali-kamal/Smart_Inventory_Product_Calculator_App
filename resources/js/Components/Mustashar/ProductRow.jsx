@@ -35,8 +35,8 @@ import { useTranslation } from "react-i18next";
 // ── Grid column definitions ───────────────────────────────────────────────────
 // Must stay in sync with the matching constants in ProductTable.jsx.
 // First column uses responsive min-width: 140px on mobile, 220px on desktop.
-const COLS_WITH_PREVIEW    = "grid-cols-[minmax(140px,220px)_1fr_1fr_1fr_1fr_1fr_1fr]";
-const COLS_WITHOUT_PREVIEW = "grid-cols-[minmax(140px,220px)_1fr_1fr_1fr_1fr_1fr]";
+const COLS_WITH_PREVIEW    = "grid-cols-[1.5fr_1.25fr_repeat(5,1fr)]";
+const COLS_WITHOUT_PREVIEW = "grid-cols-6";
 
 // ── Shared inline-edit cell style helpers ─────────────────────────────────────
 // Pure functions — no hooks or side-effects — so they can be called freely
