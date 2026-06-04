@@ -38,7 +38,7 @@ import { useTranslation } from 'react-i18next';
  * @type {string}
  */
 const PILL =
-    'inline-flex items-center justify-center w-[110px] h-[26px] rounded-full text-[9px] font-black uppercase border transition-all duration-200';
+    'inline-flex items-center justify-center px-2.5 md:px-3 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase border transition-all duration-200 min-w-[85px]';
 
 /**
  * InventoryProductRow
@@ -183,9 +183,7 @@ export default function InventoryProductRow({ product, onExpiry }) {
                             icon={showBatches ? <EyeOff size={12} /> : <Eye size={12} />}
                         >
                             {batches.length}{' '}
-                            {batches.length === 1
-                                ? t('inventory_product_row.btn_batch_singular')
-                                : t('inventory_product_row.btn_batch_plural')}
+                            {t('inventory_product_row.btn_batch_singular')}
                         </RowActionButton>
                     ) : (
                         <span className="text-[11px] text-[var(--muted-foreground)]">
@@ -224,39 +222,38 @@ export default function InventoryProductRow({ product, onExpiry }) {
                                 return (
                                     <div
                                         key={batch.id}
-                                        className="grid bg-[var(--accent)]/5 border-b border-[var(--border)]"
-                                        style={{ gridTemplateColumns: '16% 16% 16% 16% 16% 20%' }}
+                                        className="grid grid-cols-[16%_16%_16%_16%_16%_20%] bg-[var(--accent)]/5 border-b border-[var(--border)]"
                                     >
-                                        {/* Batch code — indented to align under the product name */}
-                                        <div className="pl-10 py-3.5 text-[12px] text-[var(--muted-foreground)]">
+                                        {/* Batch code — text-start aligns under "Product" header; logical padding (ps/pe) for RTL/LTR */}
+                                        <div className="text-start px-4 py-3 md:py-3.5 text-[11px] md:text-[12px] text-[var(--muted-foreground)] whitespace-nowrap">
                                             <span className="font-bold text-[var(--foreground)]">
                                                 {t('inventory_product_row.batch_label')}
                                             </span>{' '}
                                             {batch.code}
                                         </div>
 
-                                        {/* Category — repeated from parent for visual alignment */}
-                                        <div className="flex items-center justify-center text-[11px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">
+                                        {/* Category — text-center to align under "Category" header */}
+                                        <div className="text-center px-4 py-3 md:py-3.5 text-[10px] md:text-[11px] font-black text-[var(--muted-foreground)] uppercase tracking-widest truncate">
                                             {product.category}
                                         </div>
 
-                                        {/* Batch-level status pill */}
-                                        <div className="flex items-center justify-center">
+                                        {/* Batch-level status pill — centered to align under "Status" header */}
+                                        <div className="flex items-center justify-center px-4 py-3 md:py-3.5">
                                             <span className={PILL} style={config.style}>{config.label}</span>
                                         </div>
 
-                                        {/* Batch quantity */}
-                                        <div className="flex items-center justify-center text-[12px]">
+                                        {/* Batch quantity — text-center to align under "Qty" header */}
+                                        <div className="text-center px-4 py-3 md:py-3.5 text-[11px] md:text-[12px] font-bold tabular-nums">
                                             {batch.qty}
                                         </div>
 
-                                        {/* Batch expiry date */}
-                                        <div className="flex items-center justify-center text-[12px] text-[var(--muted-foreground)]">
+                                        {/* Batch expiry date — text-center to align under "Expiry Info" header */}
+                                        <div className="text-center px-4 py-3 md:py-3.5 text-[11px] md:text-[12px] text-[var(--muted-foreground)] truncate">
                                             {batch.expiryDate}
                                         </div>
 
-                                        {/* Action column — empty for sub-rows */}
-                                        <div />
+                                        {/* Action column — empty, matched padding to preserve column alignment */}
+                                        <div className="px-4 py-3 md:py-3.5" />
                                     </div>
                                 );
                             })}

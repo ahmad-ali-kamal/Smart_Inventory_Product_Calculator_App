@@ -700,7 +700,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         return createPortal(
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                 <div className="relative w-full max-w-sm bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
-                    <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
+                    <div className="flex items-center gap-3 px-4 py-3.5 md:p-5 border-b border-[var(--border)]">
                         <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
                             <CalendarPlus size={20} />
                         </div>
@@ -712,7 +712,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             <X size={16} />
                         </button>
                     </div>
-                    <div className="p-8 flex flex-col items-center text-center space-y-5">
+                    <div className="p-6 md:p-8 flex flex-col items-center text-center space-y-5">
                         <div className="w-16 h-16 rounded-2xl bg-[var(--secondary)] flex items-center justify-center">
                             <Package size={28} className="text-[var(--primary)]" />
                         </div>
@@ -729,7 +729,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                             href={sallaProductsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-[var(--primary)] text-white flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
+                            className="w-full py-2.5 md:py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider bg-[var(--primary)] text-white flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
                         >
                             <ShoppingBag size={15} />
                             {t('expiry_modal.zero_go_to_salla')}
@@ -758,7 +758,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
             <div className="relative w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
 
                 {/* ── Header ────────────────────────────────────────────────── */}
-                <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
+                <div className="flex items-center gap-3 px-4 py-3.5 md:p-5 border-b border-[var(--border)]">
                     <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
                         <CalendarPlus size={20} />
                     </div>
@@ -775,7 +775,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                 </div>
 
                 {/* ── Scrollable body ────────────────────────────────────────── */}
-                <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <div className="px-4 py-4 md:p-6 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
 
                     {/* State A: Initial options-check spinner
                         Shown before `optionsChecked` resolves — user sees
@@ -793,7 +793,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         Gating the form here forces the merchant to consciously choose
                         before they accidentally mix variant / non-variant data. */}
                     {optionsChecked && hasVariants === false && !optionsAnswered && (
-                        <div className="p-4 rounded-2xl bg-[var(--accent)]/10 border border-[var(--primary)]/15 space-y-3">
+                        <div className="p-3 md:p-4 rounded-2xl bg-[var(--accent)]/10 border border-[var(--primary)]/15 space-y-3">
                             <div className="flex items-start gap-3">
                                 <Layers size={20} className="text-[var(--primary)] flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
@@ -830,7 +830,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                     {optionsAnswered && (
                         <>
                             {/* Available stock badge */}
-                            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[var(--accent)]/10 border border-[var(--primary)]/15">
+                            <div className="flex items-center gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-2xl bg-[var(--accent)]/10 border border-[var(--primary)]/15">
                                 <Package size={16} className="text-[var(--primary)] flex-shrink-0" />
                                 <div>
                                     <p className="text-[10px] font-black text-[var(--primary)] uppercase tracking-wide">
@@ -844,7 +844,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
 
                             {/* Distribution progress bar
                                 Colour: expired-red (over limit) → safe-green (fully distributed) → primary */}
-                            <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--border)] space-y-2">
+                            <div className="p-3 md:p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--border)] space-y-2">
                                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wide">
                                     <span className={
                                         isOverLimit      ? 'text-[var(--status-expired-text)]'
@@ -924,7 +924,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                         <div key={batch.id} className="space-y-0">
 
                                             {/* Batch card — top corners only rounded when variant panel is open below */}
-                                            <div className={`p-4 ${showVariants ? 'rounded-t-xl' : 'rounded-xl'} border bg-[var(--card)] space-y-3 transition-colors ${
+                                            <div className={`p-3 md:p-4 ${showVariants ? 'rounded-t-xl' : 'rounded-xl'} border bg-[var(--card)] space-y-3 transition-colors ${
                                                 (fieldErrors[batch.id] || fieldErrors[batch.id + '_date'])
                                                     ? 'border-[var(--status-expired-text)] ring-1 ring-[var(--status-expired-text)]/20'
                                                     : 'border-[var(--border)]'
@@ -952,7 +952,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                     </button>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-2 gap-2 md:gap-3">
                                                     {/* Quantity field
                                                         Blocks -/+/e/E/. keys to prevent invalid number strings */}
                                                     <div className="space-y-1">
@@ -966,7 +966,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                             value={batch.qty}
                                                             onChange={e => updateBatch(batch.id, 'qty', e.target.value)}
                                                             onKeyDown={e => ['-', '+', 'e', 'E', '.'].includes(e.key) && e.preventDefault()}
-                                                            className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none transition-colors border bg-[var(--background)] text-[var(--foreground)] ${
+                                                            className={`w-full p-2 md:p-2.5 rounded-xl text-xs font-bold outline-none transition-colors border bg-[var(--background)] text-[var(--foreground)] ${
                                                                 fieldErrors[batch.id]
                                                                     ? 'border-[var(--status-expired-text)] bg-[var(--status-expired-bg)] ring-1 ring-[var(--status-expired-text)]/30'
                                                                     : 'border-[var(--border)] focus:border-[var(--primary)]'
@@ -989,7 +989,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                             value={batch.date}
                                                             min={today}
                                                             onChange={e => updateBatch(batch.id, 'date', e.target.value)}
-                                                            className={`w-full p-2.5 rounded-xl text-xs outline-none transition-colors border bg-[var(--background)] text-[var(--foreground)] ${
+                                                            className={`w-full p-2 md:p-2.5 rounded-xl text-xs outline-none transition-colors border bg-[var(--background)] text-[var(--foreground)] ${
                                                                 fieldErrors[batch.id + '_date']
                                                                     ? 'border-[var(--status-expired-text)] bg-[var(--status-expired-bg)] ring-1 ring-[var(--status-expired-text)]/30'
                                                                     : 'border-[var(--border)] focus:border-[var(--primary)]'
@@ -1037,7 +1037,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                             return (
                                                                 <div
                                                                     key={variant.id}
-                                                                    className={`flex items-center gap-2 p-2.5 rounded-lg bg-[var(--background)] border ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}
+                                                                    className={`flex items-center gap-2 p-2 md:p-2.5 rounded-lg bg-[var(--background)] border ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}
                                                                 >
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className="text-xs font-bold text-[var(--foreground)] truncate">
@@ -1083,7 +1083,7 @@ onChange={e => {
                                                                                     return n;
                                                                                 });
                                                                         }}
-                                                                        className={`w-20 p-1.5 rounded-lg text-xs font-bold text-center border bg-[var(--card)] text-[var(--foreground)] outline-none focus:border-[var(--primary)] ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}
+                                                                        className={`w-16 md:w-20 p-1 md:p-1.5 rounded-lg text-xs font-bold text-center border bg-[var(--card)] text-[var(--foreground)] outline-none focus:border-[var(--primary)] ${hasError ? 'border-[var(--status-expired-text)]' : 'border-[var(--border)]'}`}
                                                                     />
                                                                 </div>
                                                             );
@@ -1118,11 +1118,11 @@ onChange={e => {
                 </div>
 
                 {/* ── Footer / submit button ─────────────────────────────────── */}
-                <div className="p-5 border-t border-[var(--border)] bg-[var(--card)]">
+                <div className="px-4 py-4 md:p-5 border-t border-[var(--border)] bg-[var(--card)]">
                     <button
                         onClick={handleSave}
                         disabled={isFormInvalid}
-                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                        className={`w-full py-2 md:py-3.5 rounded-xl md:rounded-2xl text-[11px] md:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                             isFormInvalid
                                 ? 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'
                                 : 'bg-[var(--primary)] text-white hover:opacity-90 active:scale-[0.98]'

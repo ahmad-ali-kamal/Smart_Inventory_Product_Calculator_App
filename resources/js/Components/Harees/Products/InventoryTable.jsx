@@ -65,7 +65,7 @@ export default function InventoryTable({ products, onExpiry }) {
             {/* overflow-x-auto + min-w ensures the table is horizontally scrollable
                 on narrow viewports without breaking the column proportions. */}
             <div className="overflow-x-auto">
-                <table className="w-full border-collapse min-w-[700px]">
+                <table className="w-full border-collapse table-fixed min-w-[700px]">
 
                     {/* ── Column headers ──────────────────────────────────────── */}
                     <thead>
