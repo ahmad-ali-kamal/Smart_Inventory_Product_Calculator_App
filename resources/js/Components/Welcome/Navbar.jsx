@@ -22,7 +22,7 @@ import { Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 
-/** Ordered list of in-page anchor targets, aligned with t.nav labels. */
+/** Ordered list of in-page anchor targets, aligned with nav labels. */
 const NAV_ANCHORS = ['#features', '#platforms'];
 
 /**
@@ -32,8 +32,7 @@ const NAV_ANCHORS = ['#features', '#platforms'];
  * background transition, pill-style anchor links, and a language switcher.
  *
  * @param {object} props
- * @param {object}   props.t      - Current language translations.
- *   Expected shape: `{ nav: string[] }` — ordered array of nav link labels.
+ * @param {Function} props.t      - i18next translation function scoped to 'welcome'.
  * @param {string}   props.ff     - CSS font-family string for nav link text.
  * @param {string}   props.dir    - Text direction: `'ltr'` or `'rtl'`.
  * @param {number}   props.NAV_H  - Navbar height in px; used as the hide
@@ -46,7 +45,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
 
     /** Tracks the previous scroll Y position to determine scroll direction. */
     const lastY = useRef(0);
-    const navItems = t.nav ? t.nav.slice(0, 2) : [];
+    const navItems = t('nav', { returnObjects: true }).slice(0, 2);
 
     useEffect(() => {
         /**

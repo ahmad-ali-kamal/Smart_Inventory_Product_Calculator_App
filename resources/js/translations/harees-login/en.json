@@ -1,0 +1,19 @@
+{
+  "pageTitle": "Harees — Login",
+  "backHome": "Back to Home",
+  "appName": "Harees",
+  "appSub": "Smart Inventory Management",
+  "appDesc": "A complete expiry monitoring system that organizes your inventory batch by batch and protects your profits from waste.",
+  "steps": [
+    { "title": "Open your Salla store", "sub": "Create a free merchant account on Salla" },
+    { "title": "Install Harees app", "sub": "Search for \"Harees\" in the Salla App Market" },
+    { "title": "Sign in here", "sub": "Use your Salla account email to log in" }
+  ],
+  "loginNow": "Sign in now",
+  "loginSub": "Access directly via your Salla account",
+  "sallaBtn": "Continue with Salla →",
+  "note": "Harees is exclusively available to Salla merchants — install from the Salla App Market to get your account",
+  "already": "",
+  "loginLink": "",
+  "support": ""
+}

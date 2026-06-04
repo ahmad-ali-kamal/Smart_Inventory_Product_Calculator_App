@@ -317,8 +317,7 @@ export function Calculator3D() {
  * directing the visitor's eye to the headline before the widgets appear.
  *
  * @param {object}       props
- * @param {object}       props.t               - Current language translations object.
- * @param {StatusLabels} props.t.statusLabels  - Locale-specific labels for each status pill.
+ * @param {Function} props.t - i18next translation function scoped to 'welcome'.
  * @returns {JSX.Element}
  */
 export default function HeroRight({ t }) {
@@ -340,9 +339,9 @@ export default function HeroRight({ t }) {
                 <ScanCard delay={0.3} />
 
                 {/* StatusCards staggered by 0.8 s each so they bob asynchronously */}
-                <StatusCard status="safe"        label={t.statusLabels.safe}        delay={0}   />
-                <StatusCard status="approaching" label={t.statusLabels.approaching} delay={0.8} />
-                <StatusCard status="expired"     label={t.statusLabels.expired}     delay={1.6} />
+                <StatusCard status="safe"        label={t('statusLabels.safe')}        delay={0}   />
+                <StatusCard status="approaching" label={t('statusLabels.approaching')} delay={0.8} />
+                <StatusCard status="expired"     label={t('statusLabels.expired')}     delay={1.6} />
             </div>
 
             {/* ── Right sub-column: 3-D calculator — pushes down slightly for visual balance ── */}

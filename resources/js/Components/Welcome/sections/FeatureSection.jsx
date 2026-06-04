@@ -46,10 +46,7 @@ const FEATURE_ICONS = [
  * out-of-bounds warning in development.
  *
  * @param {object}   props
- * @param {object}   props.t          - Full translations object for the current locale.
- *   Expected keys used here:
- *   - `featuresLabel` {string}                             - Small uppercase eyebrow label.
- *   - `features`      {Array<{title: string, desc: string}>} - Array of feature card content.
+ * @param {Function} props.t - i18next translation function scoped to 'welcome'.
  * @param {string}   props.ff         - CSS font-family string applied to headings and the eyebrow label.
  * @param {string}   props.bodyFont   - CSS font-family string applied to feature descriptions.
  * @returns {JSX.Element}
@@ -69,7 +66,7 @@ export default function FeaturesSection({ t, ff, bodyFont }) {
                             letterSpacing: '0.18em', color: '#6B7280',
                             marginBottom: '0.5rem',
                         }}>
-                            {t.featuresLabel}
+                            {t('featuresLabel')}
                         </p>
 
                         {/* Decorative gradient underline beneath the label */}
@@ -92,7 +89,7 @@ export default function FeaturesSection({ t, ff, bodyFont }) {
                      * Each card is staggered by 120 ms (i * 0.12) and animates upward.
                      * Icon config is retrieved from FEATURE_ICONS by matching index.
                      */}
-                    {t.features.map((feat, i) => {
+                    {t('features', { returnObjects: true }).map((feat, i) => {
                         /* Destructure icon component and its colour tokens for this card */
                         const { Icon, iconBg, iconColor } = FEATURE_ICONS[i];
 

@@ -75,7 +75,7 @@ export default function InventoryTable({ products, onExpiry }) {
                                     key={k}
                                     style={{ width: WIDTHS[i] }}
                                     className={`p-4 text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-wider ${
-                                        i === 0 ? 'text-left' : 'text-center'
+                                        i === 0 ? 'text-start' : 'text-center'
                                     }`}
                                 >
                                     {t(k)}

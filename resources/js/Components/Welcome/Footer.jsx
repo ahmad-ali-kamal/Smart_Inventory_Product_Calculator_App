@@ -22,27 +22,12 @@ import { Link } from '@inertiajs/react';
  * Renders inside a centred max-width container with a top border divider.
  *
  * @param {object} props
- * @param {object} props.t          - Current language translations.
- *   Expected shape:
- *   ```
- *   t.footer = {
- *     desc:      string,          // Brand tagline / short description
- *     product:   { label: string, links: string[] },
- *     company:   { label: string, links: string[] },
- *     support:   { label: string, links: string[] },
- *     copyright: string,          // e.g. "© 2025 Quantix. All rights reserved."
- *   }
- *   ```
+ * @param {Function} props.t - i18next translation function scoped to 'welcome'.
  * @param {string} props.ff         - CSS font-family string for headings and labels.
  * @param {string} props.bodyFont   - CSS font-family string for body / paragraph copy.
  * @returns {JSX.Element}
  */
 export default function Footer({ t, ff, bodyFont, dir }) {
-    // Destructure all needed keys from the footer translation namespace
-    const { desc, product, company, support, copyright } = t.footer;
-
-    // Build an ordered array so we can render the three link columns generically
-    const cols = [product, company, support];
 
     return (
         <footer
@@ -91,7 +76,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                 fontFamily: bodyFont,
                                 fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.7,
                             }}>
-                                {desc}
+                                {t('footer.desc')}
                             </p>
                         </div>
 
@@ -103,7 +88,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                 letterSpacing: '0.14em', color: '#9CA3AF',
                                 marginBottom: '1rem',
                             }}>
-                                {t.footer.platformsLabel}
+                                {t('footer.platformsLabel')}
                             </h4>
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
                                 <li>
@@ -117,7 +102,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
                                         onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
                                     >
-                                        {t.footer.hareesLink}
+                                        {t('footer.hareesLink')}
                                     </Link>
                                 </li>
                                 <li>
@@ -131,7 +116,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
                                         onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
                                     >
-                                        {t.footer.mustasharLink}
+                                        {t('footer.mustasharLink')}
                                     </Link>
                                 </li>
                             </ul>
@@ -143,7 +128,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                 letterSpacing: '0.14em', color: '#9CA3AF',
                                 marginBottom: '1rem',
                             }}>
-                                {t.footer.quickLinksLabel}
+                                {t('footer.quickLinksLabel')}
                             </h4>
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
                                 <li>
@@ -157,7 +142,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
                                         onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
                                     >
-                                        {t.footer.featuresLink}
+                                        {t('footer.featuresLink')}
                                     </a>
                                 </li>
                                 <li>
@@ -171,7 +156,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
                                         onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
                                     >
-                                        {t.footer.platformsLink}
+                                        {t('footer.platformsLink')}
                                     </a>
                                 </li>
                             </ul>
@@ -188,7 +173,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                     fontFamily: bodyFont,
                     fontSize: '0.78rem', color: '#9CA3AF',
                 }}>
-                    {copyright}
+                    {t('footer.copyright')}
                 </p>
             </div>
         </footer>

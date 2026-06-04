@@ -22,8 +22,8 @@ export default {
                 },
             },
             fontFamily: {
-                display: ["Cormorant Garamond", "serif"],
-                body: ["DM Sans", "sans-serif"],
+                display: ["Changa", "sans-serif"],
+                body: ["Cairo", "sans-serif"],
                 cairo: ["Cairo", "sans-serif"],
                 changa: ["Changa", "sans-serif"],
             },

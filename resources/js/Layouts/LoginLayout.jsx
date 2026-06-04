@@ -16,56 +16,45 @@
 
 import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useLang } from '@/Hooks/useLang';
 import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
 import { useFonts }  from '@/Hooks/useFonts';
-
-// ---------------------------------------------------------------------------
-// Static UI strings — not brand copy (that comes via `translations` prop).
-// Extracted here so they can be moved to a JSON i18n file without touching JSX.
-// ---------------------------------------------------------------------------
-const t = {
-    /** Fallback alt text when no imageAlt prop is supplied */
-    image_alt_fallback: 'App hero image',
-};
 
 /**
  * LoginLayout — shared two-panel login layout for Salla-integrated apps.
  *
  * @component
  *
- * @param {object}  props
- * @param {object}  props.translations        - Bilingual copy object keyed by locale code
- *                                              (`ar` / `en`). Each locale must include the
- *                                              keys consumed in the template (pageTitle,
- *                                              appName, steps, sallaBtn, note, etc.).
- * @param {string}  props.imageSrc            - URL / import of the hero image shown in the
+ * @param {Function} props.t                - i18next translation function scoped to the
+ *                                              app-specific login namespace (e.g.
+ *                                              'mustashar-login' or 'harees-login').
+ * @param {string}   props.imageSrc         - URL / import of the hero image shown in the
  *                                              left panel.
- * @param {string}  props.imageAlt            - Accessible alt text for the hero image.
- * @param {string}  props.gradientFrom        - CSS colour for the start of the left-panel
+ * @param {string}   props.imageAlt         - Accessible alt text for the hero image.
+ * @param {string}   props.gradientFrom     - CSS colour for the start of the left-panel
  *                                              gradient (e.g. `"#8D82FF"`).
- * @param {string}  props.gradientTo          - CSS colour for the end of the gradient.
- * @param {string}  props.accentColor         - Primary brand accent colour used for
+ * @param {string}   props.gradientTo       - CSS colour for the end of the gradient.
+ * @param {string}   props.accentColor      - Primary brand accent colour used for
  *                                              interactive elements on the right panel.
- * @param {string}  props.accentLight         - Light tint of the accent colour used for
+ * @param {string}   props.accentLight      - Light tint of the accent colour used for
  *                                              step-number circle backgrounds.
- * @param {string}  props.shadowColor         - RGB triplet string (no alpha) used to build
+ * @param {string}   props.shadowColor      - RGB triplet string (no alpha) used to build
  *                                              `rgba()` shadows (e.g. `"141,130,255"`).
- * @param {string}  props.authHref            - OAuth redirect URL for the Salla CTA button.
- *                                              image (default: `"scale-[1.25]"`).
- * @param {boolean} [props.showBackHome]      - When `true`, renders a "Back to Home" pill
+ * @param {string}   props.authHref         - OAuth redirect URL for the Salla CTA button.
+ * @param {boolean}  [props.showBackHome]   - When `true`, renders a "Back to Home" pill
  *                                              in the left-panel header; when `false` the
  *                                              link appears below the form instead.
  *                                              Default: `false`.
- * @param {string}  [props.status]            - Optional Inertia flash / status message
+ * @param {string}   [props.status]         - Optional Inertia flash / status message
  *                                              rendered above the CTA in accent colour.
- * @param {string}  [props.bgColor]           - Page background colour outside the card.
+ * @param {string}   [props.bgColor]        - Page background colour outside the card.
  *                                              Default: `"#F5F2FA"`.
  *
  * @returns {JSX.Element}
  */
 export default function LoginLayout({
-    translations,
+    t,
     imageSrc,
     imageAlt,
     gradientFrom,
@@ -78,17 +67,16 @@ export default function LoginLayout({
     status,
     bgColor = '#F5F2FA',
 }) {
-    // `lang`  — active locale string ("ar" | "en")
     // `isAr`  — boolean shorthand for RTL-aware conditionals
     // `dir`   — "rtl" | "ltr" applied to the root container
-    const { lang, isAr, dir } = useLang();
+    const { isAr, dir } = useLang();
 
     // `ff`       — heading / display font-family string
     // `bodyFont` — body / secondary font-family string
     const { ff, bodyFont } = useFonts();
 
-    // Resolve the correct locale slice from the translations map
-    const t = translations[lang];
+    // Shared namespace for fallback UI strings not specific to any app
+    const { t: tShared } = useTranslation('shared');
 
     // ── Animation variants ────────────────────────────────────────────────────
 
@@ -151,10 +139,10 @@ export default function LoginLayout({
         <div
             className="min-h-screen w-full flex items-center justify-center overflow-hidden px-4 py-6"
             dir={dir}
-            style={{ background: bgColor, fontFamily: ff }}
+                style={{ background: bgColor, fontFamily: ff }}
         >
             {/* Sets the document <title> via Inertia's Head component */}
-            <Head title={t.pageTitle} />
+            <Head title={t('pageTitle')} />
 
             {/*
               Global style overrides scoped to this page.
@@ -164,8 +152,6 @@ export default function LoginLayout({
               - The media query collapses the card to full-width on small screens.
             */}
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Changa:wght@300;400;500;600;700;800&display=swap');
-                * { font-family: ${ff}; }
                 body, html { margin: 0; padding: 0; background-color: ${bgColor} !important; }
                 .glass-btn:hover { background: rgba(255,255,255,0.28) !important; }
             `}</style>
@@ -217,7 +203,7 @@ export default function LoginLayout({
                             */}
                             {showBackHome && (
                                 <Link href="/" className="glass-btn" style={glassStyle}>
-                                    {t.backHome} {isAr ? '←' : '→'}
+                                    {t('backHome')} {isAr ? '←' : '→'}
                                 </Link>
                             )}
                         </motion.div>
@@ -239,18 +225,18 @@ export default function LoginLayout({
                             style={{ fontFamily: ff, fontWeight: 700 }}
                             >
                             <span className="inline-block pb-4">
-                            {t.appName}
+                            {t('appName')}
                            </span>
                            </h1>
 
                             {/* One-line value proposition */}
                             <p className="text-white/95 text-base md:text-lg mb-4" style={{ fontFamily: ff }}>
-                                {t.appSub}
+                                {t('appSub')}
                             </p>
 
                             {/* Multi-sentence app description */}
                             <p className="text-white/90 text-sm leading-relaxed max-w-xs md:max-w-sm mb-5" style={{ fontFamily: ff }}>
-                                {t.appDesc}
+                                {t('appDesc')}
                             </p>
                         </motion.div>
 
@@ -258,7 +244,7 @@ export default function LoginLayout({
                        <div className="flex justify-center items-center flex-1 overflow-visible my-auto">
                        <img
                        src={imageSrc}
-                       alt={imageAlt ?? t.image_alt_fallback}
+                       alt={imageAlt ?? tShared('login_layout.image_alt_fallback')}
                        loading="eager"
                        fetchPriority="high"
                        decoding="async"
@@ -271,7 +257,7 @@ export default function LoginLayout({
 
                         {/* Support / footer label at the bottom of the coloured panel */}
                         <div className="relative z-10 text-white/80 text-sm" style={{ fontFamily: ff }}>
-                            {t.support}
+                            {t('support')}
                         </div>
                     </div>
 
@@ -304,10 +290,10 @@ export default function LoginLayout({
                                     className="text-[#171321] text-3xl md:text-4xl mb-2"
                                     style={{ fontFamily: ff, fontWeight: 700 }}
                                 >
-                                    {t.loginNow}
+                                    {t('loginNow')}
                                 </h2>
                                 <p className="text-[#777288] text-sm" style={{ fontFamily: bodyFont }}>
-                                    {t.loginSub}
+                                    {t('loginSub')}
                                 </p>
                             </div>
 
@@ -316,11 +302,11 @@ export default function LoginLayout({
                               Rendered only when the translation key is present,
                               allowing apps to opt-out by omitting the key.
                             */}
-                            {t.already && (
+                            {t('already') && (
                                 <div className="mb-6 text-sm text-[#2A2533]" style={{ fontFamily: bodyFont }}>
-                                    {t.already}{' '}
+                                    {t('already')}{' '}
                                     <span className="cursor-pointer" style={{ color: accentColor }}>
-                                        {t.loginLink}
+                                        {t('loginLink')}
                                     </span>
                                 </div>
                             )}
@@ -337,7 +323,7 @@ export default function LoginLayout({
 
                             {/* Numbered onboarding steps guiding new users */}
                             <div className="space-y-4 mb-8">
-                                {t.steps.map((step, i) => (
+                                {t('steps', { returnObjects: true }).map((step, i) => (
                                     <div key={i} className="flex gap-4 items-start">
                                         {/*
                                           Step-number circle — uses `accentLight` background
@@ -381,7 +367,7 @@ export default function LoginLayout({
                                     fontWeight: 700,
                                 }}
                             >
-                                {t.sallaBtn}
+                                {t('sallaBtn')}
                             </a>
 
                             {/* Contextual note explaining Salla-exclusive access requirement */}
@@ -389,7 +375,7 @@ export default function LoginLayout({
                                 className="text-[#9B96AA] text-[12px] leading-relaxed bg-[#FCFBFF] border border-[#EFEAFB] p-4 rounded-2xl mt-6"
                                 style={{ fontFamily: bodyFont }}
                             >
-                                {t.note}
+                                {t('note')}
                             </div>
 
                             {/*
@@ -403,7 +389,7 @@ export default function LoginLayout({
                                     className="text-xs text-[#B0A9C5] mt-3 inline-block"
                                     style={{ fontFamily: bodyFont }}
                                 >
-                                    {t.backHome} {isAr ? '←' : '→'}
+                                    {t('backHome')} {isAr ? '←' : '→'}
                                 </Link>
                             )}
                         </div>

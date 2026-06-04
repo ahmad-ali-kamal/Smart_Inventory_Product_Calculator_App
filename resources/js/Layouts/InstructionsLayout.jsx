@@ -26,6 +26,7 @@
 
 import { ArrowRight } from "lucide-react";
 import Header from "../Components/UI/Header";
+import { useLang } from "../Context/LanguageContext";
 
 // ---------------------------------------------------------------------------
 // i18n placeholder — move these strings to your translation JSON when ready
@@ -113,8 +114,10 @@ export default function InstructionsLayout({
   footerNote    = "",
   customContent = null,
 }) {
+  const { dir } = useLang();
+
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]" dir={dir}>
 
       {/* Shared top navigation — rendered outside of any container so it spans the full viewport */}
       <Header />

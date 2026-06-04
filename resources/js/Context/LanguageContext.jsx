@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import i18n from '../i18n'; // ← أضف هذا
 
-// Global language context
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
@@ -11,18 +11,22 @@ export function LanguageProvider({ children }) {
         return 'ar';
     });
 
-    // Persist language selection
     useEffect(() => {
         localStorage.setItem('quantix_lang', lang);
+        // ← أضف هذا: sync i18n مع الـ context
+        if (i18n.language !== lang) {
+            i18n.changeLanguage(lang);
+        }
     }, [lang]);
 
     const toggle = () => setLang(prev => (prev === 'ar' ? 'en' : 'ar'));
     const isAr = lang === 'ar';
     const dir = isAr ? 'rtl' : 'ltr';
     const ff = isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif";
+    const bodyFont = isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif";
 
     return (
-        <LanguageContext.Provider value={{ lang, toggle, isAr, dir, ff }}>
+        <LanguageContext.Provider value={{ lang, toggle, isAr, dir, ff, bodyFont }}>
             {children}
         </LanguageContext.Provider>
     );

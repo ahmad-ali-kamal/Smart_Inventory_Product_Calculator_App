@@ -156,13 +156,7 @@ function PlatformCard({ data, imgSrc, accentColor, loginUrl, ff, bodyFont }) {
  * adjacent white sections.
  *
  * @param {object} props
- * @param {object} props.t        - Full translations object for the current locale.
- *   Expected keys used here:
- *   - `pillarsLabel` {string}  - Small eyebrow label above the heading.
- *   - `pillarsTitle` {string}  - Main section heading.
- *   - `pillarsDesc`  {string}  - Supporting paragraph beneath the heading.
- *   - `harees`       {PlatformData} - Content for the Harees platform card.
- *   - `mustashar`    {PlatformData} - Content for the Mustashar platform card.
+ * @param {Function} props.t - i18next translation function scoped to 'welcome'.
  * @param {string} props.ff       - CSS font-family string for headings.
  * @param {string} props.bodyFont - CSS font-family string for body / descriptive text.
  * @returns {JSX.Element}
@@ -188,7 +182,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                             fontSize: '0.7rem', fontWeight: 800,
                             letterSpacing: '0.2em', color: '#7C3AED', whiteSpace: 'nowrap',
                         }}>
-                            — {t.pillarsLabel} —
+                            — {t('pillarsLabel')} —
                         </span>
 
                         {/* Right rule */}
@@ -201,7 +195,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         fontSize: 'clamp(1.6rem, 3vw, 2.25rem)',
                         fontWeight: 800, color: '#111827', marginBottom: '0.75rem',
                     }}>
-                        {t.pillarsTitle}
+                        {t('pillarsTitle')}
                     </h2>
 
                     {/* Supporting description */}
@@ -210,7 +204,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         fontSize: '0.9rem', color: '#6B7280',
                         maxWidth: 500, margin: '0 auto 2.75rem',
                     }}>
-                        {t.pillarsDesc}
+                        {t('pillarsDesc')}
                     </p>
                 </Reveal>
 
@@ -223,7 +217,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     {/* Harees platform card — slides in from the left */}
                     <Reveal delay={0.08} direction="left">
                         <PlatformCard
-                            data={t.harees}
+                            data={t('harees', { returnObjects: true })}
                             imgSrc="/images/hareesDashboard.png"
                             accentColor="#7C3AED"
                             loginUrl="/harees/login"
@@ -235,7 +229,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     {/* Mustashar platform card — slides in from the right */}
                     <Reveal delay={0.18} direction="right">
                         <PlatformCard
-                            data={t.mustashar}
+                            data={t('mustashar', { returnObjects: true })}
                             imgSrc="/images/mustasharSettings.png"
                             accentColor="#7C3AED"
                             loginUrl="/mustashar/login"

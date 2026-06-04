@@ -35,15 +35,7 @@ import HeroRight  from '@/Components/Welcome/hero/HeroRight';
  * animated subtitle/CTA, and floating product widgets on the right.
  *
  * @param {object} props
- * @param {object} props.t          - Current language translations.
- *   Expected shape:
- *   ```
- *   {
- *     heroSub:    string,   // Subtitle paragraph beneath the headline
- *     exploreCta: string,   // Primary CTA button label
- *     // …plus all keys consumed by <HeroRight>
- *   }
- *   ```
+ * @param {Function} props.t        - i18next translation function scoped to 'welcome'.
  * @param {string} props.ff         - CSS font-family string for headings / labels.
  * @param {string} props.bodyFont   - CSS font-family string for body copy.
  * @param {string} props.dir        - Text direction: `'ltr'` or `'rtl'`.
@@ -217,7 +209,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                     maxWidth: 420,
                                 }}
                             >
-                                {t.heroSub}
+                                {t('heroSub')}
                             </motion.p>
 
                             {/* CTA button group — last element to appear in the stagger sequence */}
@@ -252,7 +244,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                                         e.currentTarget.style.boxShadow = '';
                                     }}
                                 >
-                                    {t.exploreCta}
+                                    {t('exploreCta')}
                                 </a>
                             </motion.div>
                         </div>

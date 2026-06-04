@@ -1,0 +1,61 @@
+{
+  "nav": ["Features", "Platforms"],
+  "heroSub": "Welcome to Quantix.. Your Intelligent system for Salla management. Because successful come numbers, not expectations",
+  "exploreCta": "Explore more",
+  "platformsCta": "Our Platforms",
+  "featuresLabel": "OUR KEY FEATURE",
+  "features": [
+    {
+      "title": "Precision Measurements, Higher Sales",
+      "desc": "A smart calculator that interacts with your products to provide instant, accurate area and quantity calculations, eliminating human error and offering your customers a professional shopping experience that builds trust."
+    },
+    {
+      "title": "Intelligent Inventory Monitoring",
+      "desc": "A proactive system that precisely tracks product expiration dates and alerts you automatically before they expire, enabling smart decisions that protect your revenue from waste."
+    },
+    {
+      "title": "Sustainable Business Growth",
+      "desc": "We combine calculation precision with smart inventory tracking to give you a clear view of your store's performance. Every calculation and inventory alert is designed to maximize your profits and ensure sustainable growth."
+    }
+  ],
+  "pillarsLabel": "OUR PLATFORMS",
+  "pillarsTitle": "Two Platforms. One Ecosystem.",
+  "pillarsDesc": "Quantix delivers two specialized sub-platforms designed to handle every dimension of your Salla store.",
+  "harees": {
+    "name": "HAREES",
+    "desc": "Harees Expiry Monitoring brings intelligent tracking of every product's shelf life — automatically flagging approaching expiry dates to reduce waste and protect your revenue.",
+    "features": [
+      "Smart discounting on near-expiry items",
+      "Instant sync with Salla catalog",
+      "Multi-batch expiry tracking",
+      "Automated alert notifications"
+    ],
+    "cta": "Explore Harees"
+  },
+  "mustashar": {
+    "name": "MUSTASHAR",
+    "desc": "Mustashar Smart Calculator embeds a professional calculator directly in your Salla product pages — eliminating human errors and delivering accurate area, quantity, and cost calculations instantly.",
+    "features": [
+      "Flexible calculation rules customizable to your products",
+      "Precision area and quantity calculation engine",
+      "Smart calculator embedded directly in product pages",
+      "Instant preview and seamless integration with Salla"
+    ],
+    "cta": "Explore Mustashar"
+  },
+  "footer": {
+    "desc": "Your intelligent system for Salla management. Because successful commerce relies on numbers, not expectations.",
+    "platformsLabel": "Digital Platforms",
+    "hareesLink": "Harees ",
+    "mustasharLink": "Mustashar ",
+    "quickLinksLabel": "Discover More",
+    "featuresLink": "Features",
+    "platformsLink": " Apps",
+    "copyright": "All rights reserved to Quantix Digital Platform © 2026"
+  },
+  "statusLabels": {
+    "safe": "Safe",
+    "approaching": "Approaching",
+    "expired": "Expired"
+  }
+}

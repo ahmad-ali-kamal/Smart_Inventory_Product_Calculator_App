@@ -22,10 +22,10 @@
  */
 
 import { Head } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { useLang } from '@/Hooks/useLang';
 import GuestLayout from '@/Layouts/GuestLayout';
 
-import T            from '@/constants/translations';
 import globalStyles from '@/styles/globalStyles';
 import { useFonts } from '@/Hooks/useFonts';
 
@@ -60,10 +60,10 @@ export default function Welcome() {
      * useLang — resolves the active locale ('ar' | 'en'), a boolean flag for
      * Arabic (`isAr`), and the text-direction string ('rtl' | 'ltr').
      */
-    const { lang, isAr, dir } = useLang();
+    const { dir } = useLang();
 
-    /** Active translation namespace — keyed by current locale code. */
-    const t = T[lang];
+    /** i18next translation function — scoped to the 'welcome' namespace. */
+    const { t } = useTranslation('welcome');
 
     /*
      * useFonts — returns:

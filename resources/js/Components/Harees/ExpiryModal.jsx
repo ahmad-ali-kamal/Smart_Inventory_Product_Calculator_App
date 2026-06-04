@@ -704,7 +704,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                         <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
                             <CalendarPlus size={20} />
                         </div>
-                        <div className="flex-1 text-left">
+                        <div className="flex-1 text-start">
                             <h3 className="text-sm font-bold text-[var(--foreground)]">{t('expiry_modal.zero_title')}</h3>
                             <p className="text-[11px] text-[var(--muted-foreground)]">{product.name}</p>
                         </div>
@@ -762,7 +762,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                     <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
                         <CalendarPlus size={20} />
                     </div>
-                    <div className="flex-1 text-left">
+                    <div className="flex-1 text-start">
                         {/* Title switches between Add and Edit based on whether batches already exist */}
                         <h3 className="text-sm font-bold text-[var(--foreground)]">
                             {hasBatches ? t('expiry_modal.modal_title_edit') : t('expiry_modal.modal_title_add')}

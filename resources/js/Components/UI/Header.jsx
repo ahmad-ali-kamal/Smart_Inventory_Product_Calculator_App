@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useTheme } from '../../Context/ThemeContext';
-import { useTranslation } from 'react-i18next';  // ← أضف هذا
+import { useTranslation } from 'react-i18next';
+import { useLang } from '../../Context/LanguageContext';
 import { Sun, Moon, User, LayoutGrid, ChevronDown, Globe, LogOut, BellRing, CheckCheck } from 'lucide-react';
 import LangToggle from './LangToggle';
 
@@ -12,9 +13,8 @@ export default function Header() {
     const userName = user?.name || user?.store_info?.merchant?.username || 'المستخدم';
     const userEmail = user?.email || user?.store_info?.merchant?.email || '';
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { t, i18n } = useTranslation('shared');
-   const isAr = i18n.language === 'ar';
-    const toggleLang = () => i18n.changeLanguage(isAr ? 'en' : 'ar');
+    const { t } = useTranslation('shared');
+    const { isAr, toggle: toggleLang } = useLang();
   
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);

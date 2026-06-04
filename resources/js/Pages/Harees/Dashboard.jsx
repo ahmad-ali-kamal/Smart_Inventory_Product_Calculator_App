@@ -83,7 +83,7 @@ export default function Dashboard() {
 
     return (
         <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
-            <div className="space-y-10" dir="ltr">
+            <div className="space-y-10">
 
                 {/* ── Setup banner ──────────────────────────────────────────────
                     Shown only when the merchant has not yet configured expiry

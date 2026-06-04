@@ -24,8 +24,8 @@ export default function LangToggle({ isAr, toggle, style: extra = {} }) {
                 whiteSpace: 'nowrap',
                 transition: 'background 0.2s',
                 fontFamily: isAr
-                    ? "'Cormorant Garamond', serif"
-                    : "'Almarai', sans-serif",
+                    ? "'Cairo', sans-serif"
+                    : "'Changa', sans-serif",
                 ...extra,
             }}
             onMouseEnter={e => {
