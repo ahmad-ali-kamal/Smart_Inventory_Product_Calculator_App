@@ -29,19 +29,22 @@
     "description": "An intelligent system that monitors your inventory step-by-step, alerts you before expiration, and secures your revenue through automated discounts and smart product visibility control.",
     "footer_note": "Harees · Your smart partner against inventory waste",
 
-    "step1_title": "1. Categorize Products & Set Monitoring Periods",
-    "step1_desc": "Move your store categories into Long, Medium, or Short-term sections based on product natural life, enabling the system to precisely track each category for its specific duration.",
-    "step1_badge": "Inventory Mapping & Categorization",
+    "step1_title": "1. Organize Product Categories & Monitoring Thresholds",
+    "step1_desc": "Move your store categories and classify them into long, medium, or short-term based on the nature of your products expiration, allowing the system to track each category accurately with the duration that suits it.",
+    "step1_badge": "Inventory Organization & Classification",
 
     "step2_title": "2. Track Product Batches & Manage Product Options",
-    "step2_desc": "On the products page, click 'Add Expiry Date' to open the entry form. If stock is zero or product options like: colors and sizes are missing, a button will link you to Salla store dashboard to update them, to distribute your expiry dates.",
-    "step2_badge": "Batch & Stock Allocation",
+    "step2_desc": "On the products page, click 'Add Expiry Date' to open the entry form. If the product is standard, you can add the batch and its quantity directly, while if it contains options like: colors and sizes, you will be able to easily distribute the batch quantity across these options. If there is a shortage in product stock or option details, a button appears to facilitate your transition directly to your Salla store dashboard to update them before scheduling dates.",
+    "step2_badge": "Batch & Quantity Registration",
 
-    "step3_title": "3. Smart Automation Settings",
-    "step3_desc": "The system tracks batches and sends instant alerts for approaching and expired batches. Enable 'Auto-Discount' to instantly apply discounts for approaching batches; if disabled later, current active discounts remain until their set duration ends. A 'Manual Discount' button appears only if auto-discount is off, and disappears when active to prevent overlap. Finally, 'Auto-Hide' conceals the product from your store only when all its batches are fully expired, with all states cleanly tracked in the dashboard table.",
-    "step3_badge": "Automations & Notifications"
-  },
+    "step3_title": "3. Instant Alerts & Auto-Hide System",
+    "step3_desc": "The system tracks your inventory batches and sends instant alerts for approaching and expired batches. Finally, the Auto-Hide feature conceals the product from your store only when all its batches are fully expired.",
+    "step3_badge": "Alerts & Auto-Hide",
 
+    "step4_title": "4. Discount System",
+    "step4_desc": "To save your time, you can enable 'Auto-Discount' to instantly apply discounts for approaching batches; if disabled later, current active discounts remain until their set duration ends. A 'Manual Discount' button appears only if auto-discount is off, and disappears when active to prevent overlap, with all these cases cleanly tracked and displayed in the dashboard table.",
+    "step4_badge": "Discount Settings"
+},
   "setup_banner": {
     "default_description": "Set up your expiry thresholds first so products and batches can be tracked."
   },
