@@ -39,8 +39,8 @@
 
   "sync_button": {
     "button_title": "مزامنة البيانات",
-    "toast_success": "تمت المزامنة بنجاح!",
-    "toast_error": "فشلت المزامنة."
+    "toast_success": "!تمت المزامنة بنجاح",
+      "toast_error": ".فشلت المزامنة"
   },
 
   "setup_banner": {

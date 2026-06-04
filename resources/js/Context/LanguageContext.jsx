@@ -19,7 +19,7 @@ export function LanguageProvider({ children }) {
     const toggle = () => setLang(prev => (prev === 'ar' ? 'en' : 'ar'));
     const isAr = lang === 'ar';
     const dir = isAr ? 'rtl' : 'ltr';
-    const ff = isAr ? "'Almarai', sans-serif" : "'Cormorant Garamond', serif";
+    const ff = isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif";
 
     return (
         <LanguageContext.Provider value={{ lang, toggle, isAr, dir, ff }}>

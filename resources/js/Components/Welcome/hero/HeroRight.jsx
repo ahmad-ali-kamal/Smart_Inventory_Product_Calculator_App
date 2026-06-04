@@ -137,7 +137,7 @@ export function StatusCard({ status, label, delay }) {
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay }}
             style={{
                 background: 'white', borderRadius: 16, padding: '10px 14px',
-                width: 210, boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+                width: 210, maxWidth: '100%', boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
                 display: 'flex', alignItems: 'center', gap: 10,
             }}
         >
@@ -189,7 +189,7 @@ export function ScanCard({ delay }) {
             transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay }}
             style={{
                 background: 'white', borderRadius: 13, padding: '9px 12px',
-                width: 194, boxShadow: '0 6px 20px rgba(0,0,0,0.10)',
+                width: 194, maxWidth: '100%', boxShadow: '0 6px 20px rgba(0,0,0,0.10)',
                 display: 'flex', alignItems: 'center', gap: 9,
             }}
         >
@@ -331,6 +331,7 @@ export default function HeroRight({ t }) {
             style={{
                 display: 'flex', alignItems: 'center', gap: 22,
                 justifyContent: 'center', padding: '1.5rem 0',
+                flexWrap: 'wrap',
             }}
         >
             {/* ── Left sub-column: scan card at top, then staggered status cards ── */}

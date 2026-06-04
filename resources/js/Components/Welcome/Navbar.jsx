@@ -44,9 +44,6 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
     /** Whether the navbar is currently hidden (slid above viewport). */
     const [hidden, setHidden] = useState(false);
 
-    /** Whether the page scroll position is at (or very near) the top. */
-    const [atTop,  setAtTop]  = useState(true);
-
     /** Tracks the previous scroll Y position to determine scroll direction. */
     const lastY = useRef(0);
     const navItems = t.nav ? t.nav.slice(0, 2) : [];
@@ -61,9 +58,6 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
          */
         const onScroll = () => {
             const y = window.scrollY;
-
-            // Update transparent-background flag
-            setAtTop(y < 10);
 
             // Ignore tiny scroll deltas to avoid jitter
             if (Math.abs(y - lastY.current) < 5) return;
@@ -86,11 +80,10 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
                 position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
                 height: NAV_H,
                 backdropFilter: 'blur(20px)',
-                /* Transparent at top → frosted dark when scrolled */
-                background: atTop ? 'rgba(10, 5, 30, 0.0)' : 'rgba(10, 5, 30, 0.72)',
-                borderBottom: atTop ? '1px solid transparent' : '1px solid rgba(255,255,255,0.07)',
+                /* Always transparent */
+                background: 'rgba(10, 5, 30, 0.0)',
+                borderBottom: '1px solid transparent',
                 display: 'flex', alignItems: 'center',
-                transition: 'background 0.4s, border-color 0.4s',
             }}
         >
             <div style={{

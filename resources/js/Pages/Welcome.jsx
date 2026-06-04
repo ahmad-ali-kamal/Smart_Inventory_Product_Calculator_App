@@ -97,7 +97,7 @@ export default function Welcome() {
                 <HeroSection      t={t} ff={ff} bodyFont={bodyFont} dir={dir} NAV_H={NAV_H} />
                 <FeaturesSection  t={t} ff={ff} bodyFont={bodyFont} />
                 <PlatformsSection t={t} ff={ff} bodyFont={bodyFont} />
-                <Footer           t={t} ff={ff} bodyFont={bodyFont} />
+                <Footer           t={t} ff={ff} bodyFont={bodyFont} dir={dir} />
             </main>
         </>
     );

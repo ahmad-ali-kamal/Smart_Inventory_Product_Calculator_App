@@ -61,9 +61,9 @@ const T = {
         /** Disclaimer note explaining Salla-only access */
         note:      'حريص متاح حصرياً لتجار سلة — ثبّت التطبيق من متجر سلة للحصول على حسابك',
         /** "Already have an account?" prompt */
-        already:   'لديك حساب بالفعل؟',
+        already:   '',
         /** Inline login link label following the `already` prompt */
-        loginLink: 'تسجيل الدخول',
+        loginLink: '',
     },
 
     /** English (LTR) copy */
@@ -82,8 +82,8 @@ const T = {
         loginSub:  'Access directly via your Salla account',
         sallaBtn:  'Continue with Salla →',
         note:      'Harees is exclusively available to Salla merchants — install from the Salla App Market to get your account',
-        already:   'Already have an account?',
-        loginLink: 'Log in',
+        already:   '',
+        loginLink: '',
     },
 };
 

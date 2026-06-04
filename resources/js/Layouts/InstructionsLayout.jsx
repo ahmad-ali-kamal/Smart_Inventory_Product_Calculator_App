@@ -129,11 +129,11 @@ export default function InstructionsLayout({
         <div className="fixed inset-0 pointer-events-none select-none -z-10">
 
           {/* Radial glow blobs — create a soft depth illusion */}
-          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full"
+          <div className="absolute -top-32 -right-32 w-64 md:w-[500px] h-64 md:h-[500px] rounded-full"
             style={{ background: "radial-gradient(circle, rgba(148,144,200,0.18) 0%, transparent 70%)" }} />
-          <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] rounded-full"
+          <div className="absolute -bottom-40 -left-40 w-52 md:w-[400px] h-52 md:h-[400px] rounded-full"
             style={{ background: "radial-gradient(circle, rgba(148,144,200,0.12) 0%, transparent 70%)" }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full"
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 md:w-[700px] h-72 md:h-[700px] rounded-full"
             style={{ background: "radial-gradient(circle, rgba(148,144,200,0.07) 0%, transparent 60%)" }} />
 
           {/* Concentric ring pairs — top-left cluster */}
@@ -290,7 +290,7 @@ export function StepRow({ step }) {
   const offset        = step.offset        ?? "";
 
   return (
-    <div className={`flex items-start gap-5 group ${offset}`}>
+    <div className={`flex items-start gap-5 group rtl:flex-row-reverse ${offset}`}>
 
       {/* ── Numbered Badge ── */}
       <div className="flex-shrink-0 relative mt-2">
@@ -320,12 +320,12 @@ export function StepRow({ step }) {
         <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           style={{ boxShadow: "0 0 40px rgba(148,144,200,0.14)" }} />
 
-        {/* Vertical left-edge accent line */}
-        <div className="absolute left-0 top-5 bottom-5 w-1 rounded-full"
+        {/* Vertical edge accent line — left in LTR, right in RTL */}
+        <div className="absolute left-0 rtl:left-auto rtl:right-0 top-5 bottom-5 w-1 rounded-full"
           style={{ background: "linear-gradient(180deg, var(--primary), color-mix(in srgb, var(--primary) 50%, #fff))" }} />
 
         {/* Card body text */}
-        <div className="pl-4">
+        <div className="pl-4 rtl:pr-4 rtl:pl-0">
           {/* Step label — uppercase tracking pill */}
           <span className="text-[var(--primary)] uppercase tracking-[0.2em] text-xs mb-1 block font-semibold opacity-80">
             {step.label}

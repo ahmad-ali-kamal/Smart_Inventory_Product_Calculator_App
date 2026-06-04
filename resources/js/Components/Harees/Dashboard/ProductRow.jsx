@@ -137,7 +137,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                         const count = (product.batches || []).length;
                         if (count === 0) return null;
                         return (
-                            <span className="text-[11px] font-bold text-[var(--muted-foreground)]">
+                            <span className="text-[11px] font-bold text-[var(--muted-foreground)] w-full text-center inline-block">
                                 {t(count === 1 ? 'dashboard_product_row.batch_count_one' : 'dashboard_product_row.batch_count_other', { count })}
                             </span>
                         );
@@ -160,7 +160,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                                     className={`transition-transform duration-300 ${showBatches ? 'rotate-180' : ''}`}
                                 />
                             }
-                            className="w-[120px] h-[32px]"
+                            className="w-full h-8"
                         >
                             {showBatches ? t('dashboard_product_row.btn_hide_batches') : t('dashboard_product_row.btn_view_batches')}
                         </RowActionButton>

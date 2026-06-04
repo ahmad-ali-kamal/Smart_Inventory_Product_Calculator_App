@@ -22,6 +22,7 @@ import { Zap, EyeOff, BadgePercent, Percent, Calendar } from 'lucide-react';
 import Card from '../../Common/UI/Card';
 import HintBox from './HintBox';
 import Toggle from '../../Common/Toggle';
+import SaveButton from './SaveButton';
 import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,11 @@ export default function AutomationCard({
     errors,
     onToggle,
     onInputChange,
+    onSave,
+    saving,
+    saved,
+    saveDisabled,
+    saveError,
 }) {
     const { t } = useTranslation('harees');
     return (
@@ -113,6 +119,17 @@ export default function AutomationCard({
                     )}
                 </div>
             ))}
+
+            {/* ── Save button ────────────────────────────────────────────── */}
+            <div className="pt-4 border-t border-[var(--border)]">
+                <SaveButton
+                    onSave={onSave}
+                    saving={saving}
+                    saved={saved}
+                    disabled={saveDisabled}
+                    saveError={saveError}
+                />
+            </div>
         </Card>
     );
 }
@@ -133,7 +150,7 @@ function DiscountPanel({ discountConfig, errors, onInputChange, t }) {
     return (
         <div className="mx-1 mb-3 mt-1 p-4 rounded-2xl bg-[var(--muted)]/40 border border-[var(--primary)]/20 space-y-3">
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                 {/* ── Discount % ─────────────────────────────────────────── */}
                 <div className="space-y-1.5">
@@ -149,9 +166,9 @@ function DiscountPanel({ discountConfig, errors, onInputChange, t }) {
                             type="text"
                             value={discountConfig.percent}
                             onChange={(e) => onInputChange('percent', e.target.value, 'discount')}
-                            className="w-full p-3 pr-7 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
+                            className="w-full p-3 pe-7 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs">
+                        <span className="absolute end-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs">
                             {t('automation_card.suffix_percent')}
                         </span>
                     </div>
@@ -174,9 +191,9 @@ function DiscountPanel({ discountConfig, errors, onInputChange, t }) {
                             type="text"
                             value={discountConfig.durationDays}
                             onChange={(e) => onInputChange('durationDays', e.target.value, 'discount')}
-                            className="w-full p-3 pr-10 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
+                            className="w-full p-3 pe-10 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-[9px]">
+                        <span className="absolute end-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-[9px]">
                             {t('automation_card.suffix_days')}
                         </span>
                     </div>

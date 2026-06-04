@@ -75,7 +75,7 @@ function BucketColumn({ config, thresholdValue, categories, onDrop, onDragStart,
         <div
             onDrop={(e) => onDrop(e, config.key)}
             onDragOver={(e) => e.preventDefault()}   // required to allow dropping
-            className="flex-1 min-h-[150px] rounded-xl border border-[var(--border)] bg-[var(--muted)]/20 p-3 flex flex-col gap-2"
+            className="flex-1 min-h-36 rounded-xl border border-[var(--border)] bg-[var(--muted)]/20 p-3 flex flex-col gap-2"
         >
             {/* Bucket header: coloured status dot + label + threshold badge */}
             <div className="flex items-center justify-between mb-1">
@@ -159,7 +159,7 @@ export default function CategoryMappingCard({
             )}
 
             {/* ── Bucket columns ─────────────────────────────────────────── */}
-            <div className="flex gap-3">
+            <div className="flex flex-col lg:flex-row gap-3">
                 {BUCKET_CONFIG.map((config) => (
                     <BucketColumn
                         key={config.key}

@@ -49,7 +49,7 @@
     "col_product": "Product",
     "col_category": "Category",
     "col_unit_coverage": "Unit Coverage",
-    "col_waste": "Waste %",
+    "col_waste": "Waste",
     "col_status": "Status",
     "col_active": "Active",
     "col_preview": "Preview"

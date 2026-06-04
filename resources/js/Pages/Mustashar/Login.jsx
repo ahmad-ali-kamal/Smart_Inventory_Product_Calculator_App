@@ -61,9 +61,9 @@ const T = {
         /** Disclaimer note explaining Salla-only access */
         note:      'تطبيق المستشار مصمم خصيصاً لخدمة تجار سلة. تأكد من تثبيت التطبيق أولاً لتتمكن من الدخول.',
         /** "Already have an account?" prompt */
-        already:   'لديك حساب بالفعل؟',
+        already:   '',
         /** Inline login link label following the `already` prompt */
-        loginLink: 'تسجيل الدخول',
+        loginLink: '',
     },
 
     /** English (LTR) copy */
@@ -82,8 +82,8 @@ const T = {
         loginSub:  'Fast and secure access via your Salla account',
         sallaBtn:  'Continue with Salla →',
         note:      'Mustashar is exclusively built for Salla merchants. Please install the app first to gain access.',
-        already:   'Already have an account?',
-        loginLink: 'Log in',
+        already:   '',
+        loginLink: '',
     },
 };
 

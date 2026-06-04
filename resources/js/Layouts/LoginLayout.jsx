@@ -168,9 +168,6 @@ export default function LoginLayout({
                 * { font-family: ${ff}; }
                 body, html { margin: 0; padding: 0; background-color: ${bgColor} !important; }
                 .glass-btn:hover { background: rgba(255,255,255,0.28) !important; }
-                @media (max-width: 768px) {
-                    .login-card { width: 95vw !important; min-width: unset !important; height: auto !important; }
-                }
             `}</style>
 
             {/* ── Outer card ─────────────────────────────────────────────────── */}
@@ -183,7 +180,7 @@ export default function LoginLayout({
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
-                className="login-card w-[75vw] min-w-[1100px] max-w-[1280px] h-[720px] rounded-[34px] bg-white/50 border border-white overflow-hidden p-3"
+                className="login-card w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl h-auto lg:h-[700px] xl:h-[720px] rounded-[34px] bg-white/50 border border-white overflow-hidden p-3"
                 style={{ boxShadow: `0 25px 80px rgba(${shadowColor}, 0.22)` }}
             >
                 {/*
@@ -195,7 +192,7 @@ export default function LoginLayout({
 
                     {/* ── LEFT panel (coloured brand panel) ─────────────────── */}
                     <div
-                        className="w-full md:w-[50%] relative overflow-hidden p-8 md:p-10 flex flex-col justify-between h-[320px] md:h-full"
+                        className="w-full md:w-1/2 relative overflow-hidden p-8 md:p-10 flex flex-col justify-between h-auto md:h-full"
                         style={{ background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)` }}
                     >
                         {/* Decorative radial light bursts — pure visual depth, no semantic content */}
@@ -252,7 +249,7 @@ export default function LoginLayout({
                             </p>
 
                             {/* Multi-sentence app description */}
-                            <p className="text-white/90 text-sm leading-relaxed max-w-[410px] mb-5" style={{ fontFamily: ff }}>
+                            <p className="text-white/90 text-sm leading-relaxed max-w-xs md:max-w-sm mb-5" style={{ fontFamily: ff }}>
                                 {t.appDesc}
                             </p>
                         </motion.div>
@@ -267,7 +264,7 @@ export default function LoginLayout({
                        decoding="async"
                        width="600"
                        height="420"
-                       className="login-visual w-full max-w-[480px] object-contain drop-shadow-2xl"
+                       className="login-visual w-full max-w-xs sm:max-w-sm md:max-w-md object-contain drop-shadow-2xl"
                        style={{ transform: 'none', animation: 'none', transition: 'none' }}
                        />
                       </div>
@@ -289,7 +286,7 @@ export default function LoginLayout({
                         initial="hidden"
                         animate="visible"
                         className={`
-                            w-full md:w-[50%] h-full bg-white
+                            w-full md:w-1/2 h-full bg-white
                             flex items-center justify-center
                             p-8 md:p-14
                             overflow-y-auto
@@ -299,7 +296,7 @@ export default function LoginLayout({
                             }
                         `}
                     >
-                        <div className="w-full max-w-[430px]">
+                        <div className="w-full max-w-sm md:max-w-md">
 
                             {/* Section heading + sub-label */}
                             <div className="mb-8">
@@ -376,7 +373,7 @@ export default function LoginLayout({
                             */}
                             <a
                                 href={authHref}
-                                className="w-full h-[52px] rounded-xl text-white font-bold text-base flex items-center justify-center hover:scale-[1.01] active:scale-[0.98] transition"
+                                className="w-full h-12 md:h-[52px] rounded-xl text-white font-bold text-base flex items-center justify-center hover:scale-[1.01] active:scale-[0.98] transition"
                                 style={{
                                     background: `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`,
                                     boxShadow: `0 12px 26px rgba(${shadowColor}, 0.28)`,

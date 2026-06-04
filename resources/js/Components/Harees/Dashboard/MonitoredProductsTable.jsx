@@ -120,7 +120,7 @@ export default function MonitoredProductsTable({
             {/* ── Panel header ───────────────────────────────────────────────
                 Title + status dropdown side-by-side.
             ─────────────────────────────────────────────────────────────── */}
-            <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--background)]/30">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--background)]/30">
                 <div className="flex items-center gap-2">
                     <ListFilter className="w-4 h-4 text-[var(--primary)]" />
                     <h2 className="text-sm font-bold text-[var(--foreground)]">
@@ -131,7 +131,7 @@ export default function MonitoredProductsTable({
                     options={getStatusFilters(t)}
                     value={statusFilter}
                     onChange={onFilterChange}
-                    width="w-[130px]"
+                    width="w-32"
                 />
             </div>
 
@@ -141,15 +141,15 @@ export default function MonitoredProductsTable({
                   2. empty list  → no products match the active filter
                   3. normal list → one ProductRow per filtered product
             ─────────────────────────────────────────────────────────────── */}
-            <div className="overflow-hidden rounded-b-[20px]">
-                <table className="w-full border-collapse">
-                    <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-left">
+            <div className="overflow-x-auto rounded-b-[20px]">
+                <table className="w-full border-collapse min-w-[600px] sm:min-w-0">
+                    <thead className="bg-[var(--muted)]/50 border-b border-[var(--border)] text-start">
                         <tr className="text-[11px] uppercase tracking-widest text-[var(--muted-foreground)] font-bold">
-                            <th className="p-4 w-[25%]">{t('monitored_products_table.col_product')}</th>
-                            <th className="p-4 text-center w-[15%]">{t('monitored_products_table.col_status')}</th>
-                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.col_expiry_info')}</th>
-                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.discount_status')}</th>
-                            <th className="p-4 text-center w-[20%]">{t('monitored_products_table.col_actions')}</th>
+                            <th className="p-2 sm:p-4 w-[25%]">{t('monitored_products_table.col_product')}</th>
+                            <th className="p-2 sm:p-4 text-center w-[15%]">{t('monitored_products_table.col_status')}</th>
+                            <th className="p-2 sm:p-4 text-center w-[20%]">{t('monitored_products_table.col_expiry_info')}</th>
+                            <th className="p-2 sm:p-4 text-center w-[20%]">{t('monitored_products_table.discount_status')}</th>
+                            <th className="p-2 sm:p-4 text-center w-[20%]">{t('monitored_products_table.col_actions')}</th>
                         </tr>
                     </thead>
 

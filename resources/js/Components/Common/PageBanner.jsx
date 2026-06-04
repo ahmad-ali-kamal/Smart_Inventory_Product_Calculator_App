@@ -46,12 +46,11 @@ export default function PageBanner({ children, visible, onToggle }) {
                         key="open"
                         className="flex items-center gap-2 h-9 px-2 rounded-xl
                             bg-[var(--accent)] border border-[var(--primary)]/10
-                            text-[var(--primary)] text-xs font-medium overflow-hidden"
+                            text-[var(--primary)] text-xs font-medium overflow-hidden whitespace-nowrap"
                         initial={{ opacity: 0, width: 0 }}
                         animate={{ opacity: 1, width: 'auto' }}
                         exit={{ opacity: 0, width: 0 }}
                         transition={{ duration: 0.35, ease: 'easeInOut' }}
-                        style={{ whiteSpace: 'nowrap' }}
                     >
                         {/* Collapse button — clicking it hides the banner */}
                         <button
@@ -65,7 +64,7 @@ export default function PageBanner({ children, visible, onToggle }) {
                         </button>
 
                         {/* Contextual help text passed as children */}
-                        <span className="pr-1">{children}</span>
+                        <span className="pe-1">{children}</span>
                     </motion.div>
 
                 ) : (

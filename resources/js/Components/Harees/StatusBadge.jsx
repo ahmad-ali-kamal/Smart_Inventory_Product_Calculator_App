@@ -90,8 +90,8 @@ export function getStatusStyle(normalized) {
  * @type {Record<string, string>}
  */
 const SIZE = {
-    sm: 'w-[90px]  h-[22px] text-[9px]',
-    md: 'w-[110px] h-[26px] text-[10px]',
+    sm: 'px-2 h-[22px] text-[8px] sm:text-[9px] w-full',
+    md: 'px-3 h-[26px] text-[9px] sm:text-[10px] w-full',
 };
 
 /**
@@ -121,7 +121,7 @@ export default function StatusBadge({ status, size = 'md', className = '' }) {
         <span
             style={style}
             className={`
-                inline-flex items-center justify-center
+                flex items-center justify-center
                 rounded-full border font-black uppercase tracking-wide
                 ${SIZE[size] ?? SIZE.md}
                 ${className}

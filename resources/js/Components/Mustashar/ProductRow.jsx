@@ -34,8 +34,9 @@ import { useTranslation } from "react-i18next";
 
 // ── Grid column definitions ───────────────────────────────────────────────────
 // Must stay in sync with the matching constants in ProductTable.jsx.
-const COLS_WITH_PREVIEW    = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr_1fr]";
-const COLS_WITHOUT_PREVIEW = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr]";
+// First column uses responsive min-width: 140px on mobile, 220px on desktop.
+const COLS_WITH_PREVIEW    = "grid-cols-[minmax(140px,220px)_1fr_1fr_1fr_1fr_1fr_1fr]";
+const COLS_WITHOUT_PREVIEW = "grid-cols-[minmax(140px,220px)_1fr_1fr_1fr_1fr_1fr]";
 
 // ── Shared inline-edit cell style helpers ─────────────────────────────────────
 // Pure functions — no hooks or side-effects — so they can be called freely
@@ -417,7 +418,7 @@ export default function ProductRow({
 
     return (
         <div
-            className={`grid gap-4 px-8 py-4 items-center ${
+            className={`grid gap-2 lg:gap-4 px-4 lg:px-8 py-4 items-center ${
                 showPreview ? COLS_WITH_PREVIEW : COLS_WITHOUT_PREVIEW
             }`}
             style={rowStyle}

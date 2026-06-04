@@ -64,7 +64,7 @@ export default function ThresholdCard({ thresholds, errors, onInputChange }) {
             <HintBox message={t('threshold_card.card_hint')} />
 
             {/* ── Threshold fields ───────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {THRESHOLD_KEYS.map((key) => {
                     const errorKey = `thresholds.${key}`;
                     const hasError = Boolean(errors[errorKey]);

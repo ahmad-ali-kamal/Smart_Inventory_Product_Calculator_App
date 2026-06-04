@@ -193,15 +193,15 @@ export default function DiscountModal({
         /* Full-screen overlay: clicking outside the card does NOT close the modal
            (intentional — prevents accidental loss of unsaved discount values). */
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="relative w-full max-w-[500px] bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+            <div className="relative w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
 
                 {/* ── Header ────────────────────────────────────────────────── */}
-                <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
+                <div className="flex items-center gap-3 p-4 sm:p-5 border-b border-[var(--border)]">
                     <div className="w-10 h-10 rounded-xl bg-[var(--muted)] flex items-center justify-center text-[var(--primary)]">
                         {/* Edit icon in edit mode, Percent icon for new discounts */}
                         {isEdit ? <Edit size={20} /> : <Percent size={20} />}
                     </div>
-                    <div className="flex-1 text-left">
+                    <div className="flex-1 text-start">
                         <h3 className="text-sm font-bold text-[var(--foreground)]">
                             {modalTitle}
                         </h3>
@@ -220,7 +220,7 @@ export default function DiscountModal({
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5">
+                <div className="p-4 sm:p-6 space-y-5">
 
                     {/* ── Informational note ─────────────────────────────────── */}
                     <div className="flex items-start gap-2 p-4 rounded-2xl bg-[var(--accent)] border border-[var(--primary)]/10">
@@ -246,7 +246,7 @@ export default function DiscountModal({
                             {t('discount_modal.section_title')}
                         </span>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                             {/* Discount percentage input */}
                             <div className="flex flex-col gap-1.5">
@@ -261,7 +261,7 @@ export default function DiscountModal({
                                         onChange={handlePctChange}
                                         disabled={isLoading || isSuccess}
                                         className={`
-                                            w-full p-3 pr-7 rounded-xl border
+                                            w-full p-3 pe-7 rounded-xl border
                                             text-[var(--foreground)] text-sm font-bold outline-none transition-all
                                             placeholder:text-[var(--muted-foreground)] focus:ring-2
                                             disabled:opacity-60 disabled:cursor-not-allowed
@@ -272,7 +272,7 @@ export default function DiscountModal({
                                         `}
                                     />
                                     {/* Inline "%" symbol positioned to the right of the value */}
-                                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${pctError ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}>
+                                    <span className={`absolute end-3 top-1/2 -translate-y-1/2 text-xs font-bold ${pctError ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}>
                                         %
                                     </span>
                                 </div>
@@ -318,7 +318,7 @@ export default function DiscountModal({
                 </div>
 
                 {/* ── Footer / submit button ─────────────────────────────────── */}
-                <div className="p-5 border-t border-[var(--border)]">
+                <div className="p-4 sm:p-5 border-t border-[var(--border)]">
                     <button
                         onClick={handleApply}
                         disabled={isLoading || isSuccess}

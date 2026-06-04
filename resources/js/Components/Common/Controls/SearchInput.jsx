@@ -68,7 +68,7 @@ export default function SearchInput({ value, onChange, placeholder, sanitize: do
     }
 
     return (
-        <div className="flex items-center gap-2 px-3 h-9 rounded-xl bg-[var(--accent)] border border-[var(--primary)]/5 focus-within:border-[var(--primary)]/20 transition-all w-40 sm:w-48">
+        <div className="flex items-center gap-2 px-3 h-9 rounded-xl bg-[var(--accent)] border border-[var(--primary)]/5 focus-within:border-[var(--primary)]/20 transition-all w-full sm:w-48">
             {/* Decorative search icon — not interactive */}
             <Search size={14} className="text-[var(--primary)]/60 flex-shrink-0" />
 

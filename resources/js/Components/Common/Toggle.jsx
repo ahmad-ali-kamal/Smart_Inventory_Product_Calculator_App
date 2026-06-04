@@ -42,6 +42,8 @@ const t = {};
  */
 export default function Toggle({ checked, onChange, disabled = false }) {
 
+    const translateX = checked ? "translateX(20px)" : "translateX(0px)";
+
     return (
         <button
             type="button"
@@ -49,43 +51,23 @@ export default function Toggle({ checked, onChange, disabled = false }) {
             aria-checked={checked}
             onClick={() => !disabled && onChange()}
             disabled={disabled}
+            className={`
+                relative inline-flex items-center flex-shrink-0
+                w-11 h-6 rounded-full border-none p-0 outline-none
+                transition-[background-color] duration-250 ease-linear
+                ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+            `}
             style={{
-                position:        "relative",
-                display:         "inline-flex",
-                alignItems:      "center",
-                width:           "44px",
-                height:          "24px",
-                borderRadius:    "9999px",
-                border:          "none",
-                padding:          0,
-                cursor:           disabled ? "not-allowed" : "pointer",
-                opacity:          disabled ? 0.5 : 1,
-                // Track colour transitions in sync with the thumb slide (250 ms).
-                backgroundColor:  checked ? "var(--primary)" : "#d1d5db",
-                // box-shadow carries the optional glow ring — transitions both in and out.
-                boxShadow:        "none",
-                transition:       "background-color 0.25s ease",
-                flexShrink:       0,
-                outline:         "none",
+                backgroundColor: checked ? "var(--primary)" : "#d1d5db",
             }}
         >
-            {/* ── Sliding thumb ────────────────────────────────────────────────
-                translateX moves the thumb between the off (0 px) and on (20 px)
-                positions. cubic-bezier easing gives a snappy-but-smooth feel.
-            ─────────────────────────────────────────────────────────────────── */}
             <span
+                className="absolute top-1 rtl:right-1 ltr:left-1 w-4 h-4 rounded-full bg-white"
                 style={{
-                    position:        "absolute",
-                    top:             "4px",
-                    left:            "4px",
-                    width:           "16px",
-                    height:          "16px",
-                    borderRadius:    "9999px",
-                    backgroundColor: "#ffffff",
-                    boxShadow:       "0 1px 3px rgba(0,0,0,0.2)",
-                    transform:        checked ? "translateX(20px)" : "translateX(0px)",
-                    transition:      "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                    willChange:      "transform",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    transform: translateX,
+                    transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                    willChange: "transform",
                 }}
             />
         </button>

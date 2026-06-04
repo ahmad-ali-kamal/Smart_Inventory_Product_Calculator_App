@@ -8,19 +8,19 @@ const T = {
         featuresLabel: "OUR KEY FEATURE",
         features: [
             {
-                title: "Precision-Driven Calculations",
-                desc: "Advanced algorithms deliver exact quantity and cost calculations, eliminating guesswork and manual errors from every transaction to ensure complete accuracy across your Salla store.",
+                title: "Precision Measurements, Higher Sales",
+                desc: "A smart calculator that interacts with your products to provide instant, accurate area and quantity calculations, eliminating human error and offering your customers a professional shopping experience that builds trust.",
             },
             {
-                title: "Expiry-Aware Inventory Control",
-                desc: "Monitor every product's shelf life automatically with proactive alerts before items approach their expiry date, reducing waste and protecting your revenue streams effectively.",
+                title: "Intelligent Inventory Monitoring",
+                desc: "A proactive system that precisely tracks product expiration dates and alerts you automatically before they expire, enabling smart decisions that protect your revenue from waste.",
             },
             {
-                title: "Maximized Profitability",
-                desc: "Smart pricing strategies and real-time margin analysis ensure every transaction contributes to your bottom line, with intelligent insights driving measurable business growth.",
+                title: "Sustainable Business Growth",
+                desc: "We combine calculation precision with smart inventory tracking to give you a clear view of your store's performance. Every calculation and inventory alert is designed to maximize your profits and ensure sustainable growth.",
             },
         ],
-        pillarsLabel: "THE TWO PILLARS",
+        pillarsLabel: "OUR PLATFORMS",
         pillarsTitle: "Two Platforms. One Ecosystem.",
         pillarsDesc:
             "Quantix delivers two specialized sub-platforms designed to handle every dimension of your Salla store.",
@@ -39,14 +39,15 @@ const T = {
             name: "MUSTASHAR",
             desc: "Mustashar Smart Calculator embeds a professional calculator directly in your Salla product pages — eliminating human errors and delivering accurate area, quantity, and cost calculations instantly.",
             features: [
-                "Customizable calculation rules",
-                "Area & cost formula engine",
-                "Embeddable product page snippet",
-                "VAT-inclusive live pricing",
+                "Flexible calculation rules customizable to your products",
+                "Precision area and quantity calculation engine",
+                "Smart calculator embedded directly in product pages",
+                "Instant preview and seamless integration with Salla",
             ],
+
             cta: "Explore Mustashar",
         },
-       footer: {
+        footer: {
             desc: "Your intelligent system for Salla management. Because successful commerce relies on numbers, not expectations.",
             platformsLabel: "Digital Platforms",
             hareesLink: "Harees ",
@@ -71,19 +72,19 @@ const T = {
         featuresLabel: "مميزاتنا الرئيسية",
         features: [
             {
-                title: "حسابات دقيقة بدقة متناهية",
-                desc: "خوارزميات متقدمة تُقدّم حسابات دقيقة للكمية والتكلفة، تُزيل التخمين والأخطاء اليدوية من كل معاملة لضمان الدقة التامة في متجرك.",
+                title: "قياسات دقيقة، مبيعات أكثر",
+                desc: "حاسبة ذكية تتفاعل مع منتجاتك لتقديم حسابات دقيقة للمساحات والكميات فوراً، مما يُلغي التخمين البشري ويمنح عملاءك تجربة تسوق احترافية تزيد من ثقتهم في الطلب.",
             },
             {
                 title: "مراقبة المخزون بوعي تام",
-                desc: "راقب صلاحية كل منتج تلقائياً مع تنبيهات استباقية قبل اقتراب تاريخ الانتهاء، لتقليل الهدر وحماية إيراداتك بفعالية.",
+                desc: "نظام استباقي يتتبع صلاحية منتجاتك بدقة، ويُنبّهك تلقائياً قبل اقتراب انتهاء التواريخ، لتمكينك من اتخاذ قرارات ذكية تحمي إيراداتك من الهدر.",
             },
             {
-                title: "تعظيم الربحية",
-                desc: "استراتيجيات تسعير ذكية وتحليل هامش فوري يضمنان مساهمة كل معاملة في أرباحك، مع رؤى ذكية تدفع نمواً تجارياً ملموساً.",
+                title: "نمو تجاري",
+                desc: "نجمع لك بين دقة الحسابات وذكاء مراقبة المخزون لنمنحك رؤية واضحة لأداء متجرك. كل عملية حساب وكل تنبيه مخزوني يهدف إلى تعظيم أرباحك وضمان نمو مستدام لمتجرك.",
             },
         ],
-        pillarsLabel: "الركيزتان الأساسيتان",
+        pillarsLabel: "تطبيقاتنا",
         pillarsTitle: "منصتان. منظومة واحدة.",
         pillarsDesc:
             "كوانتيكس تقدم منصتين فرعيتين متخصصتين مصممتين للتعامل مع كل أبعاد متجرك في سلة.",
@@ -100,16 +101,16 @@ const T = {
         },
         mustashar: {
             name: "مستشار",
-            desc: "حاسبة مستشار الذكية تُدمج آلة حساب احترافية مباشرة في صفحات منتجاتك في سلة — للقضاء على الأخطاء البشرية وتقديم حسابات دقيقة للمساحة والكمية والتكلفة فوراً.",
+            desc: "آلة حساب احترافية مباشرة في صفحات منتجاتك على سلة — لتوفير الوقت على عملائك، والقضاء على التقديرات الخاطئة للمساحات والكميات فوراً.",
             features: [
-                "قواعد حساب قابلة للتخصيص",
-                "محرك معادلات المساحة والتكلفة",
-                "مقتطع قابل للتضمين في صفحة المنتج",
-                "تسعير حي شامل للضريبة",
+                "قواعد حساب مرنة قابلة للتخصيص حسب منتجك",
+                "محرك معادلات المساحة والكمية",
+                "حاسبة ذكية داخل صفحة المنتج",
+                "معاينة فورية و تكامل سلس مع متجر سلة",
             ],
             cta: "استكشف مستشار",
         },
-       footer: {
+        footer: {
             desc: "نظامك الذكي لإدارة متجرك في سلة. لأن التجارة الناجحة تعتمد على الأرقام، لا التوقعات.",
             platformsLabel: "المنصات الرقمية",
             hareesLink: " حريص",

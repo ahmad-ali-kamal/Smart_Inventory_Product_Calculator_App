@@ -37,7 +37,7 @@ import { Link } from '@inertiajs/react';
  * @param {string} props.bodyFont   - CSS font-family string for body / paragraph copy.
  * @returns {JSX.Element}
  */
-export default function Footer({ t, ff, bodyFont }) {
+export default function Footer({ t, ff, bodyFont, dir }) {
     // Destructure all needed keys from the footer translation namespace
     const { desc, product, company, support, copyright } = t.footer;
 
@@ -74,6 +74,7 @@ export default function Footer({ t, ff, bodyFont }) {
                                 display: 'flex', alignItems: 'center',
                                 gap: 9, marginBottom: '0.75rem',
                                 direction: 'ltr', // Logo lockup always LTR
+                                justifyContent: dir === 'rtl' ? 'flex-end' : 'flex-start',
                             }}>
                                 <img src="/images/Quantix_logo.png" alt="Quantix" style={{ height: 36 }} />
                                 <span style={{

@@ -699,7 +699,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
     if (totalQty === 0) {
         return createPortal(
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                <div className="relative w-full max-w-[420px] bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+                <div className="relative w-full max-w-sm bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
                     <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
                         <div className="w-10 h-10 rounded-xl bg-[var(--secondary)] flex items-center justify-center text-[var(--primary)]">
                             <CalendarPlus size={20} />
@@ -755,7 +755,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
             {/* Scoped date-picker colour-scheme fix */}
             <style>{dateInputStyle}</style>
-            <div className="relative w-full max-w-[500px] bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+            <div className="relative w-full max-w-lg bg-[var(--card)] border border-[var(--border)] rounded-[24px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
 
                 {/* ── Header ────────────────────────────────────────────────── */}
                 <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">

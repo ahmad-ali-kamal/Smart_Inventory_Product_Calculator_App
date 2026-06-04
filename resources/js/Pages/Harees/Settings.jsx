@@ -14,12 +14,11 @@
  * Card layout (top → bottom):
  *   ThresholdCard       — numeric expiry thresholds (short / medium / long)
  *   CategoryMappingCard — drag-and-drop category → bucket assignment
- *   AutomationCard      — auto-hide and auto-discount toggles + discount config
- *   SaveButton          — save trigger with success flash and error feedback
+ *   AutomationCard      — auto-hide and auto-discount toggles + discount config + save button
  *
  * Data flow:
  *   useInventorySettingsForm (React Query + local state)
- *     → ThresholdCard, CategoryMappingCard, AutomationCard, SaveButton
+ *     → ThresholdCard, CategoryMappingCard, AutomationCard
  */
 
 import useHareesGuard from '../../Hooks/useHareesGuard';
@@ -30,7 +29,6 @@ import { FormSkeleton } from '../../Components/Common/Skeleton/FormSkeleton';
 import ThresholdCard from '../../Components/Harees/Settings/ThresholdCard';
 import CategoryMappingCard from '../../Components/Harees/Settings/CategoryMappingCard';
 import AutomationCard from '../../Components/Harees/Settings/AutomationCard';
-import SaveButton from '../../Components/Harees/Settings/SaveButton';
 
 // ---------------------------------------------------------------------------
 // i18n strings — move these values to a JSON translation file when ready.
@@ -67,7 +65,7 @@ export default function Settings() {
     if (isLoading) {
         return (
             <Layout>
-                <div className="max-w-2xl mx-auto space-y-5 py-10">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5 py-10">
                     <FormSkeleton />
                     <FormSkeleton />
                 </div>
@@ -78,7 +76,7 @@ export default function Settings() {
     return (
         // PageShell renders an error state with a retry button when isError is true.
         <PageShell isError={isError} error={error} onRetry={refetch}>
-            <div className="max-w-2xl mx-auto space-y-5 pb-10">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5 pb-10">
 
                 {/* Expiry threshold inputs — short / medium / long day counts */}
                 <ThresholdCard
@@ -103,14 +101,10 @@ export default function Settings() {
                     errors={errors}
                     onToggle={handleToggle}
                     onInputChange={handleInputChange}
-                />
-
-                {/* Save trigger — disabled while there are active validation errors */}
-                <SaveButton
                     onSave={handleSave}
                     saving={saving}
                     saved={saved}
-                    disabled={hasActiveErrors}
+                    saveDisabled={hasActiveErrors}
                     saveError={saveError}
                 />
 

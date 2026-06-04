@@ -24,6 +24,8 @@ export default {
             fontFamily: {
                 display: ["Cormorant Garamond", "serif"],
                 body: ["DM Sans", "sans-serif"],
+                cairo: ["Cairo", "sans-serif"],
+                changa: ["Changa", "sans-serif"],
             },
             keyframes: {
                 shake: {

@@ -40,10 +40,10 @@ import { useTranslation } from 'react-i18next';
  * @param {Function} props.onChange  - Called with the newly selected value string
  *                                     when the user picks an option.
  * @param {string}   [props.width]   - Tailwind width class for the trigger button.
- *                                     Defaults to `'w-[115px]'`.
+ *                                     Defaults to `'w-28'`.
  * @returns {JSX.Element}
  */
-export default function DropdownFilter({ options, value, onChange, width = 'w-[115px]' }) {
+export default function DropdownFilter({ options, value, onChange, width = 'w-28' }) {
     const { t } = useTranslation('shared');
     /** Controls visibility of the options list */
     const [open, setOpen] = useState(false);
@@ -92,7 +92,7 @@ export default function DropdownFilter({ options, value, onChange, width = 'w-[1
             {open && (
                 <div
                     role="listbox"
-                    className="absolute right-0 mt-2 w-full bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden"
+                    className="absolute end-0 mt-2 w-full bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg z-50 overflow-hidden"
                 >
                     {options.map(opt => (
                         <button
@@ -100,7 +100,7 @@ export default function DropdownFilter({ options, value, onChange, width = 'w-[1
                             role="option"
                             aria-selected={value === opt.value}
                             onClick={() => { onChange(opt.value); setOpen(false); }}
-                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors ${
+                            className={`w-full text-start px-4 py-2.5 text-xs font-bold transition-colors ${
                                 // Highlight the currently active option
                                 value === opt.value
                                     ? 'bg-[var(--accent)] text-[var(--primary)]'

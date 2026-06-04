@@ -59,7 +59,7 @@ export default function Settings() {
     if (isLoading) {
         return (
             <Layout>
-                <div className="p-8 max-w-4xl mx-auto">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <FormSkeleton />
                 </div>
             </Layout>
@@ -70,7 +70,7 @@ export default function Settings() {
     // PageShell handles the error boundary and retry UI when isError is true.
     return (
         <PageShell isError={isError} error={error} onRetry={refetch}>
-            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-500">
                 <SettingsForm
                     coverage={coverage}
                     waste={waste}

@@ -28,8 +28,8 @@ import { useTranslation } from 'react-i18next';
 // Must stay in sync with the matching constants in ProductRow.jsx.
 // First column (220 px) is fixed-width for the product avatar + name;
 // remaining columns share available space equally via `1fr`.
-const COLS_WITH_PREVIEW    = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr_1fr]";
-const COLS_WITHOUT_PREVIEW = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr]";
+const COLS_WITH_PREVIEW    = "grid-cols-[minmax(140px,220px)_1fr_1fr_1fr_1fr_1fr_1fr]";
+const COLS_WITHOUT_PREVIEW = "grid-cols-[minmax(140px,220px)_1fr_1fr_1fr_1fr_1fr]";
 
 /**
  * ProductTable
@@ -44,20 +44,18 @@ const COLS_WITHOUT_PREVIEW = "grid-cols-[220px_1fr_1fr_1fr_1fr_1fr]";
 export default function ProductTable({ children, showPreview = false }) {
      const { t } = useTranslation('mustashar');
     return (
-        <div className="w-full">
+        <div className="w-full overflow-x-auto">
+            <div className="min-w-[650px]">
 
-            {/* ── Column header ──────────────────────────────────────────────── *
-             *  Hidden on mobile (md:grid) — rows render as stacked cards below  *
-             *  the md breakpoint via ProductRow's own responsive styles.         *
-             * ─────────────────────────────────────────────────────────────────  */}
+            {/* ── Column header ──────────────────────────────────────────────── */}
             <div
                 className={`
-                    hidden md:grid gap-4 px-8 py-3
+                    grid gap-2 lg:gap-4 px-4 lg:px-8 py-3
                     bg-[var(--muted)]/40 border-b border-[var(--border)]
                     ${showPreview ? COLS_WITH_PREVIEW : COLS_WITHOUT_PREVIEW}
                 `}
             >
-                <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-left">
+                <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest ltr:text-left rtl:text-right">
                 {t('product_table.col_product')}
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
@@ -84,14 +82,12 @@ export default function ProductTable({ children, showPreview = false }) {
                 )}
             </div>
 
-            {/* ── Row container ─────────────────────────────────────────────── *
-             *  Thin dividers between rows are handled by Tailwind's            *
-             *  divide-y utility; no margin/padding is added to children.       *
-             * ─────────────────────────────────────────────────────────────────  */}
+            {/* ── Row container ─────────────────────────────────────────────── */}
             <div className="divide-y divide-[var(--border)]">
                 {children}
             </div>
 
+            </div>
         </div>
     );
 }

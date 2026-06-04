@@ -77,15 +77,15 @@ function getDiscountPct(batch) {
 // kept in sync with StatusBadge (h-[26px] px-3 rounded-full text-[9px]) so
 // action pills and status badges have the same visual weight.
 const PILL_BASE = [
-    'inline-flex items-center justify-center gap-1.5',
-    'h-[26px] px-3 min-w-[140px] rounded-full border',
-    'text-[9px] font-black uppercase tracking-wide whitespace-nowrap',
+    'flex items-center justify-center gap-1.5',
+    'h-[26px] px-3 w-full rounded-full border',
+    'text-[8px] sm:text-[9px] font-black uppercase tracking-wide whitespace-nowrap',
 ].join(' ');
 
 const BTN_BASE = [
-    'inline-flex items-center justify-center gap-1.5',
-    'h-[26px] px-3 min-w-[140px] rounded-full border',
-    'text-[9px] font-black uppercase tracking-wide whitespace-nowrap',
+    'flex items-center justify-center gap-1.5',
+    'h-[26px] px-3 w-full rounded-full border',
+    'text-[8px] sm:text-[9px] font-black uppercase tracking-wide whitespace-nowrap',
     'transition-all disabled:opacity-50 cursor-pointer',
 ].join(' ');
 // ─────────────────────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                     name={product.name}
                                     size={40}
                                 />
-                                <div className="flex flex-col gap-0.5">
+                                <div className="flex flex-col gap-0.5 min-w-0">
                                     <span className="text-[12px] font-bold text-[var(--foreground)] truncate">
                                         {product.name}
                                     </span>
@@ -217,7 +217,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
 
                         {/* Zone 3 (20%): Human-readable expiry date */}
                         <div className="w-[20%] py-3.5 px-4 flex justify-center">
-                            <span className="text-[12px] font-bold flex items-center gap-1.5 text-[var(--foreground)]">
+                            <span className="text-[12px] font-bold flex items-center justify-center gap-1.5 w-full text-[var(--foreground)]">
                                 <Calendar size={11} className="opacity-50" />
                                 {expiryDate}
                             </span>
@@ -334,7 +334,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
 
                             ) : !isApproaching && isSafe ? (
 
-                                <span className="text-[var(--muted-foreground)] text-sm font-medium select-none">
+                                <span className="text-[var(--muted-foreground)] text-sm font-medium select-none w-full text-center">
                                     —
                                 </span>
 

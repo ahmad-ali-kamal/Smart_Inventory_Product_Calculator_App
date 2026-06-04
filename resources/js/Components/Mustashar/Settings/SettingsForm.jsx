@@ -40,7 +40,7 @@ import { WASTE_MIN, WASTE_MAX, COVERAGE_MIN, COVERAGE_MAX } from '../../../const
  */
 function Field({ label, hint, value, onChange, min, max, step, placeholder, error }) {
     return (
-        <div className="space-y-2 text-left" dir="ltr">
+        <div className="space-y-2 text-start">
             <label className="block text-[14px] font-bold text-[var(--foreground)] opacity-90">
                {label}
             </label>
@@ -102,7 +102,7 @@ export default function SettingsForm({
 }) {
        const { t } = useTranslation('mustashar');
     return (
-        <div className="space-y-6 max-w-2xl mx-auto" dir="ltr">
+        <div className="w-full max-w-7xl mx-auto space-y-6">
 
             {/* ── Header card ────────────────────────────────────────────────── */}
             <div className="bg-[var(--card)] px-8 py-6 rounded-[1.5rem] border border-[var(--border)] shadow-sm">
@@ -111,7 +111,7 @@ export default function SettingsForm({
                     <div className="p-3 bg-[var(--primary)]/10 rounded-2xl text-[var(--primary)] shrink-0">
                         <SlidersHorizontal size={22} />
                     </div>
-                    <div className="text-left">
+                    <div className="text-start">
                         <h1 className="text-xl font-bold text-[var(--foreground)]">{t('settings.card_title')}</h1>
                         <p className="text-xs text-[var(--muted-foreground)] mt-1">{t('settings.card_subtitle')}</p>
                     </div>
@@ -124,7 +124,7 @@ export default function SettingsForm({
                 {/* Explanation banner — sets user expectations before they touch any field */}
                 <div className="bg-[var(--primary)]/[0.04] border border-[var(--primary)]/10 rounded-2xl p-4 flex gap-3 items-start">
                     <Sparkles size={15} className="text-[var(--primary)] mt-0.5 shrink-0" />
-                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed text-left">
+                    <p className="text-[12px] text-[var(--muted-foreground)] leading-relaxed text-start">
                         {t('settings.banner_body')}
                     </p>
                 </div>

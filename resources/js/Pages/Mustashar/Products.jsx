@@ -48,7 +48,7 @@ export default function Products() {
                     syncEndpoint="/mustashar/api/products/sync"
                     onSyncSuccess={() => refetch()}
                     placeholder={t('products.search_placeholder')}
-                    filterWidth="w-[130px]"
+                    filterWidth="w-32"
                 />
 
                 <Card>
