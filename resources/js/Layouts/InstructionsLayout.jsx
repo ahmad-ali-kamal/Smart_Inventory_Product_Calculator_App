@@ -335,9 +335,10 @@ export function StepRow({ step }) {
   const offset        = step.offset        ?? "";
 
   return (
-    // Row wrapper — flex in both directions; RTL mirrors via rtl:flex-row-reverse.
+    // Row wrapper — flex in both directions; the dir attribute on the parent
+    // already mirrors flex-order for RTL, so no rtl:flex-row-reverse needed.
     // Offset is only applied at md+ so mobile is always full-width.
-    <div className={`flex items-start gap-4 md:gap-5 group rtl:flex-row-reverse ${offset}`}>
+    <div className={`flex items-start gap-4 md:gap-5 group ${offset}`}>
 
       {/* ── Numbered Badge ── */}
       {/* flex-shrink-0 prevents the badge from squeezing when the card text wraps */}
