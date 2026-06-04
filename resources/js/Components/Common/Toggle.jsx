@@ -21,13 +21,7 @@
  * Used by: ProductRow
  */
 
-import { useRef, useEffect, useState } from "react";
-
-// ── i18n strings ──────────────────────────────────────────────────────────────
-// No strings are rendered as visible text in this component; the object is a
-// placeholder so the i18n pattern remains consistent across the codebase.
-// Replace with `useTranslation()` calls when localisation is added.
-const t = {};
+import { useLang } from '@/Hooks/useLang';
 
 /**
  * Toggle
@@ -41,8 +35,15 @@ const t = {};
  * @returns {JSX.Element}
  */
 export default function Toggle({ checked, onChange, disabled = false }) {
+    const { isAr } = useLang();
 
-    const translateX = checked ? "translateX(20px)" : "translateX(0px)";
+    /*
+     * The thumb starts on the reading-start side (left-1 in LTR, right-1 in RTL).
+     * translateX direction must match: positive for LTR (move right toward ON),
+     * negative for RTL (move left toward ON).
+     */
+    const thumbOffset = isAr ? -20 : 20;
+    const translateX = checked ? `translateX(${thumbOffset}px)` : "translateX(0px)";
 
     return (
         <button
