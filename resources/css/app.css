@@ -190,6 +190,21 @@ canvas {
     }
 }
 
+.accordion-in {
+    animation: accordionEnter 250ms ease-out forwards;
+}
+
+@keyframes accordionEnter {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* class واحدة تشارك بين كل login pages */
 .login-visual {
     animation:

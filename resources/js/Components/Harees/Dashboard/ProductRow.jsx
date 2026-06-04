@@ -85,15 +85,6 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
         setShowBatches(false);
     }, [statusFilter]);
 
-    /**
-     * The effective expanded state of the accordion.
-     * Forced to `true` whenever a specific filter is active so the matching
-     * batches are immediately visible without a manual "View Batches" click.
-     *
-     * @type {boolean}
-     */
-    const batchesOpen = isFiltering || showBatches;
-
     return (
         <>
             {/* ── Primary product row ──────────────────────────────────────── 
@@ -104,7 +95,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
             <tr className="group hover:bg-[var(--accent)]/5 transition-all border-b border-[var(--border)]">
 
                 {/* Cell 1: Product avatar + name + Salla ID */}
-                <td className="py-3.5 px-4 w-[25%]">
+                <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2.5">
                         <ProductAvatar
                             src={product.image_url || product.image}
@@ -124,7 +115,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                 </td>
 
                 {/* Cell 2: Aggregate product status badge */}
-                <td className="py-3.5 px-4 text-center w-[15%]">
+                <td className="py-3.5 px-4 text-center">
                     <StatusBadge status={product.status} size="md" />
                 </td>
 
@@ -132,7 +123,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                     Shows how many batches belong to this product so the cell
                     is never empty while the accordion is collapsed.
                     Per-batch expiry dates appear inside the expanded accordion. */}
-                <td className="py-3.5 px-4 text-center w-[20%]">
+                <td className="py-3.5 px-4 text-center">
                     {(() => {
                         const count = (product.batches || []).length;
                         if (count === 0) return null;
@@ -145,10 +136,10 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                 </td>
 
                 {/* Cell 4: Discount status — populated per batch inside the accordion */}
-                <td className="py-3.5 px-4 w-[20%]" />
+                <td className="py-3.5 px-4" />
 
                 {/* Cell 5: Toggle button to show/hide the batch accordion */}
-                <td className="py-3.5 px-4 w-[20%]">
+                <td className="py-3.5 px-4">
                     <div className="flex justify-center">
                         <RowActionButton
                             onClick={() => setShowBatches(!showBatches)}
@@ -170,20 +161,15 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
             )}
 
             {/* ── Accordion / expandable batch row ────────────────────────────
-                Uses CSS grid-rows transition (0fr → 1fr) for a smooth
-                height animation without JavaScript layout calculations.
-                `overflow-hidden` on the inner div is required for the
-                grid-rows trick to clip the content while animating.
-                When `isFiltering` is true, `batchesOpen` is forced to true
-                so batches render immediately with no animation delay.
+                Layout snaps instantly (conditional render).  The visual
+                animation uses only opacity + translateY — both GPU-composited
+                properties that never trigger table reflow.
             ─────────────────────────────────────────────────────────────── */}
             <tr>
                 <td colSpan="5" className="p-0 border-none">
-                    <div className={`grid transition-all duration-500 ease-in-out ${
-                        batchesOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-                    }`}>
-                        <div className="overflow-hidden">
-                            <div className="bg-[var(--background)]/30">
+                    <div style={{ overflow: 'hidden' }}>
+                        {(isFiltering || showBatches) && (
+                            <div className={isFiltering ? '' : 'bg-[var(--background)]/30 accordion-in'}>
                                 <BatchRow
                                     product={product}
                                     autoDiscount={autoDiscount}
@@ -191,7 +177,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                                     autoHide={autoHide}
                                 />
                             </div>
-                        </div>
+                        )}
                     </div>
                 </td>
             </tr>

@@ -74,17 +74,17 @@ function getDiscountPct(batch) {
 //
 // Height, padding, border-radius, and font are identical across both so the
 // Actions column looks uniform at every status.  The values are intentionally
-// kept in sync with StatusBadge (h-[26px] px-3 rounded-full text-[9px]) so
+// kept in sync with StatusBadge (h-[26px] px-4 rounded-full text-[9px]) so
 // action pills and status badges have the same visual weight.
 const PILL_BASE = [
     'flex items-center justify-center gap-1.5',
-    'h-[26px] px-3 w-full rounded-full border',
+    'h-[26px] px-4 w-full rounded-full border',
     'text-[8px] sm:text-[9px] font-black uppercase tracking-wide whitespace-nowrap',
 ].join(' ');
 
 const BTN_BASE = [
     'flex items-center justify-center gap-1.5',
-    'h-[26px] px-3 w-full rounded-full border',
+    'h-[26px] px-4 w-full rounded-full border',
     'text-[8px] sm:text-[9px] font-black uppercase tracking-wide whitespace-nowrap',
     'transition-all disabled:opacity-50 cursor-pointer',
 ].join(' ');
@@ -190,8 +190,8 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                         key={batch.id}
                         className="flex items-center border-b border-[var(--border)] last:border-0 hover:bg-[var(--accent)]/5 transition-all"
                     >
-                        {/* Zone 1 (25%): Product avatar + name + batch code */}
-                        <div className="w-[25%] py-3.5 px-4">
+                        {/* Zone 1: Product avatar + name + batch code */}
+                        <div className="flex-1 py-3.5 px-4">
                             <div className="flex items-center gap-2.5">
                                 <ProductAvatar
                                     src={product.image_url || product.image}
@@ -210,23 +210,23 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                             </div>
                         </div>
 
-                        {/* Zone 2 (15%): Batch-level status badge */}
-                        <div className="w-[15%] py-3.5 px-4 flex justify-center">
+                        {/* Zone 2: Batch-level status badge */}
+                        <div className="flex-1 py-3.5 px-4 flex justify-center">
                             <StatusBadge status={batch.status} size="md" />
                         </div>
 
-                        {/* Zone 3 (20%): Human-readable expiry date */}
-                        <div className="w-[20%] py-3.5 px-4 flex justify-center">
+                        {/* Zone 3: Human-readable expiry date */}
+                        <div className="flex-1 py-3.5 px-4 flex justify-center">
                             <span className="text-[12px] font-bold flex items-center justify-center gap-1.5 w-full text-[var(--foreground)]">
                                 <Calendar size={11} className="opacity-50" />
                                 {expiryDate}
                             </span>
                         </div>
 
-                        {/* ── Zone 4 (20%): Discount Status ─────────────────────────────────
+                        {/* ── Zone 4: Discount Status ─────────────────────────────────
                             Displays the persisted `discount_type` from the backend.
                         ─────────────────────────────────────────────────────────────────── */}
-                        <div className="w-[20%] py-3.5 px-4 flex justify-center">
+                        <div className="flex-1 py-3.5 px-4 flex justify-center">
                             {discountType && (
                                 <span
                                     className={PILL_BASE}
@@ -241,12 +241,12 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                             )}
                         </div>
 
-                        {/* ── Zone 5 (20%): Actions ──────────────────────────────────────────
+                        {/* ── Zone 5: Actions ──────────────────────────────────────────
                             Design rule: every element in this column uses PILL_BASE or BTN_BASE
                             so height, border-radius, font, and padding are always identical.
                             Only colour tokens and content text differ between states.
                         ─────────────────────────────────────────────────────────────────── */}
-                        <div className="w-[20%] py-3.5 px-4 flex justify-center items-center gap-2">
+                        <div className="flex-1 py-3.5 px-4 flex justify-center items-center gap-2">
 
                             {isApproaching && batch.discount_type === 'pending' && (
                                     <button
