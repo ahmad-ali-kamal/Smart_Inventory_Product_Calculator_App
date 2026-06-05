@@ -16,7 +16,7 @@
 
   "products": {
     "setup_banner_description": "Set your defaults once to instantly configure all products. You can still customize any product individually at any time.",
-    "toolbar_banner": "Ready to start? Set your coverage rate, flip the toggle, and let Al Mustashar handle the rest.",
+    "toolbar_banner": "Set coverage, activate product, and let Al Mustashar do the rest.",
     "search_placeholder": "Search products…",
     "empty_state": "No products found"
   },

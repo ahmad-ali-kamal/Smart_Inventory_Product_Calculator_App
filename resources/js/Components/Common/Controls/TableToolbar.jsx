@@ -79,42 +79,44 @@ export default function TableToolbar({
     const [bannerVisible, toggleBanner] = useAutoClose(4000);
 
     return (
-        <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+        <div className={`flex flex-col gap-2 lg:flex-row lg:items-center ${className}`}>
 
-            {/*
-             * Left slot:
-             * - Renders PageBanner when `banner` text is provided.
-             * - Falls back to a flex spacer so right-side controls stay right-aligned.
-             */}
             {banner ? (
-                <PageBanner visible={bannerVisible} onToggle={toggleBanner}>
-                    {banner}
-                </PageBanner>
+                <div className="lg:flex-1">
+                    <PageBanner visible={bannerVisible} onToggle={toggleBanner}>
+                        {banner}
+                    </PageBanner>
+                </div>
             ) : (
-                <div className="flex-1" />
+                <div className="hidden lg:block lg:flex-1" />
             )}
 
-            {/* Search input — sanitization enabled to guard against XSS */}
-            <SearchInput
-                value={search}
-                onChange={onSearch}
-                placeholder={placeholder ?? t('table_toolbar.default_placeholder')}
-                sanitize={true}
-            />
+            <div className="flex flex-nowrap items-center gap-2">
+                <div className="flex-1 min-w-0 lg:flex-none">
+                    <SearchInput
+                        value={search}
+                        onChange={onSearch}
+                        placeholder={placeholder ?? t('table_toolbar.default_placeholder')}
+                        sanitize={true}
+                    />
+                </div>
 
-            {/* Dropdown filter */}
-            <DropdownFilter
-                options={filterOptions}
-                value={filterValue}
-                onChange={onFilter}
-                width={filterWidth}
-            />
+                <div className="shrink-0">
+                    <DropdownFilter
+                        options={filterOptions}
+                        value={filterValue}
+                        onChange={onFilter}
+                        width={filterWidth}
+                    />
+                </div>
 
-            {/* Sync button */}
-            <SyncButton
-                endpoint={syncEndpoint}
-                onSyncSuccess={onSyncSuccess}
-            />
+                <div className="shrink-0">
+                    <SyncButton
+                        endpoint={syncEndpoint}
+                        onSyncSuccess={onSyncSuccess}
+                    />
+                </div>
+            </div>
         </div>
     );
 }

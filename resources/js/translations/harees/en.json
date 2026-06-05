@@ -16,7 +16,7 @@
 
   "products": {
     "setup_banner_description": "Set up your expiry thresholds first so products and batches can be tracked.",
-    "toolbar_banner": "Add expiry dates to track freshness and avoid waste, then tap Batch to review each batch's details and remaining stock.",
+    "toolbar_banner": "Add expiry dates to track, tap Batch to review details.",
     "filter_all": "All",
     "filter_short": "Short",
     "filter_medium": "Medium",
