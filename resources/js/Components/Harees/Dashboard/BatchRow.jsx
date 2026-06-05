@@ -29,6 +29,7 @@
  */
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Tag, Calendar, Loader2, Plus } from 'lucide-react';
 import DiscountModal from '../DiscountModal';
 import StatusBadge from '../StatusBadge';
@@ -345,13 +346,12 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                 );
             })}
 
-            {/* ── Discount modal ───────────────────────────────────────────────
-                Mounted only when a batch is selected; unmounts on close so
-                form state is automatically reset for the next interaction.
-                `isEdit` is derived here and forwarded to the modal so it can
-                pre-populate the form and pass the flag back through `onApply`.
+            {/* ── Discount modal (portal) ──────────────────────────────────────
+                Rendered at document.body via createPortal so the fixed overlay
+                is never clipped by ancestor table elements or overflow wrappers.
+                Same pattern used by the working ExpiryModal.
             ─────────────────────────────────────────────────────────────── */}
-            {selectedBatch && (
+            {selectedBatch && createPortal(
                 <DiscountModal
                     batch={selectedBatch}
                     product={product}
@@ -360,7 +360,8 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                     onClose={() => setSelectedBatch(null)}
                     onApply={handleApplyDiscount}
                     isLoading={isPending}
-                />
+                />,
+                document.body
             )}
         </>
     );

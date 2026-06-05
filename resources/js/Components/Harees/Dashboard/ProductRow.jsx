@@ -167,7 +167,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
             ─────────────────────────────────────────────────────────────── */}
             <tr>
                 <td colSpan="5" className="p-0 border-none">
-                    <div style={{ overflow: 'hidden' }}>
+                    <div>
                         {(isFiltering || showBatches) && (
                             <div className={isFiltering ? '' : 'bg-[var(--background)]/30 accordion-in'}>
                                 <BatchRow
