@@ -138,7 +138,7 @@ export function useAllProducts() {
  * }}
  */
 export function useActiveProducts() {
-    const { data, isLoading, isError, error } = useProductsData();
+    const { data, isLoading, isError, error, refetch } = useProductsData();
 
     const allProducts = data ?? [];
 
@@ -154,6 +154,7 @@ export function useActiveProducts() {
         isLoading,
         isError,
         error,
+        refetch,
     };
 }
 
@@ -225,9 +226,7 @@ export function useMustasharSettings() {
     return useQuery({
         queryKey: QUERY_KEYS.calculatorSettings,
         queryFn: async () => {
-            const { data } = await api.get(
-                "/mustashar/api/mustashar-settings",
-            );
+            const { data } = await api.get("/mustashar/api/mustashar-settings");
             return data;
         },
     });

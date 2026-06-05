@@ -50,17 +50,19 @@ export default function PageShell({ isLoading, isError, error, onRetry, children
     }
 
     /* ── State 2: Data fetch failed ── */
-    if (isError) {
-        return (
-            <Layout>
-                <ErrorState
-                    // Fallback message covers cases where the error has no `.message`
-                    message={error?.message ?? 'Something went wrong.'}
-                    onRetry={onRetry}
-                />
-            </Layout>
-        );
-    }
+    
+           if (isError) {
+    console.log('[PageShell] error object:', error);
+    console.log('[PageShell] userMessage:', error?.userMessage);
+    console.log('[PageShell] status:', error?.response?.status);
+
+    return (
+        <Layout>
+            <ErrorState error={error} onRetry={onRetry} />
+        </Layout>
+    );
+}
+    
 
     /* ── State 3: Data is ready — render children inside an error boundary ── */
     return (

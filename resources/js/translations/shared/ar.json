@@ -59,32 +59,38 @@
     "banner_icon": "ℹ"
   },
 
-  "error_state": {
-    "heading": "تعذّر تحميل المنتجات",
-    "default_message": "نواجه مشكلة في الاتصال بكتالوج متجرك. تحقق من الاتصال ثم أعد المحاولة.",
-    "cta_label": "إعادة المحاولة"
-  },
+    "error_state": {
+        "heading": "حدث خطأ ما",
+        "default_message": "تعذّر تحميل هذه الصفحة الآن. يُرجى التحقّق من اتصالك ثم المحاولة مرة أخرى.",
+        "cta_label": "إعادة المحاولة",
+        "network_heading": "انقطع الاتصال",
+        "network_message": "تعذّر الاتصال بالخادم. يُرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.",
+        "auth_heading": "وصول ممنوع",
+        "auth_message": "ليس لديك صلاحية لعرض هذه الصفحة.",
+        "not_found_heading": "غير موجود",
+        "not_found_message": "تعذّر العثور على المعلومات المطلوبة.",
+        "validation_heading": "إدخال غير صحيح",
+        "validation_message": "يُرجى مراجعة الإدخال والمحاولة مرة أخرى.",
+        "rate_limit_heading": "طلبات كثيرة",
+        "rate_limit_message": "لقد أرسلت عددًا كبيرًا جدًا من الطلبات. يُرجى الانتظار لحظة ثم المحاولة مرة أخرى.",
+        "server_error_heading": "خطأ في الخادم",
+        "server_error_message": "واجه الخادم مشكلة. يُرجى المحاولة مرة أخرى لاحقًا."
+    },
 
-  "error_boundary": {
-    "heading": "حدث خطأ غير متوقع",
-    "description": "واجه النظام مشكلة غير متوقعة. جرّب تحديث الصفحة أو عُد لاحقاً.",
-    "cta_label": "تحديث الصفحة"
-  },
+    "toast": {
+        "toast_label_success": "نجاح",
+        "toast_label_error": "خطأ",
+        "toast_label_loading": "جارٍ التنفيذ",
+        "toast_fallback_message": "تمت العملية"
+    },
 
-  "toast": {
-    "toast_label_success": "نجاح",
-    "toast_label_error": "خطأ",
-    "toast_label_loading": "جارٍ التنفيذ",
-    "toast_fallback_message": "تمت العملية"
-  },
+    "product_avatar": {
+        "image_alt": "صورة {{name}}",
+        "image_alt_fallback": "صورة المنتج",
+        "fallback_initial": "؟"
+    },
 
-  "product_avatar": {
-    "image_alt": "صورة {{name}}",
-    "image_alt_fallback": "صورة المنتج",
-    "fallback_initial": "؟"
-  },
-
-  "login_layout": {
-    "image_alt_fallback": "صورة توضيحية للتطبيق"
-  }
+    "login_layout": {
+        "image_alt_fallback": "صورة توضيحية للتطبيق"
+    }
 }

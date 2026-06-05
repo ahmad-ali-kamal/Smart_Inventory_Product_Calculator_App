@@ -9,4 +9,14 @@ const apiClient = axios.create({
     },
 });
 
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.data?.message) {
+            error.userMessage = error.response.data.message;
+        }
+        return Promise.reject(error);
+    },
+);
+
 export default apiClient;

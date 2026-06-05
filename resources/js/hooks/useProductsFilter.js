@@ -15,9 +15,10 @@
  * Used by: Products page.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAllProducts } from "./useProducts";
 import { useTranslation } from "react-i18next";
+import { ITEMS_PER_PAGE } from "../Components/Common/Controls/Pagination";
 
 /**
  * useProductsFilter
@@ -45,6 +46,10 @@ export function useProductsFilter() {
 
     const [search,         setSearch]         = useState("");
     const [categoryFilter, setCategoryFilter] = useState(t("products_filter.category_all"));
+    const [page, setPage] = useState(1);
+
+    // Reset to page 1 whenever search/filter changes
+    useEffect(() => { setPage(1); }, [search, categoryFilter]);
 
     // ── Category dropdown options ─────────────────────────────────────────────
     // Built from the live product list so new categories appear automatically
@@ -78,8 +83,19 @@ export function useProductsFilter() {
         });
     }, [products, categoryFilter, search]);
 
+    // ── Pagination ────────────────────────────────────────────────────────────
+    const totalPages = Math.max(1, Math.ceil(sorted.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(page, totalPages);
+    const paginated = useMemo(
+        () => sorted.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE),
+        [sorted, safePage]
+    );
+
     return {
         sorted,
+        paginated,
+        page, setPage,
+        totalPages,
         search,
         setSearch,
         categoryFilter,

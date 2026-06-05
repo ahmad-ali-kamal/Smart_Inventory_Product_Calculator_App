@@ -12,9 +12,10 @@
  * selected filter value can be shared with other parts of the page if needed.
  */
 
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ListFilter } from 'lucide-react';
 import DropdownFilter from '../../Common/Controls/DropdownFilter';
+import Pagination, { ITEMS_PER_PAGE } from '../../Common/Controls/Pagination';
 import ProductRow from './ProductRow';
 import { useTranslation } from 'react-i18next';
 
@@ -114,6 +115,16 @@ export default function MonitoredProductsTable({
     // Apply the client-side filter before rendering rows.
     const filteredProducts = filterProducts(products, statusFilter);
 
+    // ── Pagination ──────────────────────────────────────────────────────────
+    const [page, setPage] = useState(1);
+    useEffect(() => { setPage(1); }, [statusFilter]);
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(page, totalPages);
+    const paginatedProducts = useMemo(
+        () => filteredProducts.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE),
+        [filteredProducts, safePage],
+    );
+
     return (
         <div className="bg-[var(--card)] rounded-[20px] border border-[var(--border)] shadow-sm">
 
@@ -175,7 +186,7 @@ export default function MonitoredProductsTable({
                                changes.  This guarantees the accordion's `showBatches` state
                                resets to `false` instantly — with no visible close animation —
                                instead of animating shut after the filter switch. */
-                            filteredProducts.map(product => (
+                            paginatedProducts.map(product => (
                                 <ProductRow
                                     key={`${statusFilter}-${product.id}`}
                                     product={product}
@@ -189,6 +200,8 @@ export default function MonitoredProductsTable({
                     </tbody>
                 </table>
             </div>
+
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
     );
 }

@@ -20,6 +20,7 @@ import useHareesGuard from '../../Hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
 import SetupBanner from '../../Components/Common/Feedback/SetupBanner';
 import TableToolbar from '../../Components/Common/Controls/TableToolbar';
+import Pagination from '../../Components/Common/Controls/Pagination';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import InventoryTable from '../../Components/Harees/Products/InventoryTable';
 import { useInventoryProductsFilter, FILTER_OPTIONS } from '../../Hooks/useInventoryProductsFilter';
@@ -64,7 +65,9 @@ export default function Products() {
      * change.
      */
     const {
-        filtered,
+        paginated,
+        page, setPage,
+        totalPages,
         search, setSearch,
         filter, setFilter,
         isLoading, isError, error, refetch,
@@ -113,7 +116,9 @@ export default function Products() {
                     Renders the filtered product list.  `onExpiry` stores the
                     clicked product in local state, which mounts the ExpiryModal.
                 ─────────────────────────────────────────────────────────────── */}
-                <InventoryTable products={filtered} onExpiry={setExpiryTarget} />
+                <InventoryTable products={paginated} onExpiry={setExpiryTarget} />
+
+                <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
                 {/* ── Expiry modal ───────────────────────────────────────────────
                     Mounted conditionally — unmounts on close so all form state

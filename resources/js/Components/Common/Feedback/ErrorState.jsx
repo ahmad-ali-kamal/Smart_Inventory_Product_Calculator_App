@@ -32,50 +32,48 @@
 
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 /**
  * ErrorState
  *
  * @param {Object}   props
- * @param {string}   [props.message]  - Context-specific error description surfaced from
- *                                      the failed request (e.g. `error?.message`).
- *                                      Falls back to a generic message when omitted.
+ * @param {Object}   [props.error]    - The Error object from the failed request
+ *                                      (e.g. from React Query or axios). Used to
+ *                                      determine the status code and extract a
+ *                                      server-sent message.
  * @param {Function} [props.onRetry]  - Callback fired when the user clicks "Try Again".
- *                                      Typically React Query's `refetch`.
+ *                                      When omitted the retry button is hidden.
  * @returns {JSX.Element}
  */
-export default function ErrorState({ message, onRetry }) {
+export default function ErrorState({ error, onRetry }) {
     const { t } = useTranslation('shared');
+    const { heading, message } = getErrorMessage(error, t);
 
     return (
         <div className="flex flex-col items-center justify-center py-32 px-6 text-center animate-in fade-in duration-500">
 
-            {/* Error icon badge — neutral muted style matching <LoadingState> */}
             <div className="w-20 h-20 bg-[var(--muted)] bg-opacity-50 dark:bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-6 border border-[var(--border)]">
                 <AlertCircle className="w-10 h-10 text-[var(--muted-foreground)] opacity-60" strokeWidth={1.5} />
             </div>
 
-            {/* Heading */}
             <h3 className="text-xl font-bold text-[var(--foreground)] mb-2">
-                {t('error_state.heading')}
+                {heading}
             </h3>
 
-            {/* Error message — uses prop value when provided, generic fallback otherwise */}
             <p className="text-[var(--muted-foreground)] max-w-sm mb-10 text-sm leading-relaxed">
-                {message || t('error_state.default_message')}
+                {message}
             </p>
 
-            {/*
-             * Retry button — inverted foreground/background for maximum contrast.
-             * Pill shape (rounded-full) differentiates it from regular action buttons.
-             */}
-            <button
-                onClick={onRetry}
-                className="flex items-center gap-2 px-8 py-3 bg-[var(--foreground)] text-[var(--background)] rounded-full text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
-            >
-                <RefreshCw className="w-4 h-4" />
-                {t('error_state.cta_label')}
-            </button>
+            {onRetry && (
+                <button
+                    onClick={onRetry}
+                    className="flex items-center gap-2 px-8 py-3 bg-[var(--foreground)] text-[var(--background)] rounded-full text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-black/5"
+                >
+                    <RefreshCw className="w-4 h-4" />
+                    {t('error_state.cta_label')}
+                </button>
+            )}
         </div>
     );
 }

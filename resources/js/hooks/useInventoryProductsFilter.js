@@ -17,8 +17,9 @@
  *    and the filter logic always stay in sync from a single source of truth.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useInventoryProducts } from "./useInventory";
+import { ITEMS_PER_PAGE } from "../Components/Common/Controls/Pagination";
 
 /**
  * Dropdown filter options for the TableToolbar.
@@ -63,6 +64,10 @@ export function useInventoryProductsFilter() {
     // ── Controlled filter state ───────────────────────────────────────────────
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("all");
+    const [page, setPage] = useState(1);
+
+    // Reset to page 1 whenever search/filter changes
+    useEffect(() => { setPage(1); }, [search, filter]);
 
     // ── Raw query ─────────────────────────────────────────────────────────────
     const { data, isLoading, isError, error, refetch } = useInventoryProducts();
@@ -88,8 +93,19 @@ export function useInventoryProductsFilter() {
         [products, search, filter]
     );
 
+    // ── Pagination ────────────────────────────────────────────────────────────
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(page, totalPages);
+    const paginated = useMemo(
+        () => filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE),
+        [filtered, safePage]
+    );
+
     return {
         filtered,
+        paginated,
+        page, setPage,
+        totalPages,
         search, setSearch,
         filter, setFilter,
         isLoading, isError, error, refetch,

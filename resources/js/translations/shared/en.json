@@ -59,32 +59,38 @@
     "banner_icon": "ℹ"
   },
 
-  "error_state": {
-    "heading": "Unable to Load Products",
-    "default_message": "We're having trouble connecting to your store's catalog. Please check your connection and try again.",
-    "cta_label": "Try Again"
-  },
+    "error_state": {
+        "heading": "Something went wrong",
+        "default_message": "We couldn't load this page right now. Please check your connection and try again.",
+        "cta_label": "Try Again",
+        "network_heading": "Connection lost",
+        "network_message": "We couldn't reach the server. Please check your internet connection and try again.",
+        "auth_heading": "Access denied",
+        "auth_message": "You don't have permission to view this page.",
+        "not_found_heading": "Not found",
+        "not_found_message": "The requested information could not be found.",
+        "validation_heading": "Invalid input",
+        "validation_message": "Please review your input and try again.",
+        "rate_limit_heading": "Too many requests",
+        "rate_limit_message": "You've made too many requests. Please wait a moment and try again.",
+        "server_error_heading": "Server error",
+        "server_error_message": "Our server encountered an issue. Please try again later."
+    },
 
-  "error_boundary": {
-    "heading": "Something went wrong",
-    "description": "The system encountered an unexpected issue. Please try refreshing the page or come back later.",
-    "cta_label": "Refresh Page"
-  },
+    "toast": {
+        "toast_label_success": "Success",
+        "toast_label_error": "Error",
+        "toast_label_loading": "Processing",
+        "toast_fallback_message": "Operation complete"
+    },
 
-  "toast": {
-    "toast_label_success": "Success",
-    "toast_label_error": "Error",
-    "toast_label_loading": "Processing",
-    "toast_fallback_message": "Operation complete"
-  },
+    "product_avatar": {
+        "image_alt": "{{name}} image",
+        "image_alt_fallback": "Product image",
+        "fallback_initial": "?"
+    },
 
-  "product_avatar": {
-    "image_alt": "{{name}} image",
-    "image_alt_fallback": "Product image",
-    "fallback_initial": "?"
-  },
-
-  "login_layout": {
-    "image_alt_fallback": "App hero image"
-  }
+    "login_layout": {
+        "image_alt_fallback": "App hero image"
+    }
 }

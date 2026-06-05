@@ -3,6 +3,7 @@ import useMustasharGuard from "../../Hooks/useMustasharGuard";
 import PageShell from "../../Components/Common/PageShell";
 import SetupBanner from "../../Components/Common/Feedback/SetupBanner";
 import TableToolbar from "../../Components/Common/Controls/TableToolbar";
+import Pagination from "../../Components/Common/Controls/Pagination";
 import Card from "../../Components/Common/UI/Card";
 import ProductRow from "../../Components/Mustashar/ProductRow";
 import ProductTable from "../../Components/Mustashar/ProductTable";
@@ -15,6 +16,9 @@ export default function Products() {
     useMustasharGuard();
 
     const {
+        paginated,
+        page, setPage,
+        totalPages,
         sorted,
         search, setSearch,
         categoryFilter, setCategoryFilter,
@@ -54,7 +58,7 @@ export default function Products() {
                 <Card>
                     <ProductTable>
                         {sorted.length > 0 ? (
-                            sorted.map((product) => (
+                            paginated.map((product) => (
                                 <ProductRow
                                     key={product.id}
                                     product={product}
@@ -69,6 +73,8 @@ export default function Products() {
                         )}
                     </ProductTable>
                 </Card>
+
+                <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
             </div>
         </PageShell>
