@@ -146,8 +146,8 @@ export default function LoginLayout({
 
             {/*
               Global style overrides scoped to this page.
-              - Fonts are imported here as a fallback; the canonical import lives in
-                globalStyles.js and is deduplicated by the browser cache.
+              - Fonts are NOT loaded here; they come from the single <link> in
+                resources/views/app.blade.php (loaded once for the whole app).
               - `.glass-btn:hover` brightens the frosted pill on pointer entry.
               - The media query collapses the card to full-width on small screens.
             */}

@@ -3,9 +3,11 @@
  * Kept in a dedicated file so Welcome.jsx stays clean
  * and styles can be reviewed / modified independently.
  */
+// Note: fonts (Changa + Cairo) are loaded once via the <link> in
+// resources/views/app.blade.php. They are intentionally NOT @import-ed here —
+// a runtime @import inside an injected <style> fires late (FOUT risk) and
+// duplicates a request the document <head> already makes.
 const globalStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Changa:wght@300;400;500;600;700;800&family=Cairo:wght@300;400;500;600;700;800&display=swap');
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { overflow-x: hidden; }
 
