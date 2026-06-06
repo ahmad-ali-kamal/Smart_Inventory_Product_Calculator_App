@@ -218,11 +218,13 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     <Reveal delay={0.08} direction="left">
                         <PlatformCard
                             data={t('harees', { returnObjects: true })}
-                            imgSrc="/images/hareesDashboard.png"
+                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725512/hareesDashboard_v2e2ki.webp"}
                             accentColor="#7C3AED"
                             loginUrl="/harees/login"
                             ff={ff}
                             bodyFont={bodyFont}
+                            fetchPriority="high" // أضف هذه الخاصية
+  loading="eager"      // تأكد أنها ليست lazy
                         />
                     </Reveal>
 
@@ -230,11 +232,13 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     <Reveal delay={0.18} direction="right">
                         <PlatformCard
                             data={t('mustashar', { returnObjects: true })}
-                            imgSrc="/images/mustasharSettings.png"
+                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725540/mustasharSettings_bvhoaf.webp"}
                             accentColor="#7C3AED"
                             loginUrl="/mustashar/login"
                             ff={ff}
                             bodyFont={bodyFont}
+                            fetchPriority="high" // أضف هذه الخاصية
+  loading="eager"      // تأكد أنها ليست lazy
                         />
                     </Reveal>
                 </div>

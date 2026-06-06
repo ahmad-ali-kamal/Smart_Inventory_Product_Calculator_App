@@ -23,7 +23,7 @@
 
 import { useTranslation } from 'react-i18next';
 import LoginLayout from '@/Layouts/LoginLayout';
-import heroImage from '@/assets/hareesLogin.webp';
+
 
 /**
  * HareesLogin — login page component for the Harees app.
@@ -51,7 +51,7 @@ export default function HareesLogin({ status }) {
             t={t}
 
             // ── Hero image ───────────────────────────────────────────────────
-            imageSrc={heroImage}
+            imageSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725450/hareesLogin_gj6xgo.webp"}
             imageAlt="Harees"
 
             // ── Brand colours ────────────────────────────────────────────────

@@ -23,7 +23,7 @@
 
 import { useTranslation } from 'react-i18next';
 import LoginLayout from '@/Layouts/LoginLayout';
-import heroImage from '@/assets/mustasharLogin.webp';
+
 
 /**
  * MustasharLogin — login page component for the Mustashar app.
@@ -44,7 +44,7 @@ export default function MustasharLogin() {
             t={t}
 
             // ── Hero image ───────────────────────────────────────────────────
-            imageSrc={heroImage}
+            imageSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725488/mustasharLogin_g45tzk.webp"}
             imageAlt="Mustashar"
 
             // ── Brand colours ────────────────────────────────────────────────
