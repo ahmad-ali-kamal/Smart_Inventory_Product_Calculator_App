@@ -82,7 +82,7 @@ export default function Products() {
     }));
 
     return (
-        <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
+        <PageShell isLoading={isLoading} isError={isError} error={error} context="products" onRetry={refetch}>
             <div className="space-y-4">
 
                 {/* ── Setup banner ───────────────────────────────────────────────

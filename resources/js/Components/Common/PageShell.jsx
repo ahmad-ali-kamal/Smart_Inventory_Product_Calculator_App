@@ -37,12 +37,15 @@ import ErrorBoundary from './ErrorBoundary';
  * @param {boolean}          props.isLoading   - True while the page's primary data is being fetched.
  * @param {boolean}          props.isError     - True when the data fetch has failed.
  * @param {Error|null}       props.error       - The Error object returned by React Query (or null).
+ * @param {string}           [props.context]   - Page context key (e.g. 'products', 'settings',
+ *                                               'dashboard') forwarded to <ErrorState> so the error
+ *                                               heading reads "Failed to load <context>".
  * @param {Function}         [props.onRetry]   - Optional callback passed to <ErrorState> for
  *                                               the "Try again" button (e.g. React Query's `refetch`).
  * @param {React.ReactNode}  props.children    - Page content rendered when data is available.
  * @returns {JSX.Element}
  */
-export default function PageShell({ isLoading, isError, error, onRetry, children }) {
+export default function PageShell({ isLoading, isError, error, context, onRetry, children }) {
 
     /* ── State 1: Data is still loading ── */
     if (isLoading) {
@@ -50,19 +53,14 @@ export default function PageShell({ isLoading, isError, error, onRetry, children
     }
 
     /* ── State 2: Data fetch failed ── */
-    
-           if (isError) {
-    console.log('[PageShell] error object:', error);
-    console.log('[PageShell] userMessage:', error?.userMessage);
-    console.log('[PageShell] status:', error?.response?.status);
+    if (isError) {
+        return (
+            <Layout>
+                <ErrorState error={error} context={context} onRetry={onRetry} />
+            </Layout>
+        );
+    }
 
-    return (
-        <Layout>
-            <ErrorState error={error} onRetry={onRetry} />
-        </Layout>
-    );
-}
-    
 
     /* ── State 3: Data is ready — render children inside an error boundary ── */
     return (

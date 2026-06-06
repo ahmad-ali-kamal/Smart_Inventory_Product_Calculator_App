@@ -24,7 +24,7 @@ import PageShell from '../../Components/Common/PageShell';
 import { useSettingsForm } from '../../Hooks/useSettingsForm';
 import { FormSkeleton } from '../../Components/Common/Skeleton/FormSkeleton';
 import Layout from '../../Layouts/Layout';
-import SettingsForm from '../../Components/Mustashar/Settings/SettingsForm';
+import SettingsForm from '../../Components/Mustashar/SettingsForm';
 
 // ── i18n strings ──────────────────────────────────────────────────────────────
 // No visible strings are hardcoded in this component; the page title and all
@@ -69,7 +69,7 @@ export default function Settings() {
     // ── Render ────────────────────────────────────────────────────────────────
     // PageShell handles the error boundary and retry UI when isError is true.
     return (
-        <PageShell isError={isError} error={error} onRetry={refetch}>
+        <PageShell isError={isError} error={error} context="settings" onRetry={refetch}>
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-500">
                 <SettingsForm
                     coverage={coverage}

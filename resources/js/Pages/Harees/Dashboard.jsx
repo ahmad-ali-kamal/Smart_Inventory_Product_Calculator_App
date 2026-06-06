@@ -82,7 +82,7 @@ export default function Dashboard() {
     } = useHareesStats();
 
     return (
-        <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
+        <PageShell isLoading={isLoading} isError={isError} error={error} context="dashboard" onRetry={refetch}>
             <div className="space-y-10">
 
                 {/* ── Setup banner ──────────────────────────────────────────────

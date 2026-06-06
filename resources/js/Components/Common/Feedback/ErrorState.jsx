@@ -42,13 +42,16 @@ import { getErrorMessage } from '@/utils/getErrorMessage';
  *                                      (e.g. from React Query or axios). Used to
  *                                      determine the status code and extract a
  *                                      server-sent message.
+ * @param {string}   [props.context]  - Page context key (e.g. 'products',
+ *                                      'settings', 'dashboard') used to render a
+ *                                      context-aware heading: "Failed to load …".
  * @param {Function} [props.onRetry]  - Callback fired when the user clicks "Try Again".
  *                                      When omitted the retry button is hidden.
  * @returns {JSX.Element}
  */
-export default function ErrorState({ error, onRetry }) {
+export default function ErrorState({ error, context, onRetry }) {
     const { t } = useTranslation('shared');
-    const { heading, message } = getErrorMessage(error, t);
+    const { heading, message } = getErrorMessage(error, t, context);
 
     return (
         <div className="flex flex-col items-center justify-center py-32 px-6 text-center animate-in fade-in duration-500">

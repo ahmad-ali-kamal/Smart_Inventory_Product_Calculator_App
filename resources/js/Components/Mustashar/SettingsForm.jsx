@@ -15,7 +15,7 @@
  */
 import { useTranslation } from 'react-i18next';
 import { Loader2, SlidersHorizontal, AlertCircle, Sparkles } from 'lucide-react';
-import { WASTE_MIN, WASTE_MAX, COVERAGE_MIN, COVERAGE_MAX } from '../../../constants/calculatorSettings';
+import { WASTE_MIN, WASTE_MAX, COVERAGE_MIN, COVERAGE_MAX } from '../../constants/calculatorSettings';
 
 // ── Internal sub-components ───────────────────────────────────────────────────
 

@@ -32,7 +32,7 @@ export default function Products() {
     const { handleToggle, isPending, variables } = useToggleWithToast();
 
     return (
-        <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
+        <PageShell isLoading={isLoading} isError={isError} error={error} context="products" onRetry={refetch}>
             <div className="space-y-6">
 
                 {needsSetup && (

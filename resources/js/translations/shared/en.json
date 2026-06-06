@@ -63,8 +63,17 @@
         "heading": "Something went wrong",
         "default_message": "We couldn't load this page right now. Please check your connection and try again.",
         "cta_label": "Try Again",
+        "load_failed": "Failed to load {{context}}",
+        "context": {
+            "page": "this page",
+            "dashboard": "dashboard",
+            "products": "products",
+            "settings": "settings"
+        },
         "network_heading": "Connection lost",
         "network_message": "We couldn't reach the server. Please check your internet connection and try again.",
+        "timeout_heading": "Request timed out",
+        "timeout_message": "The server took too long to respond. Please try again.",
         "auth_heading": "Access denied",
         "auth_message": "You don't have permission to view this page.",
         "not_found_heading": "Not found",

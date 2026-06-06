@@ -75,7 +75,7 @@ export default function Settings() {
 
     return (
         // PageShell renders an error state with a retry button when isError is true.
-        <PageShell isError={isError} error={error} onRetry={refetch}>
+        <PageShell isError={isError} error={error} context="settings" onRetry={refetch}>
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5 pb-10">
 
                 {/* Expiry threshold inputs — short / medium / long day counts */}

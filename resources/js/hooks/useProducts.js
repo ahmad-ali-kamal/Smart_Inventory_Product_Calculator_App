@@ -27,18 +27,14 @@
 
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../services/apiClient";
 
 // ── Shared axios instance ─────────────────────────────────────────────────────
-// Sets JSON headers and the Laravel AJAX flag on every request so controllers
-// return JSON error responses instead of HTML redirects.
-const api = axios.create({
-    headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-    },
-});
+// Uses the app-wide `apiClient` so every Mustashar request shares the same
+// response interceptor that normalises errors (userMessage, validationErrors,
+// status, isTimeout, isNetworkError). Previously this file created its own bare
+// axios instance with no interceptor, which meant Mustashar errors never carried
+// `userMessage` and always fell back to generic copy in <ErrorState>.
 
 // ── Query key registry ────────────────────────────────────────────────────────
 // Centralising keys prevents string typos and makes cache invalidation

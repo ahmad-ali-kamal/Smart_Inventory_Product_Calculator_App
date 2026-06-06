@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Package, CheckCircle2, Pencil } from "lucide-react";
 import useMustasharGuard from "../../Hooks/useMustasharGuard";
 import PageShell from "../../Components/Common/PageShell";
-import SetupBanner from "../../Components/Common/FeedBack/SetupBanner";
+import SetupBanner from "../../Components/Common/Feedback/SetupBanner";
 import StatCard from "../../Components/Common/StatCard";
 import Pagination, { ITEMS_PER_PAGE } from "../../Components/Common/Controls/Pagination";
 import ProductRow from "../../Components/Mustashar/ProductRow";
@@ -161,7 +161,7 @@ export default function Dashboard() {
     );
 
     return (
-        <PageShell isLoading={isLoading} isError={isError} error={error} onRetry={refetch}>
+        <PageShell isLoading={isLoading} isError={isError} error={error} context="dashboard" onRetry={refetch}>
             <div className="space-y-6">
 
                 {needsSetup && (
