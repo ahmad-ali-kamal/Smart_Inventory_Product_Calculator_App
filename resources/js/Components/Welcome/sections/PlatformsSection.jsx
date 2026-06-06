@@ -218,13 +218,12 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     <Reveal delay={0.08} direction="left">
                         <PlatformCard
                             data={t('harees', { returnObjects: true })}
-                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725512/hareesDashboard_v2e2ki.webp"}
+                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735836/harees_hpofio.webp"}
                             accentColor="#7C3AED"
                             loginUrl="/harees/login"
                             ff={ff}
                             bodyFont={bodyFont}
-                            fetchPriority="high" // أضف هذه الخاصية
-  loading="eager"      // تأكد أنها ليست lazy
+       
                         />
                     </Reveal>
 
@@ -232,13 +231,12 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     <Reveal delay={0.18} direction="right">
                         <PlatformCard
                             data={t('mustashar', { returnObjects: true })}
-                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725540/mustasharSettings_bvhoaf.webp"}
+                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735847/mustashar_rnzybq.webp"}
                             accentColor="#7C3AED"
                             loginUrl="/mustashar/login"
                             ff={ff}
                             bodyFont={bodyFont}
-                            fetchPriority="high" // أضف هذه الخاصية
-  loading="eager"      // تأكد أنها ليست lazy
+    
                         />
                     </Reveal>
                 </div>

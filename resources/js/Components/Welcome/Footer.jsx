@@ -61,7 +61,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                 direction: 'ltr', // Logo lockup always LTR
                                 justifyContent: dir === 'rtl' ? 'flex-end' : 'flex-start',
                             }}>
-                                <img src="/images/Quantix_logo.png" alt="Quantix" style={{ height: 36 }} />
+                                <img src={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780736729/Quantix_logo_nfzdku.webp"} alt="Quantix" style={{ height: 36 }} />
                                 <span style={{
                                     fontFamily: "'Changa', sans-serif",
                                     fontSize: '1.15rem', fontWeight: 800,
