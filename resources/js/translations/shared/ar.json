@@ -86,6 +86,12 @@
         "server_error_message": "واجه الخادم مشكلة. يُرجى المحاولة مرة أخرى لاحقًا."
     },
 
+    "error_boundary": {
+        "heading": "حدث خطأ غير متوقع",
+        "description": "واجه النظام مشكلة غير متوقعة. جرّب تحديث الصفحة أو عُد لاحقاً.",
+        "cta_label": "تحديث الصفحة"
+    },
+
     "toast": {
         "toast_label_success": "نجاح",
         "toast_label_error": "خطأ",

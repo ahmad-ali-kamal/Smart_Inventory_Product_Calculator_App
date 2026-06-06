@@ -40,8 +40,50 @@ import i18n from "../../i18n";
 export default class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
-        /** @type {{ hasError: boolean }} */
-        this.state = { hasError: false };
+        /**
+         * Translations start empty and are populated in componentDidMount —
+         * by then i18next has fully initialised, avoiding the bug where
+         * resolving keys at module-load / construct time returned raw keys.
+         *
+         * @type {{ hasError: boolean, translations: { heading: string, description: string, cta_label: string } }}
+         */
+        this.state = {
+            hasError: false,
+            translations: { heading: "", description: "", cta_label: "" },
+        };
+    }
+
+    /**
+     * Resolves the fallback-UI strings from i18next and stores them in state.
+     * Defined as a bound class field so it can be used directly as the
+     * `languageChanged` listener (and removed by reference on unmount).
+     */
+    loadTranslations = () => {
+        this.setState({
+            translations: {
+                heading: i18n.t("error_boundary.heading", { ns: "shared" }),
+                description: i18n.t("error_boundary.description", { ns: "shared" }),
+                cta_label: i18n.t("error_boundary.cta_label", { ns: "shared" }),
+            },
+        });
+    };
+
+    /**
+     * React lifecycle — runs after the first commit, once i18next is ready.
+     * Loads the translated strings and subscribes to language switches so the
+     * fallback UI re-renders with the correct copy when the user changes locale.
+     */
+    componentDidMount() {
+        this.loadTranslations();
+        i18n.on("languageChanged", this.loadTranslations);
+    }
+
+    /**
+     * React lifecycle — clean up the language listener to avoid leaks and
+     * setState-after-unmount warnings.
+     */
+    componentWillUnmount() {
+        i18n.off("languageChanged", this.loadTranslations);
     }
 
     /**
@@ -59,14 +101,10 @@ export default class ErrorBoundary extends React.Component {
      * React lifecycle — called after the error boundary has rendered the fallback.
      * Safe place for side effects such as logging to an error tracking service.
      *
-     * NOTE: The method is named `componentDidCatch` in the React API.
-     * The current implementation uses `componentCatch` — rename to `componentDidCatch`
-     * to activate proper React error reporting.
-     *
      * @param {Error}                error - The thrown error object.
      * @param {React.ErrorInfo}      info  - Contains `componentStack` string for debugging.
      */
-    componentCatch(error, info) {
+    componentDidCatch(error, info) {
         // Replace with an error tracking call (e.g. Sentry.captureException) in production
         console.error("ErrorBoundary caught an error:", error, info);
     }
@@ -82,6 +120,7 @@ export default class ErrorBoundary extends React.Component {
     render() {
         /* ── Fallback UI — shown when a render error has been caught ── */
         if (this.state.hasError) {
+            const { heading, description, cta_label } = this.state.translations;
             return (
                 <div className="min-h-[400px] flex items-center justify-center p-6 bg-[var(--background)]">
                     <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-[2rem] p-10 text-center shadow-sm transition-colors duration-300">
@@ -93,12 +132,12 @@ export default class ErrorBoundary extends React.Component {
 
                         {/* Heading */}
                         <h2 className="text-xl font-bold text-[var(--foreground)] mb-3">
-                            {i18n.t('error_boundary.heading', { ns: 'shared' })}
+                            {heading}
                         </h2>
 
                         {/* Explanatory body text */}
                         <p className="text-sm text-[var(--muted-foreground)] mb-8 leading-relaxed">
-                            {i18n.t('error_boundary.description', { ns: 'shared' })}
+                            {description}
                         </p>
 
                         {/* Full-width refresh CTA */}
@@ -107,7 +146,7 @@ export default class ErrorBoundary extends React.Component {
                             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[var(--primary)] text-white font-semibold hover:brightness-95 active:scale-[0.98] transition-all shadow-sm"
                         >
                             <RefreshCw size={18} />
-                            {i18n.t('error_boundary.cta_label', { ns: 'shared' })}
+                            {cta_label}
                         </button>
                     </div>
                 </div>

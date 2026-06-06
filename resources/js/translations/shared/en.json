@@ -86,6 +86,12 @@
         "server_error_message": "Our server encountered an issue. Please try again later."
     },
 
+    "error_boundary": {
+        "heading": "Something went wrong",
+        "description": "The system encountered an unexpected issue. Try refreshing the page or come back later.",
+        "cta_label": "Refresh Page"
+    },
+
     "toast": {
         "toast_label_success": "Success",
         "toast_label_error": "Error",

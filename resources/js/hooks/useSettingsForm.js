@@ -10,7 +10,7 @@
  *   - Loads current settings via `useMustasharSettings` and seeds local
  *     controlled-input state whenever the server data arrives or changes.
  *   - Validates both fields before submission using the shared validators
- *     from `mustasharSettings.js`.
+ *     from `calculatorSettings.js`.
  *   - Delegates the actual save to `useUpdateMustasharSettings` and
  *     surfaces success / error feedback via `react-hot-toast`.
  *
@@ -26,7 +26,7 @@ import {
 import {
     validateWaste,
     validateCoverage,
-} from "../constants/mustasharSettings";
+} from "../constants/calculatorSettings";
 
 /**
  * useSettingsForm
