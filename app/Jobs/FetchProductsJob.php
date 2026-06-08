@@ -227,7 +227,7 @@ class FetchProductsJob implements ShouldQueue
             }
             
             // ─── 3. تجهيز كل فاريينت ─────────────────────
-            $formattedVariants = array_map(function ($v) use ($valueNames) {
+            $formattedVariants = array_map(function ($v) use ($valueNames, $product) {
                 // بناء الاسم من option values
                 $optionNames = [];
                 foreach ($v['related_option_values'] ?? [] as $valueId) {

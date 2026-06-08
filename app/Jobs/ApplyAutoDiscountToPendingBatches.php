@@ -194,7 +194,7 @@ class ApplyAutoDiscountToPendingBatches implements ShouldQueue
                 $variantData  = $product->getVariantById($item->salla_variant_id) ?? [];
                 $currentSku   = $variantData['sku'] ?? $product->sku ?? null;
                 $currentPrice = (float) ($variantData['price'] ?? 0);
-                $batchItemQty = (int) ($item->quantity ?? 0);
+                $batchItemQty = (int) ($item->variant_quantity ?? $item->quantity ?? 0);
 
                 if (!$currentSku) {
                     Log::warning("[AUTO DISCOUNT] تخطي — لا يوجد SKU للـ variant", [

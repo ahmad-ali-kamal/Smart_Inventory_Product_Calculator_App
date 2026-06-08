@@ -204,13 +204,18 @@ class HareesApiController extends Controller
                             if ($item->salla_variant_id) {
                                 $variantInfo = collect($variantsData)
                                     ->firstWhere('id', $item->salla_variant_id);
+
+                                // تجاهل الـ batch_item إذا كان الـ variant غير موجود أو بدون اسم
+                                if (!$variantInfo || empty($variantInfo['name'] ?? '')) {
+                                    return null;
+                                }
                                 
                                 return [
                                     'batch_item_id'      => $item->id,
                                     'salla_variant_id'   => $item->salla_variant_id,
                                     'variant_quantity'   => $item->variant_quantity,
                                     'quantity'           => $item->quantity,
-                                    'name'               => ($variantInfo['name'] ?? $variantInfo['sku'] ?? ''),
+                                    'name'               => $variantInfo['name'],
                                     'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
                                     'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
                                 ];
