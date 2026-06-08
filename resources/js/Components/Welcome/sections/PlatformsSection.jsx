@@ -53,7 +53,7 @@ const t_static = {
  * @param {string}       props.bodyFont    - CSS font-family string applied to body text and feature list.
  * @returns {JSX.Element}
  */
-function PlatformCard({ data, imgSrc, accentColor, loginUrl, ff, bodyFont }) {
+function PlatformCard({ data, imgSrc, logoSrc, accentColor, loginUrl, ff, bodyFont }) {
     return (
         <motion.div
             /* Subtle lift + shadow on hover to draw attention to the active card */
@@ -66,13 +66,16 @@ function PlatformCard({ data, imgSrc, accentColor, loginUrl, ff, bodyFont }) {
         >
             {/* ── Header: tinted icon badge + platform name ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
-                {/* Icon badge — background opacity derived from accentColor + '18' (hex alpha) */}
+                {/* Icon badge — shows the platform logo, falls back to a tinted background */}
                 <div style={{
                     width: 40, height: 40, borderRadius: 10,
                     background: accentColor + '18',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden',
                 }}>
-                    <ShoppingBag size={18} color={accentColor} />
+                    {logoSrc
+                        ? <img src={logoSrc} alt={data.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <ShoppingBag size={18} color={accentColor} />}
                 </div>
 
                 {/* Platform name */}
@@ -219,6 +222,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         <PlatformCard
                             data={t('harees', { returnObjects: true })}
                             imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735836/harees_hpofio.webp"}
+                            logoSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780928346/logo_harees_vk55wt.webp"}
                             accentColor="#7C3AED"
                             loginUrl="/harees/login"
                             ff={ff}
@@ -232,6 +236,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         <PlatformCard
                             data={t('mustashar', { returnObjects: true })}
                             imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735847/mustashar_rnzybq.webp"}
+                            logoSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780930421/logo_mustashar_3_czwcre.webp"}
                             accentColor="#7C3AED"
                             loginUrl="/mustashar/login"
                             ff={ff}

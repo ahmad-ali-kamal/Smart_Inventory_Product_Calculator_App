@@ -3,7 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useTheme } from '../../Context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useLang } from '../../Context/LanguageContext';
-import { Sun, Moon, User, LayoutGrid, ChevronDown, Globe, LogOut, BellRing, CheckCheck } from 'lucide-react';
+import { Sun, Moon, User, ChevronDown, Globe, LogOut, BellRing, CheckCheck } from 'lucide-react';
 import LangToggle from './LangToggle';
 
 export default function Header() {
@@ -66,6 +66,9 @@ useEffect(() => {
     ];
        const navItems = isInventory ? inventoryNav : calculatorNav;
     const appName  = isInventory ? t('header.app_harees') : t('header.app_mustashar');
+    const logoSrc  = isInventory
+        ? 'https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780928346/logo_harees_vk55wt.webp'
+        : 'https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780930421/logo_mustashar_3_czwcre.webp';
 
     return (
         <header className="sticky top-0 z-50 bg-[var(--background)] border-b border-[var(--border)] transition-colors duration-300">
@@ -73,8 +76,8 @@ useEffect(() => {
 
                 {/* 1. Logo & App Name */}
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[var(--primary)] flex items-center justify-center shadow-sm">
-                        <LayoutGrid className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-sm">
+                        <img src={logoSrc} alt={appName} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-semibold text-[var(--foreground)] text-base tracking-tight">{appName}</span>
                 </div>
