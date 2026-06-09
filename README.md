@@ -128,7 +128,7 @@ resources/
 - Composer
 - Node.js 18+
 - MySQL 8.0+
-- A Salla merchant account with two registered applications (Mustashar + Harees)
+- A Salla merchant account with one or more registered applications (Mustashar || Harees)
 
 ### Setup
 
