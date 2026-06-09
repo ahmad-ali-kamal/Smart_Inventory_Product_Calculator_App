@@ -149,38 +149,6 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                         {/* ── Left: text content ── */}
                         <div className="q-hero-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
 
-                            {/* "NEW" feature badge — fades in first (lowest delay) */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 14 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                                style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                                    background: 'rgba(255,255,255,0.12)',
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                    borderRadius: 999,
-                                    padding: '5px 14px 5px 8px',
-                                    marginBottom: '1.25rem',
-                                }}
-                            >
-                                {/* "NEW" pill */}
-                                <span style={{
-                                    background: '#A855F7', color: 'white',
-                                    borderRadius: 999, padding: '2px 8px',
-                                    fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
-                                    fontFamily: "'Changa', sans-serif",
-                                }}>
-                                    NEW
-                                </span>
-                                {/* Badge label */}
-                                <span style={{
-                                    color: 'rgba(255,255,255,0.8)',
-                                    fontSize: '0.78rem', fontFamily: ff, fontWeight: 600,
-                                }}>
-                                    Intelligent Salla Management
-                                </span>
-                            </motion.div>
-
                             {/* Main headline — uses <SplitText> for per-character stagger entrance */}
                             <h1 style={{
                                 fontFamily: "'Changa', sans-serif",

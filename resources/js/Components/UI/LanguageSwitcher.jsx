@@ -8,7 +8,7 @@ export default function LanguageSwitcher() {
     <button
       className="lang-btn"
       onClick={toggle}
-      style={{ fontFamily: isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif" }}
+      style={{ fontFamily: isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif", color: 'white' }}
     >
       {label}
     </button>

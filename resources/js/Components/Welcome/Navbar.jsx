@@ -98,7 +98,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                 >
                     <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-                        <img src={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780736729/Quantix_logo_nfzdku.webp"} alt="Quantix" style={{ height: 30 }} />
+                        <img src={"/logos/Quantix_logo.png"} alt="Quantix" style={{ height: 30 }} />
                         <span style={{
                             fontFamily: "'Changa', sans-serif",
                             fontSize: '1.1rem', fontWeight: 800,
