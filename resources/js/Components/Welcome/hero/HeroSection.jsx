@@ -71,8 +71,9 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
     return (
         <section
             ref={heroRef}
+            aria-label="Hero"
             style={{
-                minHeight: '100vh',
+                minHeight: '100dvh',
                 paddingTop: NAV_H,        // Offset for fixed navbar height
                 display: 'flex',
                 alignItems: 'center',
@@ -141,10 +142,10 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
             <motion.div
                 style={{ y: contentY, opacity: contentOpacity, position: 'relative', zIndex: 2, width: '100%' }}
             >
-                <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2.5rem 1.5rem 5rem', width: '100%' }}>
+                <div style={{ maxWidth: 1320, margin: '0 auto', padding: 'clamp(2rem, 4vw, 4rem) clamp(1rem, 3vw, 2rem) clamp(3rem, 6vw, 6rem)', width: '100%' }}>
                     <div
                         className="q-hero-grid"
-                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'center' }}
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(1.5rem, 3vw, 3rem)', alignItems: 'center' }}
                     >
                         {/* ── Left: text content ── */}
                         <div className="q-hero-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>

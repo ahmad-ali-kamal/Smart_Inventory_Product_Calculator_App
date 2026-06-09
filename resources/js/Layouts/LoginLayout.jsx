@@ -166,7 +166,7 @@ export default function LoginLayout({
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
-                className="login-card w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl h-auto lg:h-[700px] xl:h-[720px] rounded-[34px] bg-white/50 border border-white overflow-hidden p-3"
+                className="login-card w-full max-w-[95vw] sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl h-auto lg:h-[700px] xl:h-[720px] rounded-[34px] bg-white/50 border border-white overflow-hidden p-3"
                 style={{ boxShadow: `0 25px 80px rgba(${shadowColor}, 0.22)` }}
             >
                 {/*

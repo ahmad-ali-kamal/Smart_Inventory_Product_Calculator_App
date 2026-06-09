@@ -16,13 +16,17 @@ export default function Layout({ children }) {
 
     return (
         <div
-            dir={dir}   
+            dir={dir}
             style={{ fontFamily: ff }}
             className="min-h-screen bg-[var(--background)] text-[var(--foreground)]"
         >
             <Header />
             <AppToaster />
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+            <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10"
+                  style={{ maxWidth: 'min(90vw, 80rem)' }}
+                  role="main"
+                  aria-label={isAr ? 'المحتوى الرئيسي' : 'Main content'}
+            >
                 {children}
             </main>
         </div>

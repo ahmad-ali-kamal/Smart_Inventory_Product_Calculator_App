@@ -22,7 +22,7 @@
 export default function GuestLayout({ children }) {
     return (
         /* Full-viewport white background; individual sections control their own colours */
-        <div style={{ minHeight: '100vh', background: '#ffffff' }}>
+        <div style={{ minHeight: '100vh', background: '#ffffff' }} role="none">
             {children}
         </div>
     );

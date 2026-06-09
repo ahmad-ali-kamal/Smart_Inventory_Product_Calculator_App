@@ -13,10 +13,12 @@ export function LanguageProvider({ children }) {
 
     useEffect(() => {
         localStorage.setItem('quantix_lang', lang);
-        // ← أضف هذا: sync i18n مع الـ context
         if (i18n.language !== lang) {
             i18n.changeLanguage(lang);
         }
+        // Sync dir and lang on <html> for accessibility
+        document.documentElement.dir = dir;
+        document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
     }, [lang]);
 
     const toggle = () => setLang(prev => (prev === 'ar' ? 'en' : 'ar'));

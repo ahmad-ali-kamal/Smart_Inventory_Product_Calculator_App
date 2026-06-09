@@ -73,6 +73,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
     return (
         /* Slide the entire header off-screen via `y` when `hidden` is true */
         <motion.header
+            role="banner"
             animate={{ y: hidden ? -NAV_H - 4 : 0 }}
             transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             style={{
@@ -86,7 +87,8 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
             }}
         >
             <div style={{
-                maxWidth: 1100, margin: '0 auto', width: '100%', padding: '0 1.5rem',
+                maxWidth: 1320, margin: '0 auto', width: '100%',
+                padding: '0 clamp(0.75rem, 3vw, 2rem)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 direction: 'ltr', // Inner layout always LTR for consistent logo/nav/lang order
             }}>
@@ -111,6 +113,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
 
                 {/* ── Pill nav: anchor links drop in from the top on mount ── */}
                 <motion.nav
+                    aria-label={dir === 'rtl' ? 'التنقل الرئيسي' : 'Main navigation'}
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
@@ -126,13 +129,14 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
                         <a
                             key={i}
                             href={NAV_ANCHORS[i]}
+                            aria-current={i === 0 ? 'true' : undefined}
                             style={{
-                                padding: '6px 16px',
+                                padding: '6px max(10px, 1vw)',
                                 /* First item acts as the "active" indicator */
                                 color: i === 0 ? 'white' : 'rgba(255,255,255,0.5)',
                                 textDecoration: 'none',
                                 fontFamily: ff,
-                                fontSize: '0.82rem', fontWeight: 600,
+                                fontSize: 'clamp(0.72rem, 1vw, 0.85rem)', fontWeight: 600,
                                 borderRadius: 999,
                                 display: 'flex', alignItems: 'center', gap: 5,
                                 background: i === 0 ? 'rgba(255,255,255,0.1)' : 'transparent',
@@ -144,7 +148,7 @@ export default function Navbar({ t, ff, dir, NAV_H }) {
                                 <span style={{
                                     width: 5, height: 5, borderRadius: '50%',
                                     background: '#A855F7', flexShrink: 0,
-                                }} />
+                                }} aria-hidden="true" />
                             )}
                             {item}
                         </a>

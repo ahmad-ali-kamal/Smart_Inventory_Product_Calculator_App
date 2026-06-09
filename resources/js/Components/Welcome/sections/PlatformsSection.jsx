@@ -166,8 +166,8 @@ function PlatformCard({ data, imgSrc, logoSrc, accentColor, loginUrl, ff, bodyFo
  */
 export default function PlatformsSection({ t, ff, bodyFont }) {
     return (
-        <section id="platforms" style={{ background: '#F9FAFB', padding: '4rem 1.5rem' }}>
-            <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <section id="platforms" aria-labelledby="platforms-heading" style={{ background: '#F9FAFB', padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem)' }}>
+            <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
                 {/* ── Section header: eyebrow label → h2 → supporting copy ── */}
                 <Reveal>
@@ -193,7 +193,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     </div>
 
                     {/* Main section heading */}
-                    <h2 style={{
+                    <h2 id="platforms-heading" style={{
                         textAlign: 'center', fontFamily: ff,
                         fontSize: 'clamp(1.6rem, 3vw, 2.25rem)',
                         fontWeight: 800, color: '#111827', marginBottom: '0.75rem',

@@ -74,21 +74,21 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
     // ── Shared inline style objects (design tokens via CSS variables) ──
 
     const card = {
-        padding: '20px 22px 22px',
+        padding: 'clamp(16px, 2vw, 22px)',
         borderRadius: '18px',
         border: '1px solid var(--border)',
         background: 'var(--card)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
+        gap: 'clamp(10px, 1.2vw, 14px)',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
         cursor: 'default',
     };
 
     /** Default icon badge style — overridden per variant below */
     const iconWrap = {
-        width: '36px',
-        height: '36px',
+        width: 'clamp(32px, 3vw, 36px)',
+        height: 'clamp(32px, 3vw, 36px)',
         borderRadius: '10px',
         display: 'flex',
         alignItems: 'center',
@@ -99,7 +99,7 @@ export default function StatCard({ label, title, value, icon: IconProp, type, ru
     };
 
     const labelStyle = {
-        fontSize: '10.5px',
+        fontSize: 'clamp(9px, 0.8vw, 11px)',
         fontWeight: 700,
         letterSpacing: '0.14em',
         textTransform: 'uppercase',
@@ -198,11 +198,11 @@ if (type === 'settings_preview') {
 
                 {/* Value row: large number + optional italic sub-label */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px' }}>
-                    <span style={{ fontSize: '28px', fontWeight: 800, lineHeight: 1, color: 'var(--foreground)' }}>
+                    <span style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 800, lineHeight: 1, color: 'var(--foreground)' }}>
                         {value}
                     </span>
                     {sub && (
-                        <span style={{ fontSize: '11px', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
+                        <span style={{ fontSize: 'clamp(10px, 0.8vw, 12px)', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
                             {sub}
                         </span>
                     )}

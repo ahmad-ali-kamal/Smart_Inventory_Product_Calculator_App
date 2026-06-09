@@ -8,6 +8,8 @@ export default function LanguageSwitcher() {
     <button
       className="lang-btn"
       onClick={toggle}
+      aria-label={isAr ? 'Switch to English' : 'التبديل إلى العربية'}
+      lang={isAr ? 'en' : 'ar'}
       style={{ fontFamily: isAr ? "'Cairo', sans-serif" : "'Changa', sans-serif", color: 'white' }}
     >
       {label}

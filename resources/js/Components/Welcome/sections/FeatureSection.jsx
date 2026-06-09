@@ -53,16 +53,16 @@ const FEATURE_ICONS = [
  */
 export default function FeaturesSection({ t, ff, bodyFont }) {
     return (
-        <section id="features" style={{ background: '#FFFFFF', padding: '4rem 1.5rem' }}>
-            <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <section id="features" aria-labelledby="features-heading" style={{ background: '#FFFFFF', padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem)' }}>
+            <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
                 {/* ── Section label: uppercase eyebrow + accent underline bar ── */}
                 <Reveal>
                     <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
                         {/* Eyebrow label — sourced from translations */}
-                        <p style={{
+                        <p id="features-heading" style={{
                             fontFamily: ff,
-                            fontSize: '0.78rem', fontWeight: 800,
+                            fontSize: 'clamp(0.7rem, 0.9vw, 0.82rem)', fontWeight: 800,
                             letterSpacing: '0.18em', color: '#6B7280',
                             marginBottom: '0.5rem',
                         }}>

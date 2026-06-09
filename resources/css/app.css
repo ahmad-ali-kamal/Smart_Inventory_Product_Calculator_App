@@ -11,6 +11,16 @@
 html {
     background-color:  #ffffff;
     color-scheme: dark;
+    font-size: clamp(16px, 1.125rem, 20px);
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Responsive base sizing */
+@media (max-width: 768px) {
+    html { font-size: 15px; }
+}
+@media (min-width: 1920px) {
+    html { font-size: 20px; }
 }
 :root {
     --background: #FDFCFF;
@@ -98,12 +108,44 @@ body {
     background-color: #ffffff;
     color: var(--foreground);
     margin: 0;
+    line-height: 1.6;
 }
 
+/* ── Accessibility: visible focus ring ── */
+*:focus-visible {
+    outline: 2px solid #7C3AED;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid #7C3AED;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Remove outline for mouse focus (keep only keyboard focus visible) */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ── Scrollbar styling ── */
+html {
+    scroll-behavior: smooth;
+}
 
 body.theme-ready {
     background-color: var(--background);
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Prevents body scroll when mobile menu is open ── */
+body.no-scroll {
+    overflow: hidden !important;
 }
 
 
@@ -214,4 +256,34 @@ canvas {
     animation:
         heroEntrance 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards,
         subtleFloat 8s ease-in-out 0.7s infinite;
+}
+
+/* ── Responsive table wrapper ── */
+.responsive-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Responsive utilities ── */
+@media (max-width: 768px) {
+    .hide-mobile { display: none !important; }
+    .stack-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .full-width-mobile { width: 100% !important; }
+}
+
+@media (min-width: 769px) {
+    .hide-desktop { display: none !important; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

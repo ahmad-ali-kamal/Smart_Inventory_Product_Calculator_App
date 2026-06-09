@@ -66,8 +66,8 @@ export default function RowActionButton({
 
     /** Size-specific padding and font-size classes — responsive on mobile vs md+ */
     const sizes = {
-        sm: 'px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px]',
-        md: 'px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-[11px]',
+        sm: 'px-2 md:px-3 py-1 md:py-1.5 text-[10px] md:text-[11px]',
+        md: 'px-3 md:px-4 py-1.5 md:py-2 text-[11px] md:text-[12px]',
     };
 
     /** Visual variant classes — map each state to its token-based color set */

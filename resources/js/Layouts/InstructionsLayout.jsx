@@ -117,7 +117,7 @@ export default function InstructionsLayout({
   const { dir } = useLang();
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]" dir={dir}>
+        <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]" dir={dir} role="none">
 
       {/* Shared top navigation — rendered outside of any container so it spans the full viewport */}
       <Header />
@@ -172,7 +172,7 @@ export default function InstructionsLayout({
         {/* ── Content Column ────────────────────────────────────────────────── */}
         {/* Centered, max-width-bounded column that holds all visible page content.
             px-4 on mobile grows to px-6 on md+ for comfortable reading margins. */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-10 md:py-16">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10 md:py-16" role="main">
 
           {/* Render custom content when provided; otherwise render the default layout */}
           {customContent ? customContent : (<>

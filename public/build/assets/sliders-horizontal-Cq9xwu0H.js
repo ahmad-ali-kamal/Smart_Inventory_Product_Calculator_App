@@ -1,4 +1,4 @@
-import{c as y}from"./Card-CQ-AFelV.js";/**
+import{c as y}from"./app-Gi8PJzeo.js";/**
  * @license lucide-react v0.383.0 - ISC
  *
  * This source code is licensed under the ISC license.

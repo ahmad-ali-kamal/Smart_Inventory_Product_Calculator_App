@@ -39,7 +39,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                 color: '#1A1A1A',
             }}
         >
-            <div style={{ maxWidth: 960, margin: '0 auto' }}>
+            <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 clamp(0.75rem, 2vw, 1.5rem)' }}>
 
                 {/* ── Main grid: brand column + three link columns ── */}
                 <Reveal>
@@ -47,8 +47,8 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                         className="q-footer-grid"
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: 'minmax(160px, 220px) 1fr 1fr',
-                            gap: '2rem',
+                            gridTemplateColumns: 'minmax(200px, 280px) 1fr 1fr',
+                            gap: 'clamp(1.5rem, 3vw, 3rem)',
                             marginBottom: '2.5rem',
                             flexWrap: 'wrap',
                         }}
@@ -74,29 +74,29 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                             {/* Short brand description from translations */}
                             <p style={{
                                 fontFamily: bodyFont,
-                                fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.7,
+                                fontSize: 'clamp(0.75rem, 0.9vw, 0.85rem)', color: '#6B7280', lineHeight: 1.7,
                             }}>
                                 {t('footer.desc')}
                             </p>
                         </div>
 
-                        {/* ── Link columns: Product / Company / Support ── */}
-                        <div>
+                        {/* ── Link columns ── */}
+                        <nav aria-label={dir === 'rtl' ? 'روابط المنصات' : 'Platform links'}>
                             <h4 style={{
                                 fontFamily: ff,
-                                fontSize: '0.7rem', fontWeight: 800,
+                                fontSize: 'clamp(0.65rem, 0.8vw, 0.75rem)', fontWeight: 800,
                                 letterSpacing: '0.14em', color: '#9CA3AF',
                                 marginBottom: '1rem',
                             }}>
                                 {t('footer.platformsLabel')}
                             </h4>
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                                 <li>
                                     <Link
                                         href="/harees/login"
                                         style={{
                                             fontFamily: bodyFont,
-                                            fontSize: '0.84rem', color: '#4B5563',
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
                                             textDecoration: 'none', transition: 'color 0.2s',
                                         }}
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
@@ -110,7 +110,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         href="/mustashar/login"
                                         style={{
                                             fontFamily: bodyFont,
-                                            fontSize: '0.84rem', color: '#4B5563',
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
                                             textDecoration: 'none', transition: 'color 0.2s',
                                         }}
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
@@ -120,23 +120,23 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                     </Link>
                                 </li>
                             </ul>
-                        </div>
-                        <div>
+                        </nav>
+                        <nav aria-label={dir === 'rtl' ? 'روابط سريعة' : 'Quick links'}>
                             <h4 style={{
                                 fontFamily: ff,
-                                fontSize: '0.7rem', fontWeight: 800,
+                                fontSize: 'clamp(0.65rem, 0.8vw, 0.75rem)', fontWeight: 800,
                                 letterSpacing: '0.14em', color: '#9CA3AF',
                                 marginBottom: '1rem',
                             }}>
                                 {t('footer.quickLinksLabel')}
                             </h4>
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                                 <li>
                                     <a
                                         href="#features"
                                         style={{
                                             fontFamily: bodyFont,
-                                            fontSize: '0.84rem', color: '#4B5563',
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
                                             textDecoration: 'none', transition: 'color 0.2s',
                                         }}
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
@@ -150,7 +150,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         href="#platforms"
                                         style={{
                                             fontFamily: bodyFont,
-                                            fontSize: '0.84rem', color: '#4B5563',
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
                                             textDecoration: 'none', transition: 'color 0.2s',
                                         }}
                                         onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
@@ -160,7 +160,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                     </a>
                                 </li>
                             </ul>
-                        </div>
+                        </nav>
                     </div>
                 </Reveal>
 
@@ -171,7 +171,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                 <p style={{
                     textAlign: 'center',
                     fontFamily: bodyFont,
-                    fontSize: '0.78rem', color: '#9CA3AF',
+                    fontSize: 'clamp(0.72rem, 0.85vw, 0.82rem)', color: '#9CA3AF',
                 }}>
                     {t('footer.copyright')}
                 </p>

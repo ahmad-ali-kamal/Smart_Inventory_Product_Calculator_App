@@ -1,84 +1,454 @@
 {
-  "_Card-CQ-AFelV.js": {
-    "file": "assets/Card-CQ-AFelV.js",
+  "_Card-Cw2D2D4d.js": {
+    "file": "assets/Card-Cw2D2D4d.js",
     "name": "Card",
     "imports": [
       "resources/js/app.jsx"
     ]
   },
-  "_sliders-horizontal-D8cBHfgc.js": {
-    "file": "assets/sliders-horizontal-D8cBHfgc.js",
-    "name": "sliders-horizontal",
-    "imports": [
-      "_Card-CQ-AFelV.js"
-    ]
-  },
-  "resources/js/Pages/Calculator/Dashboard.jsx": {
-    "file": "assets/Dashboard-D2QIIWgu.js",
-    "name": "Dashboard",
-    "src": "resources/js/Pages/Calculator/Dashboard.jsx",
-    "isDynamicEntry": true,
+  "_DropdownFilter-BDdYa4tN.js": {
+    "file": "assets/DropdownFilter-BDdYa4tN.js",
+    "name": "DropdownFilter",
     "imports": [
       "resources/js/app.jsx",
-      "_Card-CQ-AFelV.js",
-      "_sliders-horizontal-D8cBHfgc.js"
+      "_useTranslation-CEKJ3lXx.js",
+      "_sliders-horizontal-Cq9xwu0H.js",
+      "_Header-BSQlsQq0.js"
     ]
   },
-  "resources/js/Pages/Calculator/Instructions.jsx": {
-    "file": "assets/Instructions-BGuePZva.js",
-    "name": "Instructions",
-    "src": "resources/js/Pages/Calculator/Instructions.jsx",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/app.jsx",
-      "_Card-CQ-AFelV.js",
-      "_sliders-horizontal-D8cBHfgc.js"
-    ]
-  },
-  "resources/js/Pages/Calculator/Products.jsx": {
-    "file": "assets/Products-3WtuZOha.js",
-    "name": "Products",
-    "src": "resources/js/Pages/Calculator/Products.jsx",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/app.jsx",
-      "_Card-CQ-AFelV.js"
-    ]
-  },
-  "resources/js/Pages/Calculator/Settings.jsx": {
-    "file": "assets/Settings-Dfv2eK0i.js",
-    "name": "Settings",
-    "src": "resources/js/Pages/Calculator/Settings.jsx",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/app.jsx",
-      "_Card-CQ-AFelV.js",
-      "_sliders-horizontal-D8cBHfgc.js"
-    ]
-  },
-  "resources/js/Pages/Welcome.jsx": {
-    "file": "assets/Welcome-DkVGP-_n.js",
-    "name": "Welcome",
-    "src": "resources/js/Pages/Welcome.jsx",
-    "isDynamicEntry": true,
+  "_FormSkeleton-CQcgG7FY.js": {
+    "file": "assets/FormSkeleton-CQcgG7FY.js",
+    "name": "FormSkeleton",
     "imports": [
       "resources/js/app.jsx"
     ]
   },
+  "_Header-BSQlsQq0.js": {
+    "file": "assets/Header-BSQlsQq0.js",
+    "name": "Header",
+    "imports": [
+      "resources/js/app.jsx",
+      "_useTranslation-CEKJ3lXx.js"
+    ]
+  },
+  "_InstructionsLayout-B50Yb0ci.js": {
+    "file": "assets/InstructionsLayout-B50Yb0ci.js",
+    "name": "InstructionsLayout",
+    "imports": [
+      "resources/js/app.jsx",
+      "_Header-BSQlsQq0.js",
+      "_arrow-right-CsP2lIsT.js"
+    ]
+  },
+  "_LoginLayout-BI8PKYMt.js": {
+    "file": "assets/LoginLayout-BI8PKYMt.js",
+    "name": "LoginLayout",
+    "imports": [
+      "resources/js/app.jsx",
+      "_useFonts-g_dYM2An.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_proxy-BP05N75o.js"
+    ]
+  },
+  "_ProductAvatar-B5Z8GIUU.js": {
+    "file": "assets/ProductAvatar-B5Z8GIUU.js",
+    "name": "ProductAvatar",
+    "imports": [
+      "resources/js/app.jsx",
+      "_useTranslation-CEKJ3lXx.js",
+      "_settings-2-D2TdkXSq.js",
+      "_arrow-right-CsP2lIsT.js"
+    ]
+  },
+  "_StatCard-BMrl5LZ3.js": {
+    "file": "assets/StatCard-BMrl5LZ3.js",
+    "name": "StatCard",
+    "imports": [
+      "resources/js/app.jsx",
+      "_useTranslation-CEKJ3lXx.js"
+    ]
+  },
+  "_TableToolbar-CE6XlMps.js": {
+    "file": "assets/TableToolbar-CE6XlMps.js",
+    "name": "TableToolbar",
+    "imports": [
+      "resources/js/app.jsx",
+      "_useTranslation-CEKJ3lXx.js",
+      "_DropdownFilter-BDdYa4tN.js",
+      "_apiClient-CKVD6I56.js",
+      "_index-BxGps0Af.js",
+      "_proxy-BP05N75o.js"
+    ]
+  },
+  "_Toggle-BdaxQME9.js": {
+    "file": "assets/Toggle-BdaxQME9.js",
+    "name": "Toggle",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_apiClient-CKVD6I56.js": {
+    "file": "assets/apiClient-CKVD6I56.js",
+    "name": "apiClient",
+    "imports": [
+      "resources/js/app.jsx",
+      "_Header-BSQlsQq0.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_circle-check-CafC5uqK.js"
+    ]
+  },
+  "_arrow-right-CsP2lIsT.js": {
+    "file": "assets/arrow-right-CsP2lIsT.js",
+    "name": "arrow-right",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_calculatorSettings-C0cbc_vn.js": {
+    "file": "assets/calculatorSettings-C0cbc_vn.js",
+    "name": "calculatorSettings",
+    "imports": [
+      "resources/js/app.jsx",
+      "_apiClient-CKVD6I56.js"
+    ]
+  },
+  "_circle-check-CafC5uqK.js": {
+    "file": "assets/circle-check-CafC5uqK.js",
+    "name": "circle-check",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_clock-BGt3-Mc1.js": {
+    "file": "assets/clock-BGt3-Mc1.js",
+    "name": "clock",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_eye-off-PMq8lh65.js": {
+    "file": "assets/eye-off-PMq8lh65.js",
+    "name": "eye-off",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_index-BxGps0Af.js": {
+    "file": "assets/index-BxGps0Af.js",
+    "name": "index",
+    "imports": [
+      "resources/js/app.jsx",
+      "_proxy-BP05N75o.js"
+    ]
+  },
+  "_package-BU2PTAqY.js": {
+    "file": "assets/package-BU2PTAqY.js",
+    "name": "package",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_proxy-BP05N75o.js": {
+    "file": "assets/proxy-BP05N75o.js",
+    "name": "proxy",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_settings-2-D2TdkXSq.js": {
+    "file": "assets/settings-2-D2TdkXSq.js",
+    "name": "settings-2",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_shopping-bag-BwR_gkNY.js": {
+    "file": "assets/shopping-bag-BwR_gkNY.js",
+    "name": "shopping-bag",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_sliders-horizontal-Cq9xwu0H.js": {
+    "file": "assets/sliders-horizontal-Cq9xwu0H.js",
+    "name": "sliders-horizontal",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_tag-gqH1jpRL.js": {
+    "file": "assets/tag-gqH1jpRL.js",
+    "name": "tag",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_useFonts-g_dYM2An.js": {
+    "file": "assets/useFonts-g_dYM2An.js",
+    "name": "useFonts",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_useHareesStats-D8v8wdGe.js": {
+    "file": "assets/useHareesStats-D8v8wdGe.js",
+    "name": "useHareesStats",
+    "imports": [
+      "resources/js/app.jsx",
+      "_useTranslation-CEKJ3lXx.js",
+      "_useInventory-CF5XeE2b.js"
+    ]
+  },
+  "_useInventory-CF5XeE2b.js": {
+    "file": "assets/useInventory-CF5XeE2b.js",
+    "name": "useInventory",
+    "imports": [
+      "resources/js/app.jsx",
+      "_apiClient-CKVD6I56.js"
+    ]
+  },
+  "_useToggleWithToast-BBGsBek9.js": {
+    "file": "assets/useToggleWithToast-BBGsBek9.js",
+    "name": "useToggleWithToast",
+    "imports": [
+      "resources/js/app.jsx",
+      "_ProductAvatar-B5Z8GIUU.js",
+      "_Toggle-BdaxQME9.js",
+      "_calculatorSettings-C0cbc_vn.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_index-BxGps0Af.js",
+      "_apiClient-CKVD6I56.js"
+    ]
+  },
+  "_useTranslation-CEKJ3lXx.js": {
+    "file": "assets/useTranslation-CEKJ3lXx.js",
+    "name": "useTranslation",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "resources/js/Pages/Harees/Dashboard.jsx": {
+    "file": "assets/Dashboard-BNgF3hUV.js",
+    "name": "Dashboard",
+    "src": "resources/js/Pages/Harees/Dashboard.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_useInventory-CF5XeE2b.js",
+      "_apiClient-CKVD6I56.js",
+      "_StatCard-BMrl5LZ3.js",
+      "_ProductAvatar-B5Z8GIUU.js",
+      "_DropdownFilter-BDdYa4tN.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_tag-gqH1jpRL.js",
+      "_useHareesStats-D8v8wdGe.js",
+      "_clock-BGt3-Mc1.js",
+      "_Header-BSQlsQq0.js",
+      "_circle-check-CafC5uqK.js",
+      "_settings-2-D2TdkXSq.js",
+      "_arrow-right-CsP2lIsT.js",
+      "_sliders-horizontal-Cq9xwu0H.js"
+    ]
+  },
+  "resources/js/Pages/Harees/Instructions.jsx": {
+    "file": "assets/Instructions-ChIe2yQu.js",
+    "name": "Instructions",
+    "src": "resources/js/Pages/Harees/Instructions.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_InstructionsLayout-B50Yb0ci.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_Header-BSQlsQq0.js",
+      "_arrow-right-CsP2lIsT.js"
+    ]
+  },
+  "resources/js/Pages/Harees/Login.jsx": {
+    "file": "assets/Login-C-WA-2b0.js",
+    "name": "Login",
+    "src": "resources/js/Pages/Harees/Login.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_LoginLayout-BI8PKYMt.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_useFonts-g_dYM2An.js",
+      "_proxy-BP05N75o.js"
+    ]
+  },
+  "resources/js/Pages/Harees/Products.jsx": {
+    "file": "assets/Products-7PorSzpC.js",
+    "name": "Products",
+    "src": "resources/js/Pages/Harees/Products.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_useInventory-CF5XeE2b.js",
+      "_apiClient-CKVD6I56.js",
+      "_ProductAvatar-B5Z8GIUU.js",
+      "_TableToolbar-CE6XlMps.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_useHareesStats-D8v8wdGe.js",
+      "_package-BU2PTAqY.js",
+      "_shopping-bag-BwR_gkNY.js",
+      "_index-BxGps0Af.js",
+      "_Header-BSQlsQq0.js",
+      "_Card-Cw2D2D4d.js",
+      "_eye-off-PMq8lh65.js",
+      "_circle-check-CafC5uqK.js",
+      "_settings-2-D2TdkXSq.js",
+      "_arrow-right-CsP2lIsT.js",
+      "_DropdownFilter-BDdYa4tN.js",
+      "_sliders-horizontal-Cq9xwu0H.js",
+      "_proxy-BP05N75o.js"
+    ]
+  },
+  "resources/js/Pages/Harees/Settings.jsx": {
+    "file": "assets/Settings-rwp-O7WI.js",
+    "name": "Settings",
+    "src": "resources/js/Pages/Harees/Settings.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_useInventory-CF5XeE2b.js",
+      "_apiClient-CKVD6I56.js",
+      "_FormSkeleton-CQcgG7FY.js",
+      "_Card-Cw2D2D4d.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_settings-2-D2TdkXSq.js",
+      "_tag-gqH1jpRL.js",
+      "_Toggle-BdaxQME9.js",
+      "_eye-off-PMq8lh65.js",
+      "_Header-BSQlsQq0.js",
+      "_circle-check-CafC5uqK.js"
+    ]
+  },
+  "resources/js/Pages/Mustashar/Dashboard.jsx": {
+    "file": "assets/Dashboard-Buw58W1v.js",
+    "name": "Dashboard",
+    "src": "resources/js/Pages/Mustashar/Dashboard.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_calculatorSettings-C0cbc_vn.js",
+      "_apiClient-CKVD6I56.js",
+      "_ProductAvatar-B5Z8GIUU.js",
+      "_StatCard-BMrl5LZ3.js",
+      "_useToggleWithToast-BBGsBek9.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_package-BU2PTAqY.js",
+      "_circle-check-CafC5uqK.js",
+      "_index-BxGps0Af.js",
+      "_proxy-BP05N75o.js",
+      "_Header-BSQlsQq0.js",
+      "_settings-2-D2TdkXSq.js",
+      "_arrow-right-CsP2lIsT.js",
+      "_Toggle-BdaxQME9.js"
+    ]
+  },
+  "resources/js/Pages/Mustashar/Instructions.jsx": {
+    "file": "assets/Instructions-BvgiaiFd.js",
+    "name": "Instructions",
+    "src": "resources/js/Pages/Mustashar/Instructions.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_InstructionsLayout-B50Yb0ci.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_Header-BSQlsQq0.js",
+      "_arrow-right-CsP2lIsT.js"
+    ]
+  },
+  "resources/js/Pages/Mustashar/Login.jsx": {
+    "file": "assets/Login-YQHmvE-Q.js",
+    "name": "Login",
+    "src": "resources/js/Pages/Mustashar/Login.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_LoginLayout-BI8PKYMt.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_useFonts-g_dYM2An.js",
+      "_proxy-BP05N75o.js"
+    ]
+  },
+  "resources/js/Pages/Mustashar/Products.jsx": {
+    "file": "assets/Products-CP2-8xrt.js",
+    "name": "Products",
+    "src": "resources/js/Pages/Mustashar/Products.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_calculatorSettings-C0cbc_vn.js",
+      "_apiClient-CKVD6I56.js",
+      "_ProductAvatar-B5Z8GIUU.js",
+      "_TableToolbar-CE6XlMps.js",
+      "_Card-Cw2D2D4d.js",
+      "_useToggleWithToast-BBGsBek9.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_Header-BSQlsQq0.js",
+      "_circle-check-CafC5uqK.js",
+      "_settings-2-D2TdkXSq.js",
+      "_arrow-right-CsP2lIsT.js",
+      "_DropdownFilter-BDdYa4tN.js",
+      "_sliders-horizontal-Cq9xwu0H.js",
+      "_index-BxGps0Af.js",
+      "_proxy-BP05N75o.js",
+      "_Toggle-BdaxQME9.js"
+    ]
+  },
+  "resources/js/Pages/Mustashar/Settings.jsx": {
+    "file": "assets/Settings-BHLR_WxN.js",
+    "name": "Settings",
+    "src": "resources/js/Pages/Mustashar/Settings.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_calculatorSettings-C0cbc_vn.js",
+      "_apiClient-CKVD6I56.js",
+      "_FormSkeleton-CQcgG7FY.js",
+      "_useTranslation-CEKJ3lXx.js",
+      "_sliders-horizontal-Cq9xwu0H.js",
+      "_Header-BSQlsQq0.js",
+      "_circle-check-CafC5uqK.js"
+    ]
+  },
+  "resources/js/Pages/Welcome.jsx": {
+    "file": "assets/Welcome-BO8Eh0Uy.js",
+    "name": "Welcome",
+    "src": "resources/js/Pages/Welcome.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_useFonts-g_dYM2An.js",
+      "_proxy-BP05N75o.js",
+      "_shopping-bag-BwR_gkNY.js",
+      "_settings-2-D2TdkXSq.js",
+      "_clock-BGt3-Mc1.js",
+      "_circle-check-CafC5uqK.js",
+      "_useTranslation-CEKJ3lXx.js"
+    ]
+  },
   "resources/js/app.jsx": {
-    "file": "assets/app-CN6CSxnb.js",
+    "file": "assets/app-Gi8PJzeo.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
     "dynamicImports": [
-      "resources/js/Pages/Calculator/Dashboard.jsx",
-      "resources/js/Pages/Calculator/Instructions.jsx",
-      "resources/js/Pages/Calculator/Products.jsx",
-      "resources/js/Pages/Calculator/Settings.jsx",
+      "resources/js/Pages/Harees/Dashboard.jsx",
+      "resources/js/Pages/Harees/Instructions.jsx",
+      "resources/js/Pages/Harees/Login.jsx",
+      "resources/js/Pages/Harees/Products.jsx",
+      "resources/js/Pages/Harees/Settings.jsx",
+      "resources/js/Pages/Mustashar/Dashboard.jsx",
+      "resources/js/Pages/Mustashar/Instructions.jsx",
+      "resources/js/Pages/Mustashar/Login.jsx",
+      "resources/js/Pages/Mustashar/Products.jsx",
+      "resources/js/Pages/Mustashar/Settings.jsx",
       "resources/js/Pages/Welcome.jsx"
     ],
     "css": [
-      "assets/app-pR5qMWTC.css"
+      "assets/app-B1rJL_3L.css"
     ]
   }
 }

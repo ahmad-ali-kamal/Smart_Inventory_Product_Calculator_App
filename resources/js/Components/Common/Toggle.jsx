@@ -50,6 +50,7 @@ export default function Toggle({ checked, onChange, disabled = false }) {
             type="button"
             role="switch"
             aria-checked={checked}
+            aria-label={isAr ? 'تبديل' : 'Toggle'}
             onClick={() => !disabled && onChange()}
             disabled={disabled}
             className={`

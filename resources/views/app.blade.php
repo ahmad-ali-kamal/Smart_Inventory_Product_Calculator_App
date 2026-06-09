@@ -3,8 +3,9 @@
 <head>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title inertia>Quantix</title>
+    <meta name="description" content="Quantix — Intelligent Salla Store Management Platform">
 
     <!-- Fonts — single source of truth for Changa + Cairo across the whole app -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,5 +19,6 @@
 </head>
 <body class="font-body antialiased">
     @inertia
+    <div id="app-root" role="none"></div>
 </body>
 </html>
