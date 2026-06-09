@@ -124,12 +124,16 @@ class Batch extends Model
 
     public function getTotalQuantityAttribute(): int
     {
-        return (int) $this->batchItems()->sum('quantity');
+        return $this->relationLoaded('batchItems')
+            ? (int) $this->batchItems->sum('quantity')
+            : (int) $this->batchItems()->sum('quantity');
     }
 
     public function getTotalSoldAttribute(): int
     {
-        return (int) $this->batchItems()->sum('sold_quantity');
+        return $this->relationLoaded('batchItems')
+            ? (int) $this->batchItems->sum('sold_quantity')
+            : (int) $this->batchItems()->sum('sold_quantity');
     }
 
     public function getTotalRemainingAttribute(): int

@@ -78,6 +78,7 @@ class CheckBatchExpiryJob implements ShouldQueue
     {
         Product::where('merchant_id', $merchant->id)
             ->whereHas('batchItems.batch')
+            ->with('batchItems.batch')
             ->get()
             ->each(function ($product) use ($sallaApi) {
                 $this->syncBatchOptionForProduct($sallaApi, $product);
@@ -630,7 +631,7 @@ class CheckBatchExpiryJob implements ShouldQueue
      */
     private function applyDiscountToProduct(SallaApiService $sallaApi, Batch $batch, float $discountPercent): void
     {
-        $batchItem = $batch->batchItems()->first();
+        $batchItem = $batch->batchItems->first();
         $product = $batchItem?->product;
 
         if (!$product || !$product->salla_product_id) {
@@ -765,6 +766,7 @@ class CheckBatchExpiryJob implements ShouldQueue
 
         Product::where('merchant_id', $merchant->id)
             ->whereHas('batchItems.batch')
+            ->with('batchItems.batch')
             ->get()
             ->each(function ($product) use ($sallaApi) {
                 $batches = $product->batchItems()

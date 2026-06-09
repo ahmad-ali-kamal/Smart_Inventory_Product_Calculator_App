@@ -20,12 +20,13 @@ class MustasharDashboardController extends Controller
             return inertia('Mustashar/Instructions');
         }
 
+        $productsQuery = Product::where('merchant_id', $merchant->id);
         $stats = [
-            'total_products'   => Product::where('merchant_id', $merchant->id)->count(),
-            'enabled_products'  => Product::where('merchant_id', $merchant->id)
+            'total_products'   => $productsQuery->count(),
+            'enabled_products'  => (clone $productsQuery)
                 ->whereHas('mustashar', fn($q) => $q->where('is_enabled', true))
                 ->count(),
-            'disabled_products' => Product::where('merchant_id', $merchant->id)
+            'disabled_products' => (clone $productsQuery)
                 ->whereDoesntHave('mustashar', fn($q) => $q->where('is_enabled', true))
                 ->count(),
         ];

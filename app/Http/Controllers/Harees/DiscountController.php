@@ -28,6 +28,7 @@ class DiscountController extends Controller
         if ($batchId) {
             $batch = Batch::where('id', $batchId)
                 ->where('merchant_id', $product->merchant_id)
+                ->with('batchItems')
                 ->first();
         } else {
             $batchItem = $product->batchItems()
@@ -338,6 +339,7 @@ class DiscountController extends Controller
 
     public function cancel(BatchDiscount $discount)
     {
+        $discount->load('batch.batchItems.product.merchant');
         $batch = $discount->batch;
 
         try {

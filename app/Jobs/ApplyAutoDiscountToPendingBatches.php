@@ -43,32 +43,24 @@ class ApplyAutoDiscountToPendingBatches implements ShouldQueue
             return;
         }
 
-        // ─── البحث عن الباتشات المعلقة فقط ────────
-        $pendingBatches = Batch::where('merchant_id', $this->merchantId)
+        // ─── البحث عن جميع الباتشات الصفراء ────────
+        $yellowBatches = Batch::where('merchant_id', $this->merchantId)
             ->where('status', 'yellow')
-            ->where('discount_type', 'pending')
             ->whereHas('batchItems')
             ->with('batchItems.product')
             ->get();
 
+        $pendingBatches = $yellowBatches->where('discount_type', 'pending');
         $pendingCount = $pendingBatches->count();
-        $totalBatches = Batch::where('merchant_id', $this->merchantId)
-            ->where('status', 'yellow')
-            ->count();
+        $totalBatches = $yellowBatches->count();
 
         Log::info('[AUTO DISCOUNT] إحصائيات الباتشات', [
             'merchant_id'         => $this->merchantId,
             'total_yellow'        => $totalBatches,
             'pending'             => $pendingCount,
-            'auto_discounted'     => Batch::where('merchant_id', $this->merchantId)
-                ->where('status', 'yellow')
-                ->where('discount_type', 'auto_discounted')->count(),
-            'manually_discounted' => Batch::where('merchant_id', $this->merchantId)
-                ->where('status', 'yellow')
-                ->where('discount_type', 'manually_discounted')->count(),
-            'null_discount_type'  => Batch::where('merchant_id', $this->merchantId)
-                ->where('status', 'yellow')
-                ->whereNull('discount_type')->count(),
+            'auto_discounted'     => $yellowBatches->filter(fn($b) => $b->discount_type === 'auto_discounted')->count(),
+            'manually_discounted' => $yellowBatches->filter(fn($b) => $b->discount_type === 'manually_discounted')->count(),
+            'null_discount_type'  => $yellowBatches->filter(fn($b) => $b->discount_type === null)->count(),
         ]);
 
         if ($pendingBatches->isEmpty()) {
