@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Models\Batch;
 use App\Models\BatchItem;
 use App\Models\BatchSetting;
-use App\Models\BatchDiscount;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Notifications\BatchExpiryNotification;
@@ -103,6 +102,13 @@ class CheckBatchExpiryJob implements ShouldQueue
             // فلترة الباتشات: فقط الصفراء والخضراء (الحمراء تُحذف)
             $activeBatches = $batches->whereIn('status', ['yellow', 'green']);
 
+            Log::info('[Batch Sync] بدء مزامنة خيار الدفعة', [
+                'product_id'    => $product->id,
+                'salla_product' => $product->salla_product_id,
+                'active_count'  => $activeBatches->count(),
+                'dates'         => $activeBatches->map(fn($b) => $b->expiry_date?->format('Y-m-d'))->values(),
+            ]);
+
             // جلب الخيارات الحالية من سلة
             $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
             $currentOptions = $optionsResponse['data'] ?? [];
@@ -144,8 +150,30 @@ class CheckBatchExpiryJob implements ShouldQueue
                 );
             }
 
+            Log::info('[Batch Option] ✅ تم مزامنة خيار الدفعة في سلة', [
+                'product_id'    => $product->id,
+                'option_exists' => !$batchOption ? 'created' : 'updated',
+            ]);
+
             // ─── ربط variant_id مع كل batch (الخطوة الحاسمة) ─────────
-            $this->linkVariantsToBatches($sallaApi, $product, $activeBatches);
+            // قد تحتاج سلة وقتاً لإنشاء الـ compound variants (async)
+            // لذلك نُعيد المحاولة في حال لم نجد أي compound variant
+            $maxAttempts = 3;
+            for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                $linked = $this->linkVariantsToBatches($sallaApi, $product, $activeBatches);
+
+                if ($linked) {
+                    break; // تم الربط بنجاح
+                }
+
+                if ($attempt < $maxAttempts) {
+                    $wait = $attempt * 3; // 3s, 6s
+                    Log::info("[BatchOption] ⏳ انتظار {$wait}ث لإكمال إنشاء compound variants (محاولة {$attempt}/{$maxAttempts})");
+                    sleep($wait);
+                } else {
+                    Log::warning("[BatchOption] ⚠️ لم يتم العثور على compound variants بعد {$maxAttempts} محاولات — سيتم المزامنة في الدورة القادمة");
+                }
+            }
 
         } catch (\Throwable $e) {
             Log::error("[BatchOption] خطأ في مزامنة المنتج {$product->id}: " . $e->getMessage());
@@ -155,19 +183,19 @@ class CheckBatchExpiryJob implements ShouldQueue
     /**
      * ربط variant_id من سلة مع batch_items في قاعدة البيانات
      */
-    private function linkVariantsToBatches(SallaApiService $sallaApi, Product $product, $activeBatches): void
+    private function linkVariantsToBatches(SallaApiService $sallaApi, Product $product, $activeBatches): bool
     {
         try {
-            // جلب الـvariants من سلة
+            // ─── 1. جلب الـ compound variants من سلة ─────────────
             $variantsResponse = $sallaApi->getProductVariants($product->salla_product_id);
             $variants = $variantsResponse['data'] ?? [];
 
             if (empty($variants)) {
                 Log::warning("[LinkVariant] لا يوجد variants للمنتج {$product->id}");
-                return;
+                return false;
             }
 
-            // جلب الخيارات لمطابقة الأسماء
+            // ─── 2. جلب الخيارات لمطابقة الأسماء ────────────────
             $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
             $options = $optionsResponse['data'] ?? [];
 
@@ -179,47 +207,210 @@ class CheckBatchExpiryJob implements ShouldQueue
                 }
             }
 
-            // مطابقة كل variant مع batch_item
-            foreach ($variants as $variant) {
-                $variantId = $variant['id'] ?? null;
-                $relatedValueIds = $variant['related_option_values'] ?? [];
+            // ─── 3. جلب جميع batch_items للمنتج دفعة واحدة ──────
+            $allBatchItems = \App\Models\BatchItem::where('product_id', $product->id)
+                ->get()
+                ->groupBy('batch_id');
 
-                if (!$variantId || empty($relatedValueIds)) continue;
+            // ─── 4. قائمة بأسماء تواريخ جميع الباتشات النشطة ─────
+            $allDateNames = $activeBatches->map(fn($b) => $this->formatBatchName($b))->values()->toArray();
 
-                // جلب أسماء القيم المرتبطة
-                $valueNames = array_map(fn($id) => $valueIdToName[$id] ?? null, $relatedValueIds);
-                $valueNames = array_filter($valueNames);
-
-                if (empty($valueNames)) continue;
-
-                // البحث عن batch يطابق اسم القيمة
-                foreach ($activeBatches as $batch) {
-                    $batchName = $this->formatBatchName($batch);
-
-                    if (in_array($batchName, $valueNames)) {
-                        // البحث عن batch_item غير مرتبط بهذا الـ variant
-                        $batchItem = \App\Models\BatchItem::where('batch_id', $batch->id)
-                            ->where('product_id', $product->id)
-                            ->where(function($q) {
-                                $q->whereNull('salla_variant_id')
-                                  ->orWhere('salla_variant_id', 0);
-                            })
-                            ->first();
-
-                        if ($batchItem) {
-                            $batchItem->update([
-                                'salla_variant_id' => $variantId,
-                                'variant_quantity' => $batchItem->quantity,
-                            ]);
-                            Log::info("[LinkVariant] ✅ حفظ salla_variant_id={$variantId} في batch_item {$batchItem->id} (باتش {$batch->id})");
-                        }
-                        break;
-                    }
+            // ─── 5. تصنيف الـ variants: compound (لها تاريخ) vs base ──
+            // الـ compound variants فقط هي التي تحتوي على اسم تاريخ batch
+            // الـ base variants ليس لها اسم تاريخ → نتخطاها
+            $compoundVariants = [];
+            foreach ($variants as $v) {
+                $vNames = array_values(array_filter(array_map(
+                    fn($id) => $valueIdToName[$id] ?? null,
+                    $v['related_option_values'] ?? []
+                )));
+                $hasDate = !empty(array_intersect($vNames, $allDateNames));
+                if ($hasDate) {
+                    $compoundVariants[] = $v;
                 }
             }
 
+            Log::info('[Batch Sync] تصنيف الـ variants', [
+                'product_id' => $product->id,
+                'total'      => count($variants),
+                'compound'   => count($compoundVariants),
+                'base'       => count($variants) - count($compoundVariants),
+                'dates'      => $allDateNames,
+            ]);
+
+            if (empty($compoundVariants)) {
+                Log::warning('[Batch Sync] ⚠️ لا يوجد compound variants بعد — سلة لم تنشئها بعد (async)');
+                return false;
+            }
+
+            // ─── 6. مطابقة كل compound variant مع batch_item ────
+            $updatedCount = 0;
+            foreach ($compoundVariants as $variant) {
+                $variantId       = $variant['id'] ?? null;
+                $relatedValueIds = $variant['related_option_values'] ?? [];
+
+                if (!$variantId || empty($relatedValueIds)) {
+                    continue;
+                }
+
+                $valueNames = array_values(array_filter(array_map(
+                    fn($id) => $valueIdToName[$id] ?? null,
+                    $relatedValueIds
+                )));
+                if (empty($valueNames)) {
+                    continue;
+                }
+
+                // ─── 6a. إيجاد الـ batch المطابق ──────────────
+                $matchedBatch    = null;
+                $matchedDateName = null;
+                foreach ($activeBatches as $batch) {
+                    $dateName = $this->formatBatchName($batch);
+                    if (in_array($dateName, $valueNames)) {
+                        $matchedBatch    = $batch;
+                        $matchedDateName = $dateName;
+                        break;
+                    }
+                }
+
+                // ─── إذا بلا batch → صفر ← تجاهل (هذا ليس variant باتش) ──
+                if (!$matchedBatch) {
+                    continue;
+                }
+
+                // ─── 6b. أسماء الخيارات الأساسية (بدون التاريخ) ──
+                $baseOptionNames = array_values(array_filter(
+                    $valueNames,
+                    fn($n) => $n !== $matchedDateName
+                ));
+                if (empty($baseOptionNames)) {
+                    continue;
+                }
+
+                // ─── 6c. جلب batch_items لهذا الباتش ────────────
+                $batchItems = $allBatchItems->get($matchedBatch->id, collect())
+                    ->sortBy('id')
+                    ->values();
+
+                // ─── 6d. البحث عن batch_item يطابق base option names ──
+                $foundItem = null;
+                $stockFromDb = 0;
+
+                if ($batchItems->isNotEmpty()) {
+                    foreach ($batchItems as $bi) {
+                        if (!$bi->salla_variant_id) continue;
+
+                        $lookupVariant = collect($variants)->firstWhere('id', (int) $bi->salla_variant_id);
+
+                        if (!$lookupVariant) {
+                            try {
+                                $detailResponse = $sallaApi->getVariantDetails($bi->salla_variant_id);
+                                if (!empty($detailResponse['data'])) {
+                                    $lookupVariant = $detailResponse['data'];
+                                }
+                            } catch (\Exception $e) { /* 404 */ }
+                        }
+
+                        if (!$lookupVariant) {
+                            $localVariantsData = is_string($product->variants_data)
+                                ? json_decode($product->variants_data, true)
+                                : ($product->variants_data ?? []);
+                            $lookupVariant = collect($localVariantsData)->firstWhere('id', (int) $bi->salla_variant_id);
+                        }
+
+                        if (!$lookupVariant) continue;
+
+                        $lookupValueIds = $lookupVariant['related_option_values'] ?? [];
+                        if (empty($lookupValueIds)) continue;
+
+                        $lookupNames = array_values(array_filter(array_map(
+                            fn($id) => $valueIdToName[$id] ?? null,
+                            $lookupValueIds
+                        )));
+                        if (empty($lookupNames)) continue;
+
+                        $cleanNames = array_values(array_filter(
+                            $lookupNames,
+                            fn($n) => !in_array($n, $allDateNames)
+                        ));
+                        if (empty($cleanNames)) continue;
+
+                        $intersect = array_intersect($cleanNames, $baseOptionNames);
+                        if (count($intersect) === count($cleanNames) && count($cleanNames) === count($baseOptionNames)) {
+                            $foundItem = $bi;
+                            break;
+                        }
+                    }
+
+                    if ($foundItem) {
+                        $stockFromDb = (int) ($foundItem->variant_quantity ?? $foundItem->quantity ?? 0);
+                    }
+                }
+
+                // ─── 6e. تحضير السعر ──────────────────────────
+                $priceData = $foundItem && $foundItem->salla_variant_id
+                    ? (collect($variants)->firstWhere('id', (int) $foundItem->salla_variant_id) ?: $variant)
+                    : $variant;
+
+                // ─── 6f. دفع الكمية إلى سلة ────────────────────
+                Log::info('[Variant Batch Sync]', [
+                    'batch_id'                => $matchedBatch->id,
+                    'batch_item_id'           => $foundItem?->id,
+                    'matched'                 => $foundItem ? 'yes' : 'no',
+                    'variant_name'            => implode(' / ', $baseOptionNames),
+                    'variant_quantity_from_db'=> $stockFromDb,
+                    'quantity_sent_to_salla'  => $stockFromDb,
+                ]);
+
+                try {
+                    $sallaApi->updateBatchVariant($variantId, [
+                        'stock_quantity' => $stockFromDb,
+                        'price'          => (float) ($priceData['price']['amount'] ?? $priceData['price'] ?? 0),
+                        'sale_price'     => (float) ($priceData['sale_price']['amount'] ?? $priceData['sale_price'] ?? 0),
+                    ]);
+
+                    if ($foundItem) {
+                        $oldVariantId = $foundItem->salla_variant_id;
+                        $foundItem->update([
+                            'salla_variant_id' => $variantId,
+                            'variant_quantity' => $stockFromDb,
+                        ]);
+
+                        Log::info('[Batch Sync] ✅ ربط compound variant', [
+                            'batch_id'       => $matchedBatch->id,
+                            'batch_item_id'  => $foundItem->id,
+                            'old_variant_id' => $oldVariantId,
+                            'new_variant_id' => $variantId,
+                            'stock_to_push'  => $stockFromDb,
+                        ]);
+                    } else {
+                        Log::info('[Batch Sync] ⏭️ compound variant لم يُربط — دفع 0', [
+                            'variant_id'  => $variantId,
+                            'batch_id'    => $matchedBatch->id,
+                            'batch_name'  => $matchedDateName,
+                            'base_options'=> $baseOptionNames,
+                        ]);
+                    }
+
+                    $updatedCount++;
+                } catch (\Exception $e) {
+                    Log::error('[Batch Sync] فشل تحديث مخزون سلة', [
+                        'variant_id' => $variantId,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($updatedCount > 0) {
+                Log::info("[Batch Sync] ✅ تم تحديث {$updatedCount} compound variant(s) للمنتج {$product->id}");
+            } else {
+                Log::warning("[Batch Sync] ⚠️ لم يتم تحديث أي compound variant للمنتج {$product->id}");
+            }
+            return $updatedCount > 0;
+
         } catch (\Throwable $e) {
             Log::error("[LinkVariant] خطأ في ربط variants للمنتج {$product->id}: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -398,7 +589,7 @@ class CheckBatchExpiryJob implements ShouldQueue
                 $variantData = $matchedVariant;
                 $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
                 $currentSku = $variantData['sku'] ?? null;
-                $batchItemQuantity = $variantItem->quantity ?? 0;
+                $batchItemQuantity = $variantItem->variant_quantity ?? $variantItem->quantity ?? 0;
 
                 // ─── إزالة الخصم ───
                 if ($discountPercent <= 0) {

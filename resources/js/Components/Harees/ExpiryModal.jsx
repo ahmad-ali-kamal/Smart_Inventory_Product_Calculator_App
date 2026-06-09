@@ -1030,7 +1030,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                     </div>
 
                                                     <div className="p-2 space-y-1.5">
-                                                        {variants.map(variant => {
+                                                        {variants.filter(v => v.name || v.sku).map(variant => {
                                                             const linked   = batchLinked.find(v => v.salla_variant_id === variant.id);
                                                             const hasError = fieldErrors[`batch_${batch.id}_variant_${variant.id}`];
 
@@ -1041,7 +1041,7 @@ export default function ExpiryModal({ product, onClose, onSave }) {
                                                                 >
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className="text-xs font-bold text-[var(--foreground)] truncate">
-                                                                            {variant.name}
+                                                                            {variant.name || variant.sku || `(${variant.id})`}
                                                                         </p>
                                                                         <p className={`text-[9px] ${variant.unlimited_quantity ? 'text-[var(--status-safe-text)]' : 'text-[var(--muted-foreground)]'}`}>
                                                                             {t('expiry_modal.variant_stock_label')}{' '}

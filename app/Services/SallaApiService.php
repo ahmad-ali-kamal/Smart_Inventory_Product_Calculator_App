@@ -341,8 +341,7 @@ class SallaApiService
      * الترتيب:
      * 1. جلب بيانات الفاريينت الحالية من سلة
      * 2. بناء payload يحتوي على جميع القيم الحالية
-     * 3. فقط override الحقول التي يريد المتصل تغييرها (sale_price, price)
-     * 4. تجاهل stock_quantity من المتصل — نستخدم المخزون الحالي من سلة
+     * 3. override الحقول التي يريد المتصل تغييرها (price, sale_price, stock_quantity)
      */
     public function updateBatchVariant(string $variantId, array $data): array
     {
@@ -354,27 +353,31 @@ class SallaApiService
         }
 
         // ── استخراج القيم الحالية من سلة ────────────────
-        $currentPrice   = (float) ($variantData['price']['amount'] ?? 0);
-        $currentSku     = $variantData['sku'] ?? null;
-        $currentStock   = (int) ($variantData['stock_quantity'] ?? 0);
-        $currentSale    = (float) ($variantData['sale_price']['amount'] ?? 0);
-        $currentBarcode = $variantData['barcode'] ?? null;
-        $currentCost    = $variantData['cost_price']['amount'] ?? $variantData['cost_price'] ?? null;
-        $currentWeight  = $variantData['weight'] ?? null;
-        $currentMpn     = $variantData['mpn'] ?? null;
-        $currentGtin    = $variantData['gtin'] ?? null;
+        $currentPrice       = (float) ($variantData['price']['amount'] ?? 0);
+        $currentSku         = $variantData['sku'] ?? null;
+        $currentSale        = (float) ($variantData['sale_price']['amount'] ?? 0);
+        $currentBarcode     = $variantData['barcode'] ?? null;
+        $currentCost        = $variantData['cost_price']['amount'] ?? $variantData['cost_price'] ?? null;
+        $currentWeight      = $variantData['weight'] ?? null;
+        $currentMpn         = $variantData['mpn'] ?? null;
+        $currentGtin        = $variantData['gtin'] ?? null;
+        $unlimitedQuantity  = $variantData['unlimited_quantity'] ?? false;
 
         // ── بناء payload كامل ──────────────────────────
         // نستخدم القيم الحالية من سلة كـ default
         // ونسمح للمتصل بتغيير price + sale_price فقط
         $payload = [
-            'price'          => $data['price'] ?? $currentPrice,
-            'stock_quantity' => $currentStock,
-            'sale_price'     => $currentSale,
+            'price'      => $data['price'] ?? $currentPrice,
+            'sale_price' => $currentSale,
         ];
 
-        if ($currentSku) {
-            $payload['sku'] = $currentSku;
+        // ═════════════════════════════════════════════════════════════
+        // stock_quantity — فقط من المتصل، لا تقرأ من سلة
+        // ═════════════════════════════════════════════════════════════
+        if (array_key_exists('stock_quantity', $data)) {
+            if ($data['stock_quantity'] !== null) {
+                $payload['stock_quantity'] = (int) $data['stock_quantity'];
+            }
         }
         if ($currentBarcode) {
             $payload['barcode'] = $currentBarcode;
