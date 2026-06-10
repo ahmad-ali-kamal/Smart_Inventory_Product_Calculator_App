@@ -161,7 +161,7 @@ class ApiProductController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[Scenario 1 Error] ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'فشل تحويل المنتج'], 500);
         }
     }
 
@@ -219,7 +219,7 @@ class ApiProductController extends Controller
 
             return response()->json(['success' => true, 'message' => 'تم دمج الدفعات بنجاح']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'فشل دمج الدفعات'], 500);
         }
     }
 

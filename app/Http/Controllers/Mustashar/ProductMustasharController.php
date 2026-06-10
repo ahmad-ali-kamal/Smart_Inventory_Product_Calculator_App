@@ -172,7 +172,7 @@ class ProductMustasharController extends Controller
 
         } catch (\Exception $e) {
             Log::error("Toggle Error for Product ID {$id}: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'حدث خطأ أثناء تحديث الحالة'], 500);
         }
     }
 

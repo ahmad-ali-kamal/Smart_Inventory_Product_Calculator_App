@@ -86,33 +86,33 @@ export function getErrorMessage(error, t, context) {
     if (status === 401 || status === 403) {
         return {
             heading: contextHeading ?? t("error_state.auth_heading"),
-            message: detail || t("error_state.auth_message"),
+            message: t("error_state.auth_message"),
         };
     }
 
     if (status === 404) {
         return {
             heading: contextHeading ?? t("error_state.not_found_heading"),
-            message: detail || t("error_state.not_found_message"),
+            message: t("error_state.not_found_message"),
         };
     }
 
     if (status === 429) {
         return {
             heading: contextHeading ?? t("error_state.rate_limit_heading"),
-            message: detail || t("error_state.rate_limit_message"),
+            message: t("error_state.rate_limit_message"),
         };
     }
 
     if (status >= 500) {
         return {
             heading: contextHeading ?? t("error_state.server_error_heading"),
-            message: detail || t("error_state.server_error_message"),
+            message: t("error_state.server_error_message"),
         };
     }
 
     return {
         heading: contextHeading ?? t("error_state.heading"),
-        message: detail || t("error_state.default_message"),
+        message: t("error_state.default_message"),
     };
 }

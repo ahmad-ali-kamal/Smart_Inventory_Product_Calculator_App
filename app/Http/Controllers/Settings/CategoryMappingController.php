@@ -92,7 +92,7 @@ class CategoryMappingController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Category distribution updated!']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'فشل تحديث توزيع الفئات'], 500);
         }
     }
 

@@ -298,7 +298,7 @@ class HareesApiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('[Get Batches Error] ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'فشل جلب الدفعات: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'فشل جلب الدفعات'], 500);
         }
     }
 
@@ -366,7 +366,7 @@ class HareesApiController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('[Store Batch Error] ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'حدث خطأ: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'حدث خطأ أثناء حفظ الدفعة'], 500);
         }
     }
 
@@ -465,7 +465,7 @@ class HareesApiController extends Controller
             Log::error('[Get Variants Error] ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'فشل جلب الفاريينت: ' . $e->getMessage(),
+                'message' => 'فشل جلب الفاريينت',
                 'has_variants' => false
             ], 500);
         }
@@ -521,7 +521,7 @@ class HareesApiController extends Controller
             return response()->json([
                 'success' => false,
                 'has_variants' => false,
-                'message' => 'فشل التحقق: ' . $e->getMessage()
+                'message' => 'فشل التحقق'
             ], 500);
         }
     }
@@ -578,7 +578,7 @@ class HareesApiController extends Controller
             return response()->json([
                 'success' => false,
                 'has_variants' => false,
-                'message' => 'فشل التحقق: ' . $e->getMessage()
+                'message' => 'فشل التحقق'
             ], 500);
         }
     }
