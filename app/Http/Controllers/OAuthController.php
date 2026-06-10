@@ -82,7 +82,7 @@ class OAuthController extends Controller
         } catch (IdentityProviderException $e) {
             // Failed to get the access token or merchant details.
             // show an error message to the merchant with good UI
-            return redirect('/dashboard')->withStatus($e->getMessage());
+            return redirect('/dashboard')->withStatus('فشل تسجيل الدخول. يُرجى المحاولة مرة أخرى.');
         }
     }
 }

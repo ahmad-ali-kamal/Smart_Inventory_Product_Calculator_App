@@ -106,7 +106,7 @@ class ProductListController extends Controller
             return back()->with('success', 'بدأت المزامنة في الخلفية. ستظهر المنتجات هنا فور اكتمال السحب من سلة.');
         } catch (\Exception $e) {
             Log::error('Product sync failed for merchant ' . $merchant->id . ': ' . $e->getMessage());
-            return back()->with('error', 'فشل بدء المزامنة: ' . $e->getMessage());
+            return back()->with('error', 'فشل بدء المزامنة');
         }
     }
 

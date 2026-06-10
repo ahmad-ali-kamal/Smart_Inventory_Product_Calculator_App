@@ -326,7 +326,7 @@ class ProductExpiryController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Store Expiry Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return $this->respondWithError('حدث خطأ أثناء حفظ البيانات: ' . $e->getMessage());
+            return $this->respondWithError('حدث خطأ أثناء حفظ البيانات');
         }
     }
 
@@ -368,7 +368,7 @@ class ProductExpiryController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Destroy Expiry Error: ' . $e->getMessage());
-            return $this->respondWithError('حدث خطأ أثناء الحذف: ' . $e->getMessage());
+            return $this->respondWithError('حدث خطأ أثناء الحذف');
         }
     }
 
