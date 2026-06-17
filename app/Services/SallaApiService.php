@@ -363,21 +363,31 @@ class SallaApiService
         $currentGtin        = $variantData['gtin'] ?? null;
         $unlimitedQuantity  = $variantData['unlimited_quantity'] ?? false;
 
+        // ── استخراج المخزون الحالي ─────────────────────
+        $currentStock = (int) ($variantData['stock_quantity'] ?? 0);
+
         // ── بناء payload كامل ──────────────────────────
         // نستخدم القيم الحالية من سلة كـ default
         // ونسمح للمتصل بتغيير price + sale_price فقط
         $payload = [
-            'price'      => $data['price'] ?? $currentPrice,
-            'sale_price' => $currentSale,
+            'price'          => $data['price'] ?? $currentPrice,
+            'sale_price'     => $currentSale,
+            // ═════════════════════════════════════════════════════════
+            // stock_quantity — نُرسله دائماً بقيمته الحالية من سلة
+            // حتى لا تفسره سلة على أنه 0 عندما لا يرسله المتصل
+            // ═════════════════════════════════════════════════════════
+            'stock_quantity' => $currentStock,
         ];
 
-        // ═════════════════════════════════════════════════════════════
-        // stock_quantity — فقط من المتصل، لا تقرأ من سلة
-        // ═════════════════════════════════════════════════════════════
+        // السماح للمتصل بتجاوز stock_quantity
         if (array_key_exists('stock_quantity', $data)) {
             if ($data['stock_quantity'] !== null) {
                 $payload['stock_quantity'] = (int) $data['stock_quantity'];
             }
+        }
+        // الحفاظ على SKU — لا نرسله إذا كان null لتجنب 422 (SKU مكرر)
+        if ($currentSku) {
+            $payload['sku'] = $currentSku;
         }
         if ($currentBarcode) {
             $payload['barcode'] = $currentBarcode;
@@ -499,9 +509,39 @@ class SallaApiService
      */
     public function updateProductPrice(string $sallaProductId, float $price, ?float $salePrice = null): array
     {
+        // ═══════════════════════════════════════════════════════════════
+        // جلب بيانات المنتج الحالية — نحافظ على المخزون الحالي
+        // لأن سلة قد تفسر الحقول المفقودة على أنها 0
+        // ═══════════════════════════════════════════════════════════════
+        try {
+            $productResponse = $this->getProduct($sallaProductId);
+            $productData     = $productResponse['data'] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('[SALLA PRODUCT PRICE] فشل جلب المنتج، سيتم إرسال price فقط', [
+                'product_id' => $sallaProductId,
+                'error'      => $e->getMessage(),
+            ]);
+            $productData = [];
+        }
+
         $payload = [
             'price' => $price,
         ];
+
+        // الحفاظ على المخزون الحالي إن وجد
+        if (!empty($productData)) {
+            if (isset($productData['stock_quantity'])) {
+                $payload['stock_quantity'] = (int) $productData['stock_quantity'];
+            }
+            // الحفاظ على الـ SKU
+            if (isset($productData['sku'])) {
+                $payload['sku'] = $productData['sku'];
+            }
+            // الحفاظ على الحالة
+            if (isset($productData['status'])) {
+                $payload['status'] = $productData['status'];
+            }
+        }
 
         if ($salePrice !== null) {
             $payload['sale_price'] = $salePrice;
