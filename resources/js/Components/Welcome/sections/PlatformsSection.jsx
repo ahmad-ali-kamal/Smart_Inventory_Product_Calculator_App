@@ -222,7 +222,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         <PlatformCard
                             data={t('harees', { returnObjects: true })}
                             imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735836/harees_hpofio.webp"}
-                            logoSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780928346/logo_harees_vk55wt.webp"}
+                            logoSrc={"/logos/HAREES_logo.png"}
                             accentColor="#7C3AED"
                             loginUrl="/harees/login"
                             ff={ff}
@@ -236,7 +236,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         <PlatformCard
                             data={t('mustashar', { returnObjects: true })}
                             imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735847/mustashar_rnzybq.webp"}
-                            logoSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780930421/logo_mustashar_3_czwcre.webp"}
+                            logoSrc={"/logos/MUSTASHAR_logo.png"}
                             accentColor="#7C3AED"
                             loginUrl="/mustashar/login"
                             ff={ff}

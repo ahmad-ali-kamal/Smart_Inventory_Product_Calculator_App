@@ -68,8 +68,8 @@ useEffect(() => {
        const navItems = isInventory ? inventoryNav : calculatorNav;
     const appName  = isInventory ? t('header.app_harees') : t('header.app_mustashar');
     const logoSrc  = isInventory
-        ? 'https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780928346/logo_harees_vk55wt.webp'
-        : 'https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780930421/logo_mustashar_3_czwcre.webp';
+        ? '/logos/HAREES_logo.png'
+        : '/logos/MUSTASHAR_logo.png';
 
     const toggleMobileNav = () => setIsMobileNavOpen(prev => !prev);
     const closeMobileNav = () => setIsMobileNavOpen(false);

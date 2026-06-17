@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title inertia>Quantix</title>
     <meta name="description" content="Quantix — Intelligent Salla Store Management Platform">
+    <link rel="icon" type="image/png" href="/logos/Quantix_logo.png">
+    <link rel="shortcut icon" href="/logos/Quantix_logo.png" type="image/png">
 
     <!-- Fonts — single source of truth for Changa + Cairo across the whole app -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
