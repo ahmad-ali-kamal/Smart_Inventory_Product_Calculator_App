@@ -98,7 +98,21 @@ class CheckBatchExpiryJob implements ShouldQueue
                 ->filter()
                 ->unique('id');
 
-            if ($batches->isEmpty()) return;
+            // جلب الخيارات الحالية من سلة
+            $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
+            $currentOptions = $optionsResponse['data'] ?? [];
+
+            // البحث عن خيار "بيانات الدفعة"
+            $batchOption = collect($currentOptions)->firstWhere('name', SallaApiService::BATCH_OPTION_NAME);
+
+            // ─── لا يوجد باتشات في النظام ← حذف الخيار من سلة إن وجد ───
+            if ($batches->isEmpty()) {
+                if ($batchOption) {
+                    $sallaApi->deleteProductOption($batchOption['id']);
+                    Log::info("[BatchOption] حذف خيار للمنتج {$product->id} (لا باتشات في النظام)");
+                }
+                return;
+            }
 
             // فلترة الباتشات: فقط الصفراء والخضراء (الحمراء تُحذف)
             $activeBatches = $batches->whereIn('status', ['yellow', 'green']);
@@ -109,13 +123,6 @@ class CheckBatchExpiryJob implements ShouldQueue
                 'active_count'  => $activeBatches->count(),
                 'dates'         => $activeBatches->map(fn($b) => $b->expiry_date?->format('Y-m-d'))->values(),
             ]);
-
-            // جلب الخيارات الحالية من سلة
-            $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
-            $currentOptions = $optionsResponse['data'] ?? [];
-
-            // البحث عن خيار "بيانات الدفعة"
-            $batchOption = collect($currentOptions)->firstWhere('name', SallaApiService::BATCH_OPTION_NAME);
 
             // ─── حالة 1: لا يوجد باتشات نشطة → حذف الخيار ────────────
             if ($activeBatches->isEmpty()) {
