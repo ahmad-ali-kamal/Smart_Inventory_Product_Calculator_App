@@ -362,20 +362,29 @@ class CheckBatchExpiryJob implements ShouldQueue
 
                 // ─── 6f. دفع الكمية إلى سلة ────────────────────
                 Log::info('[Variant Batch Sync]', [
-                    'batch_id'                => $matchedBatch->id,
-                    'batch_item_id'           => $foundItem?->id,
-                    'matched'                 => $foundItem ? 'yes' : 'no',
-                    'variant_name'            => implode(' / ', $baseOptionNames),
-                    'variant_quantity_from_db'=> $stockFromDb,
-                    'quantity_sent_to_salla'  => $stockFromDb,
+                    'batch_id'                 => $matchedBatch->id,
+                    'batch_item_id'            => $foundItem?->id,
+                    'matched'                  => $foundItem ? 'yes' : 'no',
+                    'variant_name'             => implode(' / ', $baseOptionNames),
+                    'variant_quantity_from_db' => $stockFromDb,
+                    'stock_quantity_in_payload' => $foundItem ? $stockFromDb : 'NOT_SENT (preserved)',
                 ]);
 
                 try {
-                    $sallaApi->updateBatchVariant($variantId, [
-                        'stock_quantity' => $stockFromDb,
-                        'price'          => (float) ($priceData['price']['amount'] ?? $priceData['price'] ?? 0),
-                        'sale_price'     => (float) ($priceData['sale_price']['amount'] ?? $priceData['sale_price'] ?? 0),
-                    ]);
+                    $variantUpdatePayload = [
+                        'price'      => (float) ($priceData['price']['amount'] ?? $priceData['price'] ?? 0),
+                        'sale_price' => (float) ($priceData['sale_price']['amount'] ?? $priceData['sale_price'] ?? 0),
+                    ];
+
+                    // ═══════════════════════════════════════════════════════════════
+                    // تحديث الكمية فقط في حال كان لدينا batch_item مطابق
+                    // حتى لا تُصفّر كميات الـ compound variants التي لم تُربط بعد
+                    // ═══════════════════════════════════════════════════════════════
+                    if ($foundItem) {
+                        $variantUpdatePayload['stock_quantity'] = $stockFromDb;
+                    }
+
+                    $sallaApi->updateBatchVariant($variantId, $variantUpdatePayload);
 
                     if ($foundItem) {
                         $oldVariantId = $foundItem->salla_variant_id;

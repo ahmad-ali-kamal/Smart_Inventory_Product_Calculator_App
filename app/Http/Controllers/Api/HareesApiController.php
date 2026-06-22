@@ -593,20 +593,16 @@ class HareesApiController extends Controller
         try {
             $sallaApi = SallaApiService::for($merchant);
 
-            // جلب الدفعات الصفراء لهذا المنتج فقط
-            $yellowBatches = BatchItem::where('product_id', $product->id)
+            // جلب الدفعات النشطة (صفراء + خضراء) لهذا المنتج
+            $activeBatches = BatchItem::where('product_id', $product->id)
                 ->whereHas('batch', function($q) {
-                    $q->where('status', 'yellow');
+                    $q->whereIn('status', ['yellow', 'green']);
                 })
                 ->with('batch')
                 ->get();
 
-            if ($yellowBatches->isEmpty()) {
-                return; // إذا لا توجد دفعات صفراء، لا نفعل شيئاً
-            }
-
-            // استخراج القيم التي سيتم إضافتها (نص تاريخ الانتهاء)
-            $valuesToAdd = $yellowBatches->map(function($bi) {
+            // استخراج القيم المطلوبة (نص تاريخ الانتهاء)
+            $valuesRequired = $activeBatches->map(function($bi) {
                 $expiry = $bi->batch->expiry_date;
                 return "تاريخ انتهاء المنتج {$expiry->format('Y-m-d')}";
             })->unique()->values()->toArray();
@@ -615,30 +611,33 @@ class HareesApiController extends Controller
             $optionsReq = $sallaApi->getProductOptions($product->salla_product_id);
             $sallaOptions = $optionsReq['data'] ?? [];
 
-            $batchOption = collect($sallaOptions)->firstWhere('name', 'بيانات الدفعة');
+            $batchOption = collect($sallaOptions)->firstWhere('name', SallaApiService::BATCH_OPTION_NAME);
+
+            if (empty($valuesRequired)) {
+                // لا توجد دفعات نشطة → حذف الخيار إن وجد
+                if ($batchOption) {
+                    $sallaApi->deleteProductOption($batchOption['id']);
+                    Log::info('[BatchOption] حذف خيار (لا توجد دفعات نشطة)');
+                }
+                return;
+            }
 
             if (!$batchOption) {
-                // الخيار غير موجود، ننشئه مع أول قيمة صفراء
-                $firstValue = array_shift($valuesToAdd);
-                $newOptionReq = $sallaApi->createProductOption($product->salla_product_id, 'بيانات الدفعة', $firstValue);
-                $batchOptionId = $newOptionReq['data']['id'] ?? null;
-
-                // إذا تبقى قيم أخرى، نضيفها
-                if ($batchOptionId && !empty($valuesToAdd)) {
-                    foreach ($valuesToAdd as $val) {
-                        $sallaApi->addValueToOption($batchOptionId, $val);
-                    }
-                }
+                // الخيار غير موجود، ننشئه بجميع القيم
+                $sallaApi->createProductOption(
+                    $product->salla_product_id,
+                    SallaApiService::BATCH_OPTION_NAME,
+                    array_map(fn($v) => ['name' => $v], $valuesRequired)
+                );
+                Log::info('[BatchOption] إنشاء خيار جديد مع ' . count($valuesRequired) . ' قيمة');
             } else {
-                // الخيار موجود، نضيف القيم الجديدة التي لم تُضف بعد
-                $existingValues = collect($batchOption['values'] ?? [])->pluck('name')->toArray();
-                $batchOptionId = $batchOption['id'];
-
-                foreach ($valuesToAdd as $val) {
-                    if (!in_array($val, $existingValues)) {
-                        $sallaApi->addValueToOption($batchOptionId, $val);
-                    }
-                }
+                // الخيار موجود — تحديثه بجميع القيم (إضافة الجديد + حذف القديم)
+                $sallaApi->updateProductOption(
+                    $batchOption['id'],
+                    SallaApiService::BATCH_OPTION_NAME,
+                    array_map(fn($v) => ['name' => $v], $valuesRequired)
+                );
+                Log::info('[BatchOption] تحديث خيار بقيم ' . count($valuesRequired));
             }
         } catch (\Exception $e) {
             Log::error('[Sync Yellow Batches Error] ' . $e->getMessage());

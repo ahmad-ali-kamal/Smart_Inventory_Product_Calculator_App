@@ -126,72 +126,78 @@ class DiscountController extends Controller
         }
 
         try {
-            // ─── جلب batchItem والحصول على salla_variant_id منه ────────
+            // ─── جلب جميع batchItems لهذه الدفعة ───────────────────
             $sallaApi          = SallaApiService::for($merchant);
             $discountPct       = (float) $validated['discount_percentage'];
-            $batchItem         = BatchItem::where('batch_id', $batch->id)->first();
+            $batchItems        = BatchItem::where('batch_id', $batch->id)->get();
 
-            // ✅ استخدام salla_variant_id من BatchItem وليس من Batch
-            $variantId = $batchItem?->salla_variant_id;
-
-            if (!$variantId) {
+            if ($batchItems->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'هذه الدفعة لم تُزامَن مع سلة بعد — شغّل المزامنة أولاً',
                 ], 422);
             }
 
-            // حساب السعر بعد الخصم
-            $originalPrice  = (float) ($batchItem?->unit_cost ?? $product->price ?? 0);
-            $salePrice      = round($originalPrice * (1 - $discountPct / 100), 2);
+            $appliedCount = 0;
+            $savedLastSalePrice = null;
 
-            // ✅ جلب بيانات الـ Variant من المخزن المحلي
-            $variantData    = $product->getVariantById($variantId) ?? [];
-            // ✅ استخدام SKU: من variant أو من جدول Product
-            $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
-            $currentPrice   = (float) ($variantData['price'] ?? $originalPrice);
+            foreach ($batchItems as $batchItem) {
+                $variantId = $batchItem->salla_variant_id;
 
-            if (!$currentSku) {
-                Log::warning('[Discount] لا يوجد SKU للـ variant - لا يمكن التحديث');
-                return response()->json(['success' => false, 'message' => 'لا يوجد SKU للـ variant'], 400);
+                if (!$variantId) {
+                    Log::warning('[Discount] تخطي batch_item بدون salla_variant_id', ['batch_item_id' => $batchItem->id]);
+                    continue;
+                }
+
+                // حساب السعر بعد الخصم
+                $originalPrice  = (float) ($batchItem->unit_cost ?? $product->price ?? 0);
+                $salePrice      = round($originalPrice * (1 - $discountPct / 100), 2);
+
+                // ✅ جلب بيانات الـ Variant من المخزن المحلي
+                $variantData    = $product->getVariantById($variantId) ?? [];
+                $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
+                $currentPrice   = (float) ($variantData['price'] ?? $originalPrice);
+
+                if (!$currentSku) {
+                    Log::warning('[Discount] لا يوجد SKU للـ variant - لا يمكن التحديث', ['variant_id' => $variantId]);
+                    continue;
+                }
+
+                Log::info('[Discount] بيانات الإرسال:', [
+                    'variant_id'     => $variantId,
+                    'sku'            => $currentSku,
+                    'price'          => $currentPrice,
+                    'sale_price'     => $salePrice,
+                ]);
+
+                // ✅ تحديث الـ Variant — updateBatchVariant يحافظ على المخزون الحالي
+                $variantRes = $sallaApi->updateBatchVariant($variantId, [
+                    'price'      => $currentPrice,
+                    'sale_price' => $salePrice,
+                ]);
+
+                if (!$variantRes) {
+                    Log::error('[Discount] فشل تحديث السعر في سلة', ['variant_id' => $variantId]);
+                    continue;
+                }
+
+                $appliedCount++;
+                $savedLastSalePrice = $salePrice;
+
+                Log::info('[Discount] ✅ تم تطبيق الخصم على الـ Variant', [
+                    'variant_id'     => $variantId,
+                    'original_price' => $originalPrice,
+                    'sale_price'     => $salePrice,
+                    'discount_pct'   => $discountPct,
+                ]);
             }
-            // ✅ جلب الكمية من BatchItem وليس من سلة
-            $batchItemQty = (int) ($batchItem?->quantity ?? 0);
 
-            // ✅ جلب باقي البيانات من variant
-            $barcode     = $variantData['barcode'] ?? null;
-            $costPrice  = (float) ($variantData['cost_price']['amount'] ?? $currentPrice);
-            $weight     = (int) ($variantData['weight'] ?? 0);
-            $mpn        = $variantData['mpn'] ?? null;
-            $gtin       = $variantData['gtin'] ?? null;
-
-            Log::info('[Discount] بيانات الإرسال:', [
-                'variant_id'     => $variantId,
-                'sku'            => $currentSku,
-                'price'          => $currentPrice,
-                'sale_price'     => $salePrice,
-                'stock_quantity' => $batchItemQty,
-            ]);
-
-            // ✅ تحديث الـ Variant — updateBatchVariant يحافظ على المخزون الحالي
-            $variantRes = $sallaApi->updateBatchVariant($variantId, [
-                'price'      => $currentPrice,
-                'sale_price' => $salePrice,
-            ]);
-
-            if (!$variantRes) {
+            if ($appliedCount === 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'فشل تحديث السعر في سلة — راجع الـ logs',
+                    'message' => 'فشل تطبيق الخصم على أي variant — راجع الـ logs',
                 ], 500);
             }
-
-            Log::info('[Discount] ✅ تم تطبيق الخصم على الـ Variant', [
-                'variant_id'     => $variantId,
-                'original_price' => $originalPrice,
-                'sale_price'     => $salePrice,
-                'discount_pct'   => $discountPct,
-            ]);
 
             // ─── حفظ سجل الخصم في قاعدة البيانات ────────────────────
             // ألغِ أي خصم نشط سابق على نفس الدفعة
@@ -218,9 +224,9 @@ class DiscountController extends Controller
             ActivityLog::log(
                 $merchant->id,
                 'discount_applied',
-                "تم تطبيق خصم {$discountPct}% على الدفعة {$batch->batch_code} للمنتج: {$product->name}",
+                "تم تطبيق خصم {$discountPct}% على {$appliedCount} variant(s) في الدفعة {$batch->batch_code} للمنتج: {$product->name}",
                 $product,
-                ['discount_id' => $discount->id, 'batch_id' => $batch->id, 'sale_price' => $salePrice]
+                ['discount_id' => $discount->id, 'batch_id' => $batch->id, 'sale_price' => $savedLastSalePrice, 'applied_count' => $appliedCount]
             );
 
             \Cache::forget("harees_dashboard_{$merchant->id}");
@@ -228,10 +234,11 @@ class DiscountController extends Controller
 
             return response()->json([
                 'success'        => true,
-                'message'        => 'تم تطبيق الخصم بنجاح',
-                'original_price' => $originalPrice,
-                'sale_price'     => $salePrice,
+                'message'        => "تم تطبيق الخصم على {$appliedCount} variant(s) بنجاح",
+                'original_price' => $savedLastSalePrice, // last variant's sale price as reference
+                'sale_price'     => $savedLastSalePrice,
                 'discount_id'    => $discount->id,
+                'applied_count'  => $appliedCount,
             ]);
 
         } catch (\Exception $e) {
