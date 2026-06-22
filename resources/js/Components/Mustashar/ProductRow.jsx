@@ -456,7 +456,7 @@ export default function ProductRow({
                                     onChange={(e) => { setCoverageValue(e.target.value); setCoverageError(null); }}
                                     onKeyDown={handleCoverageKeyDown}
                                     onBlur={handleCoverageSave}
-                                    step="0.01" min="0.01" max="200"
+                                    step="0.01" min="0.01"
                                     disabled={coverageSaving}
                                     style={inputStyle(!!coverageError, coverageSaving)}
                                 />

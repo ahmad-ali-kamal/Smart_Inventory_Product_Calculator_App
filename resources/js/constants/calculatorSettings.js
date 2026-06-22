@@ -5,7 +5,7 @@
  * Shared validation rules and utility functions for the Mustashar smart
  * calculator. This module is the single source of truth for:
  *
- *   - Numeric range constraints (waste %, coverage, room dimensions).
+ *   - Numeric range constraints (waste %, coverage).
  *   - Field-level validator functions consumed by both the Settings form
  *     (`useSettingsForm`) and the inline row editors (`ProductRow`).
  *   - A safe rounding helper used wherever calculated results are displayed.
@@ -29,17 +29,6 @@ export const WASTE_MAX = 100;
 
 /** Minimum coverage a single unit may cover, in m² (exclusive of 0). */
 export const COVERAGE_MIN = 0.01;
-
-/** Maximum coverage a single unit may cover, in m². */
-export const COVERAGE_MAX = 200;
-
-// ── Room dimension bounds ─────────────────────────────────────────────────────
-
-/** Minimum valid room dimension (length or width), in metres. */
-export const DIMENSION_MIN = 0.01;
-
-/** Maximum valid room dimension (length or width), in metres. */
-export const DIMENSION_MAX = 1000;
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
@@ -104,30 +93,6 @@ export function validateCoverage(value) {
     if (num <= 0) return "Coverage must be greater than zero.";
     if (num < COVERAGE_MIN)
         return `Coverage must be at least ${COVERAGE_MIN} m².`;
-    if (num > COVERAGE_MAX) return `Coverage can't exceed ${COVERAGE_MAX} m².`;
-
-    return null;
-}
-
-/**
- * Validates a customer-facing room dimension (length or width).
- *
- * The `label` parameter lets call-sites produce field-specific messages
- * (e.g. "Length must be greater than zero." vs. "Width must be…").
- *
- * @param {string|number|null} value       - Raw field value from the controlled input.
- * @param {string}             [label="Value"] - Human-readable field label for error text.
- * @returns {string|null} Error message, or null if valid.
- */
-export function validateDimension(value, label = "Value") {
-    const num = parseFloat(value);
-
-    if (value === "" || value === null || isNaN(num))
-        return `Please enter a valid ${label.toLowerCase()}.`;
-    if (num <= 0) return `${label} must be greater than zero.`;
-    if (num < DIMENSION_MIN)
-        return `${label} must be at least ${DIMENSION_MIN} m.`;
-    if (num > DIMENSION_MAX) return `${label} can't exceed ${DIMENSION_MAX} m.`;
 
     return null;
 }
