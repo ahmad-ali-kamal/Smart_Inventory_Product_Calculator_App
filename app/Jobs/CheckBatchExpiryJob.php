@@ -355,59 +355,47 @@ class CheckBatchExpiryJob implements ShouldQueue
                     }
                 }
 
-                // ─── 6e. تحضير السعر ──────────────────────────
-                $priceData = $foundItem && $foundItem->salla_variant_id
-                    ? (collect($variants)->firstWhere('id', (int) $foundItem->salla_variant_id) ?: $variant)
-                    : $variant;
+                // ─── 6e. إذا لم نجد batch_item مطابق → لا نُحدث شيئاً ──
+                // حتى لا تُمسح sale_price أو تُصفّر stock_quantity
+                // للـ compound variants التي سبق ربطها
+                if (!$foundItem) {
+                    Log::info('[Batch Sync] ⏭️ لم نجد batch_item مطابق — تخطي تحديث compound variant', [
+                        'variant_id'  => $variantId,
+                        'batch_id'    => $matchedBatch->id,
+                        'batch_name'  => $matchedDateName,
+                        'base_options'=> $baseOptionNames,
+                    ]);
+                    continue;
+                }
 
-                // ─── 6f. دفع الكمية إلى سلة ────────────────────
+                // ─── 6f. تحديث المخزون فقط (بدون لمس price/sale_price) ──
+                // updateBatchVariant يحافظ على price/sale_price الحالي من سلة
+                // ولا نُرسلهما مع الـ payload لضمان عدم مسح الخصم اليدوي
                 Log::info('[Variant Batch Sync]', [
                     'batch_id'                 => $matchedBatch->id,
-                    'batch_item_id'            => $foundItem?->id,
-                    'matched'                  => $foundItem ? 'yes' : 'no',
+                    'batch_item_id'            => $foundItem->id,
                     'variant_name'             => implode(' / ', $baseOptionNames),
-                    'variant_quantity_from_db' => $stockFromDb,
-                    'stock_quantity_in_payload' => $foundItem ? $stockFromDb : 'NOT_SENT (preserved)',
+                    'stock_quantity'           => $stockFromDb,
                 ]);
 
                 try {
-                    $variantUpdatePayload = [
-                        'price'      => (float) ($priceData['price']['amount'] ?? $priceData['price'] ?? 0),
-                        'sale_price' => (float) ($priceData['sale_price']['amount'] ?? $priceData['sale_price'] ?? 0),
-                    ];
+                    $sallaApi->updateBatchVariant($variantId, [
+                        'stock_quantity' => $stockFromDb,
+                    ]);
 
-                    // ═══════════════════════════════════════════════════════════════
-                    // تحديث الكمية فقط في حال كان لدينا batch_item مطابق
-                    // حتى لا تُصفّر كميات الـ compound variants التي لم تُربط بعد
-                    // ═══════════════════════════════════════════════════════════════
-                    if ($foundItem) {
-                        $variantUpdatePayload['stock_quantity'] = $stockFromDb;
-                    }
+                    $oldVariantId = $foundItem->salla_variant_id;
+                    $foundItem->update([
+                        'salla_variant_id' => $variantId,
+                        'variant_quantity' => $stockFromDb,
+                    ]);
 
-                    $sallaApi->updateBatchVariant($variantId, $variantUpdatePayload);
-
-                    if ($foundItem) {
-                        $oldVariantId = $foundItem->salla_variant_id;
-                        $foundItem->update([
-                            'salla_variant_id' => $variantId,
-                            'variant_quantity' => $stockFromDb,
-                        ]);
-
-                        Log::info('[Batch Sync] ✅ ربط compound variant', [
-                            'batch_id'       => $matchedBatch->id,
-                            'batch_item_id'  => $foundItem->id,
-                            'old_variant_id' => $oldVariantId,
-                            'new_variant_id' => $variantId,
-                            'stock_to_push'  => $stockFromDb,
-                        ]);
-                    } else {
-                        Log::info('[Batch Sync] ⏭️ compound variant لم يُربط — دفع 0', [
-                            'variant_id'  => $variantId,
-                            'batch_id'    => $matchedBatch->id,
-                            'batch_name'  => $matchedDateName,
-                            'base_options'=> $baseOptionNames,
-                        ]);
-                    }
+                    Log::info('[Batch Sync] ✅ ربط compound variant', [
+                        'batch_id'       => $matchedBatch->id,
+                        'batch_item_id'  => $foundItem->id,
+                        'old_variant_id' => $oldVariantId,
+                        'new_variant_id' => $variantId,
+                        'stock_to_push'  => $stockFromDb,
+                    ]);
 
                     $updatedCount++;
                 } catch (\Exception $e) {
