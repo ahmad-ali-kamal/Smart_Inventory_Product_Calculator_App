@@ -221,7 +221,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     <Reveal delay={0.08} direction="left">
                         <PlatformCard
                             data={t('harees', { returnObjects: true })}
-                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735836/harees_hpofio.webp"}
+                            imgSrc={"https://res.cloudinary.com/dzy0yfik2/image/upload/q_auto/f_auto/Screenshot_2026-06-23_170009_f0zicw"}
                             logoSrc={"/logos/HAREES_logo.png"}
                             accentColor="#7C3AED"
                             loginUrl="/harees/login"
@@ -235,7 +235,7 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                     <Reveal delay={0.18} direction="right">
                         <PlatformCard
                             data={t('mustashar', { returnObjects: true })}
-                            imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735847/mustashar_rnzybq.webp"}
+                            imgSrc={"https://res.cloudinary.com/dzy0yfik2/image/upload/q_auto/f_auto/Screenshot_2026-06-23_164809_pwfubj"}
                             logoSrc={"/logos/QIASAT_logo.png"}
                             accentColor="#7C3AED"
                             loginUrl="/qiasat/login"
