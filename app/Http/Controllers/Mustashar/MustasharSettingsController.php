@@ -114,6 +114,7 @@ class MustasharSettingsController extends Controller
             'coverage_per_unit' => $coveragePerUnit,
             'waste_percentage'  => $wastePct,
             'unit_type'         => 'box',
+            'dimension_count'   => $mustashar->dimension_count ?? 2,
             'product'           => [
                 'id'    => (string) $product->salla_product_id,
                 'name'  => (string) $product->name,

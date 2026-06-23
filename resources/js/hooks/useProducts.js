@@ -333,6 +333,41 @@ export function useUpdateProductCoverage() {
  *
  * @returns {import("@tanstack/react-query").UseMutationResult}
  */
+// ── useUpdateProductDimension ──────────────────────────────────────────────
+
+/**
+ * Mutation hook for updating a single product's `dimension_count` (2 or 3).
+ *
+ * @returns {import("@tanstack/react-query").UseMutationResult}
+ */
+export function useUpdateProductDimension() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ productId, dimension_count }) => {
+            const { data } = await api.post(
+                `/mustashar/api/products/${productId}/dimension`,
+                { dimension_count },
+            );
+            return data;
+        },
+
+        onSuccess: (serverData, { productId, dimension_count }) => {
+            queryClient.setQueryData(QUERY_KEYS.products, (old) => {
+                if (!old) return old;
+                return old.map((p) => {
+                    if (p.id !== productId) return p;
+                    return {
+                        ...p,
+                        dimension_count:
+                            serverData?.dimension_count ?? dimension_count,
+                    };
+                });
+            });
+        },
+    });
+}
+
 export function useUpdateProductWaste() {
     const queryClient = useQueryClient();
 

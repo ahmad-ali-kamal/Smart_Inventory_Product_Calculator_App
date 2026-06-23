@@ -23,39 +23,46 @@
     "empty_state": "لا توجد منتجات مطابقة"
   },
 
-  "product_row": {
-    "coverage_save_title": "حفظ التغطية",
-    "coverage_edit_title": "تعديل التغطية",
-    "coverage_error_save": "فشل الحفظ. يرجى المحاولة مجدداً.",
-    "coverage_unit": "م²",
-    "coverage_empty": "—",
+    "product_row": {
+        "coverage_save_title": "حفظ التغطية",
+        "coverage_edit_title": "تعديل التغطية",
+        "coverage_error_save": "فشل الحفظ. يرجى المحاولة مجدداً.",
+        "coverage_unit": "م²",
+        "coverage_empty": "—",
 
-    "waste_save_title": "حفظ نسبة الهدر",
-    "waste_edit_title": "تعديل نسبة الهدر %",
-    "waste_error_save": "فشل الحفظ. يرجى المحاولة مجدداً.",
-    "waste_unit": "%",
+        "waste_save_title": "حفظ نسبة الهدر",
+        "waste_edit_title": "تعديل نسبة الهدر %",
+        "waste_error_save": "فشل الحفظ. يرجى المحاولة مجدداً.",
+        "waste_unit": "%",
 
-    "badge_global": "عام",
+        "dimension_2d": "ثنائي",
+        "dimension_3d": "ثلاثي",
+        "dimension_title": "وضع الأبعاد — انقر للتبديل",
+        "dimension_error": "تعذر تحديث الأبعاد.",
+        "dimension_tooltip": "ثنائي الأبعاد: الطول × الارتفاع | ثلاثي الأبعاد: الطول × العرض × الارتفاع",
 
-    "status_active": "مفعّل",
-    "status_inactive": "غير مفعّل",
+        "badge_global": "عام",
 
-    "preview_label": "معاينة",
-    "product_slug_fallback": "منتج",
+        "status_active": "مفعّل",
+        "status_inactive": "غير مفعّل",
 
-    "global_badge_tooltip_coverage": "موروث من الإعدادات العامة — انقر على أيقونة التعديل لتحديد قيمة خاصة بهذا المنتج",
-    "global_badge_tooltip_waste": "موروث من الإعدادات العامة — انقر على أيقونة التعديل لتحديد قيمة خاصة بهذا المنتج"
-  },
+        "preview_label": "معاينة",
+        "product_slug_fallback": "منتج",
 
-  "product_table": {
-    "col_product": "المنتج",
-    "col_category": "الفئة",
-    "col_unit_coverage": "تغطية الوحدة",
-    "col_waste": "نسبة الهدر",
-    "col_status": "الحالة",
-    "col_active": "التفعيل",
-    "col_preview": "معاينة"
-  },
+        "global_badge_tooltip_coverage": "موروث من الإعدادات العامة — انقر على أيقونة التعديل لتحديد قيمة خاصة بهذا المنتج",
+        "global_badge_tooltip_waste": "موروث من الإعدادات العامة — انقر على أيقونة التعديل لتحديد قيمة خاصة بهذا المنتج"
+    },
+
+    "product_table": {
+        "col_product": "المنتج",
+        "col_category": "الفئة",
+        "col_unit_coverage": "تغطية الوحدة",
+        "col_waste": "نسبة الهدر",
+        "col_dimensions": "الأبعاد",
+        "col_status": "الحالة",
+        "col_active": "التفعيل",
+        "col_preview": "معاينة"
+    },
 
   "settings": {
     "card_title": "إعدادات الحاسبة الذكية",
@@ -91,16 +98,28 @@
 
     "step3_title": "معاينة المتجر المباشرة",
     "step3_desc": "شاهد كيف تبدو الحاسبة لعملائك بشكل مباشر. استخدم زر المعاينة بجانب أي منتج للاطلاع على واجهة المتجر الفعلية، وأدر العناصر النشطة مباشرةً من لوحة التحكم.",
-    "step3_badge": "معاينة المتجر مباشرة"
+    "step3_badge": "معاينة المتجر مباشرة",
+
+    "step4_title": "تكوين أبعاد المنتج",
+    "step4_desc": "يمكن لكل منتج استخدام الوضع ثنائي الأبعاد (الطول × الارتفاع) للمنتجات المسطحة مثل اللافتات والملصقات والألواح، أو الوضع ثلاثي الأبعاد (الطول × العرض × الارتفاع) للمنتجات الحجمية مثل الصناديق والخزائن والأثاث. انقر على شارة 2D / 3D بجانب أي منتج للتبديل بين الوضعين.",
+    "step4_badge": "ثنائي الأبعاد: الطول × الارتفاع · ثلاثي الأبعاد: الطول × العرض × الارتفاع"
   },
 
-  "calc_rules": {
-    "coverage_label": "التغطية",
-    "coverage_value": "{{value}} م²",
-    "waste_label": "الهدر",
-    "waste_value": "{{value}}% هدر",
-    "settings_preview_label": "الإعدادات الافتراضية"
-  },
+    "dimension_labels": {
+        "length": "الطول",
+        "width": "العرض",
+        "height": "الارتفاع",
+        "mode_2d": "ثنائي الأبعاد (الطول × الارتفاع)",
+        "mode_3d": "ثلاثي الأبعاد (الطول × العرض × الارتفاع)"
+    },
+
+    "calc_rules": {
+        "coverage_label": "التغطية",
+        "coverage_value": "{{value}} م²",
+        "waste_label": "الهدر",
+        "waste_value": "{{value}}% هدر",
+        "settings_preview_label": "الإعدادات الافتراضية"
+    },
 
   "toggle_with_toast": {
     "toast_coverage_required": "حدّد تغطية الوحدة لهذا المنتج، أو عيّن قيمة افتراضية من الإعدادات.",

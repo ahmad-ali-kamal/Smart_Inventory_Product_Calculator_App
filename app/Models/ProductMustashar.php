@@ -15,14 +15,16 @@ class ProductMustashar extends Model
     protected $fillable = [
         'product_id',
         'is_enabled',
-        'coverage_type',        // ✅ NEW: 'global' | 'custom'
+        'dimension_count',      // 2 | 3
+        'coverage_type',        // 'global' | 'custom'
         'coverage_per_unit',
-        'waste_type',           // ✅ NEW: 'global' | 'custom'
+        'waste_type',           // 'global' | 'custom'
         'waste_percentage',
     ];
 
     protected $casts = [
         'is_enabled'        => 'boolean',
+        'dimension_count'   => 'integer',
         'coverage_per_unit' => 'decimal:2',
         'waste_percentage'  => 'decimal:2',
     ];

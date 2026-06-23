@@ -28,15 +28,15 @@ import { ExternalLink, Pencil, Check } from "lucide-react";
 import RowActionButton from "../Common/RowActionButton";
 import Toggle from "../Common/Toggle";
 import ProductAvatar from "../Common/UI/ProductAvatar";
-import { useUpdateProductCoverage, useUpdateProductWaste } from "../../Hooks/useProducts";
+import { useUpdateProductCoverage, useUpdateProductWaste, useUpdateProductDimension } from "../../Hooks/useProducts";
 import { validateCoverage, validateWaste } from "../../constants/calculatorSettings";
 import { useTranslation } from "react-i18next";
 
 // ── Grid column definitions ───────────────────────────────────────────────────
 // Must stay in sync with the matching constants in ProductTable.jsx.
 // First column uses responsive min-width: 140px on mobile, 220px on desktop.
-const COLS_WITH_PREVIEW    = "grid-cols-[1.5fr_1.25fr_repeat(5,1fr)]";
-const COLS_WITHOUT_PREVIEW = "grid-cols-6";
+const COLS_WITH_PREVIEW    = "grid-cols-[1.5fr_1.25fr_1fr_1fr_0.8fr_0.7fr_0.7fr_1fr]";
+const COLS_WITHOUT_PREVIEW = "grid-cols-[1.5fr_1.25fr_1fr_1fr_0.8fr_0.7fr_0.7fr]";
 
 // ── Shared inline-edit cell style helpers ─────────────────────────────────────
 // Pure functions — no hooks or side-effects — so they can be called freely
@@ -186,8 +186,9 @@ export default function ProductRow({
 }) {
     const { t } = useTranslation("mustashar");
     const { auth }       = usePage().props;
-    const updateCoverage = useUpdateProductCoverage();
-    const updateWaste    = useUpdateProductWaste();
+    const updateCoverage  = useUpdateProductCoverage();
+    const updateWaste     = useUpdateProductWaste();
+    const updateDimension = useUpdateProductDimension();
 
     // ── Row highlight flash ───────────────────────────────────────────────────
     // Tracks whether `active` changed since the last render and applies a
@@ -344,6 +345,26 @@ export default function ProductRow({
     const handleWasteKeyDown = (e) => {
         if (e.key === "Enter")  { e.preventDefault(); handleWasteSave(); }
         if (e.key === "Escape") handleWasteCancel();
+    };
+
+    // ── Dimension toggle ──────────────────────────────────────────────────────
+    const [dimensionSaving, setDimensionSaving] = useState(false);
+
+    const handleDimensionToggle = async () => {
+        if (dimensionSaving) return;
+        const current = product.dimension_count ?? 2;
+        const next    = current === 2 ? 3 : 2;
+        setDimensionSaving(true);
+        try {
+            await updateDimension.mutateAsync({
+                productId: product.id,
+                dimension_count: next,
+            });
+        } catch {
+            // silently fail; server data stays in cache
+        } finally {
+            setDimensionSaving(false);
+        }
     };
 
     // ── Salla preview URL ─────────────────────────────────────────────────────
@@ -545,6 +566,30 @@ export default function ProductRow({
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* ── Dimensions (2D / 3D toggle) ── */}
+            <div className="flex justify-center items-center">
+                <button
+                    onClick={handleDimensionToggle}
+                    disabled={dimensionSaving || exiting}
+                    title={t("product_row.dimension_tooltip")}
+                    className={`
+                        text-[10px] font-black tracking-wider px-2.5 py-1 rounded-md border
+                        transition-all duration-150 select-none
+                        ${dimensionSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-80"}
+                        ${
+                            (product.dimension_count ?? 2) === 3
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }
+                    `}
+                >
+                    {(product.dimension_count ?? 2) === 3
+                        ? t("product_row.dimension_3d")
+                        : t("product_row.dimension_2d")
+                    }
+                </button>
             </div>
 
             {/* ── Status badge (dot + label) ── */}

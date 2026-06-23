@@ -25,6 +25,12 @@ const ChartIcon = () => (
   </svg>
 );
 
+const DimensionsIcon = () => (
+  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 5a1 1 0 011-1h8a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V9zm0 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" />
+  </svg>
+);
+
 // ---------------------------------------------------------------------------
 // buildSteps — constructs the ordered step config array.
 //
@@ -64,6 +70,16 @@ function buildSteps(t) {
             rotate:        "rotate-12",
             counterRotate: "-rotate-12",
             offset:        "",
+        },
+        {
+            number:        "4",
+            title:         t('instructions.step4_title'),
+            desc:          t('instructions.step4_desc'),
+            badge:         t('instructions.step4_badge'),
+            badgeIcon:     <DimensionsIcon />,
+            rotate:        "-rotate-12",
+            counterRotate: "rotate-12",
+            offset:        "md:ms-20",
         },
     ];
 }

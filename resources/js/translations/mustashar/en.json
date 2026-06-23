@@ -21,39 +21,46 @@
     "empty_state": "No products found"
   },
 
-  "product_row": {
-    "coverage_save_title": "Save coverage",
-    "coverage_edit_title": "Edit coverage",
-    "coverage_error_save": "Failed to save. Please try again.",
-    "coverage_unit": "m²",
-    "coverage_empty": "—",
+    "product_row": {
+        "coverage_save_title": "Save coverage",
+        "coverage_edit_title": "Edit coverage",
+        "coverage_error_save": "Failed to save. Please try again.",
+        "coverage_unit": "m²",
+        "coverage_empty": "—",
 
-    "waste_save_title": "Save waste",
-    "waste_edit_title": "Edit waste %",
-    "waste_error_save": "Failed to save. Please try again.",
-    "waste_unit": "%",
+        "waste_save_title": "Save waste",
+        "waste_edit_title": "Edit waste %",
+        "waste_error_save": "Failed to save. Please try again.",
+        "waste_unit": "%",
 
-    "badge_global": "GLOBAL",
+        "dimension_2d": "2D",
+        "dimension_3d": "3D",
+        "dimension_title": "Dimensions mode — click to toggle",
+        "dimension_error": "Could not update dimensions.",
+        "dimension_tooltip": "2D: Length × Height | 3D: Length × Width × Height",
 
-    "status_active": "Active",
-    "status_inactive": "Inactive",
+        "badge_global": "GLOBAL",
 
-    "preview_label": "Preview",
-    "product_slug_fallback": "product",
+        "status_active": "Active",
+        "status_inactive": "Inactive",
 
-    "global_badge_tooltip_coverage": "Inherited from global settings — click the pencil to set a product-specific value",
-    "global_badge_tooltip_waste": "Inherited from global settings — click the pencil to set a product-specific value"
-  },
+        "preview_label": "Preview",
+        "product_slug_fallback": "product",
 
-  "product_table": {
-    "col_product": "Product",
-    "col_category": "Category",
-    "col_unit_coverage": "Unit Coverage",
-    "col_waste": "Waste",
-    "col_status": "Status",
-    "col_active": "Active",
-    "col_preview": "Preview"
-  },
+        "global_badge_tooltip_coverage": "Inherited from global settings — click the pencil to set a product-specific value",
+        "global_badge_tooltip_waste": "Inherited from global settings — click the pencil to set a product-specific value"
+    },
+
+    "product_table": {
+        "col_product": "Product",
+        "col_category": "Category",
+        "col_unit_coverage": "Unit Coverage",
+        "col_waste": "Waste",
+        "col_dimensions": "Dimensions",
+        "col_status": "Status",
+        "col_active": "Active",
+        "col_preview": "Preview"
+    },
 
   "settings": {
     "card_title": "Smart Calculator Settings",
@@ -89,16 +96,28 @@
 
     "step3_title": "Live Preview on Your Store",
     "step3_desc": "See exactly how the calculator looks to your customers. Use the Preview button next to any product to check the live storefront view, and manage active items directly from the dashboard.",
-    "step3_badge": "Live Store Preview"
+    "step3_badge": "Live Store Preview",
+
+    "step4_title": "Configure Product Dimensions",
+    "step4_desc": "Each product can use 2D mode (Length × Height) for flat items like banners, stickers, and flat panels, or 3D mode (Length × Width × Height) for volumetric items like boxes, cabinets, and furniture. Click the 2D / 3D badge next to any product to switch between modes.",
+    "step4_badge": "2D: Length × Height · 3D: Length × Width × Height"
   },
 
-  "calc_rules": {
-    "coverage_label": "Coverage",
-    "coverage_value": "{{value}} m²",
-    "waste_label": "Waste",
-    "waste_value": "{{value}}% waste",
-    "settings_preview_label": "Default Settings"
-  },
+    "dimension_labels": {
+        "length": "Length",
+        "width": "Width",
+        "height": "Height",
+        "mode_2d": "2D (Length × Height)",
+        "mode_3d": "3D (Length × Width × Height)"
+    },
+
+    "calc_rules": {
+        "coverage_label": "Coverage",
+        "coverage_value": "{{value}} m²",
+        "waste_label": "Waste",
+        "waste_value": "{{value}}% waste",
+        "settings_preview_label": "Default Settings"
+    },
 
   "toggle_with_toast": {
     "toast_coverage_required": "Set a unit coverage for this product, or configure a global default in Settings.",

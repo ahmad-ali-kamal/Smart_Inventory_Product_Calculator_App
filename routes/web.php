@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/products/{id}/toggle', [ProductMustasharController::class, 'toggle']);
         Route::post('/api/products/{id}/coverage', [ProductMustasharController::class, 'updateCoverage']);
         Route::post('/api/products/{id}/waste', [ProductMustasharController::class, 'updateWaste']);
+        Route::post('/api/products/{id}/dimension', [ProductMustasharController::class, 'updateDimension']);
         Route::get('/api/mustashar-settings', [MustasharSettingsController::class, 'show']);
         Route::post('/api/mustashar-settings', [MustasharSettingsController::class, 'store']);
     });

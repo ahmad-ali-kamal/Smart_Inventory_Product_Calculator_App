@@ -95,8 +95,9 @@ class ProductMustasharController extends Controller
                 'price' => ['amount' => (float) $product->price, 'currency' => 'SAR'],
             ],
             'mustashar' => [
-                'area_unit'    => 'm2',
-                'selling_unit' => [
+                'dimension_count' => $mustashar?->dimension_count ?? 2,
+                'area_unit'       => 'm2',
+                'selling_unit'    => [
                     'type'              => 'box',
                     'coverage_per_unit' => $coveragePerUnit,
                     'rounding'          => 'ceil',
@@ -131,6 +132,8 @@ class ProductMustasharController extends Controller
                     'category'         => $product->category ?? 'Uncategorized',
                     'image'            => $product->image_url,
                     'active'           => (bool) optional($mustashar)->is_enabled,
+
+                    'dimension_count'   => $mustashar?->dimension_count ?? 2,
 
                     'coverage_per_unit' => $this->resolveCoverage($mustashar, $settings),
                     'coverage_source'   => $this->coverageSource($mustashar, $settings),
@@ -244,6 +247,29 @@ class ProductMustasharController extends Controller
             'waste_percentage' => $this->resolveWaste($mustashar, $settings),
             'waste_source'     => $wasteSource,
             'waste_type'       => $mustashar->waste_type,
+        ]);
+    }
+
+    /**
+     * تحديث عدد الأبعاد لمنتج (2D أو 3D).
+     */
+    public function updateDimension(Request $request, $id)
+    {
+        $merchant = Auth::user();
+
+        $validated = $request->validate([
+            'dimension_count' => 'required|integer|in:2,3',
+        ]);
+
+        $product   = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();
+        $mustashar = ProductMustashar::firstOrCreate(['product_id' => $product->id]);
+
+        $mustashar->dimension_count = (int) $validated['dimension_count'];
+        $mustashar->save();
+
+        return response()->json([
+            'success'         => true,
+            'dimension_count' => $mustashar->dimension_count,
         ]);
     }
 

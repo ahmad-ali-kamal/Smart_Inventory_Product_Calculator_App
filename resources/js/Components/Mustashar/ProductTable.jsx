@@ -28,8 +28,8 @@ import { useTranslation } from 'react-i18next';
 // Must stay in sync with the matching constants in ProductRow.jsx.
 // First column (220 px) is fixed-width for the product avatar + name;
 // remaining columns share available space equally via `1fr`.
-const COLS_WITH_PREVIEW    = "grid-cols-[1.5fr_1.25fr_repeat(5,1fr)]";
-const COLS_WITHOUT_PREVIEW = "grid-cols-6";
+const COLS_WITH_PREVIEW    = "grid-cols-[1.5fr_1.25fr_1fr_1fr_0.8fr_0.7fr_0.7fr_1fr]";
+const COLS_WITHOUT_PREVIEW = "grid-cols-[1.5fr_1.25fr_1fr_1fr_0.8fr_0.7fr_0.7fr]";
 
 /**
  * ProductTable
@@ -67,6 +67,9 @@ export default function ProductTable({ children, showPreview = false }) {
                 {/* Waste % column — always visible regardless of showPreview */}
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
                     {t('product_table.col_waste')}
+                </span>
+                <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
+                    {t('product_table.col_dimensions')}
                 </span>
                 <span className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest text-center">
                     {t('product_table.col_status')}
