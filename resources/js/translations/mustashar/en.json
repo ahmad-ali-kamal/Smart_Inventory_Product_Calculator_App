@@ -37,7 +37,7 @@
         "dimension_3d": "3D",
         "dimension_title": "Dimensions mode — click to toggle",
         "dimension_error": "Could not update dimensions.",
-        "dimension_tooltip": "2D: Length × Height | 3D: Length × Width × Height",
+        "dimension_tooltip": "2D: Length × Width | 3D: Length × Width × Height",
 
         "badge_global": "GLOBAL",
 
@@ -99,15 +99,15 @@
     "step3_badge": "Live Store Preview",
 
     "step4_title": "Configure Product Dimensions",
-    "step4_desc": "Each product can use 2D mode (Length × Height) for flat items like banners, stickers, and flat panels, or 3D mode (Length × Width × Height) for volumetric items like boxes, cabinets, and furniture. Click the 2D / 3D badge next to any product to switch between modes.",
-    "step4_badge": "2D: Length × Height · 3D: Length × Width × Height"
+    "step4_desc": "Each product can use 2D mode (Length × Width) for flat items like banners, stickers, and flat panels, or 3D mode (Length × Width × Height) for volumetric items like boxes, cabinets, and furniture. Click the 2D / 3D badge next to any product to switch between modes.",
+    "step4_badge": "2D: Length × Width · 3D: Length × Width × Height"
   },
 
     "dimension_labels": {
         "length": "Length",
         "width": "Width",
         "height": "Height",
-        "mode_2d": "2D (Length × Height)",
+        "mode_2d": "2D (Length × Width)",
         "mode_3d": "3D (Length × Width × Height)"
     },
 

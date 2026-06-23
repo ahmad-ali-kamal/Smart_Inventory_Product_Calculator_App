@@ -1,0 +1,463 @@
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Qiasat Storefront Widget — 3D Edition (Length × Width × Height)
+// Shows only when the product's dimension_count === 3.
+// Calculation: volume = length × width × height → units = ceil(volume_with_waste / coverage)
+// ─────────────────────────────────────────────────────────────────────────────
+(function () {
+
+  // ── CONFIG ─────────────────────────────────────────────────────────────
+  // UPDATE THIS to your production domain before pasting into Salla Partners.
+  var API_BASE_URL = 'https://known-rome-vid-transportation.trycloudflare.com';
+  var WIDGET_ID    = 'qiasat-3d-widget';
+  var OTHER_ID     = 'qiasat-2d-widget';
+  var STYLE_ID     = 'qiasat-3d-styles';
+  var DIMENSION_MIN = 0.01;
+
+  // ─── BILINGUAL LABELS ──────────────────────────────────────────────────────
+  var LABELS = {
+    title:         { en: 'Qiasat Smart Calculator',                             ar: 'قياسات - حاسبة الكمية' },
+    subtitle:      { en: "Enter your dimensions and we'll suggest the right quantity", ar: 'أدخل أبعادك وسنقترح الكمية المناسبة لك' },
+    lengthLabel:   { en: 'Length (m)',                                           ar: 'الطول (م)' },
+    widthLabel:    { en: 'Width (m)',                                            ar: 'العرض (م)' },
+    heightLabel:   { en: 'Height (m)',                                           ar: 'الارتفاع (م)' },
+    resultLabel:   { en: 'Suggested Quantity',                                   ar: 'الكمية المقترحة' },
+    fitText:       { en: 'Suitable for your current volume',                     ar: 'مناسبة لحجمك الحالي' },
+    wasteStrong:   { en: 'Add %PCT% waste allowance',                            ar: 'أضف %PCT% بدل هدر' },
+    wasteSmall:    { en: 'Recommended to cover errors, cutting & future repairs', ar: 'يوصى به لتغطية الأخطاء والتقطيع والإصلاحات المستقبلية' },
+    hintTemplate:  { en: 'Each unit covers %COV%',                              ar: 'كل وحدة تغطي %COV%' },
+    unitSuffix:    { en: 'boxes',                                                ar: 'صندوق' },
+    errLength:     { en: 'Please enter a valid length.',                         ar: 'يرجى إدخال طول صحيح.' },
+    errWidth:      { en: 'Please enter a valid width.',                          ar: 'يرجى إدخال عرض صحيح.' },
+    errHeight:     { en: 'Please enter a valid height.',                         ar: 'يرجى إدخال ارتفاع صحيح.' },
+    errMinLength:  { en: 'Length must be greater than zero.',                    ar: 'الطول يجب أن يكون أكبر من صفر.' },
+    errMinWidth:   { en: 'Width must be greater than zero.',                     ar: 'العرض يجب أن يكون أكبر من صفر.' },
+    errMinHeight:  { en: 'Height must be greater than zero.',                    ar: 'الارتفاع يجب أن يكون أكبر من صفر.' },
+    errCoverage:   { en: 'Product settings error: coverage not defined.',        ar: 'خطأ في إعدادات المنتج: التغطية غير محددة.' },
+    errWaste:      { en: 'Product settings error: invalid waste percentage.',    ar: 'خطأ في إعدادات المنتج: نسبة الهدر غير صحيحة.' },
+  };
+
+  // ─── BILINGUAL HELPER ──────────────────────────────────────────────────────
+  function biLabel(en, ar) {
+    return '<span class="tcw-bi">'
+      + '<span class="tcw-bi-en">' + en + '</span>'
+      + '<span class="tcw-bi-ar">' + ar + '</span>'
+      + '</span>';
+  }
+
+  // ─── HELPERS ───────────────────────────────────────────────────────────────
+
+  function toNum(v) {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    var cleaned = String(v == null ? '' : v)
+      .replace(/,/g, '.').replace(/[^\d.]/g, '')
+      .replace(/^\.+/, '').replace(/(\.\d*)\..*/g, '$1');
+    var n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function roundSafe(n, decimals) {
+    var d = Math.max(0, decimals | 0);
+    return Number(Math.round(+(n + Number.EPSILON) + 'e' + d) + 'e-' + d);
+  }
+
+  var ERR_KEYS = {
+    length: { invalid: 'errLength', min: 'errMinLength' },
+    width:  { invalid: 'errWidth',  min: 'errMinWidth'  },
+    height: { invalid: 'errHeight', min: 'errMinHeight' },
+  };
+
+  function validateDimension(value, labelKey) {
+    var keys = ERR_KEYS[labelKey];
+    if (!Number.isFinite(value) || value <= 0)
+      return biLabel(LABELS[keys.invalid].en, LABELS[keys.invalid].ar);
+    if (value < DIMENSION_MIN)
+      return biLabel(LABELS[keys.min].en, LABELS[keys.min].ar);
+    return null;
+  }
+
+  // ─── COMPUTE — 3D: volume = length × width × height ───────────────────────
+  function compute(opts) {
+    var length = opts.length, width = opts.width, height = opts.height,
+        wastePct = opts.wastePct, coveragePerUnit = opts.coveragePerUnit;
+
+    if (!Number.isFinite(coveragePerUnit) || coveragePerUnit <= 0)
+      throw new Error(biLabel(LABELS.errCoverage.en, LABELS.errCoverage.ar));
+    if (!Number.isFinite(wastePct) || wastePct < 0)
+      throw new Error(biLabel(LABELS.errWaste.en, LABELS.errWaste.ar));
+
+    var volume          = roundSafe(length * width * height, 4);
+    var wasteFactor     = roundSafe(1 + (wastePct / 100), 6);
+    var volumeWithWaste = roundSafe(volume * wasteFactor, 4);
+    var rawUnits        = roundSafe(volumeWithWaste / coveragePerUnit, 6);
+    var units           = Math.ceil(rawUnits);
+    return { area: volume, units: units };
+  }
+
+  // ─── SALLA HELPERS ─────────────────────────────────────────────────────────
+
+  function getProductId() {
+    var m = window.location.pathname.match(/\/p(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  function setSallaQuantity(qty) {
+    var n = Math.max(1, Math.round(qty));
+    if (window.Salla && window.Salla.product && window.Salla.product.setQuantity) {
+      try { window.Salla.product.setQuantity(n); return; } catch (_) {}
+    }
+    var input =
+      document.querySelector('input[name="quantity"]') ||
+      document.querySelector('salla-quantity-input input') ||
+      document.querySelector('input[type="number"][min]');
+    if (input) {
+      input.value = String(n);
+      input.dispatchEvent(new Event('input',  { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
+  // ─── STYLES ────────────────────────────────────────────────────────────────
+
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    var style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = [
+
+      '.main-content { overflow: visible !important; }',
+      '.sticky-product-bar { position: relative !important; }',
+
+      '#' + WIDGET_ID + ' {',
+        'background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;',
+        'padding:16px 16px 12px;margin:10px 0;direction:rtl;text-align:right;',
+        'width:100%;box-sizing:border-box;box-shadow:0 2px 12px rgba(0,0,0,0.06);',
+        'font-family:system-ui,-apple-system,Segoe UI,sans-serif;',
+        'font-size:13px;line-height:1.5;color:#111827;',
+      '}',
+
+      '#' + WIDGET_ID + ' .tcw-bi { display:flex;flex-direction:column;gap:0; }',
+      '#' + WIDGET_ID + ' .tcw-bi-en {',
+        'direction:ltr;text-align:left;font-size:inherit;font-weight:inherit;',
+        'line-height:1.45;color:#9ca3af;letter-spacing:0.01em;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-bi-ar {',
+        'direction:rtl;text-align:right;font-size:inherit;font-weight:inherit;',
+        'line-height:1.45;color:inherit;',
+      '}',
+
+      '#' + WIDGET_ID + ' .tcw-header { display:flex;align-items:center;margin-bottom:4px; }',
+      '#' + WIDGET_ID + ' .tcw-title  { font-weight:800;font-size:15px;color:#111827;margin:0; }',
+      '#' + WIDGET_ID + ' .tcw-title .tcw-bi-en { font-size:15px;font-weight:800;color:#9ca3af; }',
+      '#' + WIDGET_ID + ' .tcw-title .tcw-bi-ar { font-size:15px;font-weight:800;color:#111827; }',
+
+      '#' + WIDGET_ID + ' .tcw-subtitle { font-size:12px;color:#9ca3af;margin:0 0 14px; }',
+      '#' + WIDGET_ID + ' .tcw-subtitle .tcw-bi-en { font-size:12px;font-weight:400;color:#9ca3af;text-align:left; }',
+      '#' + WIDGET_ID + ' .tcw-subtitle .tcw-bi-ar { font-size:12px;font-weight:400;color:#9ca3af;text-align:right; }',
+
+      '#' + WIDGET_ID + ' .tcw-row-3d {',
+        'display:grid;',
+        'grid-template-columns:repeat(3,1fr);',
+        'gap:8px;margin-bottom:4px;',
+      '}',
+      '@media(max-width:340px){',
+        '#' + WIDGET_ID + ' .tcw-row-3d { grid-template-columns:1fr; }',
+        '#' + WIDGET_ID + ' .tcw-field-errors-3d { grid-template-columns:1fr; }',
+      '}',
+
+      '#' + WIDGET_ID + ' .tcw-field {',
+        'background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;',
+        'padding:10px 10px 8px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;',
+        'min-width:0;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-field-header { display:flex;align-items:center;justify-content:space-between; }',
+      '#' + WIDGET_ID + ' .tcw-label { font-size:11px;color:#9ca3af;font-weight:500; }',
+      '#' + WIDGET_ID + ' .tcw-label .tcw-bi-en { font-size:11px;font-weight:500;color:#9ca3af; }',
+      '#' + WIDGET_ID + ' .tcw-label .tcw-bi-ar { font-size:11px;font-weight:500;color:#6b7280; }',
+      '#' + WIDGET_ID + ' .tcw-ruler-icon { color:#d1d5db;flex-shrink:0; }',
+      '#' + WIDGET_ID + ' .tcw-input {',
+        'width:100%;border:none;background:transparent;',
+        'font-size:16px;font-weight:700;color:#111827;',
+        'outline:none;padding:0;box-sizing:border-box;text-align:right;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-input::placeholder { color:#d1d5db;font-weight:400; }',
+      '#' + WIDGET_ID + ' .tcw-field:focus-within { border-color:#374151;background:#fff; }',
+
+      '#' + WIDGET_ID + ' .tcw-field-errors-3d {',
+        'display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-field-err { min-height:0;font-size:10.5px;color:#dc2626;line-height:1.4; }',
+      '#' + WIDGET_ID + ' .tcw-field-err .tcw-bi-en { font-size:10.5px;font-weight:400;color:#dc2626;text-align:left; }',
+      '#' + WIDGET_ID + ' .tcw-field-err .tcw-bi-ar { font-size:10.5px;font-weight:400;color:#dc2626;text-align:right; }',
+
+      '#' + WIDGET_ID + ' .tcw-error {',
+        'display:none;background:#fef2f2;border:1px solid #fecaca;',
+        'border-radius:8px;padding:7px 10px;font-size:11px;color:#dc2626;margin-bottom:10px;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-error.visible { display:block; }',
+      '#' + WIDGET_ID + ' .tcw-error .tcw-bi-en { font-size:11px;font-weight:400;color:#dc2626;text-align:left; }',
+      '#' + WIDGET_ID + ' .tcw-error .tcw-bi-ar { font-size:11px;font-weight:400;color:#dc2626;text-align:right; }',
+
+      '#' + WIDGET_ID + ' .tcw-result-box {',
+        'background:#f3f4f6;border-radius:12px;padding:14px 16px 12px;margin-bottom:12px;text-align:center;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-result-label { font-size:11px;color:#6b7280;font-weight:500;margin-bottom:4px; }',
+      '#' + WIDGET_ID + ' .tcw-result-label .tcw-bi { align-items:center; }',
+      '#' + WIDGET_ID + ' .tcw-result-label .tcw-bi-en { font-size:11px;font-weight:500;color:#9ca3af;text-align:center; }',
+      '#' + WIDGET_ID + ' .tcw-result-label .tcw-bi-ar { font-size:11px;font-weight:500;color:#6b7280;text-align:center; }',
+      '#' + WIDGET_ID + ' .tcw-result-units {',
+        'font-size:34px;font-weight:900;color:#111827;line-height:1.1;',
+        'margin-bottom:4px;letter-spacing:-0.5px;display:none;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-result-units.visible { display:block; }',
+      '#' + WIDGET_ID + ' .tcw-result-units .tcw-bi {',
+        'display:inline-flex;flex-direction:column;vertical-align:middle;margin-right:6px;gap:0;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-result-units .tcw-bi-en { font-size:13px;font-weight:500;color:#9ca3af;text-align:center;line-height:1.3; }',
+      '#' + WIDGET_ID + ' .tcw-result-units .tcw-bi-ar { font-size:13px;font-weight:600;color:#6b7280;text-align:center;line-height:1.3; }',
+      '#' + WIDGET_ID + ' .tcw-fit-row { display:flex;flex-direction:column;align-items:center;gap:2px; }',
+      '#' + WIDGET_ID + ' .tcw-fit-text { font-size:12px;color:#6b7280;font-weight:500; }',
+      '#' + WIDGET_ID + ' .tcw-fit-text .tcw-bi { align-items:center; }',
+      '#' + WIDGET_ID + ' .tcw-fit-text .tcw-bi-en { font-size:12px;font-weight:500;color:#9ca3af;text-align:center; }',
+      '#' + WIDGET_ID + ' .tcw-fit-text .tcw-bi-ar { font-size:12px;font-weight:500;color:#6b7280;text-align:center; }',
+      '#' + WIDGET_ID + ' .tcw-fit-area-val { font-size:12px;font-weight:600;color:#9ca3af; }',
+
+      '#' + WIDGET_ID + ' .tcw-waste-row { display:flex;flex-direction:row;align-items:flex-start;gap:10px;padding:8px 2px 4px; }',
+      '#' + WIDGET_ID + ' .tcw-native-cb {',
+        'appearance:auto !important;-webkit-appearance:checkbox !important;',
+        'width:18px !important;height:18px !important;margin:3px 0 0 0 !important;',
+        'cursor:pointer;flex-shrink:0;accent-color:#000000 !important;',
+        'border:2px solid #111827 !important;outline:none;',
+      '}',
+      '#' + WIDGET_ID + ' .tcw-native-cb:focus { outline:none !important;box-shadow:none !important; }',
+      '#' + WIDGET_ID + ' .tcw-waste-label { flex:1;cursor:pointer;user-select:none;display:flex;flex-direction:column;gap:2px; }',
+      '#' + WIDGET_ID + ' .tcw-waste-strong { display:block;font-size:12px;font-weight:700;line-height:1.4; }',
+      '#' + WIDGET_ID + ' .tcw-waste-strong .tcw-bi-en { font-size:12px;font-weight:700;color:#9ca3af;text-align:left; }',
+      '#' + WIDGET_ID + ' .tcw-waste-strong .tcw-bi-ar { font-size:12px;font-weight:700;color:#111827;text-align:right; }',
+      '#' + WIDGET_ID + ' .tcw-waste-small  { display:block;font-size:10.5px;font-weight:400;line-height:1.4; }',
+      '#' + WIDGET_ID + ' .tcw-waste-small .tcw-bi-en { font-size:10.5px;font-weight:400;color:#9ca3af;text-align:left; }',
+      '#' + WIDGET_ID + ' .tcw-waste-small .tcw-bi-ar { font-size:10.5px;font-weight:400;color:#6b7280;text-align:right; }',
+
+      '#' + WIDGET_ID + ' .tcw-hint { margin-top:8px;font-size:10px;color:#d1d5db;text-align:center; }',
+      '#' + WIDGET_ID + ' .tcw-hint .tcw-bi { flex-direction:row;align-items:baseline;justify-content:center;gap:4px;flex-wrap:wrap; }',
+      '#' + WIDGET_ID + ' .tcw-hint .tcw-bi-en { font-size:10px;font-weight:400;color:#d1d5db;direction:ltr;text-align:left; }',
+      '#' + WIDGET_ID + ' .tcw-hint .tcw-bi-en::after { content:" ·"; }',
+      '#' + WIDGET_ID + ' .tcw-hint .tcw-bi-ar { font-size:10px;font-weight:400;color:#d1d5db;direction:rtl;text-align:right; }',
+
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  // ─── BUILD WIDGET ──────────────────────────────────────────────────────────
+
+  function buildWidget(opts) {
+    var coveragePerUnit = opts.coveragePerUnit;
+    var coverageUnit    = opts.coverageUnit || 'm³';
+    var wastePct        = opts.wastePct;
+
+    var w = document.createElement('div');
+    w.id = WIDGET_ID;
+
+    var rulerSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<rect x="2" y="8" width="20" height="8" rx="2"/>'
+      + '<line x1="6" y1="8" x2="6" y2="12"/><line x1="10" y1="8" x2="10" y2="12"/>'
+      + '<line x1="14" y1="8" x2="14" y2="12"/><line x1="18" y1="8" x2="18" y2="12"/>'
+      + '</svg>';
+
+    var hintEn        = LABELS.hintTemplate.en.replace('%COV%', coveragePerUnit) + ' ' + coverageUnit;
+    var hintAr        = LABELS.hintTemplate.ar.replace('%COV%', coveragePerUnit) + ' ' + coverageUnit;
+    var wasteStrongEn = LABELS.wasteStrong.en.replace('%PCT%', wastePct + '%');
+    var wasteStrongAr = LABELS.wasteStrong.ar.replace('%PCT%', wastePct + '%');
+
+    w.innerHTML = ''
+      + '<div class="tcw-header">'
+      +   '<span class="tcw-title">' + biLabel(LABELS.title.en, LABELS.title.ar) + '</span>'
+      + '</div>'
+      + '<p class="tcw-subtitle">' + biLabel(LABELS.subtitle.en, LABELS.subtitle.ar) + '</p>'
+
+      + '<div class="tcw-row-3d">'
+      +   '<div class="tcw-field">'
+      +     '<div class="tcw-field-header">'
+      +       '<span class="tcw-label">' + biLabel(LABELS.lengthLabel.en, LABELS.lengthLabel.ar) + '</span>'
+      +       '<span class="tcw-ruler-icon">' + rulerSVG + '</span>'
+      +     '</div>'
+      +     '<input id="calc3d-l" class="tcw-input" type="number" inputmode="decimal" step="0.01" placeholder="0.00" autocomplete="off">'
+      +   '</div>'
+      +   '<div class="tcw-field">'
+      +     '<div class="tcw-field-header">'
+      +       '<span class="tcw-label">' + biLabel(LABELS.widthLabel.en, LABELS.widthLabel.ar) + '</span>'
+      +       '<span class="tcw-ruler-icon">' + rulerSVG + '</span>'
+      +     '</div>'
+      +     '<input id="calc3d-w" class="tcw-input" type="number" inputmode="decimal" step="0.01" placeholder="0.00" autocomplete="off">'
+      +   '</div>'
+      +   '<div class="tcw-field">'
+      +     '<div class="tcw-field-header">'
+      +       '<span class="tcw-label">' + biLabel(LABELS.heightLabel.en, LABELS.heightLabel.ar) + '</span>'
+      +       '<span class="tcw-ruler-icon">' + rulerSVG + '</span>'
+      +     '</div>'
+      +     '<input id="calc3d-h" class="tcw-input" type="number" inputmode="decimal" step="0.01" placeholder="0.00" autocomplete="off">'
+      +   '</div>'
+      + '</div>'
+
+      + '<div class="tcw-field-errors-3d">'
+      +   '<div id="calc3d-err-l" class="tcw-field-err"></div>'
+      +   '<div id="calc3d-err-w" class="tcw-field-err"></div>'
+      +   '<div id="calc3d-err-h" class="tcw-field-err"></div>'
+      + '</div>'
+      + '<div id="calc3d-error" class="tcw-error"></div>'
+
+      + '<div class="tcw-result-box">'
+      +   '<div class="tcw-result-label">' + biLabel(LABELS.resultLabel.en, LABELS.resultLabel.ar) + '</div>'
+      +   '<div id="calc3d-result-units" class="tcw-result-units">—</div>'
+      +   '<div class="tcw-fit-row">'
+      +     '<span class="tcw-fit-text">' + biLabel(LABELS.fitText.en, LABELS.fitText.ar) + '</span>'
+      +     '<span id="calc3d-fit-area" class="tcw-fit-area-val"></span>'
+      +   '</div>'
+      + '</div>'
+
+      + '<div class="tcw-waste-row">'
+      +   '<input type="checkbox" id="calc3d-waste" class="tcw-native-cb">'
+      +   '<label class="tcw-waste-label" for="calc3d-waste">'
+      +     '<span class="tcw-waste-strong">' + biLabel(wasteStrongEn, wasteStrongAr) + '</span>'
+      +     '<span class="tcw-waste-small">' + biLabel(LABELS.wasteSmall.en, LABELS.wasteSmall.ar) + '</span>'
+      +   '</label>'
+      + '</div>'
+      + '<div class="tcw-hint">' + biLabel(hintEn, hintAr) + '</div>';
+
+    var elError    = w.querySelector('#calc3d-error');
+    var elErrL     = w.querySelector('#calc3d-err-l');
+    var elErrW     = w.querySelector('#calc3d-err-w');
+    var elErrH     = w.querySelector('#calc3d-err-h');
+    var elResUnits = w.querySelector('#calc3d-result-units');
+    var elFitArea  = w.querySelector('#calc3d-fit-area');
+    var elL        = w.querySelector('#calc3d-l');
+    var elW        = w.querySelector('#calc3d-w');
+    var elH        = w.querySelector('#calc3d-h');
+
+    var touchedL = false, touchedW = false, touchedH = false;
+
+    function setFieldErr(el, msg) { el.innerHTML = msg || ''; }
+    function clearComputeError() { elError.innerHTML = ''; elError.classList.remove('visible'); }
+    function showComputeError(msg) {
+      elError.innerHTML = msg; elError.classList.add('visible');
+      elResUnits.classList.remove('visible'); elFitArea.textContent = '';
+    }
+    function clearResult() { elResUnits.classList.remove('visible'); elFitArea.textContent = ''; }
+
+    var debounceTimer;
+    function debounced(fn) {
+      return function () { clearTimeout(debounceTimer); debounceTimer = setTimeout(fn, 300); };
+    }
+
+    function recalc() {
+      var L = toNum(elL.value), W = toNum(elW.value), H = toNum(elH.value);
+      var lEmpty = elL.value.trim() === '';
+      var wEmpty = elW.value.trim() === '';
+      var hEmpty = elH.value.trim() === '';
+
+      var errL = (touchedL || !lEmpty) ? validateDimension(L, 'length') : null;
+      var errW = (touchedW || !wEmpty) ? validateDimension(W, 'width')  : null;
+      var errH = (touchedH || !hEmpty) ? validateDimension(H, 'height') : null;
+
+      setFieldErr(elErrL, errL);
+      setFieldErr(elErrW, errW);
+      setFieldErr(elErrH, errH);
+
+      if (errL || errW || errH) { clearComputeError(); clearResult(); return; }
+      if (lEmpty || wEmpty || hEmpty) { clearComputeError(); clearResult(); return; }
+
+      clearComputeError();
+      var includeWaste = w.querySelector('#calc3d-waste').checked;
+      try {
+        var result = compute({
+          length: L, width: W, height: H,
+          wastePct: includeWaste ? wastePct : 0,
+          coveragePerUnit: coveragePerUnit,
+        });
+        elResUnits.innerHTML = result.units + ' ' + biLabel(LABELS.unitSuffix.en, LABELS.unitSuffix.ar);
+        elResUnits.classList.add('visible');
+        elFitArea.textContent = roundSafe(result.area, 2).toFixed(2) + ' ' + coverageUnit;
+        setSallaQuantity(result.units);
+      } catch (err) { showComputeError(err.message); }
+    }
+
+    elL.addEventListener('input', debounced(function () { touchedL = true; recalc(); }));
+    elW.addEventListener('input', debounced(function () { touchedW = true; recalc(); }));
+    elH.addEventListener('input', debounced(function () { touchedH = true; recalc(); }));
+    w.querySelector('#calc3d-waste').addEventListener('change', function () { recalc(); });
+
+    return w;
+  }
+
+  // ─── INJECT ────────────────────────────────────────────────────────────────
+
+  function inject(widget) {
+    if (document.getElementById(WIDGET_ID)) return true;
+    var other = document.getElementById(OTHER_ID);
+    if (other) other.parentNode.removeChild(other);
+    var me = document.getElementById(WIDGET_ID);
+    if (me) me.parentNode.removeChild(me);
+    var addBtn = document.querySelector('salla-add-product-button');
+    if (addBtn && addBtn.parentNode) { addBtn.parentNode.insertBefore(widget, addBtn); return true; }
+    var stickyBtn = document.querySelector('.sticky-product-bar__btn');
+    if (stickyBtn && stickyBtn.parentNode) { stickyBtn.parentNode.insertBefore(widget, stickyBtn); return true; }
+    var productForm = document.querySelector('form.product-form');
+    if (productForm && productForm.parentNode) { productForm.parentNode.insertBefore(widget, productForm.nextSibling); return true; }
+    return false;
+  }
+
+  // ─── INIT ──────────────────────────────────────────────────────────────────
+
+  async function init() {
+    if (document.getElementById(WIDGET_ID)) return;
+
+    var productId = getProductId();
+    if (!productId) return;
+
+    var data;
+    try {
+      var res = await fetch(API_BASE_URL + '/api/qiasat/settings/' + productId, {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'omit',
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+    } catch (e) {
+      console.warn('[qiasat-3d] Settings fetch failed:', e);
+      return;
+    }
+
+    if (!data || !data.enabled) return;
+
+    var dimensionCount = data.dimension_count ? parseInt(data.dimension_count, 10) : 2;
+    if (dimensionCount !== 3) return;
+
+    injectStyles();
+
+    var coveragePerUnit = toNum(data.coverage_per_unit) || 2.56;
+    var wastePct        = toNum(data.waste_percentage)  || 0;
+
+    var widget = buildWidget({
+      coveragePerUnit: coveragePerUnit,
+      coverageUnit:    data.coverage_unit,
+      wastePct:        wastePct,
+    });
+
+    if (!inject(widget)) {
+      var iv = setInterval(function () {
+        if (document.getElementById(WIDGET_ID)) { clearInterval(iv); return; }
+        if (document.getElementById(OTHER_ID))  { clearInterval(iv); return; }
+        if (inject(widget)) clearInterval(iv);
+      }, 300);
+      setTimeout(function () { clearInterval(iv); }, 10000);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
