@@ -1,6 +1,6 @@
 # Quantix — Intelligent Salla Store Management Platform
 
-Quantix is a comprehensive management platform that integrates with **Salla** — a leading e-commerce platform in the MENA region — to provide two specialized applications for merchants: **Harees** (Inventory & Batch Management) and **Mustashar** (Smart Quantity Calculator).
+Quantix is a comprehensive management platform that integrates with **Salla** — a leading e-commerce platform in the MENA region — to provide two specialized applications for merchants: **Harees** (Inventory & Batch Management) and **Qiasat** (Smart Measurement Calculator).
 
 Built with Laravel on the backend and React (Inertia) on the frontend, Quantix extends Salla's native capabilities with advanced inventory tracking, automated discounting, and intelligent quantity recommendation.
 
@@ -20,9 +20,9 @@ Built with Laravel on the backend and React (Inertia) on the frontend, Quantix e
 - **Threshold Configuration** — Set custom expiry warning thresholds (days before expiry).
 - **Search & Filter** — Filter monitored products by status, search by name or batch code.
 
-### Mustashar — Smart Quantity Calculator
+### Qiasat — Smart Measurement Calculator
 
-- **Dimension-based Quantity Calculation** — Calculate required product quantities based on coverage area (m²), waste percentage, and product dimensions.
+- **Dimension-based Measurement Calculation** — Calculate required product quantities based on coverage area (m²), waste percentage, and product dimensions.
 - **Product Toggle** — Enable/disable products for calculation with instant visual feedback.
 - **Active Products Dashboard** — Real-time dashboard showing active products with animated transitions.
 - **Settings Configuration** — Configure global coverage area, waste percentage, and default dimensions.
@@ -66,8 +66,8 @@ app/
     └── SallaApiService.php      # Salla REST API integration
 
 routes/
-├── web.php                      # Web routes (Inertia pages, Harees/Mustashar)
-├── api.php                      # API routes (Harees/Mustashar REST endpoints)
+├── web.php                      # Web routes (Inertia pages, Harees/Qiasat)
+├── api.php                      # API routes (Harees/Qiasat REST endpoints)
 ├── console.php                  # Console route bindings
 └── channels.php                 # Broadcasting channels
 
@@ -97,7 +97,7 @@ resources/
 │   │   │   ├── ExpiryModal.jsx
 │   │   │   ├── DiscountModal.jsx
 │   │   │   └── StatusBadge.jsx
-│   │   ├── Mustashar/            # Mustashar-specific components
+│   │   ├── Mustashar/            # Qiasat-specific components
 │   │   │   ├── ProductTable.jsx
 │   │   │   ├── ProductRow.jsx
 │   │   │   └── SettingsForm.jsx
@@ -108,7 +108,7 @@ resources/
 │   ├── Layouts/                  # Page layouts (Guest, Login, App, Instructions)
 │   ├── Pages/                    # Inertia page components
 │   │   ├── Harees/               # Harees pages (Dashboard, Products, Settings, Login, Instructions)
-│   │   └── Mustashar/            # Mustashar pages (Dashboard, Products, Settings, Login, Instructions)
+│   │   └── Mustashar/            # Qiasat pages (Dashboard, Products, Settings, Login, Instructions)
 │   ├── services/                 # API client & service modules
 │   ├── styles/                   # Global styles (injected CSS)
 │   └── translations/             # i18n JSON files (ar/en for each namespace)
@@ -128,7 +128,7 @@ resources/
 - Composer
 - Node.js 18+
 - MySQL 8.0+
-- A Salla merchant account with one or more registered applications (Mustashar || Harees)
+- A Salla merchant account with one or more registered applications (Qiasat || Harees)
 
 ### Setup
 
@@ -184,9 +184,9 @@ php artisan queue:work
 | `QUEUE_CONNECTION` | Queue driver (`database`, `redis`, `sync`) | Yes |
 | `SESSION_DRIVER` | Session driver (`file`, `cookie`, `redis`) | Yes |
 | `SESSION_ENCRYPT` | Encrypt session data | No |
-| `SALLA_MUSTASHAR_CLIENT_ID` | Salla OAuth client ID for Mustashar app | Yes |
-| `SALLA_MUSTASHAR_CLIENT_SECRET` | Salla OAuth client secret for Mustashar app | Yes |
-| `SALLA_MUSTASHAR_WEBHOOK_SECRET` | Webhook verification secret for Mustashar | Yes |
+| `SALLA_MUSTASHAR_CLIENT_ID` | Salla OAuth client ID for Qiasat app | Yes |
+| `SALLA_MUSTASHAR_CLIENT_SECRET` | Salla OAuth client secret for Qiasat app | Yes |
+| `SALLA_MUSTASHAR_WEBHOOK_SECRET` | Webhook verification secret for Qiasat | Yes |
 | `SALLA_HAREES_CLIENT_ID` | Salla OAuth client ID for Harees app | Yes |
 | `SALLA_HAREES_CLIENT_SECRET` | Salla OAuth client secret for Harees app | Yes |
 | `SALLA_HAREES_WEBHOOK_SECRET` | Webhook verification secret for Harees | Yes |
@@ -238,7 +238,7 @@ Processes batches in `pending` status that are approaching their expiry date. Fo
 | `POST` | `/harees/api/notifications/read-all` | Mark all notifications as read |
 | `POST` | `/harees/api/products/{id}/toggle` | Toggle product monitoring status |
 
-### Mustashar — Quantity Calculator
+### Qiasat — Measurement Calculator
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -283,7 +283,7 @@ All webhook requests are verified using the configured `WEBHOOK_SECRET` before p
 4. The job calls Salla's REST API to fetch all products.
 5. Products are created/updated in the local database.
 6. For Harees, batches are created or updated with expiry dates.
-7. For Mustashar, products are available for quantity calculation.
+7. For Qiasat, products are available for measurement calculation.
 
 ---
 

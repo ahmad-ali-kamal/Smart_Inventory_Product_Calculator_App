@@ -1,18 +1,18 @@
 {
-  "pageTitle": "Mustashar — Login",
+  "pageTitle": "Qiasat — Login",
   "backHome": "Back Home",
-  "appName": "Mustashar",
-  "appSub": "The Smart Quantity Guide for Your Store",
-  "appDesc": "Say goodbye to measurement errors and stock waste. Mustashar helps your customers calculate exactly what they need (Meters, Areas, or Units) directly from the product page.",
+  "appName": "Qiasat",
+  "appSub": "The Smart Measurement Guide for Your Store",
+  "appDesc": "Say goodbye to measurement errors and stock waste. Qiasat helps your customers calculate exactly what they need (Meters, Areas, or Units) directly from the product page.",
   "steps": [
     { "title": "Have a Salla Store", "sub": "Ensure your merchant account is active on Salla" },
-    { "title": "Install Mustashar", "sub": "Find us easily in the Salla App Store" },
+    { "title": "Install Qiasat", "sub": "Find us easily in the Salla App Store" },
     { "title": "Start Setting Up", "sub": "Log in and sync your products in seconds" }
   ],
   "loginNow": "Sign In",
   "loginSub": "Fast and secure access via your Salla account",
   "sallaBtn": "Continue with Salla →",
-  "note": "Mustashar is exclusively built for Salla merchants. Please install the app first to gain access.",
+  "note": "Qiasat is exclusively built for Salla merchants. Please install the app first to gain access.",
   "already": "",
   "loginLink": "",
   "support": ""

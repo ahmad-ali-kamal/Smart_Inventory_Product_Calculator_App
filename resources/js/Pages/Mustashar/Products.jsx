@@ -37,7 +37,7 @@ export default function Products() {
 
                 {needsSetup && (
                     <SetupBanner
-                        href="/mustashar/settings"
+                        href="/qiasat/settings"
                         description={t('products.setup_banner_description')}
                     />
                 )}

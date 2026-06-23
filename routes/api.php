@@ -13,7 +13,7 @@ use App\Http\Controllers\Mustashar\MustasharSettingsController;
 |--------------------------------------------------------------------------
 | المسار الفعلي لهذه الروابط يبدأ بـ /api/
 */
-   Route::get('/mustashar/settings/{salla_product_id}',
+    Route::get('/qiasat/settings/{salla_product_id}',
     [MustasharSettingsController::class, 'getSettingsForStore']
 );
 

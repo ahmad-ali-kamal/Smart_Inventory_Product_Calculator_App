@@ -53,10 +53,10 @@ useEffect(() => {
 }, [isInventory, isNotifOpen]);
 
      const calculatorNav = [
-        { label: t('header.nav.instructions'), href: '/mustashar/instructions' },
-        { label: t('header.nav.dashboard'),    href: '/mustashar/dashboard' },
-        { label: t('header.nav.products'),     href: '/mustashar/products' },
-        { label: t('header.nav.settings'),     href: '/mustashar/settings' },
+        { label: t('header.nav.instructions'), href: '/qiasat/instructions' },
+        { label: t('header.nav.dashboard'),    href: '/qiasat/dashboard' },
+        { label: t('header.nav.products'),     href: '/qiasat/products' },
+        { label: t('header.nav.settings'),     href: '/qiasat/settings' },
     ];
 
     const inventoryNav = [
@@ -69,7 +69,7 @@ useEffect(() => {
     const appName  = isInventory ? t('header.app_harees') : t('header.app_mustashar');
     const logoSrc  = isInventory
         ? '/logos/HAREES_logo.png'
-        : '/logos/MUSTASHAR_logo.png';
+        : '/logos/QIASAT_logo.png';
 
     const toggleMobileNav = () => setIsMobileNavOpen(prev => !prev);
     const closeMobileNav = () => setIsMobileNavOpen(false);

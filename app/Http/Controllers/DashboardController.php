@@ -34,7 +34,7 @@ class DashboardController extends Controller
 
         // الحالة الثانية: يملك تطبيق المستشار فقط
         if ($hasMustashar) {
-            return redirect()->route('mustashar.dashboard');
+            return redirect()->route('qiasat.dashboard');
         }
 
         // الحالة الثالثة: يملك تطبيق حريص فقط

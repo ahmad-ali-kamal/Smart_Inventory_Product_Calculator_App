@@ -16,7 +16,7 @@
 
   "products": {
     "setup_banner_description": "Set your defaults once to instantly configure all products. You can still customize any product individually at any time.",
-    "toolbar_banner": "Set coverage, activate product, and let Al Mustashar do the rest.",
+    "toolbar_banner": "Set coverage, activate product, and let Qiasat do the rest.",
     "search_placeholder": "Search products…",
     "empty_state": "No products found"
   },
@@ -74,7 +74,7 @@
   },
 
   "instructions": {
-    "app_name": "AL Mustashar",
+    "app_name": "Qiasat",
     "subtitle": "Smart calculator for e-commerce",
     "description": "Welcome to your smart helper!\nWe help your customers calculate exactly how many boxes they need based on their room size — including cutting waste.\nLet's get your store ready:",
     "footer_note": "Quantix Smart Calculator · Set up your rules once and automate product calculations across your store",

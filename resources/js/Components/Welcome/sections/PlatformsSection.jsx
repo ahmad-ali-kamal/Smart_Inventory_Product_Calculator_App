@@ -236,9 +236,9 @@ export default function PlatformsSection({ t, ff, bodyFont }) {
                         <PlatformCard
                             data={t('mustashar', { returnObjects: true })}
                             imgSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/q_auto/f_auto/v1780735847/mustashar_rnzybq.webp"}
-                            logoSrc={"/logos/MUSTASHAR_logo.png"}
+                            logoSrc={"/logos/QIASAT_logo.png"}
                             accentColor="#7C3AED"
-                            loginUrl="/mustashar/login"
+                            loginUrl="/qiasat/login"
                             ff={ff}
                             bodyFont={bodyFont}
     

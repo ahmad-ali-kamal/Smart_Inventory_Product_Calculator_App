@@ -41,7 +41,7 @@ class SallaOAuthController extends Controller
                 'hasClientId' => isset($config['client_id']),
                 'hasRedirect' => isset($config['redirect']),
             ]);
-            $routeName = $appType === 'mustashar' ? 'mustashar.login' : 'harees.login';
+            $routeName = $appType === 'mustashar' ? 'qiasat.login' : 'harees.login';
             return redirect()->route($routeName)->with('error', 'خطأ في الإعدادات الداخلية، حاول مرة أخرى لاحقاً.');
         }
 
@@ -65,8 +65,8 @@ class SallaOAuthController extends Controller
   public function callback(Request $request)
 {
     $appType = $this->validateAppType(session('salla_app_type', 'harees'));
-    $route = $appType === 'mustashar' ? 'mustashar.login' : 'harees.login';
-    $dashboard = $appType === 'mustashar' ? '/mustashar/dashboard' : '/harees/dashboard';
+    $route = $appType === 'mustashar' ? 'qiasat.login' : 'harees.login';
+    $dashboard = $appType === 'mustashar' ? '/qiasat/dashboard' : '/harees/dashboard';
 
     if ($request->state !== session('oauth_state')) {
         return redirect()->route($route)->with('error', 'انتهت صلاحية الجلسة، حاول مرة أخرى.');

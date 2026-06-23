@@ -6,9 +6,9 @@
  * Route-guard hook for all Mustashar pages.
  *
  * Responsibilities:
- *  - Redirect unauthenticated visitors to `/mustashar/login`.
+ *  - Redirect unauthenticated visitors to `/qiasat/login`.
  *  - Redirect first-time users (who haven't seen the onboarding instructions)
- *    to `/mustashar/instructions` before they can access any other Mustashar page.
+ *    to `/qiasat/instructions` before they can access any other Mustashar page.
  *  - Persist the "instructions seen" flag to `localStorage` when the server
  *    includes the `markInstructionsSeen` prop, ensuring the flag is written
  *    as early as possible — even before the Instructions page fully renders.
@@ -31,10 +31,10 @@ import { usePage, router } from "@inertiajs/react";
  * Enforces authentication and first-visit onboarding for all Mustashar routes.
  *
  * Guard flow (in order):
- *  1. If `auth.user` is absent → redirect to `/mustashar/login` and return early.
+ *  1. If `auth.user` is absent → redirect to `/qiasat/login` and return early.
  *  2. If the `mustashar_seen_instructions` localStorage key is missing AND the
  *     current URL is not the instructions page → redirect there.
- *  3. If the user navigates directly to `/mustashar/instructions` (e.g. via the
+ *  3. If the user navigates directly to `/qiasat/instructions` (e.g. via the
  *     header link) while already having seen it → allow freely, no redirect.
  *
  * @returns {void} This hook produces no return value.
@@ -68,19 +68,19 @@ export default function useMustasharGuard() {
     useEffect(() => {
         // Gate 1: unauthenticated users go straight to login.
         if (!isAuthenticated) {
-            router.visit("/mustashar/login");
+            router.visit("/qiasat/login");
             return;
         }
 
         const hasSeenInstructions = localStorage.getItem(
             "mustashar_seen_instructions",
         );
-        const onInstructionsPage = url.includes("/mustashar/instructions");
+        const onInstructionsPage = url.includes("/qiasat/instructions");
 
         // Gate 2: new user (has not seen instructions yet) and not on the
         // instructions page → redirect to it so onboarding is never skipped.
         if (!hasSeenInstructions && !onInstructionsPage) {
-            router.visit("/mustashar/instructions");
+            router.visit("/qiasat/instructions");
             return;
         }
 

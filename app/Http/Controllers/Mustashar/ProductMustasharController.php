@@ -164,7 +164,7 @@ class ProductMustasharController extends Controller
                 return response()->json([
                     'success'    => true,
                     'is_enabled' => (bool) $mustashar->is_enabled,
-                    'message'    => $mustashar->is_enabled ? 'Al-Mustashar activated' : 'Al-Mustashar disabled',
+                    'message'    => $mustashar->is_enabled ? 'Qiasat activated' : 'Qiasat disabled',
                 ]);
             }
 

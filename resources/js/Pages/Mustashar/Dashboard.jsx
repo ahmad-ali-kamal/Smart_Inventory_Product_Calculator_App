@@ -166,7 +166,7 @@ export default function Dashboard() {
 
                 {needsSetup && (
                     <SetupBanner
-                        href="/mustashar/settings"
+                        href="/qiasat/settings"
                         description={t('dashboard.setup_banner_description')}
                     />
                 )}
@@ -185,7 +185,7 @@ export default function Dashboard() {
                         sub={t('dashboard.stat_activated_sub')}
                     />
                     <StatCard type="settings_preview" rules={calcRules}>
-                        <Link href="/mustashar/settings">
+                        <Link href="/qiasat/settings">
                             <Pencil size={15} className="text-[var(--primary)]" />
                         </Link>
                     </StatCard>

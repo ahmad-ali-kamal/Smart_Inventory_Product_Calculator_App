@@ -16,7 +16,7 @@ Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 
 // إدارة الدخول
 Route::get('/login', fn() => redirect()->route('harees.login'))->name('login');
-Route::get('/mustashar/login', fn() => inertia('Mustashar/Login'))->name('mustashar.login');
+Route::get('/qiasat/login', fn() => inertia('Mustashar/Login'))->name('qiasat.login');
 Route::get('/harees/login', fn() => inertia('Harees/Login'))->name('harees.login');
 
 // مسارات Salla OAuth
@@ -28,20 +28,25 @@ Route::post('/logout', [SallaOAuthController::class, 'logout'])->middleware('aut
 Route::post('/webhooks/salla', [SallaWebhookController::class, 'handle'])->name('webhooks.salla');
 Route::post('/api/webhooks/salla', [SallaWebhookController::class, 'handle'])->name('api.webhooks.salla');
 
-// --- تطبيق "مستشار" (Mustashar App) ---
-Route::prefix('mustashar')->middleware('auth')->group(function () {
-    Route::get('/dashboard',    fn() => inertia('Mustashar/Dashboard'))->name('mustashar.dashboard');
-    Route::get('/products',     fn() => inertia('Mustashar/Products'))->name('mustashar.products');
-    Route::get('/settings',     fn() => inertia('Mustashar/Settings'))->name('mustashar.settings');
-    Route::get('/instructions', fn() => inertia('Mustashar/Instructions'))->name('mustashar.instructions');
+// --- تطبيق "قياسات" (Qiasat App) ---
+Route::middleware('auth')->group(function () {
+    Route::prefix('qiasat')->group(function () {
+        Route::get('/dashboard',    fn() => inertia('Mustashar/Dashboard'))->name('qiasat.dashboard');
+        Route::get('/products',     fn() => inertia('Mustashar/Products'))->name('qiasat.products');
+        Route::get('/settings',     fn() => inertia('Mustashar/Settings'))->name('qiasat.settings');
+        Route::get('/instructions', fn() => inertia('Mustashar/Instructions'))->name('qiasat.instructions');
+    });
 
-    Route::get('/api/products', [ProductMustasharController::class, 'index']);
-    Route::post('/api/products/sync', [HareesApiController::class, 'syncProducts']); 
-    Route::post('/api/products/{id}/toggle', [ProductMustasharController::class, 'toggle']);
-    Route::post('/api/products/{id}/coverage', [ProductMustasharController::class, 'updateCoverage']);
-    Route::post('/api/products/{id}/waste', [ProductMustasharController::class, 'updateWaste']);
-    Route::get('/api/mustashar-settings', [MustasharSettingsController::class, 'show']);
-    Route::post('/api/mustashar-settings', [MustasharSettingsController::class, 'store']);
+    // internal APIs — stay at /mustashar/api/*
+    Route::prefix('mustashar')->group(function () {
+        Route::get('/api/products', [ProductMustasharController::class, 'index']);
+        Route::post('/api/products/sync', [HareesApiController::class, 'syncProducts']); 
+        Route::post('/api/products/{id}/toggle', [ProductMustasharController::class, 'toggle']);
+        Route::post('/api/products/{id}/coverage', [ProductMustasharController::class, 'updateCoverage']);
+        Route::post('/api/products/{id}/waste', [ProductMustasharController::class, 'updateWaste']);
+        Route::get('/api/mustashar-settings', [MustasharSettingsController::class, 'show']);
+        Route::post('/api/mustashar-settings', [MustasharSettingsController::class, 'store']);
+    });
 });
 
 // --- تطبيق "حريص" (Harees App) ---

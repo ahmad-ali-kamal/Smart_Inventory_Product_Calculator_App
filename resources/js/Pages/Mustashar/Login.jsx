@@ -45,7 +45,7 @@ export default function MustasharLogin() {
 
             // ── Hero image ───────────────────────────────────────────────────
             imageSrc={"https://res.cloudinary.com/dj0kywi0q/image/upload/v1780725488/mustasharLogin_g45tzk.webp"}
-            imageAlt="Mustashar"
+            imageAlt="Qiasat"
 
             // ── Brand colours ────────────────────────────────────────────────
             gradientFrom="#8B7CFF"

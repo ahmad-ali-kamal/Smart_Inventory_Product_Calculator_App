@@ -107,7 +107,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                 </li>
                                 <li>
                                     <Link
-                                        href="/mustashar/login"
+                                        href="/qiasat/login"
                                         style={{
                                             fontFamily: bodyFont,
                                             fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',

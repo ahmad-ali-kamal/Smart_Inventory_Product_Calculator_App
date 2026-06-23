@@ -33,21 +33,21 @@
     "cta": "Explore Harees"
   },
   "mustashar": {
-    "name": "MUSTASHAR",
-    "desc": "Mustashar Smart Calculator embeds a professional calculator directly in your Salla product pages — eliminating human errors and delivering accurate area, quantity, and cost calculations instantly.",
+    "name": "QIASAT",
+    "desc": "Qiasat Smart Measurement Calculator embeds a professional calculator directly in your Salla product pages — eliminating human errors and delivering accurate area, quantity, and cost calculations instantly.",
     "features": [
       "Flexible calculation rules customizable to your products",
       "Precision area and quantity calculation engine",
       "Smart calculator embedded directly in product pages",
       "Instant preview and seamless integration with Salla"
     ],
-    "cta": "Explore Mustashar"
+    "cta": "Explore Qiasat"
   },
   "footer": {
     "desc": "Your intelligent system for Salla management. Because successful commerce relies on numbers, not expectations.",
     "platformsLabel": "Digital Platforms",
     "hareesLink": "Harees ",
-    "mustasharLink": "Mustashar ",
+    "mustasharLink": "Qiasat",
     "quickLinksLabel": "Discover More",
     "featuresLink": "Features",
     "platformsLink": " Apps",
