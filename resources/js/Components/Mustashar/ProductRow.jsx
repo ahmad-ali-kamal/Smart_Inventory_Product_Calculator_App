@@ -392,7 +392,7 @@ export default function ProductRow({
 
     /** Formatted coverage string, or "—" when no value is set. */
     const coverageDisplay  = product.coverage_per_unit
-        ? `${product.coverage_per_unit} ${t("product_row.coverage_unit")}`
+        ? `${product.coverage_per_unit} ${product.coverage_unit ?? t("product_row.coverage_unit")}`
         : t("product_row.coverage_empty");
 
     /** True when the coverage value was inherited from the global setting. */

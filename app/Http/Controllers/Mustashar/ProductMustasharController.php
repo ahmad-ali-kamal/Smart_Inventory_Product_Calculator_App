@@ -96,7 +96,7 @@ class ProductMustasharController extends Controller
             ],
             'mustashar' => [
                 'dimension_count' => $mustashar?->dimension_count ?? 2,
-                'area_unit'       => 'm2',
+                'area_unit'       => ($mustashar?->dimension_count ?? 2) === 3 ? 'm3' : 'm2',
                 'selling_unit'    => [
                     'type'              => 'box',
                     'coverage_per_unit' => $coveragePerUnit,
@@ -134,6 +134,7 @@ class ProductMustasharController extends Controller
                     'active'           => (bool) optional($mustashar)->is_enabled,
 
                     'dimension_count'   => $mustashar?->dimension_count ?? 2,
+                    'coverage_unit'     => ($mustashar?->dimension_count ?? 2) === 3 ? 'm³' : 'm²',
 
                     'coverage_per_unit' => $this->resolveCoverage($mustashar, $settings),
                     'coverage_source'   => $this->coverageSource($mustashar, $settings),
@@ -270,6 +271,7 @@ class ProductMustasharController extends Controller
         return response()->json([
             'success'         => true,
             'dimension_count' => $mustashar->dimension_count,
+            'coverage_unit'   => $mustashar->dimension_count === 3 ? 'm³' : 'm²',
         ]);
     }
 

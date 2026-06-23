@@ -361,6 +361,9 @@ export function useUpdateProductDimension() {
                         ...p,
                         dimension_count:
                             serverData?.dimension_count ?? dimension_count,
+                        coverage_unit:
+                            serverData?.coverage_unit ??
+                            ((dimension_count ?? 2) === 3 ? 'm³' : 'm²'),
                     };
                 });
             });

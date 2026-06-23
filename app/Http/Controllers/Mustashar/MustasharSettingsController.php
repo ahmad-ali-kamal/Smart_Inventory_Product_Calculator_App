@@ -115,6 +115,7 @@ class MustasharSettingsController extends Controller
             'waste_percentage'  => $wastePct,
             'unit_type'         => 'box',
             'dimension_count'   => $mustashar->dimension_count ?? 2,
+            'coverage_unit'     => ($mustashar->dimension_count ?? 2) === 3 ? 'm³' : 'm²',
             'product'           => [
                 'id'    => (string) $product->salla_product_id,
                 'name'  => (string) $product->name,

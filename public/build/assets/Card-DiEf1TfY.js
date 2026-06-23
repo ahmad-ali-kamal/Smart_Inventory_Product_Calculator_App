@@ -1,1 +1,0 @@
-import{j as a}from"./app-D1K6hdL7.js";function e({children:r,className:o=""}){return a.jsx("div",{className:`bg-[var(--card)] border border-[var(--border)] rounded-2xl ${o}`,children:r})}export{e as C};
