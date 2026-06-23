@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Adds per-product waste_percentage to the product_calculator table.
  *
- * Nullable — null means "fall back to the global calculator_settings value".
+ * Nullable — null means "fall back to the global mustashar_settings value".
  * This mirrors the existing coverage_per_unit column pattern.
  *
  * Run: php artisan migrate
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('waste_percentage', 5, 2)
                   ->nullable()
                   ->after('coverage_per_unit')
-                  ->comment('Per-product waste override. null = use global calculator_settings value.');
+                  ->comment('Per-product waste override. null = use global mustashar_settings value.');
         });
     }
 

@@ -11,13 +11,7 @@ return new class extends Migration
      */
    public function up(): void
 {
-    if (Schema::hasTable('calculator_settings')) {
-        Schema::table('calculator_settings', function (Blueprint $table) {
-            $table->decimal('coverage_per_unit', 10, 2)
-                  ->nullable()
-                  ->after('waste_percentage');
-        });
-    } elseif (Schema::hasTable('mustashar_settings') && !Schema::hasColumn('mustashar_settings', 'coverage_per_unit')) {
+    if (Schema::hasTable('mustashar_settings') && !Schema::hasColumn('mustashar_settings', 'coverage_per_unit')) {
         Schema::table('mustashar_settings', function (Blueprint $table) {
             $table->decimal('coverage_per_unit', 10, 2)
                   ->nullable()
@@ -28,11 +22,7 @@ return new class extends Migration
 
 public function down(): void
 {
-    if (Schema::hasTable('calculator_settings') && Schema::hasColumn('calculator_settings', 'coverage_per_unit')) {
-        Schema::table('calculator_settings', function (Blueprint $table) {
-            $table->dropColumn('coverage_per_unit');
-        });
-    } elseif (Schema::hasTable('mustashar_settings') && Schema::hasColumn('mustashar_settings', 'coverage_per_unit')) {
+    if (Schema::hasTable('mustashar_settings') && Schema::hasColumn('mustashar_settings', 'coverage_per_unit')) {
         Schema::table('mustashar_settings', function (Blueprint $table) {
             $table->dropColumn('coverage_per_unit');
         });

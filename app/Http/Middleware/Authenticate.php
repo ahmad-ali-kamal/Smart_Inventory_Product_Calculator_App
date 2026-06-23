@@ -18,6 +18,10 @@ class Authenticate extends Middleware
         return null;
     }
 
+    if ($request->is('qiasat/*')) {
+        return route('qiasat.login');
+    }
+
     return route('harees.login');
 }
 }

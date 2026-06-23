@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Adds explicit coverage_type / waste_type flags to product_calculator.
- * Drops min_input_area / max_input_area from calculator_settings (unused).
+ * Drops min_input_area / max_input_area from mustashar_settings (unused).
  *
  * Run: php artisan migrate
  *
@@ -47,11 +47,7 @@ return new class extends Migration
             ");
         }
 
-        if (Schema::hasTable('calculator_settings')) {
-            Schema::table('calculator_settings', function (Blueprint $table) {
-                $table->dropColumn(['min_input_area', 'max_input_area']);
-            });
-        } elseif (Schema::hasTable('mustashar_settings') && Schema::hasColumn('mustashar_settings', 'min_input_area')) {
+        if (Schema::hasTable('mustashar_settings') && Schema::hasColumn('mustashar_settings', 'min_input_area')) {
             Schema::table('mustashar_settings', function (Blueprint $table) {
                 $table->dropColumn(['min_input_area', 'max_input_area']);
             });
@@ -66,8 +62,8 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('calculator_settings')) {
-            Schema::table('calculator_settings', function (Blueprint $table) {
+        if (Schema::hasTable('mustashar_settings')) {
+            Schema::table('mustashar_settings', function (Blueprint $table) {
                 $table->decimal('min_input_area', 10, 4)->nullable();
                 $table->decimal('max_input_area', 10, 4)->nullable();
             });

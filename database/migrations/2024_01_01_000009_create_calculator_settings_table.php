@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('calculator_settings', function (Blueprint $table) {
+        Schema::create('mustashar_settings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('merchant_id')->unique()->constrained()->cascadeOnDelete();
             $table->decimal('coverage_per_unit', 10, 2);
@@ -19,6 +19,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('calculator_settings');
+        Schema::dropIfExists('mustashar_settings');
     }
 };
