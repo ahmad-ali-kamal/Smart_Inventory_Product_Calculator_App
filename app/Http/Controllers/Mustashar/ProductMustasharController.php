@@ -185,7 +185,7 @@ class ProductMustasharController extends Controller
         $merchant = Auth::user();
 
         $validated = $request->validate([
-            'coverage_per_unit' => 'nullable|numeric|min:0.01|max:200',
+            'coverage_per_unit' => 'nullable|numeric|min:0.01',
         ]);
 
         $product  = Product::where('id', $id)->where('merchant_id', $merchant->id)->firstOrFail();

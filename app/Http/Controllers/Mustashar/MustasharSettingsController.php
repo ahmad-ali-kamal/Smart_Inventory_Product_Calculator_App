@@ -41,7 +41,7 @@ class MustasharSettingsController extends Controller
 
         $validated = $request->validate([
             'waste_percentage'  => 'required|numeric|min:0|max:100',
-            'coverage_per_unit' => 'required|numeric|min:0.01|max:200',
+            'coverage_per_unit' => 'required|numeric|min:0.01',
         ]);
 
         MustasharSetting::updateOrCreate(
@@ -91,7 +91,7 @@ class MustasharSettingsController extends Controller
         }
 
         // Guard: widget must not render without a valid coverage value
-        if ($coveragePerUnit === null || $coveragePerUnit < 0.01 || $coveragePerUnit > 200) {
+        if ($coveragePerUnit === null || $coveragePerUnit < 0.01) {
             return response()->json(['enabled' => false, 'reason' => 'coverage_not_configured'], 422)
                 ->header('Access-Control-Allow-Origin', '*');
         }
