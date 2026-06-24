@@ -353,7 +353,7 @@ class ProductExpiryController extends Controller
 
             $merchant = auth()->user();
 
-            // ✅ حذف خيار "بيانات الدفعة" بالكامل من سلة فوراً
+            // ✅ حذف خيار "خيارات الشراء" بالكامل من سلة فوراً
             $this->removeBatchOptionFromSalla($product, $merchant);
 
             try {
@@ -376,6 +376,84 @@ class ProductExpiryController extends Controller
             DB::rollBack();
             Log::error('Destroy Expiry Error: ' . $e->getMessage());
             return $this->respondWithError('حدث خطأ أثناء الحذف');
+        }
+    }
+
+    /**
+     * حذف دفعة واحدة مع تنظيف كل شيء متعلق بها
+     */
+    public function destroyBatch($batchId)
+    {
+        $batch = Batch::with('batchItems.product')->findOrFail($batchId);
+        if ($batch->merchant_id !== auth()->id()) {
+            return abort(403);
+        }
+
+        $merchant = auth()->user();
+
+        DB::beginTransaction();
+        try {
+            $batchItemIds = $batch->batchItems->pluck('id');
+            $productIds = $batch->batchItems->pluck('product_id')->unique();
+
+            // 1. تنظيف الخصومات المرتبطة بهذه الدفعة في سلة
+            $this->cleanupDiscountsOnBatchDeletion(
+                $batch->batchItems->first()?->product,
+                collect([$batch->id])
+            );
+
+            // 2. حذف batch_items أولاً
+            BatchItem::whereIn('id', $batchItemIds)->delete();
+
+            // 3. لكل منتج مرتبط: تحديث خيار سلة بعد الحذف
+            foreach ($productIds as $productId) {
+                $product = Product::find($productId);
+                if ($product) {
+                    $this->syncBatchOptionAfterDeletion($product, $merchant, [$batch->id]);
+
+                    // 4. إذا لم يعد للمنتج أي batches → إعادة حالته إلى 'sale'
+                    $remainingCount = BatchItem::where('product_id', $product->id)->count();
+                    if ($remainingCount === 0) {
+                        $product->status = 'sale';
+                        $product->save();
+
+                        try {
+                            $sallaApi = \App\Services\SallaApiService::for($merchant);
+                            $sallaApi->updateProductStatusOnly($product->salla_product_id, 'sale');
+                        } catch (\Exception $e) {
+                            Log::warning("[DeleteBatch] فشل تحديث حالة المنتج {$product->id}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            // 5. حذف الـ batch نفسه
+            $batchCode = $batch->batch_code;
+            $batch->delete();
+
+            DB::commit();
+
+            dispatch(new \App\Jobs\Harees\UpdateBatchOptionsJob())->afterCommit();
+
+            Cache::forget("harees_dashboard_api_{$merchant->id}");
+
+            ActivityLog::log($merchant->id, 'batch_deleted',
+                "تم حذف الدفعة: {$batchCode}", $batch);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حذف الدفعة بنجاح',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('[DeleteBatch] خطأ في حذف الدفعة: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حذف الدفعة',
+            ], 500);
         }
     }
 
@@ -653,7 +731,7 @@ class ProductExpiryController extends Controller
     }
 
     /**
-     * حذف خيار "بيانات الدفعة" بالكامل من سلة (عند حذف كل الباتشات)
+     * حذف خيار "خيارات الشراء" بالكامل من سلة (عند حذف كل الباتشات)
      */
     private function removeBatchOptionFromSalla(Product $product, $merchant): void
     {
@@ -667,7 +745,7 @@ class ProductExpiryController extends Controller
 
             if ($batchOption) {
                 $sallaApi->deleteProductOption($batchOption['id']);
-                Log::info("[BatchOption] حذف خيار بيانات الدفعة بالكامل للمنتج {$product->id}");
+                Log::info("[BatchOption] حذف خيار خيارات الشراء بالكامل للمنتج {$product->id}");
             }
         } catch (\Exception $e) {
             Log::warning("[BatchOption] فشل حذف خيار سلة: " . $e->getMessage());
@@ -675,7 +753,7 @@ class ProductExpiryController extends Controller
     }
 
     /**
-     * تحديث خيار "بيانات الدفعة" بعد حذف batch(es):
+     * تحديث خيار "خيارات الشراء" بعد حذف batch(es):
      * - إذا لم يبقَ أي batch نشط: حذف الخيار بالكامل
      * - إذا بقيت batches: تحديث القيم بإزالة الباتشات المحذوفة
      */
@@ -724,7 +802,7 @@ class ProductExpiryController extends Controller
 
             if ($batchOption) {
                 $sallaApi->updateProductOption($batchOption['id'], \App\Services\SallaApiService::BATCH_OPTION_NAME, $newValues);
-                Log::info("[BatchOption] تحديث خيار بيانات الدفعة بعد الحذف للمنتج {$product->id}");
+                Log::info("[BatchOption] تحديث خيار خيارات الشراء بعد الحذف للمنتج {$product->id}");
             }
         } catch (\Exception $e) {
             Log::warning("[BatchOption] فشل تحديث خيار سلة بعد الحذف: " . $e->getMessage());

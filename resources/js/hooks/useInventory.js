@@ -27,6 +27,7 @@ import {
     storeExpiry,
     storeBatch,
     updateBatch,
+    deleteBatch,
 } from '../services/inventoryService';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -233,6 +234,27 @@ export const useUpdateBatch = () => {
 
     return useMutation({
         mutationFn: updateBatch,
+
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['harees', 'products'] });
+        },
+    });
+};
+
+/**
+ * useDeleteBatch
+ *
+ * Deletes a single batch with full cleanup (discounts, Salla option values,
+ * variants). Invalidates dashboard and products caches on success.
+ *
+ * @returns {import('@tanstack/react-query').UseMutationResult}
+ */
+export const useDeleteBatch = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: deleteBatch,
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['harees', 'dashboard'] });

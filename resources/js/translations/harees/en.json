@@ -33,8 +33,8 @@
     "step1_desc": "Move your store categories and classify them into long, medium, or short-term based on the nature of your products expiration, allowing the system to track each category accurately with the duration that suits it.",
     "step1_badge": "Inventory Organization & Classification",
 
-    "step2_title": "2. Track Product Batches & Manage Product Options",
-    "step2_desc": "On the products page, click 'Add Expiry Date' to open the entry form. If the product is standard, you can add the batch and its quantity directly, while if it contains options like: colors and sizes, you will be able to easily distribute the batch quantity across these options. If there is a shortage in product stock or option details, a button appears to facilitate your transition directly to your Salla store dashboard to update them before scheduling dates.",
+    "step2_title": "2. Track Product Batches & Manage Purchase Options",
+    "step2_desc": "On the products page, click 'Add Expiry Date' to open the entry form. If the product is standard, you can add the batch and its quantity directly, while if it contains options like: colors and sizes, you will be able to easily distribute the batch quantity across these options. Customers will see purchase options in the cart showing the base price for safe products and a custom label (your choice) for approaching-expiry products. If there is a shortage in product stock or option details, a button appears to facilitate your transition directly to your Salla store dashboard to update them before scheduling dates.",
     "step2_badge": "Batch & Quantity Registration",
 
     "step3_title": "3. Instant Alerts & Auto-Hide System",
@@ -107,7 +107,12 @@
     "btn_applying": "Applying...",
     "toast_added": "Discount applied successfully",
     "toast_updated": "Discount updated successfully",
-    "toast_error_fallback": "An error occurred while applying the discount"
+    "toast_error_fallback": "An error occurred while applying the discount",
+    "btn_delete_batch": "Delete Batch",
+    "btn_confirm_delete": "Confirm Delete",
+    "btn_cancel_delete": "Cancel",
+    "toast_batch_deleted": "Batch deleted successfully",
+    "toast_delete_error": "Failed to delete batch"
   },
 
   "discount_modal": {
@@ -211,7 +216,9 @@
     "discount_percent_label": "Discount %",
     "discount_duration_label": "Duration",
     "suffix_percent": "%",
-    "suffix_days": "days"
+    "suffix_days": "days",
+    "yellow_label_title": "Yellow Batch Label",
+    "yellow_label_desc": "The text shown to customers in the Salla cart when they select a product from a yellow (approaching expiry) batch."
   },
 
   "save_button": {

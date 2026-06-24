@@ -30,11 +30,12 @@
 
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Tag, Calendar, Loader2, Plus } from 'lucide-react';
+import { Tag, Calendar, Loader2, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import DiscountModal from '../DiscountModal';
 import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
 import { useApplyDiscount } from '../../../Hooks/useApplyDiscount';
+import { useDeleteBatch } from '../../../Hooks/useInventory';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
@@ -121,10 +122,21 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
     const [selectedBatch, setSelectedBatch] = useState(null);
 
     /**
+     * Tracks which batch is awaiting delete confirmation.
+     * `null` means no confirmation is active.
+     */
+    const [confirmDeleteBatchId, setConfirmDeleteBatchId] = useState(null);
+
+    /**
      * Mutation hook scoped to this product's ID.
      * `isPending` is true while any discount request for this product is in-flight.
      */
     const { mutateAsync, isPending } = useApplyDiscount(product.id);
+
+    /**
+     * Delete batch mutation — invalidates dashboard + products caches.
+     */
+    const deleteBatchMutation = useDeleteBatch();
 
     /**
      * handleApplyDiscount
@@ -139,6 +151,23 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
      * @param {string}  p.endDate      - ISO date string for discount expiry.
      * @param {boolean} p.isEdit       - True when updating an existing discount.
      */
+    /**
+     * handleDeleteBatch
+     *
+     * Deletes a batch and shows a success/error toast.
+     * Resets the confirmation state on completion.
+     */
+    const handleDeleteBatch = async (batchId) => {
+        try {
+            await deleteBatchMutation.mutateAsync({ batchId });
+            toast.success(t('batch_row.toast_batch_deleted'), { duration: 3000 });
+        } catch (error) {
+            toast.error(error.userMessage || error.message || t('batch_row.toast_delete_error'), { duration: 4000 });
+        } finally {
+            setConfirmDeleteBatchId(null);
+        }
+    };
+
     const handleApplyDiscount = async ({ batchId, discountPct, endDate, isEdit }) => {
         try {
             await mutateAsync({ batchId, discountPct, endDate });
@@ -248,6 +277,36 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                             Only colour tokens and content text differ between states.
                         ─────────────────────────────────────────────────────────────────── */}
                         <div className="flex-1 py-3.5 px-4 flex justify-center items-center gap-2">
+                            {confirmDeleteBatchId === batch.id ? (
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => handleDeleteBatch(batch.id)}
+                                        disabled={deleteBatchMutation.isPending}
+                                        className={`${BTN_BASE} border-red-400/30 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-400 text-[8px] px-2`}
+                                    >
+                                        {deleteBatchMutation.isPending ? (
+                                            <Loader2 size={8} className="animate-spin" />
+                                        ) : (
+                                            <AlertTriangle size={8} />
+                                        )}
+                                        {t('batch_row.btn_confirm_delete')}
+                                    </button>
+                                    <button
+                                        onClick={() => setConfirmDeleteBatchId(null)}
+                                        className={`${BTN_BASE} border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]/10 text-[8px] px-2`}
+                                    >
+                                        {t('batch_row.btn_cancel_delete')}
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                            <button
+                                onClick={() => setConfirmDeleteBatchId(batch.id)}
+                                className="flex items-center justify-center w-[26px] h-[26px] rounded-full text-[var(--muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+                                title={t('batch_row.btn_delete_batch')}
+                            >
+                                <Trash2 size={11} />
+                            </button>
 
                             {isApproaching && batch.discount_type === 'pending' && (
                                     <button
@@ -340,6 +399,9 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                 </span>
 
                             ) : null}
+
+                                </>
+                            )}
 
                         </div>
                     </div>

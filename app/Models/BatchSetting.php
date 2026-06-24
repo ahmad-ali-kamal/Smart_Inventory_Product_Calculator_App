@@ -19,6 +19,7 @@ class BatchSetting extends Model
         'auto_discounts',
         'auto_discount_percent',
         'auto_discount_duration_days',
+        'yellow_batch_label',
     ];
 
     protected $casts = [
@@ -29,6 +30,7 @@ class BatchSetting extends Model
         'auto_discounts'              => 'boolean',
         'auto_discount_percent'       => 'integer',
         'auto_discount_duration_days' => 'integer',
+        'yellow_batch_label'          => 'string',
     ];
 
     /**
@@ -78,6 +80,7 @@ class BatchSetting extends Model
             'auto_discounts'              => false,
             'auto_discount_percent'       => 20,
             'auto_discount_duration_days' => 7,
+            'yellow_batch_label'          => 'عرض التوفير (كمية محدودة)',
         ];
     }
 }

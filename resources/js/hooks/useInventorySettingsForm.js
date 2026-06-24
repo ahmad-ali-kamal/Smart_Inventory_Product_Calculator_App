@@ -34,6 +34,8 @@ import {
     DEFAULT_AUTOMATION,
     DEFAULT_DISCOUNT,
     DEFAULT_CATEGORIES,
+    DEFAULT_YELLOW_LABEL,
+    YELLOW_BATCH_LABELS,
     FIELD_RULES,
     validateNumericField,
     buildPayload,
@@ -88,6 +90,7 @@ export function useInventorySettingsForm() {
     const [automation, setAutomation] = useState(DEFAULT_AUTOMATION);
     const [discountConfig, setDiscountConfig] = useState(DEFAULT_DISCOUNT);
     const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+    const [yellowLabel, setYellowLabel] = useState(DEFAULT_YELLOW_LABEL);
 
     /** Categories not yet assigned to any expiry bucket. */
     const [unassigned, setUnassigned] = useState([]);
@@ -122,6 +125,7 @@ export function useInventorySettingsForm() {
         setDiscountConfig(hydrated.discountConfig);
         setCategories(hydrated.categories);
         setUnassigned(hydrated.unassigned);
+        setYellowLabel(hydrated.yellowLabel);
     }, [data]);
 
     // ── Shared numeric field handler (thresholds + discount fields) ─────────
@@ -191,6 +195,15 @@ export function useInventorySettingsForm() {
      */
     const handleToggle = useCallback((key) => {
         setAutomation((prev) => ({ ...prev, [key]: !prev[key] }));
+    }, []);
+
+    /**
+     * Updates the yellow batch label selection.
+     *
+     * @param {string} label — The selected yellow batch label.
+     */
+    const handleYellowLabelChange = useCallback((label) => {
+        setYellowLabel(label);
     }, []);
 
     // ── Drag-and-drop handlers ──────────────────────────────────────────────
@@ -289,6 +302,7 @@ export function useInventorySettingsForm() {
                     automation,
                     discountConfig,
                     categories,
+                    yellowLabel,
                 }),
             );
 
@@ -328,6 +342,7 @@ export function useInventorySettingsForm() {
         discountConfig,
         categories,
         unassigned,
+        yellowLabel,
         errors,
         saving,
         saved,
@@ -336,6 +351,7 @@ export function useInventorySettingsForm() {
         // Handlers
         handleInputChange,
         handleToggle,
+        handleYellowLabelChange,
         handleDragStart,
         handleDrop,
         handleSave,

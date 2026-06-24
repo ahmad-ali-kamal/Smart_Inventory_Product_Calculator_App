@@ -50,6 +50,12 @@ export const updateBatch = async ({ batchId, data }) => {
   return res.data;
 };
 
+// Delete Batch
+export const deleteBatch = async ({ batchId }) => {
+  const res = await apiClient.delete(`/harees/api/batch/${batchId}`);
+  return res.data;
+};
+
 // Get Product Variants
 export const getProductVariants = async (productId) => {
   const res = await apiClient.get(`/harees/api/products/${productId}/variants`);

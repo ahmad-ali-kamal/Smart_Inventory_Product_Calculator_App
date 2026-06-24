@@ -14,7 +14,14 @@ class SallaApiService
     protected string $baseUrl  = 'https://api.salla.dev/admin/v2';
     protected string $oauthUrl = 'https://accounts.salla.sa/oauth2/token';
 
-    public const BATCH_OPTION_NAME = 'بيانات الدفعة';
+    public const BATCH_OPTION_NAME = 'خيارات الشراء';
+    public const GREEN_LABEL = 'السعر الأساسي';
+    public const YELLOW_LABELS = [
+        'عرض التوفير (كمية محدودة)',
+        'السعر الترويجي',
+        'القطع الأخيرة (سعر خاص)',
+        'عرض خاص',
+    ];
 
     /**
      * أسماء التطبيقات المدعومة (الجديدة أولاً، القديمة كـ fallback)
@@ -331,7 +338,7 @@ class SallaApiService
         return $this->request('get', "products/variants/{$variantId}");
     }
 
-/**
+    /**
      * تحديث بيانات Variant موجود
      * PUT /products/variants/{variant}
      *
@@ -342,6 +349,14 @@ class SallaApiService
      * 1. جلب بيانات الفاريينت الحالية من سلة
      * 2. بناء payload يحتوي على جميع القيم الحالية
      * 3. override الحقول التي يريد المتصل تغييرها (price, sale_price, stock_quantity)
+     *
+     * —— قواعد مهمة للمخزون ——
+     * • إذا unlimited_quantity = true → لا نُرسل stock_quantity أبداً
+     *   (إرسال stock_quantity يعطل الخاصية اللانهائية في سلة)
+     * • إذا unlimited_quantity = false و stock_quantity = 0 →
+     *   المتغير نفد بالفعل، نُرسل 0
+     * • عند تطبيق خصم فقط (price/sale_price) لا نُرسل stock_quantity
+     *   إطلاقاً للحفاظ على المخزون الحالي دون تغيير
      */
     public function updateBatchVariant(string $variantId, array $data): array
     {
@@ -366,23 +381,25 @@ class SallaApiService
         // ── استخراج المخزون الحالي ─────────────────────
         $currentStock = (int) ($variantData['stock_quantity'] ?? 0);
 
-        // ── بناء payload كامل ──────────────────────────
-        // نستخدم القيم الحالية من سلة كـ default
-        // ونسمح للمتصل بتغيير price + sale_price فقط
+        // ── بناء payload أساسي (price + sale_price فقط) ─
+        // لا نُرسل stock_quantity إلا إذا طلب المتصل صراحةً
         $payload = [
             'price'          => $data['price'] ?? $currentPrice,
             'sale_price'     => $currentSale,
-            // ═════════════════════════════════════════════════════════
-            // stock_quantity — نُرسله دائماً بقيمته الحالية من سلة
-            // حتى لا تفسره سلة على أنه 0 عندما لا يرسله المتصل
-            // ═════════════════════════════════════════════════════════
-            'stock_quantity' => $currentStock,
         ];
 
-        // السماح للمتصل بتجاوز stock_quantity
+        // ── السماح بتحديث المخزون مع احترام unlimited_quantity ──
         if (array_key_exists('stock_quantity', $data)) {
-            if ($data['stock_quantity'] !== null) {
+            // إذا كان المتغير لانهائي المخزون، لا نُرسل stock_quantity أبداً
+            if ($unlimitedQuantity) {
+                Log::info('[Salla Variant Update] ⏭️ تخطي stock_quantity — المخزون لانهائي', [
+                    'variant_id' => $variantId,
+                ]);
+            } elseif ($data['stock_quantity'] !== null) {
                 $payload['stock_quantity'] = (int) $data['stock_quantity'];
+            } else {
+                // null يعني احتفظ بالقيمة الحالية
+                $payload['stock_quantity'] = $currentStock;
             }
         }
         // الحفاظ على SKU — لا نرسله إذا كان null لتجنب 422 (SKU مكرر)
@@ -504,44 +521,14 @@ class SallaApiService
      * تحديث سعر المنتج (للمنتجات بدون variants)
      * PUT /products/{product}
      *
-     * ⚠️ نرسل price + sale_price فقط ولا نغير أي شيء آخر.
-     * API سلة تحافظ على بقية الحقول عند إرسال حقول محددة.
+     * ⚠️ نرسل price + sale_price فقط ولا نغير المخزون.
+     * المخزون يُحدَّث عبر updateProductQuantity() المنفصلة.
      */
     public function updateProductPrice(string $sallaProductId, float $price, ?float $salePrice = null): array
     {
-        // ═══════════════════════════════════════════════════════════════
-        // جلب بيانات المنتج الحالية — نحافظ على المخزون الحالي
-        // لأن سلة قد تفسر الحقول المفقودة على أنها 0
-        // ═══════════════════════════════════════════════════════════════
-        try {
-            $productResponse = $this->getProduct($sallaProductId);
-            $productData     = $productResponse['data'] ?? [];
-        } catch (\Exception $e) {
-            Log::warning('[SALLA PRODUCT PRICE] فشل جلب المنتج، سيتم إرسال price فقط', [
-                'product_id' => $sallaProductId,
-                'error'      => $e->getMessage(),
-            ]);
-            $productData = [];
-        }
-
         $payload = [
             'price' => $price,
         ];
-
-        // الحفاظ على المخزون الحالي إن وجد
-        if (!empty($productData)) {
-            if (isset($productData['stock_quantity'])) {
-                $payload['stock_quantity'] = (int) $productData['stock_quantity'];
-            }
-            // الحفاظ على الـ SKU
-            if (isset($productData['sku'])) {
-                $payload['sku'] = $productData['sku'];
-            }
-            // الحفاظ على الحالة
-            if (isset($productData['status'])) {
-                $payload['status'] = $productData['status'];
-            }
-        }
 
         if ($salePrice !== null) {
             $payload['sale_price'] = $salePrice;

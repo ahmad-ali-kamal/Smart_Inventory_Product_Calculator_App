@@ -52,11 +52,11 @@ export default function Settings() {
         isLoading, isError, error, refetch,
         // Form data slices — each passed to the relevant card
         thresholds, automation, discountConfig,
-        categories, unassigned,
+        categories, unassigned, yellowLabel,
         // Validation + save state
         errors, saving, saved, saveError, hasActiveErrors,
         // Event handlers
-        handleInputChange, handleToggle,
+        handleInputChange, handleToggle, handleYellowLabelChange,
         handleDragStart, handleDrop, handleSave,
     } = useInventorySettingsForm();
 
@@ -94,13 +94,15 @@ export default function Settings() {
                     onDrop={handleDrop}
                 />
 
-                {/* Automation toggles and conditional discount config panel */}
+                {/* Automation toggles, discount config, and yellow batch label */}
                 <AutomationCard
                     automation={automation}
                     discountConfig={discountConfig}
+                    yellowLabel={yellowLabel}
                     errors={errors}
                     onToggle={handleToggle}
                     onInputChange={handleInputChange}
+                    onYellowLabelChange={handleYellowLabelChange}
                     onSave={handleSave}
                     saving={saving}
                     saved={saved}

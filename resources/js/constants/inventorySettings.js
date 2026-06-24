@@ -85,6 +85,25 @@ export const BUCKET_CONFIG = [
 export const DEFAULT_THRESHOLDS = { short: 10, medium: 10, long: 10 };
 
 /**
+ * Available yellow batch label options shown to the customer in the cart.
+ *
+ * @type {string[]}
+ */
+export const YELLOW_BATCH_LABELS = [
+    'عرض التوفير (كمية محدودة)',
+    'السعر الترويجي',
+    'القطع الأخيرة (سعر خاص)',
+    'عرض خاص',
+];
+
+/**
+ * Default yellow batch label
+ *
+ * @type {string}
+ */
+export const DEFAULT_YELLOW_LABEL = 'عرض التوفير (كمية محدودة)';
+
+/**
  * Default state for the automation toggle switches.
  * Both are off by default; the user opts in explicitly.
  *
@@ -215,6 +234,7 @@ export function buildPayload({
     automation,
     discountConfig,
     categories,
+    yellowLabel,
 }) {
     return {
         short_term_days: Number(thresholds.short),
@@ -225,6 +245,7 @@ export function buildPayload({
         auto_discounts: automation.autoDiscount ? 1 : 0,
         auto_discount_percent: Number(discountConfig.percent),
         auto_discount_duration_days: Number(discountConfig.durationDays),
+        yellow_batch_label: yellowLabel ?? DEFAULT_YELLOW_LABEL,
         category_mapping: categories,
     };
 }
@@ -262,7 +283,8 @@ export function buildPayload({
  *   automation:    { autoHide: boolean, autoDiscount: boolean },
  *   discountConfig:{ percent: number, durationDays: number },
  *   categories:    { short: Array, medium: Array, long: Array },
- *   unassigned:    Array
+ *   unassigned:    Array,
+ *   yellowLabel:   string
  * }} Hydrated internal state object.
  */
 export function hydrateFromServer(data) {
@@ -293,5 +315,6 @@ export function hydrateFromServer(data) {
         },
         // Categories not yet assigned to any bucket — populate the unassigned pool
         unassigned: data.unassigned_categories ?? [],
+        yellowLabel: s.yellow_batch_label ?? DEFAULT_YELLOW_LABEL,
     };
 }

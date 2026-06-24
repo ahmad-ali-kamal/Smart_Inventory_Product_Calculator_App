@@ -18,12 +18,13 @@
  * Single Responsibility: rendering only. All state lives in `useInventorySettingsForm`.
  */
 
-import { Zap, EyeOff, BadgePercent, Percent, Calendar } from 'lucide-react';
+import { Zap, EyeOff, BadgePercent, Percent, Calendar, Tag } from 'lucide-react';
 import Card from '../../Common/UI/Card';
 import HintBox from './HintBox';
 import Toggle from '../../Common/Toggle';
 import SaveButton from './SaveButton';
 import { useTranslation } from 'react-i18next';
+import { YELLOW_BATCH_LABELS } from '../../../constants/inventorySettings';
 
 // ---------------------------------------------------------------------------
 // Automation row definitions
@@ -67,9 +68,11 @@ function getAutomationRows(t) {
 export default function AutomationCard({
     automation,
     discountConfig,
+    yellowLabel,
     errors,
     onToggle,
     onInputChange,
+    onYellowLabelChange,
     onSave,
     saving,
     saved,
@@ -119,6 +122,36 @@ export default function AutomationCard({
                     )}
                 </div>
             ))}
+
+            {/* ── Yellow batch label section ─────────────────────────────── */}
+            <div className="py-3 border-b border-[var(--border)]">
+                <div className="flex items-start gap-3">
+                    <span className="mt-0.5 text-[var(--muted-foreground)]">
+                        <Tag size={18} />
+                    </span>
+                    <div className="flex-1">
+                        <p className="text-sm font-medium text-[var(--foreground)]">
+                            {t('automation_card.yellow_label_title')}
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                            {t('automation_card.yellow_label_desc')}
+                        </p>
+                        <div className="mt-2">
+                            <select
+                                value={yellowLabel}
+                                onChange={(e) => onYellowLabelChange(e.target.value)}
+                                className="w-full p-2.5 rounded-xl border border-[var(--primary)]/20 bg-[var(--muted)] text-sm text-[var(--foreground)] outline-none focus:ring-1 focus:ring-[var(--primary)]/30"
+                            >
+                                {YELLOW_BATCH_LABELS.map((label) => (
+                                    <option key={label} value={label}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* ── Save button ────────────────────────────────────────────── */}
             <div className="pt-4 border-t border-[var(--border)]">

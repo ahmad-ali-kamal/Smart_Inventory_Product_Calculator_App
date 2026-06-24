@@ -353,7 +353,7 @@ class HareesApiController extends Controller
                 ]);
             }
 
-            // 3. تحديث خيار سلة "بيانات الدفعة" بالباتشات الصفراء فقط (إذا كان المنتج له variants)
+            // 3. تحديث خيار سلة "خيارات الشراء" بالباتشات النشطة (أخضر + أصفر)
             $this->syncYellowBatchesToSalla($product, $merchant);
 
             CheckBatchExpiryJob::dispatch()->afterCommit();
@@ -584,7 +584,7 @@ class HareesApiController extends Controller
     }
 
     /**
-     * دالة مساعدة لإنشاء/تحديث خيار "بيانات الدفعة" بالباتشات الصفراء فقط
+     * دالة مساعدة لإنشاء/تحديث خيار "خيارات الشراء" بقيم (أخضر → السعر الأساسي، أصفر → التسمية المختارة)
      */
     private function syncYellowBatchesToSalla($product, $merchant)
     {
@@ -592,6 +592,7 @@ class HareesApiController extends Controller
 
         try {
             $sallaApi = SallaApiService::for($merchant);
+            $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
 
             // جلب الدفعات النشطة (صفراء + خضراء) لهذا المنتج
             $activeBatches = BatchItem::where('product_id', $product->id)
@@ -599,22 +600,28 @@ class HareesApiController extends Controller
                     $q->whereIn('status', ['yellow', 'green']);
                 })
                 ->with('batch')
-                ->get();
+                ->get()
+                ->pluck('batch')
+                ->filter()
+                ->unique('id');
 
-            // استخراج القيم المطلوبة (نص تاريخ الانتهاء)
-            $valuesRequired = $activeBatches->map(function($bi) {
-                $expiry = $bi->batch->expiry_date;
-                return "تاريخ انتهاء المنتج {$expiry->format('Y-m-d')}";
-            })->unique()->values()->toArray();
+            // بناء القيم: أخضر → السعر الأساسي، أصفر → التسمية المختارة من الإعدادات
+            $valuesRequired = collect();
+            if ($activeBatches->contains(fn($b) => $b->status === 'green')) {
+                $valuesRequired->push(SallaApiService::GREEN_LABEL);
+            }
+            $yellowLabel = $settings->yellow_batch_label ?? 'عرض التوفير (كمية محدودة)';
+            if ($activeBatches->contains(fn($b) => $b->status === 'yellow')) {
+                $valuesRequired->push($yellowLabel);
+            }
 
-            // جلب خيارات سلة الحالية للتحقق من وجود "بيانات الدفعة"
+            // جلب خيارات سلة الحالية للتحقق من وجود "خيارات الشراء"
             $optionsReq = $sallaApi->getProductOptions($product->salla_product_id);
             $sallaOptions = $optionsReq['data'] ?? [];
 
             $batchOption = collect($sallaOptions)->firstWhere('name', SallaApiService::BATCH_OPTION_NAME);
 
-            if (empty($valuesRequired)) {
-                // لا توجد دفعات نشطة → حذف الخيار إن وجد
+            if ($valuesRequired->isEmpty()) {
                 if ($batchOption) {
                     $sallaApi->deleteProductOption($batchOption['id']);
                     Log::info('[BatchOption] حذف خيار (لا توجد دفعات نشطة)');
@@ -622,22 +629,22 @@ class HareesApiController extends Controller
                 return;
             }
 
+            $valuesArray = $valuesRequired->map(fn($v) => ['name' => $v])->values()->toArray();
+
             if (!$batchOption) {
-                // الخيار غير موجود، ننشئه بجميع القيم
                 $sallaApi->createProductOption(
                     $product->salla_product_id,
                     SallaApiService::BATCH_OPTION_NAME,
-                    array_map(fn($v) => ['name' => $v], $valuesRequired)
+                    $valuesArray
                 );
-                Log::info('[BatchOption] إنشاء خيار جديد مع ' . count($valuesRequired) . ' قيمة');
+                Log::info('[BatchOption] إنشاء خيار جديد مع ' . count($valuesArray) . ' قيمة');
             } else {
-                // الخيار موجود — تحديثه بجميع القيم (إضافة الجديد + حذف القديم)
                 $sallaApi->updateProductOption(
                     $batchOption['id'],
                     SallaApiService::BATCH_OPTION_NAME,
-                    array_map(fn($v) => ['name' => $v], $valuesRequired)
+                    $valuesArray
                 );
-                Log::info('[BatchOption] تحديث خيار بقيم ' . count($valuesRequired));
+                Log::info('[BatchOption] تحديث خيار بقيم ' . count($valuesArray));
             }
         } catch (\Exception $e) {
             Log::error('[Sync Yellow Batches Error] ' . $e->getMessage());
@@ -652,6 +659,11 @@ class HareesApiController extends Controller
     public function destroyExpiry($id)
     {
         return app(ProductExpiryController::class)->destroy($id);
+    }
+
+    public function destroyBatch($batchId)
+    {
+        return app(ProductExpiryController::class)->destroyBatch($batchId);
     }
 
     public function settings()
@@ -705,7 +717,13 @@ class HareesApiController extends Controller
             'auto_discount_percent'       => 'nullable|integer|min:1|max:99', 
             'auto_discount_duration_days' => 'nullable|integer|min:1', 
             'category_mapping' => 'nullable|array',
+            'yellow_batch_label' => 'nullable|string',
         ]);
+
+        $yellowLabel = $validated['yellow_batch_label'] ?? null;
+        if ($yellowLabel && !in_array($yellowLabel, SallaApiService::YELLOW_LABELS)) {
+            $yellowLabel = 'عرض التوفير (كمية محدودة)';
+        }
 
         $settings = BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
@@ -714,10 +732,10 @@ class HareesApiController extends Controller
                 'medium_term_days' => $validated['medium_term_days'],
                 'long_term_days' => $validated['long_term_days'],
                 'auto_hide_expired' => $request->boolean('auto_hide_expired'),
-            
                 'auto_discounts' => $request->boolean('auto_discounts'),
                 'auto_discount_percent'       => $validated['auto_discount_percent'] ?? null,       
                 'auto_discount_duration_days' => $validated['auto_discount_duration_days'] ?? null, 
+                'yellow_batch_label'          => $yellowLabel,
             ]
         );
 

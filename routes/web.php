@@ -85,5 +85,6 @@ Route::prefix('harees')->middleware('auth')->group(function () {
 
         Route::post('/products/{product_id}/store-batch', [HareesApiController::class, 'storeBatch']);
         Route::put('/batch/{batch_id}', [HareesApiController::class, 'updateBatch']);
+        Route::delete('/batch/{batch_id}', [HareesApiController::class, 'destroyBatch']);
     });
 });
