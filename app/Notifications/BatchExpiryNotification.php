@@ -21,29 +21,8 @@ class BatchExpiryNotification extends Notification
         return ['database'];
     }
 
-    /**
-     * Get the merchant's preferred locale.
-     * Falls back to 'ar' since the app is primarily Arabic.
-     */
-    private function getLocale($notifiable): string
-    {
-        if (method_exists($notifiable, 'getAttribute')) {
-            $locale = $notifiable->preferred_locale
-                ?? $notifiable->locale
-                ?? config('app.locale', 'ar');
-            return in_array($locale, ['ar', 'en']) ? $locale : 'ar';
-        }
-        return 'ar';
-    }
-
     public function toMail($notifiable): MailMessage
     {
-        $locale = $this->getLocale($notifiable);
-
-        if ($locale === 'en') {
-            return $this->toMailEnglish($notifiable);
-        }
-
         return $this->toMailArabic($notifiable);
     }
 
@@ -111,24 +90,19 @@ class BatchExpiryNotification extends Notification
 
     public function toArray($notifiable): array
     {
-        $locale = $this->getLocale($notifiable);
         $productName = $this->getProductName();
 
         if ($this->status === 'red') {
-            $title = $locale === 'en'
-                ? "⛔ Expired Batch: {$productName}"
-                : "⛔ دفعة منتهية الصلاحية: {$productName}";
-            $body = $locale === 'en'
-                ? "Batch {$this->batch->batch_code} for {$productName} has expired."
-                : "انتهت صلاحية الدفعة {$this->batch->batch_code} للمنتج {$productName}.";
+            $titleAr = "⛔ دفعة منتهية الصلاحية: {$productName}";
+            $titleEn = "⛔ Expired Batch: {$productName}";
+            $bodyAr  = "انتهت صلاحية الدفعة {$this->batch->batch_code} للمنتج {$productName}.";
+            $bodyEn  = "Batch {$this->batch->batch_code} for {$productName} has expired.";
         } else {
             $daysLeft = $this->batch->days_until_expiry ?? 0;
-            $title = $locale === 'en'
-                ? "⚠️ Batch Approaching Expiry: {$productName}"
-                : "⚠️ دفعة تقترب من الانتهاء: {$productName}";
-            $body = $locale === 'en'
-                ? "Batch {$this->batch->batch_code} for {$productName} will expire in {$daysLeft} day(s)."
-                : "الدفعة {$this->batch->batch_code} للمنتج {$productName} ستنتهي خلال {$daysLeft} يوم.";
+            $titleAr  = "⚠️ دفعة تقترب من الانتهاء: {$productName}";
+            $titleEn  = "⚠️ Batch Approaching Expiry: {$productName}";
+            $bodyAr   = "الدفعة {$this->batch->batch_code} للمنتج {$productName} ستنتهي خلال {$daysLeft} يوم.";
+            $bodyEn   = "Batch {$this->batch->batch_code} for {$productName} will expire in {$daysLeft} day(s).";
         }
 
         return [
@@ -137,9 +111,10 @@ class BatchExpiryNotification extends Notification
             'product_name'=> $productName,
             'status'      => $this->status,
             'expiry_date' => $this->batch->expiry_date?->format('Y-m-d'),
-            'title'       => $title,
-            'body'        => $body,
-            'locale'      => $locale,
+            'title_ar'    => $titleAr,
+            'title_en'    => $titleEn,
+            'body_ar'     => $bodyAr,
+            'body_en'     => $bodyEn,
         ];
     }
 }

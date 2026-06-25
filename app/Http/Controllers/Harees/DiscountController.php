@@ -10,6 +10,7 @@ use App\Models\BatchSetting;
 use App\Models\BatchDiscount;
 use App\Models\ActivityLog;
 use App\Services\SallaApiService;
+use App\Jobs\Harees\UpdateBatchOptionsJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -232,6 +233,8 @@ class DiscountController extends Controller
             \Cache::forget("harees_dashboard_{$merchant->id}");
             \Cache::forget("harees_dashboard_api_{$merchant->id}");
 
+            UpdateBatchOptionsJob::dispatch();
+
             return response()->json([
                 'success'        => true,
                 'message'        => "تم تطبيق الخصم على {$appliedCount} variant(s) بنجاح",
@@ -333,6 +336,8 @@ class DiscountController extends Controller
             $product
         );
 
+        UpdateBatchOptionsJob::dispatch();
+
         return response()->json([
             'success' => true,
             'message' => "تم تطبيق الخصم على {$applied} دفعة",
@@ -387,6 +392,8 @@ class DiscountController extends Controller
                     $product
                 );
             }
+
+            UpdateBatchOptionsJob::dispatch();
 
             return response()->json(['success' => true, 'message' => 'تم إلغاء الخصم']);
 

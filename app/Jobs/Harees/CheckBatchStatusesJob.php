@@ -23,23 +23,33 @@ class CheckBatchStatusesJob implements ShouldQueue
         Merchant::all()->each(function ($merchant) {
             if (!$merchant->name) return;
 
-            $this->processMerchantBatches($merchant);
+            $changed = $this->processMerchantBatches($merchant);
+
+            if ($changed) {
+                UpdateBatchOptionsJob::dispatch();
+            }
         });
 
         Log::info('[Harees] ✅ اكتمل فحص حالات الباتشات');
     }
 
-    private function processMerchantBatches(Merchant $merchant): void
+    private function processMerchantBatches(Merchant $merchant): bool
     {
+        $anyChanged = false;
+
         Batch::where('merchant_id', $merchant->id)
             ->whereNotNull('expiry_date')
             ->get()
-            ->each(function ($batch) use ($merchant) {
-                $this->updateBatchStatus($batch, $merchant);
+            ->each(function ($batch) use ($merchant, &$anyChanged) {
+                if ($this->updateBatchStatus($batch, $merchant)) {
+                    $anyChanged = true;
+                }
             });
+
+        return $anyChanged;
     }
 
-    private function updateBatchStatus(Batch $batch, Merchant $merchant): void
+    private function updateBatchStatus(Batch $batch, Merchant $merchant): bool
     {
         $oldStatus = $batch->status;
         $batch->calculateStatus();
@@ -48,5 +58,7 @@ class CheckBatchStatusesJob implements ShouldQueue
         if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
             $merchant->notify(new BatchExpiryNotification($batch, $batch->status));
         }
+
+        return $oldStatus !== $batch->status;
     }
 }

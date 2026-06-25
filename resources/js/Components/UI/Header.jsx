@@ -224,8 +224,8 @@ useEffect(() => {
                                                 notifications.map((n) => (
                                                     <NotificationItem
                                                         key={n.id}
-                                                        title={n.data?.status === 'red' ? 'Expired Product!' : 'Expiry Approaching'}
-                                                        msg={`Batch ${n.data?.batch_code ?? ''} of "${n.data?.product_name ?? 'product'}" ${n.data?.status === 'red' ? 'has expired.' : 'is approaching its expiry date.'}`}
+                                                        title={isAr ? n.data?.title_ar : n.data?.title_en}
+                                                        msg={isAr ? n.data?.body_ar : n.data?.body_en}
                                                         color={n.data?.status === 'red' ? 'text-[#f87171]' : 'text-[#fbbf24]'}
                                                         unread={!n.read_at}
                                                     />

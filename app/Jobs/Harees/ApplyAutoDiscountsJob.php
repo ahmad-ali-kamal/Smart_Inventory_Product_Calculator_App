@@ -6,6 +6,7 @@ use App\Models\Batch;
 use App\Models\BatchSetting;
 use App\Models\Merchant;
 use App\Services\SallaApiService;
+use App\Jobs\Harees\UpdateBatchOptionsJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -39,6 +40,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
                 Log::error("[AutoDiscount] خطأ في التاجر {$merchant->id}: " . $e->getMessage());
             }
         });
+
+        UpdateBatchOptionsJob::dispatch();
 
         Log::info('[Harees] ✅ اكتمل تطبيق الخصومات التلقائية');
     }
