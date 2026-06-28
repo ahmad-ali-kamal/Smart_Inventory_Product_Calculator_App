@@ -79,7 +79,6 @@ class DiscountController extends Controller
 
         $merchant = $product->merchant;
 
-        // ─── تحديد الدفعة المستهدفة ───────────────────────────────────
         if (!empty($validated['batch_id'])) {
             $batch = Batch::where('id', $validated['batch_id'])
                 ->where('merchant_id', $merchant->id)
@@ -100,17 +99,23 @@ class DiscountController extends Controller
         }
 
         try {
-            $sallaApi          = SallaApiService::for($merchant);
-            $discountPct       = (float) $validated['discount_percentage'];
+            $sallaApi    = SallaApiService::for($merchant);
+            $discountPct = (float) $validated['discount_percentage'];
+
+            $this->ensureOriginalDataStored($batch, $product, $sallaApi);
 
             $variantIds = $batch->batchVariants()->pluck('variant_id');
 
             if ($variantIds->isEmpty()) {
-                // Apply discount directly to product
-                $currentPrice = (float) ($product->price ?? 0);
+                $currentPrice = (float) ($batch->original_price ?: ($product->price ?? 0));
                 $salePrice    = round($currentPrice * (1 - $discountPct / 100), 2);
 
                 $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
+
+                $batchQty = $batch->batch_qty ?? 0;
+                if ($batchQty > 0) {
+                    $sallaApi->updateProductQuantity($product->salla_product_id, $batchQty);
+                }
 
                 $this->saveDiscountRecord($batch, $discountPct, $product, $validated['ends_at']);
 
@@ -124,27 +129,29 @@ class DiscountController extends Controller
                 ]);
             }
 
-            // Apply discount to variants
             $appliedCount = 0;
             $savedLastSalePrice = null;
 
             foreach ($batch->batchVariants as $batchVariant) {
                 $variantId = $batchVariant->variant_id;
 
-                $variantData  = $product->getVariantById($variantId) ?? [];
-                $currentPrice = (float) ($variantData['price'] ?? $product->price ?? 0);
-                $currentSku   = $variantData['sku'] ?? $product->sku ?? null;
-
-                if (!$currentSku) {
-                    Log::warning('[Discount] لا يوجد SKU للـ variant', ['variant_id' => $variantId]);
-                    continue;
+                $originalVariantPrices = $batch->original_variant_prices ?? [];
+                $matchedPrice = null;
+                foreach ($originalVariantPrices as $ovp) {
+                    if ((int) ($ovp['variant_id'] ?? 0) === (int) $variantId) {
+                        $matchedPrice = (float) ($ovp['price'] ?? 0);
+                        break;
+                    }
                 }
+
+                $currentPrice = $matchedPrice ?: (float) ($product->price ?? 0);
 
                 $salePrice = round($currentPrice * (1 - $discountPct / 100), 2);
 
                 $variantRes = $sallaApi->updateBatchVariant($variantId, [
                     'price'      => $currentPrice,
                     'sale_price' => $salePrice,
+                    'stock_quantity' => $batchVariant->batch_qty ?? 0,
                 ]);
 
                 if (!$variantRes) {
@@ -155,7 +162,7 @@ class DiscountController extends Controller
                 $appliedCount++;
                 $savedLastSalePrice = $salePrice;
 
-                Log::info('[Discount] ✅ تم تطبيق الخصم على الـ Variant', [
+                Log::info('[Discount] تم تطبيق الخصم على الـ Variant', [
                     'variant_id'     => $variantId,
                     'original_price' => $currentPrice,
                     'sale_price'     => $salePrice,
@@ -189,6 +196,46 @@ class DiscountController extends Controller
                 'error'      => $e->getMessage(),
             ]);
             return response()->json(['success' => false, 'message' => 'فشل تطبيق الخصم'], 500);
+        }
+    }
+
+    private function ensureOriginalDataStored(Batch $batch, Product $product, SallaApiService $sallaApi): void
+    {
+        if ($batch->original_price !== null && $batch->original_qty !== null) return;
+
+        try {
+            $data = $sallaApi->getProduct($product->salla_product_id);
+            $productData = $data['data'] ?? [];
+
+            $originalPrice = (float) ($productData['price']['amount'] ?? $product->price ?? 0);
+            $originalQty   = (int) ($productData['quantity'] ?? $product->quantity ?? 0);
+
+            $originalVariantPrices = [];
+            $originalVariantQtys   = [];
+            $variants = $productData['variants'] ?? [];
+            if (!empty($variants)) {
+                foreach ($variants as $v) {
+                    if (isset($v['id'])) {
+                        $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price']['amount'] ?? 0)];
+                        $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['stock_quantity'] ?? 0)];
+                    }
+                }
+            }
+
+            $batch->update([
+                'original_price'         => $originalPrice,
+                'original_qty'           => $originalQty,
+                'original_variant_prices' => !empty($originalVariantPrices) ? $originalVariantPrices : null,
+                'original_variant_qtys'   => !empty($originalVariantQtys) ? $originalVariantQtys : null,
+            ]);
+
+            Log::info('[Discount] تم حفظ البيانات الأصلية', [
+                'batch_id' => $batch->id,
+                'price'    => $originalPrice,
+                'qty'      => $originalQty,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('[Discount] فشل حفظ البيانات الأصلية: ' . $e->getMessage());
         }
     }
 
@@ -306,21 +353,43 @@ class DiscountController extends Controller
                 $variantIds = $batch->batchVariants()->pluck('variant_id');
 
                 if ($variantIds->isNotEmpty()) {
+                    $originalVariantPrices = $batch->original_variant_prices ?? [];
                     foreach ($batch->batchVariants as $batchVariant) {
-                        $variantData  = $product->getVariantById($batchVariant->variant_id) ?? [];
-                        $currentSku   = $variantData['sku'] ?? $product->sku ?? null;
-                        $currentPrice = (float) ($variantData['price'] ?? 0);
-
-                        if ($currentSku) {
-                            $sallaApi->updateBatchVariant($batchVariant->variant_id, [
-                                'price'      => $currentPrice,
-                                'sale_price' => 0,
-                            ]);
+                        $matchedPrice = null;
+                        foreach ($originalVariantPrices as $ovp) {
+                            if ((int) ($ovp['variant_id'] ?? 0) === (int) $batchVariant->variant_id) {
+                                $matchedPrice = (float) ($ovp['price'] ?? 0);
+                                break;
+                            }
                         }
+                        $restorePrice = $matchedPrice ?: (float) ($product->price ?? 0);
+
+                        $sallaApi->updateBatchVariant($batchVariant->variant_id, [
+                            'price'      => $restorePrice,
+                            'sale_price' => 0,
+                        ]);
                     }
                 } else {
-                    $currentPrice = (float) ($product->price ?? 0);
-                    $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, 0);
+                    $restorePrice = (float) ($batch->original_price ?: ($product->price ?? 0));
+                    $sallaApi->updateProductPrice($product->salla_product_id, $restorePrice, 0);
+                }
+
+                $originalQty = $batch->original_qty;
+                if ($originalQty !== null && $originalQty > 0) {
+                    $originalVariantQtys = $batch->original_variant_qtys ?? [];
+                    if (!empty($originalVariantQtys)) {
+                        foreach ($originalVariantQtys as $ovq) {
+                            $variantId = $ovq['variant_id'] ?? null;
+                            $qty = (int) ($ovq['qty'] ?? 0);
+                            if ($variantId) {
+                                $sallaApi->updateBatchVariant($variantId, [
+                                    'stock_quantity' => $qty,
+                                ]);
+                            }
+                        }
+                    } else {
+                        $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
+                    }
                 }
             }
 
@@ -391,6 +460,33 @@ class DiscountController extends Controller
         $batch = $product->batch;
 
         if ($batch && $batch->status === 'red') {
+            $merchant = $product->merchant;
+
+            try {
+                $sallaApi = SallaApiService::for($merchant);
+
+                $this->cancelDiscountForBatch($batch, $product, $sallaApi);
+
+                $originalQty = $batch->original_qty;
+                if ($originalQty !== null && $originalQty > 0) {
+                    $originalVariantQtys = $batch->original_variant_qtys ?? [];
+                    if (!empty($originalVariantQtys)) {
+                        foreach ($originalVariantQtys as $ovq) {
+                            $variantId = $ovq['variant_id'] ?? null;
+                            $qty = (int) ($ovq['qty'] ?? 0);
+                            if ($variantId) {
+                                $sallaApi->updateBatchVariant($variantId, ['stock_quantity' => $qty]);
+                            }
+                        }
+                    } else {
+                        $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('[Restock] فشل استعادة البيانات: ' . $e->getMessage());
+            }
+
+            $batch->batchVariants()->delete();
             $batch->delete();
         }
 
@@ -402,6 +498,41 @@ class DiscountController extends Controller
         );
 
         return back()->with('success', 'تم إعادة توفير المنتج. يمكنك الآن إضافة دفعات جديدة.');
+    }
+
+    private function cancelDiscountForBatch(Batch $batch, Product $product, SallaApiService $sallaApi): void
+    {
+        try {
+            $originalPrice = $batch->original_price;
+            $originalVariantPrices = $batch->original_variant_prices ?? [];
+
+            $hasVariants = $batch->batchVariants()->exists();
+
+            if ($hasVariants && !empty($originalVariantPrices)) {
+                foreach ($originalVariantPrices as $ovp) {
+                    $variantId = $ovp['variant_id'] ?? null;
+                    $price = (float) ($ovp['price'] ?? 0);
+                    if ($variantId) {
+                        $sallaApi->updateBatchVariant($variantId, [
+                            'price'      => $price,
+                            'sale_price' => 0,
+                        ]);
+                    }
+                }
+            } elseif ($originalPrice !== null && $originalPrice > 0) {
+                $sallaApi->updateProductPrice($product->salla_product_id, $originalPrice, 0);
+            }
+
+            BatchDiscount::where('batch_id', $batch->id)
+                ->where('status', 'active')
+                ->update(['status' => 'cancelled']);
+
+            if ($batch->isAutoDiscounted() || $batch->isManuallyDiscounted()) {
+                $batch->markAsPending();
+            }
+        } catch (\Exception $e) {
+            Log::warning('[Restock] فشل إلغاء الخصم: ' . $e->getMessage());
+        }
     }
 
     // =========================================================

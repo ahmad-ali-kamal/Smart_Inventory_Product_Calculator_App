@@ -43,13 +43,34 @@ class ProductExpiryController extends Controller
                 $product->batch->delete();
             }
 
+            $originalPrice = (float) ($product->price ?? 0);
+            $originalQty   = (int) ($product->quantity ?? $product->dbQty ?? 0);
+
+            $originalVariantPrices = [];
+            $originalVariantQtys   = [];
+            if ($product->variants_data) {
+                $variantsData = is_string($product->variants_data) ? json_decode($product->variants_data, true) : $product->variants_data;
+                if (is_array($variantsData)) {
+                    foreach ($variantsData as $v) {
+                        if (isset($v['id'])) {
+                            $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price'] ?? 0)];
+                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['quantity'] ?? 0)];
+                        }
+                    }
+                }
+            }
+
             $batch = Batch::create([
-                'merchant_id' => $merchant->id,
-                'product_id'  => $product->id,
-                'expiry_date' => $request->expiry_date,
-                'total_qty'   => $request->total_qty,
-                'batch_qty'   => $request->total_qty,
-                'status'      => 'green',
+                'merchant_id'           => $merchant->id,
+                'product_id'            => $product->id,
+                'expiry_date'           => $request->expiry_date,
+                'total_qty'             => $request->total_qty,
+                'batch_qty'             => $request->total_qty,
+                'status'                => 'green',
+                'original_price'        => $originalPrice,
+                'original_qty'          => $originalQty,
+                'original_variant_prices' => !empty($originalVariantPrices) ? $originalVariantPrices : null,
+                'original_variant_qtys'   => !empty($originalVariantQtys) ? $originalVariantQtys : null,
             ]);
 
             $batch->calculateStatus();
@@ -113,16 +134,18 @@ class ProductExpiryController extends Controller
 
         DB::beginTransaction();
         try {
-            if ($product->batch) {
-                $this->cleanupDiscountsOnBatchDeletion($product, collect([$product->batch->id]));
-                $product->batch->batchVariants()->delete();
-                $product->batch->delete();
+            $merchant = auth()->user();
+            $batch = $product->batch;
+
+            if ($batch) {
+                $this->cleanupDiscountsOnBatchDeletion($product, collect([$batch->id]));
+                $this->restoreOriginalQuantity($batch, $product, $merchant);
+                $batch->batchVariants()->delete();
+                $batch->delete();
             }
 
             $product->status = 'sale';
             $product->save();
-
-            $merchant = auth()->user();
 
             try {
                 $sallaApi = \App\Services\SallaApiService::for($merchant);
@@ -161,6 +184,7 @@ class ProductExpiryController extends Controller
             $product = $batch->product;
 
             $this->cleanupDiscountsOnBatchDeletion($product, collect([$batch->id]));
+            $this->restoreOriginalQuantity($batch, $product, $merchant);
 
             $batch->batchVariants()->delete();
             $batch->delete();
@@ -206,15 +230,14 @@ class ProductExpiryController extends Controller
 
             if (!$batch) {
                 $shouldHide = true;
-            } else {
-                $expiryDate = $batch->expiry_date;
-                if ($expiryDate && $expiryDate->isPast()) {
+            } elseif ($batch->expiry_date) {
+                $expiry  = \Carbon\Carbon::parse($batch->expiry_date)->startOfDay();
+                $today   = \Carbon\Carbon::now()->startOfDay();
+                $daysLeft = (int) $today->diffInDays($expiry, false);
+                $beforeDays = (int) ($setting->auto_hide_before_expiry_days ?? 0);
+
+                if ($daysLeft <= $beforeDays) {
                     $shouldHide = true;
-                } elseif ($expiryDate && $setting->auto_hide_before_expiry_days) {
-                    $hideBeforeDate = now()->addDays($setting->auto_hide_before_expiry_days);
-                    if ($expiryDate <= $hideBeforeDate) {
-                        $shouldHide = true;
-                    }
                 }
             }
 
@@ -252,20 +275,28 @@ class ProductExpiryController extends Controller
 
                     if ($variantIds->isNotEmpty()) {
                         foreach ($batch->batchVariants as $bv) {
-                            $variantData = $product->getVariantById($bv->variant_id) ?? [];
-                            $currentSku  = $variantData['sku'] ?? null;
-                            $currentPrice = (float) ($variantData['price'] ?? 0);
+                            $variantSku  = null;
+                            $originalPrice = $batch->original_price;
+                            $originalVariantPrices = $batch->original_variant_prices ?? [];
 
-                            if ($currentSku) {
-                                $sallaApi->updateBatchVariant($bv->variant_id, [
-                                    'price'      => $currentPrice,
-                                    'sale_price' => 0,
-                                ]);
+                            $matchedVariantPrice = null;
+                            foreach ($originalVariantPrices as $ovp) {
+                                if ((int) ($ovp['variant_id'] ?? 0) === (int) $bv->variant_id) {
+                                    $matchedVariantPrice = (float) ($ovp['price'] ?? 0);
+                                    break;
+                                }
                             }
+
+                            $restorePrice = $matchedVariantPrice ?: ($originalPrice ?: 0);
+
+                            $sallaApi->updateBatchVariant($bv->variant_id, [
+                                'price'      => $restorePrice,
+                                'sale_price' => 0,
+                            ]);
                         }
                     } else {
-                        $currentPrice = (float) ($product->price ?? 0);
-                        $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, 0);
+                        $restorePrice = (float) ($batch->original_price ?: ($product->price ?? 0));
+                        $sallaApi->updateProductPrice($product->salla_product_id, $restorePrice, 0);
                     }
 
                     $discount->update(['status' => 'cancelled']);
@@ -273,6 +304,40 @@ class ProductExpiryController extends Controller
             }
         } catch (\Exception $e) {
             Log::warning("[Cleanup] فشل تنظيف الخصومات: " . $e->getMessage());
+        }
+    }
+
+    protected function restoreOriginalQuantity(Batch $batch, ?Product $product, $merchant): void
+    {
+        if (!$product || !$merchant || !$product->salla_product_id) return;
+
+        try {
+            $sallaApi = \App\Services\SallaApiService::for($merchant);
+
+            $originalQty = $batch->original_qty;
+            $originalVariantQtys = $batch->original_variant_qtys ?? [];
+
+            $hasVariants = $batch->batchVariants()->exists();
+
+            if ($hasVariants && !empty($originalVariantQtys)) {
+                foreach ($originalVariantQtys as $ovq) {
+                    $variantId = $ovq['variant_id'] ?? null;
+                    $qty = (int) ($ovq['qty'] ?? 0);
+                    if ($variantId) {
+                        $sallaApi->updateBatchVariant($variantId, [
+                            'stock_quantity' => $qty,
+                        ]);
+                    }
+                }
+            } elseif ($originalQty !== null && $originalQty > 0) {
+                $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
+            }
+
+            Log::info("[RestoreQty] تم استعادة الكمية الأصلية للمنتج {$product->id}", [
+                'original_qty' => $originalQty,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning("[RestoreQty] فشل استعادة الكمية: " . $e->getMessage());
         }
     }
 

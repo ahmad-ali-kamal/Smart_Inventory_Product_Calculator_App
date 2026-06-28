@@ -281,14 +281,34 @@ class HareesApiController extends Controller
                 $product->batch->delete();
             }
 
-            // إنشاء الدفعة الجديدة
+            $originalPrice = (float) ($product->price ?? 0);
+            $originalQty   = (int) ($product->quantity ?? $product->dbQty ?? 0);
+
+            $originalVariantPrices = [];
+            $originalVariantQtys   = [];
+            if ($product->variants_data) {
+                $variantsData = is_string($product->variants_data) ? json_decode($product->variants_data, true) : $product->variants_data;
+                if (is_array($variantsData)) {
+                    foreach ($variantsData as $v) {
+                        if (isset($v['id'])) {
+                            $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price'] ?? 0)];
+                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['quantity'] ?? 0)];
+                        }
+                    }
+                }
+            }
+
             $batch = Batch::create([
-                'merchant_id' => $merchant->id,
-                'product_id'  => $product->id,
-                'expiry_date' => $request->expiry_date,
-                'total_qty'   => $request->quantity,
-                'batch_qty'   => $request->quantity,
-                'status'      => 'green',
+                'merchant_id'           => $merchant->id,
+                'product_id'            => $product->id,
+                'expiry_date'           => $request->expiry_date,
+                'total_qty'             => $request->quantity,
+                'batch_qty'             => $request->quantity,
+                'status'                => 'green',
+                'original_price'        => $originalPrice,
+                'original_qty'          => $originalQty,
+                'original_variant_prices' => !empty($originalVariantPrices) ? $originalVariantPrices : null,
+                'original_variant_qtys'   => !empty($originalVariantQtys) ? $originalVariantQtys : null,
             ]);
 
             $batch->calculateStatus();

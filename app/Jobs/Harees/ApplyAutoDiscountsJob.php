@@ -87,6 +87,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
             return;
         }
 
+        $this->ensureOriginalDataStored($batch, $product, $sallaApi);
+
         $discountPercent = $this->calculateDiscountPercentage($batch, $settings);
         if ($discountPercent <= 0) {
             Log::info("[AutoDiscount] نسبة الخصم 0 للباتش {$batch->id} — تم التجاوز");
@@ -97,12 +99,78 @@ class ApplyAutoDiscountsJob implements ShouldQueue
 
         if ($hasVariants) {
             $this->applyDiscountToVariants($sallaApi, $batch, $discountPercent);
+            $this->syncBatchQuantityToSalla($sallaApi, $batch, $product);
         } else {
             $this->applyDiscountToProduct($sallaApi, $batch, $discountPercent);
+            $this->syncBatchQuantityToSalla($sallaApi, $batch, $product);
         }
 
         $batch->markAsAutoDiscounted();
         Log::info("[AutoDiscount] ✅ الباتش {$batch->id} → auto_discounted");
+    }
+
+    private function ensureOriginalDataStored(Batch $batch, Product $product, SallaApiService $sallaApi): void
+    {
+        if ($batch->original_price !== null && $batch->original_qty !== null) return;
+
+        try {
+            $productData = $sallaApi->getProduct($product->salla_product_id);
+            $data = $productData['data'] ?? [];
+
+            $originalPrice = (float) ($data['price']['amount'] ?? $product->price ?? 0);
+            $originalQty   = (int) ($data['quantity'] ?? $product->quantity ?? 0);
+
+            $originalVariantPrices = [];
+            $originalVariantQtys   = [];
+            $variants = $data['variants'] ?? [];
+            if (!empty($variants)) {
+                foreach ($variants as $v) {
+                    if (isset($v['id'])) {
+                        $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price']['amount'] ?? 0)];
+                        $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['stock_quantity'] ?? 0)];
+                    }
+                }
+            }
+
+            $batch->update([
+                'original_price'         => $originalPrice,
+                'original_qty'           => $originalQty,
+                'original_variant_prices' => !empty($originalVariantPrices) ? $originalVariantPrices : null,
+                'original_variant_qtys'   => !empty($originalVariantQtys) ? $originalVariantQtys : null,
+            ]);
+
+            Log::info("[AutoDiscount] تم حفظ البيانات الأصلية للباتش {$batch->id}", [
+                'price' => $originalPrice,
+                'qty'   => $originalQty,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning("[AutoDiscount] فشل حفظ البيانات الأصلية: " . $e->getMessage());
+        }
+    }
+
+    private function syncBatchQuantityToSalla(SallaApiService $sallaApi, Batch $batch, Product $product): void
+    {
+        if (!$product->salla_product_id) return;
+
+        try {
+            $batchQty = $batch->batch_qty ?? 0;
+            $hasVariants = $batch->batchVariants()->exists();
+
+            if ($hasVariants) {
+                foreach ($batch->batchVariants as $bv) {
+                    $variantQty = $bv->batch_qty ?? 0;
+                    $sallaApi->updateBatchVariant($bv->variant_id, [
+                        'stock_quantity' => $variantQty,
+                    ]);
+                    Log::info("[AutoDiscount] ✅ تحديث كمية Variant {$bv->variant_id} → {$variantQty}");
+                }
+            } else {
+                $sallaApi->updateProductQuantity($product->salla_product_id, $batchQty);
+                Log::info("[AutoDiscount] ✅ تحديث كمية المنتج {$product->id} → {$batchQty}");
+            }
+        } catch (\Exception $e) {
+            Log::warning("[AutoDiscount] فشل تحديث الكمية في سلة: " . $e->getMessage());
+        }
     }
 
     private function applyDiscountToVariants(SallaApiService $sallaApi, Batch $batch, float $discountPercent): void

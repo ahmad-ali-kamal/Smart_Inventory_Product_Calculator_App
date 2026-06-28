@@ -40,6 +40,10 @@ class Batch extends Model
         'offer_id',
         'days_until_expiry',
         'discount_type',
+        'original_price',
+        'original_qty',
+        'original_variant_prices',
+        'original_variant_qtys',
     ];
 
     protected $casts = [
@@ -50,7 +54,11 @@ class Batch extends Model
         'total_qty'         => 'integer',
         'batch_qty'         => 'integer',
         'yellow_threshold'  => 'integer',
-        'red_threshold'     => 'integer',
+        'red_threshold'      => 'integer',
+        'original_price'     => 'decimal:2',
+        'original_qty'       => 'integer',
+        'original_variant_prices' => 'array',
+        'original_variant_qtys'  => 'array',
     ];
 
     protected $appends = [
