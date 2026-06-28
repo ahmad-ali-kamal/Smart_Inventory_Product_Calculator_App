@@ -20,7 +20,6 @@ class CheckBatchExpiryJob implements ShouldQueue
      * Responsibilities are now split across single-purpose jobs:
      *
      *   CheckBatchStatusesJob     → status calculation + notifications
-     *   UpdateBatchOptionsJob     → sync "خيارات الشراء" option to Salla
      *   ApplyAutoDiscountsJob     → auto discounts ONLY (no manual discount logic)
      *   SyncVariantQuantitiesJob  → push stock quantities to Salla variants
      *   CleanupDeletedBatchesJob  → auto-hide expired products + orphan cleanup
@@ -33,7 +32,6 @@ class CheckBatchExpiryJob implements ShouldQueue
         Log::info('[Harees Engine] 🚀 بدء دورة الفحص والمزامنة المركزية');
 
         \App\Jobs\Harees\CheckBatchStatusesJob::dispatch();
-        \App\Jobs\Harees\UpdateBatchOptionsJob::dispatch();
         \App\Jobs\Harees\ApplyAutoDiscountsJob::dispatch();
         \App\Jobs\Harees\SyncVariantQuantitiesJob::dispatch();
         \App\Jobs\Harees\CleanupDeletedBatchesJob::dispatch();

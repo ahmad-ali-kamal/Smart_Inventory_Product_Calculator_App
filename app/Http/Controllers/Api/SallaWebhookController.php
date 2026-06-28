@@ -11,7 +11,7 @@
  * ✅ التحقق من التوقيع (HMAC-SHA256) حسب توثيق سلة
  * ✅ منع المعالجة المكررة (Idempotency) عبر Cache
  * ✅ مزامنة كاملة للـ variants والكميات
- * ✅ تحديث variants_data و batch_items
+ * ✅ تحديث variants_data و batch_variants
  * ✅ تشغيل CheckBatchExpiryJob بعد التحديثات
  * ✅ منع stale data و race conditions
  * ✅ دعم product.price.updated, product.status.updated
@@ -31,7 +31,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
-use App\Models\BatchItem;
+use App\Models\BatchVariant;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -242,9 +242,8 @@ class SallaWebhookController extends Controller
 
         // ─── درع الحماية ضد حلقة الإخفاء ───
         if (isset($p['status'])) {
-            $hasValidBatches = $product->exists && $product->batchItems()->whereHas('batch', function ($q) {
-                $q->where('expiry_date', '>=', now()->format('Y-m-d'));
-            })->exists();
+            $hasValidBatches = $product->exists && $product->batch && $product->batch->expiry_date
+                && !$product->batch->expiry_date->isPast();
 
             if ($hasValidBatches && $p['status'] === 'hidden') {
                 Log::info('[Webhook Shield] منع إخفاء المنتج ' . $p['id'] . ' — عنده دفعات صالحة');
@@ -352,42 +351,39 @@ class SallaWebhookController extends Controller
                 }
             }
 
-            // ─── 2. تحديث كمية الـ BatchItem بالـ variant_id ───
-            if ($variantId) {
-                $batchItem = BatchItem::whereHas('batch', function ($q) use ($merchant) {
+            // ─── 2. تحديث كمية الـ batch بعد البيع ───
+            if ($variantId && isset($product)) {
+                $batchVariant = BatchVariant::whereHas('batch', function ($q) use ($merchant) {
                         $q->where('merchant_id', $merchant->id);
                     })
-                    ->where('salla_variant_id', $variantId)
+                    ->where('variant_id', $variantId)
                     ->first();
 
-                if ($batchItem) {
-                    $oldQty = $batchItem->quantity;
-                    $batchItem->quantity = max(0, $oldQty - $soldQty);
-                    $batchItem->save();
+                if ($batchVariant) {
+                    $oldQty = $batchVariant->batch_qty;
+                    $batchVariant->batch_qty = max(0, $oldQty - $soldQty);
+                    $batchVariant->save();
 
-                    Log::info('[Webhook] ✅ تنقيص BatchItem بعد البيع', [
-                        'batch_item_id' => $batchItem->id,
-                        'variant_id'    => $variantId,
-                        'old_qty'       => $oldQty,
-                        'sold_qty'      => $soldQty,
-                        'new_qty'       => $batchItem->quantity,
+                    // Also decrement the parent batch
+                    $batch = $batchVariant->batch;
+                    if ($batch) {
+                        $batch->batch_qty = max(0, ($batch->batch_qty ?? 0) - $soldQty);
+                        $batch->save();
+                    }
+
+                    Log::info('[Webhook] ✅ تنقيص batch_variant بعد البيع', [
+                        'variant_id'  => $variantId,
+                        'old_qty'     => $oldQty,
+                        'sold_qty'    => $soldQty,
+                        'new_qty'     => $batchVariant->batch_qty,
                     ]);
                 }
             }
 
-            // ─── 3. Fallback: البحث بالـ batch_code ───
-            if (!$variantId && $sku) {
-                $batch = Batch::where('merchant_id', $merchant->id)
-                    ->where('batch_code', $sku)
-                    ->first();
-
-                if ($batch) {
-                    $batchItem = BatchItem::where('batch_id', $batch->id)->first();
-                    if ($batchItem) {
-                        $batchItem->quantity = max(0, $batchItem->quantity - $soldQty);
-                        $batchItem->save();
-                    }
-                }
+            // ─── 3. Fallback: تنقيص batch_qty مباشرة ───
+            if (!$variantId && isset($product) && $product->batch) {
+                $product->batch->batch_qty = max(0, ($product->batch->batch_qty ?? 0) - $soldQty);
+                $product->batch->save();
             }
         }
 
@@ -435,10 +431,10 @@ class SallaWebhookController extends Controller
                     $product->save();
                 }
 
-                // تحديث batch_item المرتبط
-                BatchItem::where('product_id', $product->id ?? 0)
-                    ->where('salla_variant_id', $sallaVariantId)
-                    ->update(['variant_quantity' => $newQty]);
+                // تحديث batch_variant المرتبط
+                BatchVariant::whereHas('batch', fn($q) => $q->where('product_id', $product->id ?? 0))
+                    ->where('variant_id', $sallaVariantId)
+                    ->update(['batch_qty' => $newQty, 'total_qty' => $newQty]);
             }
 
             Log::info('[Webhook] ✅ تم تحديث كميات الـ variants', [
@@ -515,11 +511,11 @@ class SallaWebhookController extends Controller
             $product->quantity = $totalStock;
             $product->save();
 
-            // تحديث batch_items
+            // تحديث batch_variants
             foreach ($variantsData as $variant) {
-                BatchItem::where('product_id', $product->id)
-                    ->where('salla_variant_id', $variant['id'])
-                    ->update(['variant_quantity' => $variant['stock_quantity']]);
+                BatchVariant::whereHas('batch', fn($q) => $q->where('product_id', $product->id))
+                    ->where('variant_id', $variant['id'])
+                    ->update(['batch_qty' => $variant['stock_quantity']]);
             }
 
             Log::info('[Webhook] ✅ مزامنة كاملة للمخزون', [
@@ -604,13 +600,11 @@ class SallaWebhookController extends Controller
         $product->variants_data = $variantsData;
         $product->save();
 
-        // ─── تحديث batch_item المرتبط ───
-        // ✅ نحدث فقط الـ variant_quantity بالمخزون الجديد
-        // ولا نغير الـ quantity (لأنها كمية الدفعة المخصصة)
+        // تحديث batch_variant المرتبط
         $stockQty = $data['stock_quantity'] ?? 0;
-        BatchItem::where('product_id', $product->id)
-            ->where('salla_variant_id', $variantId)
-            ->update(['variant_quantity' => $stockQty]);
+        BatchVariant::whereHas('batch', fn($q) => $q->where('product_id', $product->id))
+            ->where('variant_id', $variantId)
+            ->update(['batch_qty' => $stockQty]);
 
         Log::info('[Webhook] ✅ تم تحديث Variant', [
             'product_id' => $productId,
@@ -642,10 +636,10 @@ class SallaWebhookController extends Controller
             $product->save();
         }
 
-        // مسح salla_variant_id من batch_items (لا نحذف الـ batch_item نفسه)
-        BatchItem::where('product_id', $product->id ?? 0)
-            ->where('salla_variant_id', $variantId)
-            ->update(['salla_variant_id' => null, 'variant_quantity' => null]);
+        // حذف batch_variant المرتبط
+        BatchVariant::whereHas('batch', fn($q) => $q->where('product_id', $product->id ?? 0))
+            ->where('variant_id', $variantId)
+            ->delete();
 
         Log::info('[Webhook] تم حذف Variant: ' . $variantId);
     }

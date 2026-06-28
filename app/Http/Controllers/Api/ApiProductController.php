@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
-use App\Models\BatchItem;
+use App\Models\BatchVariant;
 use App\Models\Batch;
 use App\Models\Product;
 use Illuminate\Support\Str;
@@ -41,7 +41,7 @@ class ApiProductController extends Controller
             return response()->json(['message' => 'غير مصرح للوصول لهذا المنتج'], 403);
         }
 
-        return new ProductResource($product->load(['images', 'batchItems.batch']));
+        return new ProductResource($product->load(['images', 'batch']));
     }
 
     /**
@@ -54,19 +54,20 @@ class ApiProductController extends Controller
             ->where('id', $product_id)
             ->firstOrFail();
 
-        $variants = $product->batchItems()->with('batch')->get()->map(function ($bi) use ($product) {
+        $batch = $product->batch;
+        $variants = $batch ? $batch->batchVariants()->with('batch')->get()->map(function ($bv) use ($product) {
             return [
-                'id' => $bi->id,
+                'id' => $bv->id,
                 'price' => ['amount' => (float) $product->price, 'currency' => 'SAR'],
-                'stock_quantity' => (int) $bi->quantity,
-                'sku' => $bi->batch?->batch_code ?? $product->sku,
+                'stock_quantity' => (int) $bv->batch_qty,
+                'sku' => $product->sku,
                 'batch_info' => [
-                    'code' => $bi->batch?->batch_code,
-                    'expiry' => $bi->batch?->expiry_date?->format('Y-m-d'),
-                    'status' => $bi->batch?->status
+                    'code' => $bv->batch?->batch_code,
+                    'expiry' => $bv->batch?->expiry_date?->format('Y-m-d'),
+                    'status' => $bv->batch?->status
                 ]
             ];
-        })->values();
+        })->values() : collect();
 
         return response()->json([
             'status' => 200,
@@ -147,10 +148,17 @@ class ApiProductController extends Controller
                 'days_until_expiry' => (int) now()->diffInDays(\Carbon\Carbon::parse($expiryDate), false),
             ]);
 
-            BatchItem::create([
-                'batch_id' => $batch->id,
+            BatchVariant::create([
+                'batch_id'   => $batch->id,
+                'variant_id' => $variantResult['data']['id'] ?? null,
+                'total_qty'  => $quantity,
+                'batch_qty'  => $quantity,
+            ]);
+
+            $batch->update([
                 'product_id' => $product->id,
-                'quantity' => $quantity,
+                'total_qty'  => $quantity,
+                'batch_qty'  => $quantity,
             ]);
 
             return response()->json([
@@ -210,10 +218,17 @@ class ApiProductController extends Controller
                     'status' => 'green'
                 ]);
 
-                BatchItem::create([
-                    'batch_id' => $batch->id,
+                BatchVariant::create([
+                    'batch_id'   => $batch->id,
+                    'variant_id' => $vInput['old_value_id'] ?? null,
+                    'total_qty'  => $vInput['quantity'],
+                    'batch_qty'  => $vInput['quantity'],
+                ]);
+
+                $batch->update([
                     'product_id' => $product->id,
-                    'quantity' => $vInput['quantity']
+                    'total_qty'  => ($batch->total_qty ?? 0) + $vInput['quantity'],
+                    'batch_qty'  => ($batch->batch_qty ?? 0) + $vInput['quantity'],
                 ]);
             }
 

@@ -179,9 +179,9 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
     };
 
     const productBatches = product.batches || [];
+    const batch = productBatches[0];
 
-    // Empty state: product exists but has no batch records yet.
-    if (productBatches.length === 0) {
+    if (!batch) {
         return (
             <div className="py-4 px-6 text-[11px] text-[var(--muted-foreground)] text-center">
                 {t('batch_row.no_batches')}
@@ -189,117 +189,84 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
         );
     }
 
+    const expiryDate = batch.expiry_date || batch.expiryDate || '—';
+    const isThisBatchLoading = isPending && selectedBatch?.id === batch.id;
+    const hasDiscount = hasExistingDiscount(batch);
+    const existingPct = getDiscountPct(batch);
+    const discountType = batch.discount_type;
+    const batchStatus = batch.status?.toLowerCase();
+    const isApproaching = batchStatus === 'yellow' || batchStatus === 'approaching';
+    const isExpired = batchStatus === 'red' || batchStatus === 'expired';
+    const isSafe = batchStatus === 'green' || batchStatus === 'safe' || batchStatus === 'valid';
+
     return (
         <>
-            {productBatches.map(batch => {
-                // Normalise batch code and expiry date fields regardless of API shape.
-                const batchCode  = batch.batch_code  || batch.batchNo    || '—';
-                const expiryDate = batch.expiry_date  || batch.expiryDate || '—';
-
-                /**
-                 * Scope the global `isPending` flag to this specific batch row so
-                 * only the button that triggered the request shows a spinner.
-                 */
-                const isThisBatchLoading = isPending && selectedBatch?.id === batch.id;
-
-                /**
-                 * Discount state for this specific batch.
-                 */
-                const hasDiscount = hasExistingDiscount(batch);
-                const existingPct = getDiscountPct(batch);
-                const discountType = batch.discount_type;
-
-                // Normalise status for reliable comparisons.
-                const batchStatus   = batch.status?.toLowerCase();
-                const isApproaching = batchStatus === 'yellow' || batchStatus === 'approaching';
-                const isExpired     = batchStatus === 'red'    || batchStatus === 'expired';
-                const isSafe        = batchStatus === 'green'  || batchStatus === 'safe' || batchStatus === 'valid';
-
-                return (
-                    <div
-                        key={batch.id}
-                        className="flex items-center border-b border-[var(--border)] last:border-0 hover:bg-[var(--accent)]/5 transition-all"
-                    >
-                        {/* Zone 1: Product avatar + name + batch code */}
-                        <div className="flex-1 py-3.5 px-4">
-                            <div className="flex items-center gap-2.5">
-                                <ProductAvatar
-                                    src={product.image_url || product.image}
-                                    name={product.name}
-                                    size={40}
-                                />
-                                <div className="flex flex-col gap-0.5 min-w-0">
-                                    <span className="text-[12px] font-bold text-[var(--foreground)] truncate">
-                                        {product.name}
-                                    </span>
-                                    <span className="text-[11px] font-bold flex items-center gap-1 text-[var(--muted-foreground)]">
-                                        <Tag size={10} className="text-[var(--primary)] opacity-50" />
-                                        {batchCode}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Zone 2: Batch-level status badge */}
-                        <div className="flex-1 py-3.5 px-4 flex justify-center">
-                            <StatusBadge status={batch.status} size="md" />
-                        </div>
-
-                        {/* Zone 3: Human-readable expiry date */}
-                        <div className="flex-1 py-3.5 px-4 flex justify-center">
-                            <span className="text-[12px] font-bold flex items-center justify-center gap-1.5 w-full text-[var(--foreground)]">
-                                <Calendar size={11} className="opacity-50" />
-                                {expiryDate}
+            <div className="flex items-center border-b border-[var(--border)] last:border-0 hover:bg-[var(--accent)]/5 transition-all">
+                <div className="flex-1 py-3.5 px-4">
+                    <div className="flex items-center gap-2.5">
+                        <ProductAvatar
+                            src={product.image_url || product.image}
+                            name={product.name}
+                            size={40}
+                        />
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[12px] font-bold text-[var(--foreground)] truncate">
+                                {product.name}
                             </span>
                         </div>
+                    </div>
+                </div>
 
-                        {/* ── Zone 4: Discount Status ─────────────────────────────────
-                            Displays the persisted `discount_type` from the backend.
-                        ─────────────────────────────────────────────────────────────────── */}
-                        <div className="flex-1 py-3.5 px-4 flex justify-center">
-                            {discountType && (
-                                <span
-                                    className={PILL_BASE}
-                                    style={{
-                                        color:       'var(--muted-foreground)',
-                                        background:  'color-mix(in srgb, var(--muted-foreground) 6%, transparent)',
-                                        borderColor: 'color-mix(in srgb, var(--muted-foreground) 18%, transparent)',
-                                    }}
-                                >
-                                    {t(`batch_row.${discountType}`)}
-                                </span>
-                            )}
+                <div className="flex-1 py-3.5 px-4 flex justify-center">
+                    <StatusBadge status={batch.status} size="md" />
+                </div>
+
+                <div className="flex-1 py-3.5 px-4 flex justify-center">
+                    <span className="text-[12px] font-bold flex items-center justify-center gap-1.5 w-full text-[var(--foreground)]">
+                        <Calendar size={11} className="opacity-50" />
+                        {expiryDate}
+                    </span>
+                </div>
+
+                <div className="flex-1 py-3.5 px-4 flex justify-center">
+                    {discountType && (
+                        <span
+                            className={PILL_BASE}
+                            style={{
+                                color:       'var(--muted-foreground)',
+                                background:  'color-mix(in srgb, var(--muted-foreground) 6%, transparent)',
+                                borderColor: 'color-mix(in srgb, var(--muted-foreground) 18%, transparent)',
+                            }}
+                        >
+                            {t(`batch_row.${discountType}`)}
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex-1 py-3.5 px-4 flex justify-center items-center gap-2">
+                    {confirmDeleteBatchId === batch.id ? (
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => handleDeleteBatch(batch.id)}
+                                disabled={deleteBatchMutation.isPending}
+                                className={`${BTN_BASE} border-red-400/30 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-400 text-[8px] px-2`}
+                            >
+                                {deleteBatchMutation.isPending ? (
+                                    <Loader2 size={8} className="animate-spin" />
+                                ) : (
+                                    <AlertTriangle size={8} />
+                                )}
+                                {t('batch_row.btn_confirm_delete')}
+                            </button>
+                            <button
+                                onClick={() => setConfirmDeleteBatchId(null)}
+                                className={`${BTN_BASE} border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]/10 text-[8px] px-2`}
+                            >
+                                {t('batch_row.btn_cancel_delete')}
+                            </button>
                         </div>
-
-                        {/* ── Zone 5: Actions ──────────────────────────────────────────
-                            Design rule: every element in this column uses PILL_BASE or BTN_BASE
-                            so height, border-radius, font, and padding are always identical.
-                            Only colour tokens and content text differ between states.
-                        ─────────────────────────────────────────────────────────────────── */}
-                        <div className="flex-1 py-3.5 px-4 flex justify-center items-center gap-2">
-                            {confirmDeleteBatchId === batch.id ? (
-                                <div className="flex items-center gap-1.5">
-                                    <button
-                                        onClick={() => handleDeleteBatch(batch.id)}
-                                        disabled={deleteBatchMutation.isPending}
-                                        className={`${BTN_BASE} border-red-400/30 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-400 text-[8px] px-2`}
-                                    >
-                                        {deleteBatchMutation.isPending ? (
-                                            <Loader2 size={8} className="animate-spin" />
-                                        ) : (
-                                            <AlertTriangle size={8} />
-                                        )}
-                                        {t('batch_row.btn_confirm_delete')}
-                                    </button>
-                                    <button
-                                        onClick={() => setConfirmDeleteBatchId(null)}
-                                        className={`${BTN_BASE} border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]/10 text-[8px] px-2`}
-                                    >
-                                        {t('batch_row.btn_cancel_delete')}
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
+                    ) : (
+                        <>
                             <button
                                 onClick={() => setConfirmDeleteBatchId(batch.id)}
                                 className="flex items-center justify-center w-[26px] h-[26px] rounded-full text-[var(--muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
@@ -309,59 +276,53 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                             </button>
 
                             {isApproaching && batch.discount_type === 'pending' && (
-                                    <button
-                                        onClick={() => setSelectedBatch(batch)}
-                                        disabled={isPending}
-                                        className={`${BTN_BASE} border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]`}
-                                    >
-                                        {isThisBatchLoading ? (
-                                            <Loader2 size={10} className="animate-spin" aria-hidden="true" />
-                                        ) : (
-                                            <Plus size={10} aria-hidden="true" />
-                                        )}
-                                        {isThisBatchLoading
-                                            ? t('batch_row.btn_applying')
-                                            : t('batch_row.btn_add_discount')
-                                        }
-                                    </button>
+                                <button
+                                    onClick={() => setSelectedBatch(batch)}
+                                    disabled={isPending}
+                                    className={`${BTN_BASE} border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]`}
+                                >
+                                    {isThisBatchLoading ? (
+                                        <Loader2 size={10} className="animate-spin" />
+                                    ) : (
+                                        <Plus size={10} />
+                                    )}
+                                    {isThisBatchLoading
+                                        ? t('batch_row.btn_applying')
+                                        : t('batch_row.btn_add_discount')
+                                    }
+                                </button>
                             )}
 
                             {isApproaching && batch.discount_type === 'auto_discounted' && (
-                                    <span
-                                        className={PILL_BASE}
-                                        style={{
-                                            color:       'var(--status-approaching-text)',
-                                            background:  'var(--status-approaching-bg)',
-                                            borderColor: 'var(--status-approaching-border)',
-                                        }}
-                                    >
-                                        <Tag size={10} aria-hidden="true" />
-                                        {autoDiscountPercent}% {t('batch_row.auto_discount_badge')}
-                                    </span>
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color:       'var(--status-approaching-text)',
+                                        background:  'var(--status-approaching-bg)',
+                                        borderColor: 'var(--status-approaching-border)',
+                                    }}
+                                >
+                                    <Tag size={10} />
+                                    {autoDiscountPercent}% {t('batch_row.auto_discount_badge')}
+                                </span>
                             )}
 
                             {isApproaching && batch.discount_type === 'manually_discounted' && (
-                                    <span
-                                        className={PILL_BASE}
-                                        style={{
-                                            color:       'var(--status-approaching-text)',
-                                            background:  'var(--status-approaching-bg)',
-                                            borderColor: 'var(--status-approaching-border)',
-                                        }}
-                                    >
-                                        <Tag size={10} aria-hidden="true" />
-                                        {existingPct}% {t('batch_row.manual_discount')}
-                                    </span>
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color:       'var(--status-approaching-text)',
+                                        background:  'var(--status-approaching-bg)',
+                                        borderColor: 'var(--status-approaching-border)',
+                                    }}
+                                >
+                                    <Tag size={10} />
+                                    {existingPct}% {t('batch_row.manual_discount')}
+                                </span>
                             )}
 
                             {!isApproaching && isExpired ? (
                                 autoHide ? (
-
-                                    /* ── Expired + Auto-hide ON ───────────────────────────────────
-                                       Pill styled like the discount btn (primary/purple palette)
-                                       to match the visual weight of Add/Edit Discount pills.
-                                       Signals the feature is active — colour matches primary.
-                                    ─────────────────────────────────────────────────────────── */
                                     <span
                                         className={PILL_BASE}
                                         style={{
@@ -372,13 +333,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                     >
                                         {t('batch_row.auto_hidden_badge')}
                                     </span>
-
                                 ) : (
-
-                                    /* ── Expired + Auto-hide OFF ──────────────────────────────────
-                                       Same pill shape but visually "disabled" — grey/muted palette
-                                       to signal the feature is turned off, no action available.
-                                    ─────────────────────────────────────────────────────────── */
                                     <span
                                         className={PILL_BASE}
                                         style={{
@@ -391,28 +346,16 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                         {t('batch_row.auto_hide_disabled_badge')}
                                     </span>
                                 )
-
                             ) : !isApproaching && isSafe ? (
-
                                 <span className="text-[var(--muted-foreground)] text-sm font-medium select-none w-full text-center">
                                     —
                                 </span>
-
                             ) : null}
+                        </>
+                    )}
+                </div>
+            </div>
 
-                                </>
-                            )}
-
-                        </div>
-                    </div>
-                );
-            })}
-
-            {/* ── Discount modal (portal) ──────────────────────────────────────
-                Rendered at document.body via createPortal so the fixed overlay
-                is never clipped by ancestor table elements or overflow wrappers.
-                Same pattern used by the working ExpiryModal.
-            ─────────────────────────────────────────────────────────────── */}
             {selectedBatch && createPortal(
                 <DiscountModal
                     batch={selectedBatch}

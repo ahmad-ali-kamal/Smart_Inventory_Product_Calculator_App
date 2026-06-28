@@ -16,10 +16,10 @@ class BatchSetting extends Model
         'medium_term_days',
         'long_term_days',
         'auto_hide_expired',
+        'auto_hide_before_expiry_days',
         'auto_discounts',
         'auto_discount_percent',
         'auto_discount_duration_days',
-        'yellow_batch_label',
     ];
 
     protected $casts = [
@@ -27,10 +27,10 @@ class BatchSetting extends Model
         'medium_term_days'            => 'integer',
         'long_term_days'              => 'integer',
         'auto_hide_expired'           => 'boolean',
+        'auto_hide_before_expiry_days' => 'integer',
         'auto_discounts'              => 'boolean',
         'auto_discount_percent'       => 'integer',
         'auto_discount_duration_days' => 'integer',
-        'yellow_batch_label'          => 'string',
     ];
 
     /**
@@ -60,14 +60,6 @@ class BatchSetting extends Model
     }
 
     /**
-     * التحقق من تفعيل الإشعارات
-     */
-    public function shouldSendNotifications(): bool
-    {
-        return $this->enable_notifications;
-    }
-
-    /**
      * القيم الافتراضية
      */
     public static function getDefaults(): array
@@ -80,7 +72,6 @@ class BatchSetting extends Model
             'auto_discounts'              => false,
             'auto_discount_percent'       => 20,
             'auto_discount_duration_days' => 7,
-            'yellow_batch_label'          => 'عرض التوفير (كمية محدودة)',
         ];
     }
 }

@@ -18,13 +18,12 @@
  * Single Responsibility: rendering only. All state lives in `useInventorySettingsForm`.
  */
 
-import { Zap, EyeOff, BadgePercent, Percent, Calendar, Tag } from 'lucide-react';
+import { Zap, EyeOff, BadgePercent, Percent, Calendar, Clock } from 'lucide-react';
 import Card from '../../Common/UI/Card';
 import HintBox from './HintBox';
 import Toggle from '../../Common/Toggle';
 import SaveButton from './SaveButton';
 import { useTranslation } from 'react-i18next';
-import { YELLOW_BATCH_LABELS } from '../../../constants/inventorySettings';
 
 // ---------------------------------------------------------------------------
 // Automation row definitions
@@ -55,6 +54,8 @@ function getAutomationRows(t) {
  * @param {object}   props
  * @param {{ autoHide: boolean, autoDiscount: boolean }} props.automation
  *   — Current state of the automation flags.
+ * @param {{ beforeExpiryDays: number|string }} props.autoHideConfig
+ *   — Current auto-hide config values.
  * @param {{ percent: number|string, durationDays: number|string }} props.discountConfig
  *   — Current discount field values.
  * @param {Record<string, string>} props.errors
@@ -67,12 +68,11 @@ function getAutomationRows(t) {
  */
 export default function AutomationCard({
     automation,
+    autoHideConfig,
     discountConfig,
-    yellowLabel,
     errors,
     onToggle,
     onInputChange,
-    onYellowLabelChange,
     onSave,
     saving,
     saved,
@@ -103,6 +103,16 @@ export default function AutomationCard({
                             />
                         </div>
 
+                        {/* Auto-hide before expiry config panel — only mounted when autoHide is on */}
+                        {key === 'autoHide' && automation.autoHide && (
+                            <AutoHidePanel
+                                autoHideConfig={autoHideConfig}
+                                errors={errors}
+                                onInputChange={onInputChange}
+                                t={t}
+                            />
+                        )}
+
                         {/* Hint box — indented to align with title/desc text, matching icon width (w-8) + gap-3 */}
                         {key === 'autoDiscount' && automation.autoDiscount && (
                             <div className="mt-2">
@@ -123,36 +133,6 @@ export default function AutomationCard({
                 </div>
             ))}
 
-            {/* ── Yellow batch label section ─────────────────────────────── */}
-            <div className="py-3 border-b border-[var(--border)]">
-                <div className="flex items-start gap-3">
-                    <span className="mt-0.5 text-[var(--muted-foreground)]">
-                        <Tag size={18} />
-                    </span>
-                    <div className="flex-1">
-                        <p className="text-sm font-medium text-[var(--foreground)]">
-                            {t('automation_card.yellow_label_title')}
-                        </p>
-                        <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                            {t('automation_card.yellow_label_desc')}
-                        </p>
-                        <div className="mt-2">
-                            <select
-                                value={yellowLabel}
-                                onChange={(e) => onYellowLabelChange(e.target.value)}
-                                className="w-full p-2.5 rounded-xl border border-[var(--primary)]/20 bg-[var(--muted)] text-sm text-[var(--foreground)] outline-none focus:ring-1 focus:ring-[var(--primary)]/30"
-                            >
-                                {YELLOW_BATCH_LABELS.map((label) => (
-                                    <option key={label} value={label}>
-                                        {label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* ── Save button ────────────────────────────────────────────── */}
             <div className="pt-4 border-t border-[var(--border)]">
                 <SaveButton
@@ -164,6 +144,54 @@ export default function AutomationCard({
                 />
             </div>
         </Card>
+    );
+}
+
+// ── Private: auto-hide before expiry config sub-panel ──────────────────────
+
+/**
+ * Single-column input panel for the auto-hide before expiry days field.
+ * Rendered only when the autoHide toggle is enabled.
+ *
+ * @param {object}   props
+ * @param {{ beforeExpiryDays: number|string }} props.autoHideConfig
+ * @param {Record<string, string>} props.errors
+ * @param {function} props.onInputChange — `(field, value, group) => void`
+ * @returns {JSX.Element}
+ */
+function AutoHidePanel({ autoHideConfig, errors, onInputChange, t }) {
+    return (
+        <div className="mx-1 mb-3 mt-1 p-4 rounded-2xl bg-[var(--muted)]/40 border border-[var(--primary)]/20 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* ── Before Expiry Days ─────────────────────────────────── */}
+                <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-[var(--muted-foreground)] uppercase flex items-center gap-1">
+                        <Clock size={9} /> {t('automation_card.auto_hide_before_label')}
+                    </label>
+                    <p className="text-[10px] text-[var(--muted-foreground)] leading-relaxed">
+                        {t('automation_card.auto_hide_before_desc')}
+                    </p>
+                    <div className={`relative rounded-xl border bg-[var(--muted)] transition-all ${
+                        errors['autoHide.beforeExpiryDays']
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-[var(--primary)]/20'
+                    }`}>
+                        <input
+                            type="text"
+                            value={autoHideConfig.beforeExpiryDays}
+                            onChange={(e) => onInputChange('beforeExpiryDays', e.target.value, 'autoHide')}
+                            className="w-full p-3 pe-10 bg-transparent text-[var(--foreground)] text-sm font-bold outline-none ring-0 focus:ring-0 border-none shadow-none"
+                        />
+                        <span className="absolute end-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-[9px]">
+                            {t('automation_card.suffix_days')}
+                        </span>
+                    </div>
+                    {errors['autoHide.beforeExpiryDays'] && (
+                        <p className="text-[10px] text-red-500 font-medium">{errors['autoHide.beforeExpiryDays']}</p>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 

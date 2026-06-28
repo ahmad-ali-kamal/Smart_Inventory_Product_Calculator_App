@@ -19,16 +19,14 @@ class ApplyAutoDiscountToPendingBatches implements ShouldQueue
     ) {}
 
     /**
-     * Delegates to the dedicated Harees jobs.
+     * Delegates to the dedicated Harees job.
      * ApplyAutoDiscountsJob handles auto discounts only.
-     * UpdateBatchOptionsJob syncs option labels to Salla.
      */
     public function handle(): void
     {
         Log::info('[AUTO DISCOUNT] بدء التطبيق للتاجر ' . $this->merchantId);
 
         \App\Jobs\Harees\ApplyAutoDiscountsJob::dispatch();
-        \App\Jobs\Harees\UpdateBatchOptionsJob::dispatch();
 
         Cache::forget("harees_dashboard_{$this->merchantId}");
         Cache::forget("harees_dashboard_api_{$this->merchantId}");

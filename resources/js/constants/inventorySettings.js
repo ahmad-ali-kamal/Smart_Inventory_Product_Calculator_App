@@ -85,31 +85,20 @@ export const BUCKET_CONFIG = [
 export const DEFAULT_THRESHOLDS = { short: 10, medium: 10, long: 10 };
 
 /**
- * Available yellow batch label options shown to the customer in the cart.
- *
- * @type {string[]}
- */
-export const YELLOW_BATCH_LABELS = [
-    'عرض التوفير (كمية محدودة)',
-    'السعر الترويجي',
-    'القطع الأخيرة (سعر خاص)',
-    'عرض خاص',
-];
-
-/**
- * Default yellow batch label
- *
- * @type {string}
- */
-export const DEFAULT_YELLOW_LABEL = 'عرض التوفير (كمية محدودة)';
-
-/**
  * Default state for the automation toggle switches.
  * Both are off by default; the user opts in explicitly.
  *
  * @type {{ autoHide: boolean, autoDiscount: boolean }}
  */
 export const DEFAULT_AUTOMATION = { autoHide: false, autoDiscount: false };
+
+/**
+ * Default auto-hide configuration applied when auto-hide is first enabled.
+ * beforeExpiryDays: hide product N days before expiry (0 = hide on expiry only).
+ *
+ * @type {{ beforeExpiryDays: number }}
+ */
+export const DEFAULT_AUTO_HIDE_CONFIG = { beforeExpiryDays: 0 };
 
 /**
  * Default discount configuration applied when auto-discount is first enabled.
@@ -151,6 +140,8 @@ export const FIELD_RULES = {
     // Discount configuration
     percent: { min: 1, max: 99 },
     durationDays: { min: 1, max: 365 },
+    // Auto-hide configuration
+    beforeExpiryDays: { min: 0, max: 365 },
 };
 
 // ---------------------------------------------------------------------------
@@ -232,9 +223,9 @@ export function validateNumericField(clean, min, max) {
 export function buildPayload({
     thresholds,
     automation,
+    autoHideConfig,
     discountConfig,
     categories,
-    yellowLabel,
 }) {
     return {
         short_term_days: Number(thresholds.short),
@@ -242,10 +233,10 @@ export function buildPayload({
         long_term_days: Number(thresholds.long),
         // Booleans → integer flags for Laravel's boolean casting
         auto_hide_expired: automation.autoHide ? 1 : 0,
+        auto_hide_before_expiry_days: Number(autoHideConfig.beforeExpiryDays),
         auto_discounts: automation.autoDiscount ? 1 : 0,
         auto_discount_percent: Number(discountConfig.percent),
         auto_discount_duration_days: Number(discountConfig.durationDays),
-        yellow_batch_label: yellowLabel ?? DEFAULT_YELLOW_LABEL,
         category_mapping: categories,
     };
 }
@@ -283,12 +274,10 @@ export function buildPayload({
  *   automation:    { autoHide: boolean, autoDiscount: boolean },
  *   discountConfig:{ percent: number, durationDays: number },
  *   categories:    { short: Array, medium: Array, long: Array },
- *   unassigned:    Array,
- *   yellowLabel:   string
+ *   unassigned:    Array
  * }} Hydrated internal state object.
  */
 export function hydrateFromServer(data) {
-    // Support both nested (`data.settings`) and flat response envelopes
     const s = data.settings || data;
 
     return {
@@ -298,9 +287,11 @@ export function hydrateFromServer(data) {
             long: s.long_term_days ?? DEFAULT_THRESHOLDS.long,
         },
         automation: {
-            // Laravel stores these as 0/1 integers; coerce to proper booleans
             autoHide: Boolean(s.auto_hide_expired),
             autoDiscount: Boolean(s.auto_discounts),
+        },
+        autoHideConfig: {
+            beforeExpiryDays: s.auto_hide_before_expiry_days ?? DEFAULT_AUTO_HIDE_CONFIG.beforeExpiryDays,
         },
         discountConfig: {
             percent: s.auto_discount_percent ?? DEFAULT_DISCOUNT.percent,
@@ -308,13 +299,10 @@ export function hydrateFromServer(data) {
                 s.auto_discount_duration_days ?? DEFAULT_DISCOUNT.durationDays,
         },
         categories: {
-            // Category mapping lives on `data`, not `s`, as it's a separate top-level key
             short: data.category_mapping?.short ?? [],
             medium: data.category_mapping?.medium ?? [],
             long: data.category_mapping?.long ?? [],
         },
-        // Categories not yet assigned to any bucket — populate the unassigned pool
         unassigned: data.unassigned_categories ?? [],
-        yellowLabel: s.yellow_batch_label ?? DEFAULT_YELLOW_LABEL,
     };
 }

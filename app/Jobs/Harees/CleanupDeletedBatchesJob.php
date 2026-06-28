@@ -51,19 +51,14 @@ class CleanupDeletedBatchesJob implements ShouldQueue
         }
 
         Product::where('merchant_id', $merchant->id)
-            ->whereHas('batchItems.batch')
-            ->with('batchItems.batch')
+            ->whereHas('batch')
+            ->with('batch')
             ->get()
             ->each(function ($product) use ($sallaApi) {
-                $batches = $product->batchItems()
-                    ->with('batch')
-                    ->get()
-                    ->map(fn($item) => $item->batch)
-                    ->filter();
+                $batch = $product->batch;
+                if (!$batch) return;
 
-                if ($batches->isEmpty()) return;
-
-                $allRed = $batches->every(fn($batch) => $batch && $batch->status === 'red');
+                $allRed = $batch->status === 'red';
 
                 $newStatus = $allRed ? 'hidden' : 'sale';
 

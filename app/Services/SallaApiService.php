@@ -14,15 +14,6 @@ class SallaApiService
     protected string $baseUrl  = 'https://api.salla.dev/admin/v2';
     protected string $oauthUrl = 'https://accounts.salla.sa/oauth2/token';
 
-    public const BATCH_OPTION_NAME = 'خيارات الشراء';
-    public const GREEN_LABEL = 'السعر الأساسي';
-    public const YELLOW_LABELS = [
-        'عرض التوفير (كمية محدودة)',
-        'السعر الترويجي',
-        'القطع الأخيرة (سعر خاص)',
-        'عرض خاص',
-    ];
-
     /**
      * أسماء التطبيقات المدعومة (الجديدة أولاً، القديمة كـ fallback)
      */
@@ -552,52 +543,6 @@ class SallaApiService
     // ================================================================
     // Options API
     // ================================================================
-
-    /**
-     * إنشاء خيار جديد للمنتج مع قيمه
-     * POST /products/{product}/options
-     *
-     * ✅ display_type: "text" فقط — "dropdown" يسبب 422
-     */
-    public function createProductOption(string $sallaProductId, string $name, array $valuesArray): array
-    {
-        return $this->request('post', "products/{$sallaProductId}/options", [
-            'name'         => $name,
-            'display_type' => 'text',
-            'required'     => false,
-            'values'       => array_values($valuesArray),
-        ]);
-    }
-
-    /**
-     * تحديث خيار موجود (القيم + الاسم)
-     * PUT /products/options/{option}
-     */
-    public function updateProductOption(string $optionId, string $name, array $valuesArray): array
-    {
-        return $this->request('put', "products/options/{$optionId}", [
-            'name'   => $name,
-            'values' => array_values($valuesArray),
-        ]);
-    }
-
-    /**
-     * حذف خيار كامل من المنتج
-     * DELETE /products/options/{option}
-     */
-    public function deleteProductOption(string $optionId): array
-    {
-        return $this->request('delete', "products/options/{$optionId}");
-    }
-
-    /**
-     * جلب تفاصيل خيار معين (مع القيم)
-     * GET /products/options/{option}
-     */
-    public function getOptionDetails(string $optionId): array
-    {
-        return $this->request('get', "products/options/{$optionId}");
-    }
 
     /**
      * جلب تفاصيل منتج واحد

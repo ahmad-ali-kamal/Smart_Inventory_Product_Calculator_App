@@ -6,7 +6,6 @@ use App\Models\Batch;
 use App\Models\BatchSetting;
 use App\Models\Merchant;
 use App\Services\SallaApiService;
-use App\Jobs\Harees\UpdateBatchOptionsJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,8 +40,6 @@ class ApplyAutoDiscountsJob implements ShouldQueue
             }
         });
 
-        UpdateBatchOptionsJob::dispatch();
-
         Log::info('[Harees] ✅ اكتمل تطبيق الخصومات التلقائية');
     }
 
@@ -50,8 +47,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
     {
         $yellowBatches = Batch::where('merchant_id', $merchant->id)
             ->where('status', 'yellow')
-            ->whereHas('batchItems')
-            ->with('batchItems.product')
+            ->whereNotNull('product_id')
+            ->with('product')
             ->get();
 
         if ($yellowBatches->isEmpty()) {
@@ -85,8 +82,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
 
     private function executeAutoDiscount(SallaApiService $sallaApi, Batch $batch, BatchSetting $settings): void
     {
-        $batchItems = $batch->batchItems;
-        if ($batchItems->isEmpty()) {
+        $product = $batch->product;
+        if (!$product) {
             return;
         }
 
@@ -96,10 +93,10 @@ class ApplyAutoDiscountsJob implements ShouldQueue
             return;
         }
 
-        $variantItems = $batchItems->filter(fn($item) => $item->salla_variant_id && $item->salla_variant_id > 0);
+        $hasVariants = $batch->batchVariants()->exists();
 
-        if ($variantItems->count() > 0) {
-            $this->applyDiscountToVariants($sallaApi, $batch, $variantItems, $discountPercent);
+        if ($hasVariants) {
+            $this->applyDiscountToVariants($sallaApi, $batch, $discountPercent);
         } else {
             $this->applyDiscountToProduct($sallaApi, $batch, $discountPercent);
         }
@@ -108,10 +105,9 @@ class ApplyAutoDiscountsJob implements ShouldQueue
         Log::info("[AutoDiscount] ✅ الباتش {$batch->id} → auto_discounted");
     }
 
-    private function applyDiscountToVariants(SallaApiService $sallaApi, Batch $batch, $variantItems, float $discountPercent): void
+    private function applyDiscountToVariants(SallaApiService $sallaApi, Batch $batch, float $discountPercent): void
     {
-        $batchItem = $batch->batchItems->first();
-        $product = $batchItem?->product;
+        $product = $batch->product;
 
         if (!$product || !$product->salla_product_id) {
             Log::warning("[AutoDiscount] المنتج ليس له salla_product_id");
@@ -133,9 +129,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
         $lastPrice = null;
         $usedVariantIds = [];
 
-        foreach ($variantItems as $variantItem) {
-            $storedVariantId = $variantItem->salla_variant_id;
-            $batchName = $this->formatBatchName($batch);
+        foreach ($batch->batchVariants as $batchVariant) {
+            $storedVariantId = $batchVariant->variant_id;
 
             try {
                 $matchedVariant = null;
@@ -154,6 +149,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
                         }
                         $relatedValueIds = $sv['related_option_values'] ?? [];
                         $valueNames = array_filter(array_map(fn($id) => $valueIdToName[$id] ?? null, $relatedValueIds));
+                        $dateStr = $batch->expiry_date ? $batch->expiry_date->format('Y-m-d') : 'Unknown';
+                        $batchName = "تاريخ انتهاء المنتج {$dateStr}";
                         if (in_array($batchName, $valueNames)) {
                             $matchedVariant = $sv;
                             break;
@@ -167,8 +164,7 @@ class ApplyAutoDiscountsJob implements ShouldQueue
                 }
 
                 $variantId = $matchedVariant['id'];
-                $variantData = $matchedVariant;
-                $currentPrice = (float) ($variantData['price']['amount'] ?? 0);
+                $currentPrice = (float) ($matchedVariant['price']['amount'] ?? 0);
 
                 $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
 
@@ -176,13 +172,13 @@ class ApplyAutoDiscountsJob implements ShouldQueue
                     continue;
                 }
 
-                // ⚠️ تطبيق الخصم فقط — لا نُرسل stock_quantity أبداً
                 $sallaApi->updateBatchVariant($variantId, [
                     'price'      => $currentPrice,
                     'sale_price' => $salePrice,
                 ]);
 
                 $usedVariantIds[] = $variantId;
+                $lastPrice = $currentPrice;
                 Log::info("[AutoDiscount] ✅ خصم تلقائي على Variant {$variantId}: {$currentPrice} → {$salePrice} SAR");
 
             } catch (\Exception $e) {
@@ -190,13 +186,14 @@ class ApplyAutoDiscountsJob implements ShouldQueue
             }
         }
 
-        $batch->update(['applied_sale_price' => $lastPrice ? round($lastPrice * (1 - $discountPercent / 100), 2) : null]);
+        if ($lastPrice) {
+            $batch->update(['applied_sale_price' => round($lastPrice * (1 - $discountPercent / 100), 2)]);
+        }
     }
 
     private function applyDiscountToProduct(SallaApiService $sallaApi, Batch $batch, float $discountPercent): void
     {
-        $batchItem = $batch->batchItems->first();
-        $product = $batchItem?->product;
+        $product = $batch->product;
 
         if (!$product || !$product->salla_product_id) {
             Log::warning("[AutoDiscount] المنتج {$product?->id} ليس له salla_product_id");
@@ -219,7 +216,6 @@ class ApplyAutoDiscountsJob implements ShouldQueue
                 return;
             }
 
-            // ⚠️ تطبيق السعر فقط — لا نُرسل كمية
             $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
 
             $batch->update(['applied_sale_price' => $salePrice]);
@@ -233,8 +229,8 @@ class ApplyAutoDiscountsJob implements ShouldQueue
 
     private function calculateDiscountPercentage(Batch $batch, BatchSetting $settings): float
     {
-        if ($batch->custom_discount_percentage !== null && $batch->custom_discount_percentage > 0) {
-            return (float) $batch->custom_discount_percentage;
+        if ($batch->discount_pct !== null && $batch->discount_pct > 0) {
+            return (float) $batch->discount_pct;
         }
 
         if (!$settings->auto_discounts) {
@@ -282,12 +278,5 @@ class ApplyAutoDiscountsJob implements ShouldQueue
         }
 
         return $applicableDiscount;
-    }
-
-    private function formatBatchName(Batch $batch): string
-    {
-        $expiry = $batch->expiry_date;
-        $dateStr = $expiry ? $expiry->format('Y-m-d') : 'Unknown';
-        return "تاريخ انتهاء المنتج {$dateStr}";
     }
 }

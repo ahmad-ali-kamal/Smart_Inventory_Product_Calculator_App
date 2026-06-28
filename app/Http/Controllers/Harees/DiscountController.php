@@ -5,12 +5,10 @@ namespace App\Http\Controllers\Harees;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Batch;
-use App\Models\BatchItem;
 use App\Models\BatchSetting;
 use App\Models\BatchDiscount;
 use App\Models\ActivityLog;
 use App\Services\SallaApiService;
-use App\Jobs\Harees\UpdateBatchOptionsJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -29,19 +27,12 @@ class DiscountController extends Controller
         if ($batchId) {
             $batch = Batch::where('id', $batchId)
                 ->where('merchant_id', $product->merchant_id)
-                ->with('batchItems')
                 ->first();
         } else {
-            $batchItem = $product->batchItems()
-                ->whereHas('batch', fn($q) => $q->where('status', 'yellow'))
-                ->with('batch')
-                ->get()
-                ->sortBy('batch.days_until_expiry')
-                ->first();
-            $batch = $batchItem?->batch;
+            $batch = $product->batch;
         }
 
-        if (!$batch) {
+        if (!$batch || $batch->status !== 'yellow') {
             return response()->json(['message' => 'لا توجد دفعات تحتاج إلى خصم'], 400);
         }
 
@@ -58,20 +49,16 @@ class DiscountController extends Controller
             $discountMode      = 'fixed';
         }
 
-        $batchItem = $batch->batchItems->first();
-
         return response()->json([
             'discount_percentage' => $suggestedDiscount,
             'discount_mode'       => $discountMode,
             'days_until_expiry'   => $days,
-            'reasoning'           => $this->buildReasoning($product, $batch, $batchItem, $days, $suggestedDiscount),
+            'reasoning'           => $this->buildReasoning($product, $batch, $days, $suggestedDiscount),
             'batch' => [
                 'id'               => $batch->id,
-                'batch_code'       => $batch->batch_code,
-                'salla_variant_id' => $batchItem?->salla_variant_id,
-                'quantity'         => $batchItem?->quantity ?? 0,
-                'days_until_expiry'=> $days,
                 'expiry_date'      => $batch->expiry_date->format('Y-m-d'),
+                'days_until_expiry'=> $days,
+                'quantity'         => $batch->batch_qty ?? 0,
             ],
         ]);
     }
@@ -97,81 +84,64 @@ class DiscountController extends Controller
             $batch = Batch::where('id', $validated['batch_id'])
                 ->where('merchant_id', $merchant->id)
                 ->first();
-
-            if (!$batch) {
-                return response()->json(['success' => false, 'message' => 'الدفعة غير موجودة'], 404);
-            }
-
-            if ($batch->status !== 'yellow') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'الخصم يُطبَّق فقط على الدفعات الصفراء (القريبة من الانتهاء)',
-                ], 422);
-            }
         } else {
-            // أقرب دفعة صفراء تلقائياً
-            $batchItem = $product->batchItems()
-                ->whereHas('batch', fn($q) => $q->where('status', 'yellow'))
-                ->with('batch')
-                ->get()
-                ->sortBy('batch.days_until_expiry')
-                ->first();
+            $batch = $product->batch;
+        }
 
-            if (!$batchItem || !$batchItem->batch) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا توجد دفعات صفراء لتطبيق الخصم عليها',
-                ], 400);
-            }
-            $batch = $batchItem->batch;
+        if (!$batch) {
+            return response()->json(['success' => false, 'message' => 'الدفعة غير موجودة'], 404);
+        }
+
+        if ($batch->status !== 'yellow') {
+            return response()->json([
+                'success' => false,
+                'message' => 'الخصم يُطبَّق فقط على الدفعات الصفراء (القريبة من الانتهاء)',
+            ], 422);
         }
 
         try {
-            // ─── جلب جميع batchItems لهذه الدفعة ───────────────────
             $sallaApi          = SallaApiService::for($merchant);
             $discountPct       = (float) $validated['discount_percentage'];
-            $batchItems        = BatchItem::where('batch_id', $batch->id)->get();
 
-            if ($batchItems->isEmpty()) {
+            $variantIds = $batch->batchVariants()->pluck('variant_id');
+
+            if ($variantIds->isEmpty()) {
+                // Apply discount directly to product
+                $currentPrice = (float) ($product->price ?? 0);
+                $salePrice    = round($currentPrice * (1 - $discountPct / 100), 2);
+
+                $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
+
+                $this->saveDiscountRecord($batch, $discountPct, $product, $validated['ends_at']);
+
+                \Cache::forget("harees_dashboard_{$merchant->id}");
+                \Cache::forget("harees_dashboard_api_{$merchant->id}");
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'هذه الدفعة لم تُزامَن مع سلة بعد — شغّل المزامنة أولاً',
-                ], 422);
+                    'success'        => true,
+                    'message'        => "تم تطبيق الخصم على المنتج بنجاح",
+                    'sale_price'     => $salePrice,
+                ]);
             }
 
+            // Apply discount to variants
             $appliedCount = 0;
             $savedLastSalePrice = null;
 
-            foreach ($batchItems as $batchItem) {
-                $variantId = $batchItem->salla_variant_id;
+            foreach ($batch->batchVariants as $batchVariant) {
+                $variantId = $batchVariant->variant_id;
 
-                if (!$variantId) {
-                    Log::warning('[Discount] تخطي batch_item بدون salla_variant_id', ['batch_item_id' => $batchItem->id]);
-                    continue;
-                }
-
-                // حساب السعر بعد الخصم
-                $originalPrice  = (float) ($batchItem->unit_cost ?? $product->price ?? 0);
-                $salePrice      = round($originalPrice * (1 - $discountPct / 100), 2);
-
-                // ✅ جلب بيانات الـ Variant من المخزن المحلي
-                $variantData    = $product->getVariantById($variantId) ?? [];
-                $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
-                $currentPrice   = (float) ($variantData['price'] ?? $originalPrice);
+                $variantData  = $product->getVariantById($variantId) ?? [];
+                $currentPrice = (float) ($variantData['price'] ?? $product->price ?? 0);
+                $currentSku   = $variantData['sku'] ?? $product->sku ?? null;
 
                 if (!$currentSku) {
-                    Log::warning('[Discount] لا يوجد SKU للـ variant - لا يمكن التحديث', ['variant_id' => $variantId]);
+                    Log::warning('[Discount] لا يوجد SKU للـ variant', ['variant_id' => $variantId]);
                     continue;
                 }
 
-                Log::info('[Discount] بيانات الإرسال:', [
-                    'variant_id'     => $variantId,
-                    'sku'            => $currentSku,
-                    'price'          => $currentPrice,
-                    'sale_price'     => $salePrice,
-                ]);
+                $salePrice = round($currentPrice * (1 - $discountPct / 100), 2);
 
-                // ✅ تحديث الـ Variant — updateBatchVariant يحافظ على المخزون الحالي
                 $variantRes = $sallaApi->updateBatchVariant($variantId, [
                     'price'      => $currentPrice,
                     'sale_price' => $salePrice,
@@ -187,7 +157,7 @@ class DiscountController extends Controller
 
                 Log::info('[Discount] ✅ تم تطبيق الخصم على الـ Variant', [
                     'variant_id'     => $variantId,
-                    'original_price' => $originalPrice,
+                    'original_price' => $currentPrice,
                     'sale_price'     => $salePrice,
                     'discount_pct'   => $discountPct,
                 ]);
@@ -200,47 +170,15 @@ class DiscountController extends Controller
                 ], 500);
             }
 
-            // ─── حفظ سجل الخصم في قاعدة البيانات ────────────────────
-            // ألغِ أي خصم نشط سابق على نفس الدفعة
-            BatchDiscount::where('batch_id', $batch->id)
-                ->where('status', 'active')
-                ->update(['status' => 'cancelled']);
-
-            $endsAt = $validated['ends_at']
-                ?? $batch->expiry_date->toDateTimeString();
-
-            $discount = BatchDiscount::create([
-                'batch_id'            => $batch->id,
-                'discount_percentage' => $discountPct,
-                'starts_at'           => now(),
-                'ends_at'             => $endsAt,
-                'status'              => 'active',
-                'created_by'         => auth()->id(),
-            ]);
-
-            // ✅ تحديث discount_type → manually_discounted
-            // الخصم التلقائي لن يلمس هذا الباتش مستقبلاً
-            $batch->markAsManuallyDiscounted();
-
-            ActivityLog::log(
-                $merchant->id,
-                'discount_applied',
-                "تم تطبيق خصم {$discountPct}% على {$appliedCount} variant(s) في الدفعة {$batch->batch_code} للمنتج: {$product->name}",
-                $product,
-                ['discount_id' => $discount->id, 'batch_id' => $batch->id, 'sale_price' => $savedLastSalePrice, 'applied_count' => $appliedCount]
-            );
+            $this->saveDiscountRecord($batch, $discountPct, $product, $validated['ends_at']);
 
             \Cache::forget("harees_dashboard_{$merchant->id}");
             \Cache::forget("harees_dashboard_api_{$merchant->id}");
 
-            UpdateBatchOptionsJob::dispatch();
-
             return response()->json([
                 'success'        => true,
                 'message'        => "تم تطبيق الخصم على {$appliedCount} variant(s) بنجاح",
-                'original_price' => $savedLastSalePrice, // last variant's sale price as reference
                 'sale_price'     => $savedLastSalePrice,
-                'discount_id'    => $discount->id,
                 'applied_count'  => $appliedCount,
             ]);
 
@@ -254,6 +192,32 @@ class DiscountController extends Controller
         }
     }
 
+    private function saveDiscountRecord(Batch $batch, float $discountPct, Product $product, ?string $endsAt): void
+    {
+        BatchDiscount::where('batch_id', $batch->id)
+            ->where('status', 'active')
+            ->update(['status' => 'cancelled']);
+
+        BatchDiscount::create([
+            'batch_id'            => $batch->id,
+            'discount_percentage' => $discountPct,
+            'starts_at'           => now(),
+            'ends_at'             => $endsAt ?? $batch->expiry_date->toDateTimeString(),
+            'status'              => 'active',
+            'created_by'          => auth()->id(),
+        ]);
+
+        $batch->markAsManuallyDiscounted();
+
+        ActivityLog::log(
+            $product->merchant_id,
+            'discount_applied',
+            "تم تطبيق خصم {$discountPct}% على المنتج: {$product->name}",
+            $product,
+            ['batch_id' => $batch->id]
+        );
+    }
+
     // =========================================================
     // تطبيق الخصم على كل الدفعات الصفراء للمنتج دفعةً واحدة
     // =========================================================
@@ -265,68 +229,49 @@ class DiscountController extends Controller
         $sallaApi = SallaApiService::for($merchant);
         $setting  = BatchSetting::where('merchant_id', $merchant->id)->first();
 
-        $yellowBatches = $product->batchItems()
-            ->whereHas('batch', fn($q) => $q->where('status', 'yellow'))
-            ->whereNotNull('salla_variant_id')
-            ->with('batch')
-            ->get();
+        $batch = $product->batch;
 
-        if ($yellowBatches->isEmpty()) {
+        if (!$batch || $batch->status !== 'yellow') {
             return response()->json(['success' => false, 'message' => 'لا توجد دفعات صفراء مزامَنة مع سلة'], 400);
         }
 
         $applied = 0;
-        foreach ($yellowBatches as $item) {
-            $batch = $item->batch;
-            // ✅ استخدام salla_variant_id من BatchItem بدلاً من Batch
-            $variantId = $item->salla_variant_id;
-            if (!$batch || !$variantId) continue;
+        $days    = $batch->days_until_expiry;
+        $discountPct = $setting?->auto_discounts
+            ? $this->calcAutoDiscount($days, $setting)
+            : (float) ($setting?->fixed_discount_percentage ?? 20);
 
-            $days          = $batch->days_until_expiry;
-            $discountPct   = $setting?->auto_discounts
-                ? $this->calcAutoDiscount($days, $setting)
-                : (float) ($setting?->fixed_discount_percentage ?? 20);
+        $variantIds = $batch->batchVariants()->pluck('variant_id');
 
-            $originalPrice = (float) ($item->unit_cost ?? $product->price ?? 0);
-            $salePrice     = round($originalPrice * (1 - $discountPct / 100), 2);
+        if ($variantIds->isNotEmpty()) {
+            foreach ($batch->batchVariants as $batchVariant) {
+                $variantId = $batchVariant->variant_id;
 
-            // ✅ جلب بيانات الـ Variant من المخزن المحلي
-            $variantData   = $product->getVariantById($variantId) ?? [];
-            // ✅ استخدام SKU: من variant أو من جدول Product
-            $currentSku    = $variantData['sku'] ?? $product->sku ?? null;
-            $currentPrice  = (float) ($variantData['price'] ?? $originalPrice);
-            $batchItemQty  = (int) ($item->quantity ?? 0);
+                $variantData  = $product->getVariantById($variantId) ?? [];
+                $currentSku   = $variantData['sku'] ?? $product->sku ?? null;
+                $currentPrice = (float) ($variantData['price'] ?? $product->price ?? 0);
 
-            if (!$currentSku) {
-                continue; // تخطي إذا لا يوجد SKU
-            }
+                if (!$currentSku) continue;
 
-            // ✅ تحديث الـ Variant — updateBatchVariant يحافظ على المخزون الحالي
-            $res = $sallaApi->updateBatchVariant($variantId, [
-                'price'      => $currentPrice,
-                'sale_price' => $salePrice,
-            ]);
+                $salePrice = round($currentPrice * (1 - $discountPct / 100), 2);
 
-            if ($res) {
-                // إلغاء الخصم القديم وحفظ الجديد
-                BatchDiscount::where('batch_id', $batch->id)
-                    ->where('status', 'active')
-                    ->update(['status' => 'cancelled']);
-
-                BatchDiscount::create([
-                    'batch_id'            => $batch->id,
-                    'discount_percentage' => $discountPct,
-                    'starts_at'           => now(),
-                    'ends_at'             => $batch->expiry_date->toDateTimeString(),
-                    'status'              => 'active',
-                    'created_by'          => auth()->id(),
+                $res = $sallaApi->updateBatchVariant($variantId, [
+                    'price'      => $currentPrice,
+                    'sale_price' => $salePrice,
                 ]);
 
-                // ✅ Non-Retroactive: وضع علامة manual على الباتش
-                // الخصم التلقائي لن يلمس هذا الباتش مستقبلاً
-                $batch->markAsManuallyDiscounted();
-                $applied++;
+                if ($res) {
+                    $this->saveDiscountRecord($batch, $discountPct, $product, null);
+                    $applied++;
+                }
             }
+        } else {
+            $currentPrice = (float) ($product->price ?? 0);
+            $salePrice    = round($currentPrice * (1 - $discountPct / 100), 2);
+
+            $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
+            $this->saveDiscountRecord($batch, $discountPct, $product, null);
+            $applied = 1;
         }
 
         ActivityLog::log(
@@ -335,8 +280,6 @@ class DiscountController extends Controller
             "تم تطبيق الخصم على {$applied} دفعة صفراء للمنتج: {$product->name}",
             $product
         );
-
-        UpdateBatchOptionsJob::dispatch();
 
         return response()->json([
             'success' => true,
@@ -351,35 +294,38 @@ class DiscountController extends Controller
 
     public function cancel(BatchDiscount $discount)
     {
-        $discount->load('batch.batchItems.product.merchant');
+        $discount->load('batch.product');
         $batch = $discount->batch;
 
         try {
-            $batchItem = $batch?->batchItems->first();
-            $variantId = $batchItem?->salla_variant_id;
+            $product = $batch?->product;
 
-            $product = $batchItem?->product;
-
-            if ($variantId && $product) {
+            if ($product) {
                 $sallaApi = SallaApiService::for($product->merchant);
 
-                $variantData    = $product->getVariantById($variantId) ?? [];
-                $currentSku     = $variantData['sku'] ?? $product->sku ?? null;
-                $currentPrice   = (float) ($variantData['price'] ?? 0);
-                $batchItemQty   = (int) ($batchItem?->quantity ?? 0);
+                $variantIds = $batch->batchVariants()->pluck('variant_id');
 
-                if ($currentSku) {
-                    $sallaApi->updateBatchVariant($variantId, [
-                        'price'      => $currentPrice,
-                        'sale_price' => 0,
-                    ]);
+                if ($variantIds->isNotEmpty()) {
+                    foreach ($batch->batchVariants as $batchVariant) {
+                        $variantData  = $product->getVariantById($batchVariant->variant_id) ?? [];
+                        $currentSku   = $variantData['sku'] ?? $product->sku ?? null;
+                        $currentPrice = (float) ($variantData['price'] ?? 0);
+
+                        if ($currentSku) {
+                            $sallaApi->updateBatchVariant($batchVariant->variant_id, [
+                                'price'      => $currentPrice,
+                                'sale_price' => 0,
+                            ]);
+                        }
+                    }
+                } else {
+                    $currentPrice = (float) ($product->price ?? 0);
+                    $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, 0);
                 }
             }
 
             $discount->cancel();
 
-            // ✅ Non-Retroactive: إعادة الحالة إلى pending بعد الإلغاء اليدوي
-            // حتى يتمكن الخصم التلقائي من إعادة تطبيقه إذا توفرت الشروط
             if ($batch) {
                 $batch->markAsPending();
             }
@@ -388,12 +334,10 @@ class DiscountController extends Controller
                 ActivityLog::log(
                     auth()->id(),
                     'discount_cancelled',
-                    "تم إلغاء الخصم على الدفعة: {$batch->batch_code}",
+                    "تم إلغاء الخصم على المنتج: {$product->name}",
                     $product
                 );
             }
-
-            UpdateBatchOptionsJob::dispatch();
 
             return response()->json(['success' => true, 'message' => 'تم إلغاء الخصم']);
 
@@ -444,18 +388,16 @@ class DiscountController extends Controller
     {
         $this->authorize('update', $product);
 
-        $expiredBatchItems = $product->batchItems()
-            ->whereHas('batch', fn($q) => $q->where('status', 'red'))
-            ->get();
+        $batch = $product->batch;
 
-        foreach ($expiredBatchItems as $item) {
-            $item->delete();
+        if ($batch && $batch->status === 'red') {
+            $batch->delete();
         }
 
         ActivityLog::log(
             auth()->id(),
             'product_restocked',
-            "تم إعادة توفير المنتج: {$product->name} (تم حذف {$expiredBatchItems->count()} دفعة منتهية)",
+            "تم إعادة توفير المنتج: {$product->name} (تم حذف الدفعة المنتهية)",
             $product
         );
 
@@ -482,10 +424,9 @@ class DiscountController extends Controller
         return 20; // قريب من بداية المرحلة الصفراء
     }
 
-    private function buildReasoning(Product $product, Batch $batch, BatchItem $batchItem, int $days, int $pct): string
+    private function buildReasoning(Product $product, Batch $batch, int $days, int $pct): string
     {
-        return "المنتج '{$product->name}' — الدفعة '{$batch->batch_code}' " .
-               "بكمية {$batchItem->quantity} وحدة لديه {$days} يوم حتى انتهاء الصلاحية. " .
+        return "المنتج '{$product->name}' — لديه {$days} يوم حتى انتهاء الصلاحية. " .
                "نقترح خصم {$pct}% لتصريف الدفعة في الوقت المتبقي.";
     }
 }

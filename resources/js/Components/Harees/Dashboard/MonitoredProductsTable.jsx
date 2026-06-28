@@ -193,7 +193,6 @@ export default function MonitoredProductsTable({
                                     autoDiscount={autoDiscount}
                                     autoDiscountPercent={autoDiscountPercent}
                                     autoHide={autoHide}
-                                    statusFilter={statusFilter}
                                 />
                             ))
                         )}

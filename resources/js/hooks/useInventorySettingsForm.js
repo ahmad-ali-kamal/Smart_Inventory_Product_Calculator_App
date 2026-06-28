@@ -32,10 +32,9 @@ import {
 import {
     DEFAULT_THRESHOLDS,
     DEFAULT_AUTOMATION,
+    DEFAULT_AUTO_HIDE_CONFIG,
     DEFAULT_DISCOUNT,
     DEFAULT_CATEGORIES,
-    DEFAULT_YELLOW_LABEL,
-    YELLOW_BATCH_LABELS,
     FIELD_RULES,
     validateNumericField,
     buildPayload,
@@ -47,9 +46,10 @@ import {
 // Used by handleInputChange to route field updates to the correct state slice.
 // Explicit map prevents silent failures when an unknown group name is passed.
 // ---------------------------------------------------------------------------
-const GROUP_SETTERS = {
+    const GROUP_SETTERS = {
     thresholds: "setThresholds",
     discount: "setDiscountConfig",
+    autoHide: "setAutoHideConfig",
 };
 
 /**
@@ -88,9 +88,9 @@ export function useInventorySettingsForm() {
     // ── Local form state ────────────────────────────────────────────────────
     const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
     const [automation, setAutomation] = useState(DEFAULT_AUTOMATION);
+    const [autoHideConfig, setAutoHideConfig] = useState(DEFAULT_AUTO_HIDE_CONFIG);
     const [discountConfig, setDiscountConfig] = useState(DEFAULT_DISCOUNT);
     const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-    const [yellowLabel, setYellowLabel] = useState(DEFAULT_YELLOW_LABEL);
 
     /** Categories not yet assigned to any expiry bucket. */
     const [unassigned, setUnassigned] = useState([]);
@@ -111,7 +111,7 @@ export function useInventorySettingsForm() {
     // Passed into handleInputChange via closure; useMemo prevents the callback
     // from being recreated when unrelated state changes.
     const setterMap = useMemo(
-        () => ({ thresholds: setThresholds, discount: setDiscountConfig }),
+        () => ({ thresholds: setThresholds, discount: setDiscountConfig, autoHide: setAutoHideConfig }),
         [],
     );
 
@@ -122,10 +122,10 @@ export function useInventorySettingsForm() {
         const hydrated = hydrateFromServer(data);
         setThresholds(hydrated.thresholds);
         setAutomation(hydrated.automation);
+        setAutoHideConfig(hydrated.autoHideConfig);
         setDiscountConfig(hydrated.discountConfig);
         setCategories(hydrated.categories);
         setUnassigned(hydrated.unassigned);
-        setYellowLabel(hydrated.yellowLabel);
     }, [data]);
 
     // ── Shared numeric field handler (thresholds + discount fields) ─────────
@@ -197,15 +197,6 @@ export function useInventorySettingsForm() {
         setAutomation((prev) => ({ ...prev, [key]: !prev[key] }));
     }, []);
 
-    /**
-     * Updates the yellow batch label selection.
-     *
-     * @param {string} label — The selected yellow batch label.
-     */
-    const handleYellowLabelChange = useCallback((label) => {
-        setYellowLabel(label);
-    }, []);
-
     // ── Drag-and-drop handlers ──────────────────────────────────────────────
 
     /**
@@ -269,8 +260,11 @@ export function useInventorySettingsForm() {
             delete active["discount.percent"];
             delete active["discount.durationDays"];
         }
+        if (!automation.autoHide) {
+            delete active["autoHide.beforeExpiryDays"];
+        }
         return active;
-    }, [errors, automation.autoDiscount]);
+    }, [errors, automation.autoDiscount, automation.autoHide]);
 
     /** True when any validation error is currently active and visible. */
     const hasActiveErrors = Object.keys(activeErrors).length > 0;
@@ -300,9 +294,9 @@ export function useInventorySettingsForm() {
                 buildPayload({
                     thresholds,
                     automation,
+                    autoHideConfig,
                     discountConfig,
                     categories,
-                    yellowLabel,
                 }),
             );
 
@@ -326,6 +320,7 @@ export function useInventorySettingsForm() {
         updateInventorySettings,
         thresholds,
         automation,
+        autoHideConfig,
         discountConfig,
         categories,
     ]);
@@ -339,10 +334,10 @@ export function useInventorySettingsForm() {
         // Form state slices
         thresholds,
         automation,
+        autoHideConfig,
         discountConfig,
         categories,
         unassigned,
-        yellowLabel,
         errors,
         saving,
         saved,
@@ -351,7 +346,6 @@ export function useInventorySettingsForm() {
         // Handlers
         handleInputChange,
         handleToggle,
-        handleYellowLabelChange,
         handleDragStart,
         handleDrop,
         handleSave,

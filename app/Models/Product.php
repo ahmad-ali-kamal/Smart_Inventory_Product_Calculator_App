@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
@@ -59,20 +58,9 @@ class Product extends Model
         return $this->hasOne(ProductMustashar::class);
     }
 
-    /**
-     * العلاقة مع الباتشات عبر جدول batch_items
-     * محرك "حريص" يعتمد على هذه العلاقة لحساب الكميات الفعلية الصالحة
-     */
-    public function batches(): BelongsToMany
+    public function batch(): HasOne
     {
-        return $this->belongsToMany(Batch::class, 'batch_items')
-            ->withPivot('quantity', 'sold_quantity', 'unit_cost')
-            ->withTimestamps();
-    }
-
-    public function batchItems(): HasMany
-    {
-        return $this->hasMany(BatchItem::class);
+        return $this->hasOne(Batch::class, 'product_id');
     }
 
     // ====================================================================

@@ -35,7 +35,7 @@ class ProductListController extends Controller
 
         // 3. جلب المنتجات مع الدفعات المرتبطة
         $products = Product::where('merchant_id', $merchant->id)
-            ->with(['images', 'batchItems.batch'])
+            ->with(['images', 'batch'])
             ->orderBy('name')
             ->paginate(15);
 
@@ -49,33 +49,21 @@ class ProductListController extends Controller
             $thresholdKey = $bucket . '_term_days';
             $threshold = $settings->$thresholdKey ?? 14;
 
-            // ج. إيجاد أقرب تاريخ انتهاء (أقل عدد أيام متبقية) للمنتج ككل
-            $minDaysRemaining = 999; 
-            
-            if ($product->batchItems && $product->batchItems->count() > 0) {
-                $minDaysRemaining = $product->batchItems->map(function($item) {
-                    // نتحقق أن الـ batch موجود فعلاً وله قيمة تاريخ انتهاء
-                    if (!$item->batch || !$item->batch->expiry_date) return 999;
-                    
-                    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
-                    $today  = \Carbon\Carbon::now()->startOfDay();
-                    return (int) $today->diffInDays($expiry, false);
-                })->min() ?? 999;
+            // ج. إيجاد تاريخ انتهاء الدفعة الوحيدة للمنتج
+            $batch = $product->batch;
+            $minDaysRemaining = 999;
 
-                // د. تحديد حالة كل "دفعة" (Batch) بشكل منفصل لعرضها في تفاصيل المنتج
-                $product->batchItems->each(function ($item) use ($threshold) {
-                    if (!$item->batch || !$item->batch->expiry_date) return;
+            if ($batch && $batch->expiry_date) {
+                $expiry = \Carbon\Carbon::parse($batch->expiry_date)->startOfDay();
+                $today  = \Carbon\Carbon::now()->startOfDay();
+                $minDaysRemaining = (int) $today->diffInDays($expiry, false);
 
-                    $expiry = \Carbon\Carbon::parse($item->batch->expiry_date)->startOfDay();
-                    $today  = \Carbon\Carbon::now()->startOfDay();
-                    $days   = (int) $today->diffInDays($expiry, false);
-
-                    $item->batch->status = match(true) {
-                        $days <= 0           => 'red',    // منتهي
-                        $days <= $threshold  => 'yellow', // قريب الانتهاء
-                        default              => 'green',  // آمن
-                    };
-                });
+                // د. تحديد حالة الدفعة
+                $batch->status = match(true) {
+                    $minDaysRemaining <= 0           => 'red',
+                    $minDaysRemaining <= $threshold  => 'yellow',
+                    default                          => 'green',
+                };
             }
 
             // هـ. تحديد الحالة العامة للمنتج بناءً على أقرب دفعة
@@ -119,7 +107,7 @@ class ProductListController extends Controller
         
         $product = Product::where('id', $id)
             ->where('merchant_id', $merchant->id)
-            ->with(['batchItems.batch', 'images'])
+            ->with(['batch', 'images'])
             ->firstOrFail();
 
         return inertia('Harees/Show', compact('product'));

@@ -5,325 +5,98 @@ namespace App\Http\Controllers\Harees;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Batch;
-use App\Models\BatchItem;
 use App\Models\BatchSetting;
 use App\Models\BatchDiscount;
+use App\Models\BatchVariant;
 use App\Models\ActivityLog;
 use App\Jobs\CheckBatchExpiryJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 class ProductExpiryController extends Controller
 {
     public function store(Request $request)
     {
-        $productId = $request->product_id;
-        $product   = Product::findOrFail($productId);
+        $product = Product::findOrFail($request->product_id);
 
         if ($product->merchant_id !== auth()->id()) {
             return $this->respondWithError('غير مصرح لك بتعديل هذا المنتج', 403);
         }
 
-        if (!$request->same_expiry) {
-            $totalRequested = collect($request->batches)->sum('quantity');
-            if ($totalRequested > $product->quantity) {
-                return $this->respondWithError(
-                    "الكمية الإجمالية ({$totalRequested}) تتجاوز المتوفر في سلة ({$product->quantity})",
-                    422
-                );
-            }
-        }
-
         $request->validate([
-            'same_expiry'                    => 'required|boolean',
-            'single_batch'                   => 'required_if:same_expiry,true|array',
-            'single_batch.expiry_date'       => 'required_if:same_expiry,true|date|after_or_equal:today',
-            'single_batch.batch_code'        => 'nullable|string',
-            'single_batch.manufactured_date' => 'nullable|date|before:single_batch.expiry_date',
-            'batches'                        => 'required_if:same_expiry,false|array|min:1',
-            'batches.*.quantity'             => 'required_with:batches|integer|min:1',
-            'batches.*.expiry_date'          => 'required_with:batches|date|after_or_equal:today',
-            'batches.*.batch_code'           => 'nullable|string',
-            'variants'                       => 'nullable|array',
-            'variants.*.salla_variant_id'    => 'required_with:variants|integer',
-            'variants.*.variant_quantity'    => 'required_with:variants|integer|min:1',
-            'batch_variants'                => 'nullable|array',
-            'batch_variants.*.batch_id'     => 'nullable|integer',
-            'batch_variants.*.variants'     => 'nullable|array',
-            'batch_variants.*.variants.*.salla_variant_id' => 'integer',
-            'batch_variants.*.variants.*.variant_quantity' => 'integer|min:0',
+            'expiry_date'               => 'required|date|after_or_equal:today',
+            'total_qty'                 => 'required|integer|min:1',
+            'variants'                  => 'nullable|array',
+            'variants.*.variant_id'     => 'required_with:variants|integer',
+            'variants.*.variant_qty'    => 'required_with:variants|integer|min:1',
         ]);
-
-        // ✅ Server-side variant validation - مطابق لـ ExpiryModal.jsx
-        $this->validateVariants($request, $product);
 
         DB::beginTransaction();
         try {
             $merchant = auth()->user();
 
-            $oldBatchCodes = $product->batchItems()
-                ->with('batch')
-                ->get()
-                ->map(fn($item) => $item->batch?->batch_code)
-                ->filter()
-                ->values()
-                ->toArray();
-
-            $savedBatchCode = null;
-
-            // ─── إدارة الباتشات القديمة ───────────────────────────────
-            if ($request->same_expiry) {
-                $existingItems = $product->batchItems()->with('batch')->get();
-                $existingItem = $existingItems->first();
-
-                if ($existingItem && $existingItem->batch) {
-                    $existingItem->batch->update([
-                        'expiry_date'       => $request->input('single_batch.expiry_date'),
-                        'manufactured_date' => $request->input('single_batch.manufactured_date'),
-                    ]);
-                    
-                    $savedBatchCode = $existingItem->batch->batch_code;
-
-                    // حذف الـ batch_items القديمة المرتبطة بهذا الـ batch
-                    $product->batchItems()->where('batch_id', $existingItem->batch_id)->delete();
-                    
-                    // إنشاء batch_items جديدة مع الـ variants
-                    $variants = $request->input('variants', []);
-                    if (!empty($variants)) {
-                        foreach ($variants as $variant) {
-                            BatchItem::create([
-                                'batch_id'         => $existingItem->batch_id,
-                                'product_id'       => $product->id,
-                                'quantity'         => $variant['variant_quantity'] ?? ($product->quantity ?? 0),
-                                'unit_cost'        => $product->price ?? 0,
-                                'salla_variant_id' => $variant['salla_variant_id'] ?? null,
-                                'variant_quantity' => $variant['variant_quantity'] ?? null,
-                            ]);
-                        }
-                    } else {
-                        BatchItem::create([
-                            'batch_id'   => $existingItem->batch_id,
-                            'product_id' => $product->id,
-                            'quantity'   => $product->quantity ?? 0,
-                            'unit_cost'  => $product->price ?? 0,
-                        ]);
-                    }
-
-                    // حذف أي batch_items قديمة لم تُحدث
-                    $extraIds = $existingItems
-                        ->where('batch_id', '!=', $existingItem->batch_id)
-                        ->pluck('batch_id')
-                        ->unique()
-                        ->values()
-                        ->toArray();
-                    if (!empty($extraIds)) {
-                        $product->batchItems()->whereIn('batch_id', $extraIds)->delete();
-                        Batch::whereIn('id', $extraIds)->where('merchant_id', $merchant->id)->delete();
-                    }
-                } else {
-                    $batchIds = $product->batchItems()->pluck('batch_id');
-                    $product->batchItems()->delete();
-                    Batch::whereIn('id', $batchIds)->delete();
-                }
+            if ($product->batch) {
+                $this->cleanupDiscountsOnBatchDeletion($product, collect([$product->batch->id]));
+                $product->batch->batchVariants()->delete();
+                $product->batch->delete();
             }
 
-            // ─── إنشاء الباتشات الجديدة ───────────────────────────────
-            // ✅ نتتبع الباتشات الجديدة لإرسال الـ notification بعد ربطها بالمنتج
-            $newlyCreatedBatches = [];
-
-            Log::info('[ExpiryStore] Request data:', [
-                'same_expiry' => $request->same_expiry,
-                'variants' => $request->input('variants'),
-                'single_batch' => $request->input('single_batch'),
+            $batch = Batch::create([
+                'merchant_id' => $merchant->id,
+                'product_id'  => $product->id,
+                'expiry_date' => $request->expiry_date,
+                'total_qty'   => $request->total_qty,
+                'batch_qty'   => $request->total_qty,
+                'status'      => 'green',
             ]);
-            
-            if ($request->same_expiry) {
-                if (!$savedBatchCode) {
-                    $data               = $request->input('single_batch', []);
-                    $data['batch_code'] = $oldBatchCodes[0] ?? ($data['batch_code'] ?? 'B-' . Str::upper(Str::random(6)));
-                    $data['variants']   = $request->input('variants', []);
-                    
-                    Log::info('[ExpiryStore] Creating batch with variants:', $data['variants']);
-                    
-                    $newBatch           = $this->createSingleBatch($merchant, $product, $data);
-                    $savedBatchCode     = $data['batch_code'];
-                    if ($newBatch) $newlyCreatedBatches[] = $newBatch;
-                }
-            } else {
-                $inputBatches = $request->input('batches', []);
 
-                $incomingIds = collect($inputBatches)
-                    ->pluck('id')->filter()
-                    ->map(fn($id) => (int) $id)->values()->toArray();
+            $batch->calculateStatus();
+            $batch->save();
 
-                $existingIds = $product->batchItems()
-                    ->pluck('batch_id')
-                    ->map(fn($id) => (int) $id)->values()->toArray();
-
-                $idsToDelete = array_diff($existingIds, $incomingIds);
-                if (!empty($idsToDelete)) {
-                    // ✅ تنظيف خيار سلة للباتشات المحذوفة قبل حذفها
-                    $this->syncBatchOptionAfterDeletion($product, $merchant, $idsToDelete);
-
-                    $product->batchItems()->whereIn('batch_id', $idsToDelete)->delete();
-                    Batch::whereIn('id', $idsToDelete)->where('merchant_id', $merchant->id)->delete();
+            $variants = $request->input('variants', []);
+            if (!empty($variants)) {
+                $totalVariantQty = 0;
+                foreach ($variants as $variant) {
+                    BatchVariant::create([
+                        'batch_id'   => $batch->id,
+                        'variant_id' => $variant['variant_id'],
+                        'total_qty'  => $variant['variant_qty'],
+                        'batch_qty'  => $variant['variant_qty'],
+                    ]);
+                    $totalVariantQty += $variant['variant_qty'];
                 }
 
-                $batchVariantsAll = $request->input('batch_variants', []);
-
-                foreach ($inputBatches as $index => $b) {
-                    $batchId = !empty($b['id']) ? (int) $b['id'] : null;
-
-                    if ($batchId && in_array($batchId, $existingIds)) {
-                        $existingBatch = Batch::where('id', $batchId)
-                            ->where('merchant_id', $merchant->id)->first();
-
-                        if ($existingBatch) {
-                            $existingBatch->update([
-                                'expiry_date'       => $b['expiry_date'],
-                                'manufactured_date' => $b['manufactured_date'] ?? null,
-                            ]);
-
-                            // ✅ FIX: حذف جميع batch_items القديمة لهذا الـ batch
-                            // ثم إعادة إنشائها بالـ variants الصحيحة
-                            // هذا يضمن عدم ترك batch_items قديمة أو تكرارها
-                            $product->batchItems()
-                                ->where('batch_id', $existingBatch->id)
-                                ->delete();
-
-                            // البحث عن variant data لهذا الـ batch
-                            $batchVariantData = collect($batchVariantsAll)
-                                ->firstWhere('batch_id', $batchId);
-
-                            $variants = $batchVariantData['variants'] ?? [];
-
-                            if (!empty($variants)) {
-                                // إنشاء BatchItem لكل Variant بكميته المستقلة
-                                foreach ($variants as $variant) {
-                                    BatchItem::create([
-                                        'batch_id'         => $existingBatch->id,
-                                        'product_id'       => $product->id,
-                                        'quantity'         => $variant['variant_quantity'] ?? $b['quantity'],
-                                        'unit_cost'        => $product->price ?? 0,
-                                        'salla_variant_id' => $variant['salla_variant_id'] ?? null,
-                                        'variant_quantity' => $variant['variant_quantity'] ?? null,
-                                    ]);
-                                }
-                            } else {
-                                // بدون variants — BatchItem واحد للمنتج كاملاً
-                                BatchItem::create([
-                                    'batch_id'   => $existingBatch->id,
-                                    'product_id' => $product->id,
-                                    'quantity'   => $b['quantity'] ?? 0,
-                                    'unit_cost'  => $product->price ?? 0,
-                                ]);
-                            }
-                        }
-                    } else {
-                        $b['batch_code'] = $b['batch_code'] ?? 'B-' . Str::upper(Str::random(6));
-                        // ✅ FIX: محاولة ربط batch_variants بالـ batch
-                        // أولاً: بالمطابقة عبر batch_id
-                        // ثانياً (fallback): بالمطابقة عبر index في المصفوفة
-                        $batchVariantData = collect($batchVariantsAll)
-                            ->firstWhere('batch_id', $b['id'] ?? null);
-                        
-                        // ✅ Fallback: إذا لم نجد matching بالـ ID، نجرب بالمطابقة عبر index
-                        if (!$batchVariantData && isset($batchVariantsAll[$index])) {
-                            $batchVariantData = $batchVariantsAll[$index];
-                        }
-                        
-                        $b['variants'] = $batchVariantData['variants'] ?? [];
-                        $createdBatches  = $this->createMultipleBatches($merchant, $product, [$b]);
-                        $newlyCreatedBatches = array_merge($newlyCreatedBatches, $createdBatches);
-                    }
+                if ($totalVariantQty !== (int) $request->total_qty) {
+                    DB::rollBack();
+                    return $this->respondWithError(
+                        "مجموع كميات الـ variants ({$totalVariantQty}) يجب أن يساوي الكمية الإجمالية ({$request->total_qty})",
+                        422
+                    );
                 }
             }
 
             DB::commit();
 
-            // ✅ تشغيل CheckBatchExpiryJob بعد نجاح الـ transaction بالكامل
-            // يتم التأكد من اكتمال حفظ: batch, batch_items, variant quantities
-            // ثم بعدها dispatch على الـ queue
             CheckBatchExpiryJob::dispatch()->afterCommit();
 
-            // ✅ الآن BatchItem موجود — نُرسل الـ notifications بأمان
-            foreach ($newlyCreatedBatches as $newBatch) {
-                $newBatch->sendExpiryNotificationIfNeeded();
-            }
+            $batch->sendExpiryNotificationIfNeeded();
 
             $this->handleAutoHide($product, $merchant);
 
-            $freshProduct = $product->fresh()->load('batchItems.batch');
-            $worstStatus  = 'green';
-            foreach ($freshProduct->batchItems as $item) {
-                $s = $item->batch?->status ?? 'green';
-                if ($s === 'red')    { $worstStatus = 'red'; break; }
-                if ($s === 'yellow') { $worstStatus = 'yellow'; }
-            }
-
             Cache::forget("harees_dashboard_{$merchant->id}");
             Cache::forget("harees_dashboard_api_{$merchant->id}");
+
             ActivityLog::log(
                 $merchant->id, 'expiry_added',
-                "تم تحديث تواريخ الانتهاء للمنتج: {$product->name}", $product
+                "تم إضافة تاريخ انتهاء للمنتج: {$product->name}", $product
             );
 
-            $freshBatches = $request->same_expiry ? [] : $freshProduct->batchItems
-                ->groupBy('batch_id')
-                ->map(function ($items) use ($freshProduct) {
-                    $batch = $items->first()->batch;
-                    if (!$batch) return null;
-
-                    $variantsData = $freshProduct->variants_data ?? [];
-                    $variants = $items->map(function ($item) use ($variantsData) {
-                        if ($item->salla_variant_id) {
-                            $variantInfo = collect($variantsData)
-                                ->firstWhere('id', $item->salla_variant_id);
-
-                            // تجاهل الـ batch_item إذا كان الـ variant غير موجود أو بدون اسم
-                            if (!$variantInfo || empty($variantInfo['name'] ?? '')) {
-                                return null;
-                            }
-
-                            return [
-                                'salla_variant_id'   => $item->salla_variant_id,
-                                'variant_quantity'   => $item->variant_quantity,
-                                'quantity'           => $item->quantity,
-                                'name'               => $variantInfo['name'],
-                                'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
-                                'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
-                            ];
-                        }
-                        return null;
-                    })->filter()->values()->toArray();
-
-                    return [
-                        'id'          => $batch->id,
-                        'batch_code'  => $batch->batch_code,
-                        'expiry_date' => $batch->expiry_date?->format('Y-m-d'),
-                        'qty'         => $items->sum('quantity'),
-                        'status'      => $batch->status ?? 'green',
-                        'variants'    => $variants,
-                    ];
-                })->filter()->values()->toArray();
-
-            $savedBatchId = $request->same_expiry
-                ? $freshProduct->batchItems->first()?->batch?->id
-                : null;
-
-            return $this->respondWithSuccess('تم حفظ تواريخ الانتهاء بنجاح', [
-                'type'       => $request->same_expiry ? 'single' : 'batch',
-                'batch_code' => $savedBatchCode,
-                'batch_id'   => $savedBatchId,
-                'expiry_date' => $request->same_expiry
-        ? ($freshProduct->batchItems->first()?->batch?->expiry_date?->format('Y-m-d'))
-        : null,
-                'status'     => $worstStatus,
-                'quantity'   => $product->quantity ?? 0,
-                'batches'    => $freshBatches,
+            return $this->respondWithSuccess('تم حفظ تاريخ الانتهاء بنجاح', [
+                'batch_id'    => $batch->id,
+                'expiry_date' => $batch->expiry_date->format('Y-m-d'),
+                'status'      => $batch->status,
             ]);
 
         } catch (\Exception $e) {
@@ -340,21 +113,16 @@ class ProductExpiryController extends Controller
 
         DB::beginTransaction();
         try {
-            $batchIds = $product->batchItems()->pluck('batch_id');
-            
-            // ✅ تنظيف الخصومات المرتبطة بالـ batches قبل الحذف
-            $this->cleanupDiscountsOnBatchDeletion($product, $batchIds);
-            
-            $product->batchItems()->delete();
-            Batch::whereIn('id', $batchIds)->where('merchant_id', auth()->id())->delete();
+            if ($product->batch) {
+                $this->cleanupDiscountsOnBatchDeletion($product, collect([$product->batch->id]));
+                $product->batch->batchVariants()->delete();
+                $product->batch->delete();
+            }
 
             $product->status = 'sale';
             $product->save();
 
             $merchant = auth()->user();
-
-            // ✅ حذف خيار "خيارات الشراء" بالكامل من سلة فوراً
-            $this->removeBatchOptionFromSalla($product, $merchant);
 
             try {
                 $sallaApi = \App\Services\SallaApiService::for($merchant);
@@ -364,11 +132,13 @@ class ProductExpiryController extends Controller
             }
 
             DB::commit();
+
             CheckBatchExpiryJob::dispatch()->afterCommit();
             Cache::forget("harees_dashboard_{$merchant->id}");
             Cache::forget("harees_dashboard_api_{$merchant->id}");
+
             ActivityLog::log($merchant->id, 'expiry_deleted',
-                "تم حذف تواريخ الانتهاء للمنتج: {$product->name}", $product);
+                "تم حذف تاريخ الانتهاء للمنتج: {$product->name}", $product);
 
             return $this->respondWithSuccess('تم حذف البيانات وإعادة المنتج للحالة الافتراضية', ['reset' => true]);
 
@@ -379,217 +149,94 @@ class ProductExpiryController extends Controller
         }
     }
 
-    /**
-     * حذف دفعة واحدة مع تنظيف كل شيء متعلق بها
-     */
     public function destroyBatch($batchId)
     {
-        $batch = Batch::with('batchItems.product')->findOrFail($batchId);
-        if ($batch->merchant_id !== auth()->id()) {
-            return abort(403);
-        }
+        $batch = Batch::with('product')->findOrFail($batchId);
+        if ($batch->merchant_id !== auth()->id()) return abort(403);
 
         $merchant = auth()->user();
 
         DB::beginTransaction();
         try {
-            $batchItemIds = $batch->batchItems->pluck('id');
-            $productIds = $batch->batchItems->pluck('product_id')->unique();
+            $product = $batch->product;
 
-            // 1. تنظيف الخصومات المرتبطة بهذه الدفعة في سلة
-            $this->cleanupDiscountsOnBatchDeletion(
-                $batch->batchItems->first()?->product,
-                collect([$batch->id])
-            );
+            $this->cleanupDiscountsOnBatchDeletion($product, collect([$batch->id]));
 
-            // 2. حذف batch_items أولاً
-            BatchItem::whereIn('id', $batchItemIds)->delete();
+            $batch->batchVariants()->delete();
+            $batch->delete();
 
-            // 3. لكل منتج مرتبط: تحديث خيار سلة بعد الحذف
-            foreach ($productIds as $productId) {
-                $product = Product::find($productId);
-                if ($product) {
-                    $this->syncBatchOptionAfterDeletion($product, $merchant, [$batch->id]);
+            if ($product) {
+                $product->status = 'sale';
+                $product->save();
 
-                    // 4. إذا لم يعد للمنتج أي batches → إعادة حالته إلى 'sale'
-                    $remainingCount = BatchItem::where('product_id', $product->id)->count();
-                    if ($remainingCount === 0) {
-                        $product->status = 'sale';
-                        $product->save();
-
-                        try {
-                            $sallaApi = \App\Services\SallaApiService::for($merchant);
-                            $sallaApi->updateProductStatusOnly($product->salla_product_id, 'sale');
-                        } catch (\Exception $e) {
-                            Log::warning("[DeleteBatch] فشل تحديث حالة المنتج {$product->id}: " . $e->getMessage());
-                        }
-                    }
+                try {
+                    $sallaApi = \App\Services\SallaApiService::for($merchant);
+                    $sallaApi->updateProductStatusOnly($product->salla_product_id, 'sale');
+                } catch (\Exception $e) {
+                    Log::warning("[DeleteBatch] فشل تحديث حالة المنتج: " . $e->getMessage());
                 }
             }
 
-            // 5. حذف الـ batch نفسه
-            $batchCode = $batch->batch_code;
-            $batch->delete();
-
             DB::commit();
-
-            dispatch(new \App\Jobs\Harees\UpdateBatchOptionsJob())->afterCommit();
 
             Cache::forget("harees_dashboard_api_{$merchant->id}");
 
             ActivityLog::log($merchant->id, 'batch_deleted',
-                "تم حذف الدفعة: {$batchCode}", $batch);
+                "تم حذف الدفعة للمنتج: {$product?->name}", $batch);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'تم حذف الدفعة بنجاح',
-            ]);
+            return response()->json(['success' => true, 'message' => 'تم حذف الدفعة بنجاح']);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('[DeleteBatch] خطأ في حذف الدفعة: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء حذف الدفعة',
-            ], 500);
+            Log::error('[DeleteBatch] خطأ في حذف الدفعة: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'حدث خطأ أثناء حذف الدفعة'], 500);
         }
     }
 
     protected function handleAutoHide($product, $merchant): void
     {
         try {
-            $product->load('batchItems.batch');
-
             if (!$merchant || !$product || !$product->salla_product_id) return;
 
             $setting = BatchSetting::where('merchant_id', $merchant->id)->first();
             if (!$setting || !$setting->auto_hide_expired) return;
 
-            $hasValidBatches = $product->batchItems()->whereHas('batch', function ($q) {
-                $q->where('expiry_date', '>=', now()->format('Y-m-d'));
-            })->exists();
+            $batch = $product->batch;
+            $shouldHide = false;
+
+            if (!$batch) {
+                $shouldHide = true;
+            } else {
+                $expiryDate = $batch->expiry_date;
+                if ($expiryDate && $expiryDate->isPast()) {
+                    $shouldHide = true;
+                } elseif ($expiryDate && $setting->auto_hide_before_expiry_days) {
+                    $hideBeforeDate = now()->addDays($setting->auto_hide_before_expiry_days);
+                    if ($expiryDate <= $hideBeforeDate) {
+                        $shouldHide = true;
+                    }
+                }
+            }
 
             $sallaApi  = \App\Services\SallaApiService::for($merchant);
-            $newStatus = $hasValidBatches ? 'sale' : 'hidden';
+            $newStatus = $shouldHide ? 'hidden' : 'sale';
 
             $sallaApi->updateProductStatusOnly($product->salla_product_id, $newStatus);
             $product->status = $newStatus;
             $product->save();
 
             Log::info("[AutoHide] {$product->name} → {$newStatus}");
+
         } catch (\Exception $e) {
             Log::error('AutoHide Error: ' . $e->getMessage());
         }
     }
 
-    // =========================================================
-    // Helpers — يُرجعان الـ Batch المُنشأ لإرسال الـ notification لاحقاً
-    // =========================================================
-
-    protected function createSingleBatch($merchant, Product $product, array $data): ?Batch
+    protected function cleanupDiscountsOnBatchDeletion(?Product $product, $batchIds): void
     {
-        $batch = Batch::create([
-            'merchant_id'       => $merchant->id,
-            'name'              => $product->name,
-            'batch_code'        => $data['batch_code'],
-            'expiry_date'       => $data['expiry_date'],
-            'manufactured_date' => $data['manufactured_date'] ?? null,
-            'notes'             => $data['notes'] ?? null,
-        ]);
+        if (!$product || $batchIds->isEmpty()) return;
 
-        $variants = $data['variants'] ?? [];
-        
-        Log::info('[CreateSingleBatch] Received variants:', $variants);
-        
-        if (!empty($variants)) {
-            foreach ($variants as $variant) {
-                BatchItem::create([
-                    'batch_id'         => $batch->id,
-                    'product_id'       => $product->id,
-                    'quantity'         => $variant['variant_quantity'] ?? ($product->quantity ?? 0),
-                    'unit_cost'        => $product->price ?? 0,
-                    'salla_variant_id' => $variant['salla_variant_id'] ?? null,
-                    'variant_quantity' => $variant['variant_quantity'] ?? null,
-                ]);
-            }
-        } else {
-            BatchItem::create([
-                'batch_id'   => $batch->id,
-                'product_id' => $product->id,
-                'quantity'   => $product->quantity ?? 0,
-                'unit_cost'  => $product->price ?? 0,
-            ]);
-        }
-
-        return $batch;
-    }
-
-    /**
-     * @return Batch[]
-     */
-    protected function createMultipleBatches($merchant, Product $product, array $batches): array
-    {
-        $created = [];
-        foreach ($batches as $data) {
-            $batch = Batch::create([
-                'merchant_id'       => $merchant->id,
-                'name'              => $product->name,
-                'batch_code'        => $data['batch_code'] ?? 'B-' . Str::upper(Str::random(6)),
-                'expiry_date'       => $data['expiry_date'],
-                'manufactured_date' => $data['manufactured_date'] ?? null,
-            ]);
-
-            $variants = $data['variants'] ?? [];
-            
-            if (!empty($variants)) {
-                foreach ($variants as $variant) {
-                    $variantId = $variant['salla_variant_id'] ?? null;
-                    
-                    BatchItem::updateOrCreate(
-                        [
-                            'batch_id'         => $batch->id,
-                            'salla_variant_id' => $variantId,
-                        ],
-                        [
-                            'product_id'       => $product->id,
-                            'quantity'         => $variant['variant_quantity'] ?? ($data['quantity'] ?? 0),
-                            'unit_cost'        => $product->price ?? 0,
-                            'variant_quantity' => $variant['variant_quantity'] ?? null,
-                        ]
-                    );
-                }
-            } else {
-                BatchItem::updateOrCreate(
-                    [
-                        'batch_id'   => $batch->id,
-                        'product_id' => $product->id,
-                    ],
-                    [
-                        'quantity'   => $data['quantity'] ?? 0,
-                        'unit_cost'  => $product->price ?? 0,
-                    ]
-                );
-            }
-
-            $created[] = $batch;
-        }
-        return $created;
-    }
-
-    /**
-     * تنظيف الخصومات عند حذف الباتشات
-     */
-    protected function cleanupDiscountsOnBatchDeletion(Product $product, $batchIds): void
-    {
-        if ($batchIds->isEmpty()) return;
-
-        // جلب الخصومات النشطة للـ batches المحذوفة
-        $discounts = BatchDiscount::whereIn('batch_id', $batchIds)
-            ->active()
-            ->get();
-
+        $discounts = BatchDiscount::whereIn('batch_id', $batchIds)->active()->get();
         if ($discounts->isEmpty()) return;
 
         try {
@@ -598,26 +245,27 @@ class ProductExpiryController extends Controller
                 $sallaApi = \App\Services\SallaApiService::for($merchant);
 
                 foreach ($discounts as $discount) {
-                    $batchItem = $discount->batch?->batchItems->first();
-                    $variantId = $batchItem?->salla_variant_id;
+                    $batch = $discount->batch;
+                    if (!$batch) continue;
 
-                    if ($variantId) {
-                        try {
-                            $variantData = $product->getVariantById($variantId) ?? [];
-                            $currentSku = $variantData['sku'] ?? null;
+                    $variantIds = $batch->batchVariants()->pluck('variant_id');
+
+                    if ($variantIds->isNotEmpty()) {
+                        foreach ($batch->batchVariants as $bv) {
+                            $variantData = $product->getVariantById($bv->variant_id) ?? [];
+                            $currentSku  = $variantData['sku'] ?? null;
                             $currentPrice = (float) ($variantData['price'] ?? 0);
-                            $batchItemQty = (int) ($batchItem?->quantity ?? 0);
 
                             if ($currentSku) {
-                                $sallaApi->updateBatchVariant($variantId, [
+                                $sallaApi->updateBatchVariant($bv->variant_id, [
                                     'price'      => $currentPrice,
                                     'sale_price' => 0,
                                 ]);
-                                Log::info("[Cleanup] إزالة sale_price من variant {$variantId}");
                             }
-                        } catch (\Exception $e) {
-                            Log::warning("[Cleanup] فشل إزالة sale_price: " . $e->getMessage());
                         }
+                    } else {
+                        $currentPrice = (float) ($product->price ?? 0);
+                        $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, 0);
                     }
 
                     $discount->update(['status' => 'cancelled']);
@@ -625,187 +273,6 @@ class ProductExpiryController extends Controller
             }
         } catch (\Exception $e) {
             Log::warning("[Cleanup] فشل تنظيف الخصومات: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Server-side validation للـ variants - مطابق لـ ExpiryModal.jsx
-     */
-    protected function validateVariants(Request $request, Product $product): void
-    {
-        // ✅ الحصول على variants_data من المنتج (الـ cache المحلي)
-        $variantsData = $product->variants_data ?? [];
-        
-        // إنشاء خريطة للـ stock quantity
-        $stockMap = [];
-        foreach ($variantsData as $v) {
-            $stockMap[$v['id']] = [
-                'stock_quantity' => $v['stock_quantity'] ?? 0,
-                'unlimited_quantity' => $v['unlimited_quantity'] ?? false,
-            ];
-        }
-
-        // ─── same_expiry: التحقق من variants ───
-        if ($request->same_expiry) {
-            $variants = $request->input('variants', []);
-            if (!empty($variants)) {
-                $totalVariantQty = collect($variants)->sum('variant_quantity');
-                
-                // يجب أن يساوي product.quantity في وضع same_expiry
-                if ($totalVariantQty !== (int) $product->quantity) {
-                    throw new \InvalidArgumentException(
-                        "مجموع كميات الـ variants ({$totalVariantQty}) يجب أن يساوي الكمية الإجمالية للمنتج ({$product->quantity})"
-                    );
-                }
-
-                // التحقق من stock
-                foreach ($variants as $variant) {
-                    $variantId = $variant['salla_variant_id'] ?? null;
-                    $qty = $variant['variant_quantity'] ?? 0;
-                    if (!$variantId) continue;
-                    
-                    $stock = $stockMap[$variantId] ?? null;
-                    if ($stock && !$stock['unlimited_quantity'] && $qty > $stock['stock_quantity']) {
-                        throw new \InvalidArgumentException(
-                            "كمية الـ variant تتجاوز المخزون المتوفر ({$stock['stock_quantity']})"
-                        );
-                    }
-                }
-            }
-        }
-
-        // ─── multi-batch: التحقق من كل batch ───
-        $batches = $request->input('batches', []);
-        $batchVariantsAll = $request->input('batch_variants', []);
-
-        foreach ($batches as $idx => $batch) {
-            $batchQty = (int) ($batch['quantity'] ?? 0);
-            $batchId = $batch['id'] ?? null;
-            
-            // ✅ البحث عن variants لهذا الـ batch
-            // أولاً: بالمطابقة عبر batch_id
-            // ثانياً (fallback): بالمطابقة عبر index في المصفوفة
-            $linkedVariants = collect($batchVariantsAll)
-                ->firstWhere('batch_id', $batchId);
-            
-            if (!$linkedVariants && isset($batchVariantsAll[$idx])) {
-                $linkedVariants = $batchVariantsAll[$idx];
-            }
-            
-            if ($linkedVariants && !empty($linkedVariants['variants'])) {
-                $totalVariantQty = collect($linkedVariants['variants'])
-                    ->sum('variant_quantity');
-
-                // يجب أن يساوي quantity الـ batch
-                if ($totalVariantQty !== $batchQty) {
-                    throw new \InvalidArgumentException(
-                        "Batch " . ($idx + 1) . ": مجموع كميات الـ variants ({$totalVariantQty}) يجب أن يساوي كمية الـ batch ({$batchQty})"
-                    );
-                }
-
-                // التحقق من stock لكل variant
-                foreach ($linkedVariants['variants'] as $variant) {
-                    $variantId = $variant['salla_variant_id'] ?? null;
-                    $qty = $variant['variant_quantity'] ?? 0;
-                    if (!$variantId || $qty <= 0) continue;
-                    
-                    $stock = $stockMap[$variantId] ?? null;
-                    if ($stock && !$stock['unlimited_quantity'] && $qty > $stock['stock_quantity']) {
-                        throw new \InvalidArgumentException(
-                            "كمية الـ variant تتجاوز المخزون المتوفر ({$stock['stock_quantity']})"
-                        );
-                    }
-                }
-            }
-        }
-
-        // ─── التحقق الإجمالي: مجموع كل الدفعات لا يتجاوز product.quantity ───
-        if (!$request->same_expiry) {
-            $totalBatchesQty = collect($batches)->sum('quantity');
-            if ($totalBatchesQty > (int) $product->quantity) {
-                throw new \InvalidArgumentException(
-                    "الكمية الإجمالية ({$totalBatchesQty}) تتجاوز المخزون المتوفر ({$product->quantity})"
-                );
-            }
-        }
-    }
-
-    /**
-     * حذف خيار "خيارات الشراء" بالكامل من سلة (عند حذف كل الباتشات)
-     */
-    private function removeBatchOptionFromSalla(Product $product, $merchant): void
-    {
-        if (!$product->salla_product_id) return;
-
-        try {
-            $sallaApi = \App\Services\SallaApiService::for($merchant);
-            $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
-            $currentOptions = $optionsResponse['data'] ?? [];
-            $batchOption = collect($currentOptions)->firstWhere('name', \App\Services\SallaApiService::BATCH_OPTION_NAME);
-
-            if ($batchOption) {
-                $sallaApi->deleteProductOption($batchOption['id']);
-                Log::info("[BatchOption] حذف خيار خيارات الشراء بالكامل للمنتج {$product->id}");
-            }
-        } catch (\Exception $e) {
-            Log::warning("[BatchOption] فشل حذف خيار سلة: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * تحديث خيار "خيارات الشراء" بعد حذف batch(es):
-     * - إذا لم يبقَ أي batch نشط: حذف الخيار بالكامل
-     * - إذا بقيت batches: تحديث القيم بإزالة الباتشات المحذوفة
-     */
-    private function syncBatchOptionAfterDeletion(Product $product, $merchant, array $deletedBatchIds): void
-    {
-        if (!$product->salla_product_id) return;
-
-        try {
-            // جلب الباتشات المتبقية للمنتج
-            $remainingItems = $product->batchItems()
-                ->whereNotIn('batch_id', $deletedBatchIds)
-                ->with('batch')
-                ->get();
-
-            $sallaApi = \App\Services\SallaApiService::for($merchant);
-
-            // إذا لم يبقَ أي batch → حذف الخيار بالكامل
-            if ($remainingItems->isEmpty()) {
-                $this->removeBatchOptionFromSalla($product, $merchant);
-                return;
-            }
-
-            // استخراج الباتشات الفريدة المتبقية
-            $remainingBatches = $remainingItems
-                ->map(fn($item) => $item->batch)
-                ->filter()
-                ->unique('id')
-                ->whereIn('status', ['yellow', 'green']);
-
-            if ($remainingBatches->isEmpty()) {
-                $this->removeBatchOptionFromSalla($product, $merchant);
-                return;
-            }
-
-            // بناء القيم الجديدة (بدون المحذوفة)
-            $newValues = $remainingBatches->map(function ($batch) {
-                $expiry = $batch->expiry_date;
-                $dateStr = $expiry ? $expiry->format('Y-m-d') : 'Unknown';
-                return ['name' => "تاريخ انتهاء المنتج {$dateStr}"];
-            })->values()->toArray();
-
-            // جلب الخيار الحالي من سلة
-            $optionsResponse = $sallaApi->getProductOptions($product->salla_product_id);
-            $currentOptions = $optionsResponse['data'] ?? [];
-            $batchOption = collect($currentOptions)->firstWhere('name', \App\Services\SallaApiService::BATCH_OPTION_NAME);
-
-            if ($batchOption) {
-                $sallaApi->updateProductOption($batchOption['id'], \App\Services\SallaApiService::BATCH_OPTION_NAME, $newValues);
-                Log::info("[BatchOption] تحديث خيار خيارات الشراء بعد الحذف للمنتج {$product->id}");
-            }
-        } catch (\Exception $e) {
-            Log::warning("[BatchOption] فشل تحديث خيار سلة بعد الحذف: " . $e->getMessage());
         }
     }
 

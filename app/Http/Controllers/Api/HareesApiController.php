@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Harees\ProductExpiryController;
 use App\Models\Batch;
-use App\Models\BatchItem;
+use App\Models\BatchVariant;
 use App\Models\Product;
 use App\Models\BatchSetting;
 use App\Models\CategoryMapping;
@@ -17,7 +17,6 @@ use App\Services\SallaApiService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class HareesApiController extends Controller
 {
@@ -87,63 +86,43 @@ class HareesApiController extends Controller
             ];
 
             $products = Product::where('merchant_id', $merchant->id)
-                ->with([
-                    'batchItems.batch.discounts' => function ($q) {
-                        $q->where('status', 'active');
-                    }
-                ])
-                ->whereHas('batchItems')
+                ->with(['batch.discounts' => function ($q) {
+                    $q->where('status', 'active');
+                }])
+                ->whereHas('batch')
                 ->get()
                 ->map(function ($product) use ($merchant) {
-                    $validItems = $product->batchItems->filter(fn($item) => $item->relationLoaded('batch') && $item->batch);
+                    $batch = $product->batch;
+                    if (!$batch) return null;
 
-                    if ($validItems->isEmpty()) return null;
+                    $activeDiscount = collect($batch->discounts ?? [])
+                        ->firstWhere('status', 'active');
 
-                    $criticalBatchItem = $validItems
-                        ->sortBy(function ($item) {
-                            $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
-                            return $order[$item->batch->status] ?? 99;
-                        })
-                        ->first();
-
-                    $batchesGrouped = $validItems
-                        ->groupBy('batch_id')
-                        ->map(function ($items) {
-                            $batch = $items->first()->batch;
-                            $activeDiscount = collect($batch->discounts ?? [])
-                                ->firstWhere('status', 'active');
-
-                            return [
-                                'id'                   => $batch->id,
-                                'batch_code'           => $batch->batch_code,
-                                'expiry_date'          => $batch->expiry_date?->format('Y-m-d'),
-                                'status'               => $batch->status ?? 'green',
-                                'discount_type'        => $batch->discount_type ?? 'pending',
-                                'discount_percentage'  => $activeDiscount
-                                    ? (float) $activeDiscount->discount_percentage
-                                    : null,
-                            ];
-                        })
-                        ->values();
-
-                    $hasActiveManualDiscount = $validItems
-                        ->flatMap(fn($item) => $item->batch->discounts ?? collect())
-                        ->filter(fn($d) => $d->status === 'active')
-                        ->isNotEmpty();
+                    $hasActiveManualDiscount = $batch->discounts
+                        ? collect($batch->discounts)->filter(fn($d) => $d->status === 'active')->isNotEmpty()
+                        : false;
 
                     $batchSettings = BatchSetting::where('merchant_id', $merchant->id)->first();
                     $hasActiveAutoDiscount = $batchSettings?->auto_discounts
-                        && $criticalBatchItem->batch->days_until_expiry !== null
-                        && $criticalBatchItem->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
+                        && $batch->days_until_expiry !== null
+                        && $batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
 
                     return [
                         'id' => $product->id,
                         'salla_product_id' => $product->salla_product_id,
                         'name' => $product->name,
                         'image_url' => $product->image_url,
-                        'status' => $criticalBatchItem->batch->status ?? 'green',
-                        'expiry_date' => $criticalBatchItem->batch->expiry_date?->format('Y-m-d'),
-                        'batches' => $batchesGrouped,
+                        'status' => $batch->status ?? 'green',
+                        'expiry_date' => $batch->expiry_date?->format('Y-m-d'),
+                        'batches' => [[
+                            'id'                   => $batch->id,
+                            'expiry_date'          => $batch->expiry_date?->format('Y-m-d'),
+                            'status'               => $batch->status ?? 'green',
+                            'discount_type'        => $batch->discount_type ?? 'pending',
+                            'discount_percentage'  => $activeDiscount
+                                ? (float) $activeDiscount->discount_percentage
+                                : null,
+                        ]],
                         'has_active_discount' => $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })
@@ -182,7 +161,7 @@ class HareesApiController extends Controller
             ->toArray();
 
         $products = Product::where('merchant_id', $merchant->id)
-            ->with(['images', 'batchItems.batch'])
+            ->with(['images', 'batch.batchVariants'])
             ->orderBy('name')
             ->get()
             ->map(function ($product) use ($settings, $categoryMappings) {
@@ -191,56 +170,38 @@ class HareesApiController extends Controller
                 $thresholdKey = $bucket . '_term_days';
                 $threshold = $settings->$thresholdKey ?? 14;
 
-                $batches = $product->batchItems
-                    ->groupBy('batch_id')
-                    ->map(function ($items, $batchId) use ($threshold, $product) {
-                        $batch = $items->first()->batch;
-                        if (!$batch) {
-                            return null;
-                        }
-                        
-                        $variantsData = $product->variants_data ?? [];
-                        $variants = $items->map(function ($item) use ($variantsData) {
-                            if ($item->salla_variant_id) {
-                                $variantInfo = collect($variantsData)
-                                    ->firstWhere('id', $item->salla_variant_id);
+                $batch = $product->batch;
 
-                                // تجاهل الـ batch_item إذا كان الـ variant غير موجود أو بدون اسم
-                                if (!$variantInfo || empty($variantInfo['name'] ?? '')) {
-                                    return null;
-                                }
-                                
-                                return [
-                                    'batch_item_id'      => $item->id,
-                                    'salla_variant_id'   => $item->salla_variant_id,
-                                    'variant_quantity'   => $item->variant_quantity,
-                                    'quantity'           => $item->quantity,
-                                    'name'               => $variantInfo['name'],
-                                    'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
-                                    'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
-                                ];
-                            }
-                            return null;
-                        })->filter()->values()->toArray();
-                        
-                        return [
-                            'id'               => $batch->id,
-                            'batch_code'       => $batch->batch_code,
-                            'quantity'         => $items->sum('quantity'),
-                            'status'           => $batch->status ?? 'green',
-                            'expiry_date'      => $batch->expiry_date
-                                ? \Carbon\Carbon::parse($batch->expiry_date)->format('Y-m-d')
-                                : null,
-                            'days_until_expiry' => $batch->days_until_expiry,
-                            'threshold'        => $threshold,
-                            'has_variants'     => count($variants) > 0,
-                            'variants'        => $variants,
-                        ];
-                    })
-                    ->filter()
-                    ->values();
+                $variantsData = $product->variants_data ?? [];
+                $variants = $batch?->batchVariants->map(function ($bv) use ($variantsData) {
+                    $variantInfo = collect($variantsData)->firstWhere('id', $bv->variant_id);
+                    if (!$variantInfo || empty($variantInfo['name'] ?? '')) {
+                        return null;
+                    }
+                    return [
+                        'variant_id'         => $bv->variant_id,
+                        'variant_qty'        => $bv->batch_qty,
+                        'total_qty'          => $bv->total_qty,
+                        'name'               => $variantInfo['name'],
+                        'stock_quantity'     => $variantInfo['stock_quantity'] ?? 0,
+                        'unlimited_quantity' => $variantInfo['unlimited_quantity'] ?? false,
+                    ];
+                })->filter()->values()->toArray() ?? [];
 
-                $usedQty = $product->batchItems->sum('quantity');
+                $batches = $batch ? [[
+                    'id'               => $batch->id,
+                    'quantity'         => $batch->batch_qty ?? 0,
+                    'status'           => $batch->status ?? 'green',
+                    'expiry_date'      => $batch->expiry_date
+                        ? \Carbon\Carbon::parse($batch->expiry_date)->format('Y-m-d')
+                        : null,
+                    'days_until_expiry' => $batch->days_until_expiry,
+                    'threshold'        => $threshold,
+                    'has_variants'     => count($variants) > 0,
+                    'variants'        => $variants,
+                ]] : [];
+
+                $usedQty = $batch?->total_qty ?? 0;
 
                 return [
                     'id' => $product->id,
@@ -275,19 +236,14 @@ class HareesApiController extends Controller
         $product = Product::where('merchant_id', $merchant->id)->where('id', $product_id)->firstOrFail();
 
         try {
-            $batches = BatchItem::where('product_id', $product->id)
-                ->with('batch')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => $item->batch->id,
-                        'batch_id' => $item->batch_id,
-                        'batch_code' => $item->batch?->batch_code,
-                        'expiry_date' => $item->batch?->expiry_date?->format('Y-m-d'),
-                        'quantity' => $item->quantity,
-                        'status' => $item->batch?->status ?? 'green',
-                    ];
-                });
+            $batch = $product->batch;
+
+            $batches = $batch ? [[
+                'id'          => $batch->id,
+                'expiry_date' => $batch->expiry_date?->format('Y-m-d'),
+                'quantity'    => $batch->batch_qty ?? 0,
+                'status'      => $batch->status ?? 'green',
+            ]] : [];
 
             return response()->json([
                 'success' => true,
@@ -312,49 +268,44 @@ class HareesApiController extends Controller
 
         $request->validate([
             'expiry_date' => 'required|date',
-            'quantity' => 'required|integer|min:1'
+            'quantity'    => 'required|integer|min:1',
+            'variants'    => 'nullable|array',
+            'variants.*.variant_id' => 'required_with:variants|integer',
+            'variants.*.variant_qty' => 'required_with:variants|integer|min:1',
         ]);
 
         try {
-            // 1. إنشاء الدفعة محلياً
-            $batch = Batch::create([
-                'merchant_id' => $merchant->id,
-                'batch_code' => 'B-' . strtoupper(Str::random(6)),
-                'expiry_date' => $request->expiry_date,
-                'status' => 'green', // نعطيها مبدئياً أخضر
-            ]);
-
-            // حساب الحالة الفعلية (أخضر، أصفر، أحمر) بناءً على الإعدادات
-            $batch->status = $batch->calculateStatus($request->expiry_date);
-            $batch->save();
-
-            // 2. إنشاء الـ BatchItem مع الـ variants إذا وجدت
-            $variants = $request->input('variants', []);
-            
-            if (!empty($variants)) {
-                // يوجد variants محددة - إنشاء multiple batch_items
-                // ✅ Fix: استخدام variant_quantity الحقيقي بدلاً من quantity الكامل
-                foreach ($variants as $variant) {
-                    $variantQty = $variant['variant_quantity'] ?? $request->quantity;
-                    BatchItem::create([
-                        'batch_id' => $batch->id,
-                        'product_id' => $product->id,
-                        'quantity' => $variantQty,
-                        'salla_variant_id' => $variant['salla_variant_id'] ?? null,
-                        'variant_quantity' => $variantQty,
-                    ]);
-                }
-            } else {
-                // بدون variants - إنشاء batch item واحد
-                BatchItem::create([
-                    'batch_id' => $batch->id,
-                    'product_id' => $product->id,
-                    'quantity' => $request->quantity
-                ]);
+            // حذف الدفعة القديمة إن وجدت
+            if ($product->batch) {
+                $product->batch->batchVariants()->delete();
+                $product->batch->delete();
             }
 
-            // 3. تحديث خيار سلة "خيارات الشراء" بالباتشات النشطة (أخضر + أصفر)
-            $this->syncYellowBatchesToSalla($product, $merchant);
+            // إنشاء الدفعة الجديدة
+            $batch = Batch::create([
+                'merchant_id' => $merchant->id,
+                'product_id'  => $product->id,
+                'expiry_date' => $request->expiry_date,
+                'total_qty'   => $request->quantity,
+                'batch_qty'   => $request->quantity,
+                'status'      => 'green',
+            ]);
+
+            $batch->calculateStatus();
+            $batch->save();
+
+            // إنشاء الـ batch_variants إذا وجدت
+            $variants = $request->input('variants', []);
+            if (!empty($variants)) {
+                foreach ($variants as $variant) {
+                    BatchVariant::create([
+                        'batch_id'   => $batch->id,
+                        'variant_id' => $variant['variant_id'],
+                        'total_qty'  => $variant['variant_qty'],
+                        'batch_qty'  => $variant['variant_qty'],
+                    ]);
+                }
+            }
 
             CheckBatchExpiryJob::dispatch()->afterCommit();
 
@@ -379,21 +330,16 @@ class HareesApiController extends Controller
         $batch = Batch::where('merchant_id', $merchant->id)->where('id', $batch_id)->firstOrFail();
 
         $request->validate([
-            'batch_code' => 'required|string',
             'expiry_date' => 'required|date',
+            'total_qty'   => 'nullable|integer|min:1',
         ]);
 
         $batch->update([
-            'batch_code' => $request->batch_code,
             'expiry_date' => $request->expiry_date,
-            'status' => $batch->calculateStatus($request->expiry_date),
+            'total_qty'   => $request->total_qty ?? $batch->total_qty,
+            'batch_qty'   => $request->total_qty ?? $batch->batch_qty,
+            'status'      => $batch->calculateStatus($request->expiry_date),
         ]);
-
-        // نحدث سلة في حال تغيرت الحالة (ربما أصبح أصفر أو خرج من الأصفر)
-        $batchItem = BatchItem::where('batch_id', $batch->id)->first();
-        if ($batchItem) {
-            $this->syncYellowBatchesToSalla($batchItem->product, $merchant);
-        }
 
         CheckBatchExpiryJob::dispatch()->afterCommit();
 
@@ -583,74 +529,6 @@ class HareesApiController extends Controller
         }
     }
 
-    /**
-     * دالة مساعدة لإنشاء/تحديث خيار "خيارات الشراء" بقيم (أخضر → السعر الأساسي، أصفر → التسمية المختارة)
-     */
-    private function syncYellowBatchesToSalla($product, $merchant)
-    {
-        if (!$product->salla_product_id) return;
-
-        try {
-            $sallaApi = SallaApiService::for($merchant);
-            $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
-
-            // جلب الدفعات النشطة (صفراء + خضراء) لهذا المنتج
-            $activeBatches = BatchItem::where('product_id', $product->id)
-                ->whereHas('batch', function($q) {
-                    $q->whereIn('status', ['yellow', 'green']);
-                })
-                ->with('batch')
-                ->get()
-                ->pluck('batch')
-                ->filter()
-                ->unique('id');
-
-            // بناء القيم: أخضر → السعر الأساسي، أصفر → التسمية المختارة من الإعدادات
-            $valuesRequired = collect();
-            if ($activeBatches->contains(fn($b) => $b->status === 'green')) {
-                $valuesRequired->push(SallaApiService::GREEN_LABEL);
-            }
-            $yellowLabel = $settings->yellow_batch_label ?? 'عرض التوفير (كمية محدودة)';
-            if ($activeBatches->contains(fn($b) => $b->status === 'yellow')) {
-                $valuesRequired->push($yellowLabel);
-            }
-
-            // جلب خيارات سلة الحالية للتحقق من وجود "خيارات الشراء"
-            $optionsReq = $sallaApi->getProductOptions($product->salla_product_id);
-            $sallaOptions = $optionsReq['data'] ?? [];
-
-            $batchOption = collect($sallaOptions)->firstWhere('name', SallaApiService::BATCH_OPTION_NAME);
-
-            if ($valuesRequired->isEmpty()) {
-                if ($batchOption) {
-                    $sallaApi->deleteProductOption($batchOption['id']);
-                    Log::info('[BatchOption] حذف خيار (لا توجد دفعات نشطة)');
-                }
-                return;
-            }
-
-            $valuesArray = $valuesRequired->map(fn($v) => ['name' => $v])->values()->toArray();
-
-            if (!$batchOption) {
-                $sallaApi->createProductOption(
-                    $product->salla_product_id,
-                    SallaApiService::BATCH_OPTION_NAME,
-                    $valuesArray
-                );
-                Log::info('[BatchOption] إنشاء خيار جديد مع ' . count($valuesArray) . ' قيمة');
-            } else {
-                $sallaApi->updateProductOption(
-                    $batchOption['id'],
-                    SallaApiService::BATCH_OPTION_NAME,
-                    $valuesArray
-                );
-                Log::info('[BatchOption] تحديث خيار بقيم ' . count($valuesArray));
-            }
-        } catch (\Exception $e) {
-            Log::error('[Sync Yellow Batches Error] ' . $e->getMessage());
-        }
-    }
-
     public function storeExpiry(Request $request)
     {
         return app(ProductExpiryController::class)->store($request);
@@ -709,33 +587,28 @@ class HareesApiController extends Controller
         $merchant = Auth::user();
 
         $validated = $request->validate([
-            'short_term_days' => 'required|integer|min:1',
-            'medium_term_days' => 'required|integer|min:1',
-            'long_term_days' => 'required|integer|min:1',
-            'auto_hide_expired' => 'nullable|boolean',
-            'auto_discounts' => 'nullable|boolean',
+            'short_term_days'             => 'required|integer|min:1',
+            'medium_term_days'            => 'required|integer|min:1',
+            'long_term_days'              => 'required|integer|min:1',
+            'auto_hide_expired'           => 'nullable|boolean',
+            'auto_hide_before_expiry_days' => 'nullable|integer|min:0|max:365',
+            'auto_discounts'              => 'nullable|boolean',
             'auto_discount_percent'       => 'nullable|integer|min:1|max:99', 
             'auto_discount_duration_days' => 'nullable|integer|min:1', 
-            'category_mapping' => 'nullable|array',
-            'yellow_batch_label' => 'nullable|string',
+            'category_mapping'            => 'nullable|array',
         ]);
-
-        $yellowLabel = $validated['yellow_batch_label'] ?? null;
-        if ($yellowLabel && !in_array($yellowLabel, SallaApiService::YELLOW_LABELS)) {
-            $yellowLabel = 'عرض التوفير (كمية محدودة)';
-        }
 
         $settings = BatchSetting::updateOrCreate(
             ['merchant_id' => $merchant->id],
             [
-                'short_term_days' => $validated['short_term_days'],
-                'medium_term_days' => $validated['medium_term_days'],
-                'long_term_days' => $validated['long_term_days'],
-                'auto_hide_expired' => $request->boolean('auto_hide_expired'),
-                'auto_discounts' => $request->boolean('auto_discounts'),
+                'short_term_days'             => $validated['short_term_days'],
+                'medium_term_days'            => $validated['medium_term_days'],
+                'long_term_days'              => $validated['long_term_days'],
+                'auto_hide_expired'           => $request->boolean('auto_hide_expired'),
+                'auto_hide_before_expiry_days' => $validated['auto_hide_before_expiry_days'] ?? null,
+                'auto_discounts'              => $request->boolean('auto_discounts'),
                 'auto_discount_percent'       => $validated['auto_discount_percent'] ?? null,       
                 'auto_discount_duration_days' => $validated['auto_discount_duration_days'] ?? null, 
-                'yellow_batch_label'          => $yellowLabel,
             ]
         );
 

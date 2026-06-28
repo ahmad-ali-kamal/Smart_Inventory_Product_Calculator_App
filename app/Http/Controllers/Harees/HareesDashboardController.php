@@ -47,44 +47,31 @@ class HareesDashboardController extends Controller
             // 2. جلب المنتجات مع بياناتها (التي تملك دفعات فقط)
             $products = Product::where('merchant_id', $merchant->id)
                 ->with([
-                    'batchItems.batch.discounts' => function ($q) {
+                    'batch.discounts' => function ($q) {
                         $q->where('status', 'active');
                     }
                 ])
-                ->whereHas('batchItems')
+                ->whereHas('batch')
                 ->get()
                 ->map(function ($product) use ($batchSettings) {
-                    // تحديد الدفعة الأكثر خطورة (الأقرب للانتهاء)
-                    $criticalBatchItem = $product->batchItems
-                        ->filter(fn($item) => $item->batch)
-                        ->sortBy(function ($item) {
-                            $order = ['red' => 1, 'yellow' => 2, 'green' => 3];
-                            return $order[$item->batch->status] ?? 99;
-                        })
-                        ->first();
+                    $batch = $product->batch;
+                    if (!$batch) return null;
 
-                    if (!$criticalBatchItem) return null;
-
-                    // التحقق من الخصم اليدوي النشط عبر الـ batch
-                    $hasActiveManualDiscount = $product->batchItems
-                        ->flatMap(fn($item) => $item->batch->discounts ?? collect())
+                    $hasActiveManualDiscount = collect($batch->discounts ?? [])
                         ->filter(fn($d) => $d->status === 'active')
                         ->isNotEmpty();
 
-                    // التحقق من الخصم التلقائي
                     $hasActiveAutoDiscount = $batchSettings?->auto_discounts
-                        && $criticalBatchItem->batch->days_until_expiry !== null
-                        && $criticalBatchItem->batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
+                        && $batch->days_until_expiry !== null
+                        && $batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
 
                     return (object) [
                         'id'                  => $product->id,
                         'name'                => $product->name,
                         'image_url'           => $product->image_url,
-                        'status'              => $criticalBatchItem->batch->status ?? 'green',
-                        'expiry_date'         => $criticalBatchItem->batch->expiry_date?->format('Y-m-d'),
-                        'batches'             => $product->batchItems
-                            ->filter(fn($item) => $item->batch)
-                            ->map(fn($item) => $item->batch),
+                        'status'              => $batch->status ?? 'green',
+                        'expiry_date'         => $batch->expiry_date?->format('Y-m-d'),
+                        'batches'             => collect([$batch]),
                         'has_active_discount' => $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })

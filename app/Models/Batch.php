@@ -29,22 +29,28 @@ class Batch extends Model
 
     protected $fillable = [
         'merchant_id',
-        'salla_variant_id',
-        'batch_code',
-        'name',
-        'manufactured_date',
+        'product_id',
         'expiry_date',
         'status',
+        'discount_pct',
+        'yellow_threshold',
+        'red_threshold',
+        'total_qty',
+        'batch_qty',
+        'offer_id',
         'days_until_expiry',
-        'notes',
         'discount_type',
     ];
 
     protected $casts = [
-        'manufactured_date' => 'date',
         'expiry_date'       => 'date:Y-m-d',
         'days_until_expiry' => 'integer',
         'discount_type'     => 'string',
+        'discount_pct'      => 'decimal:2',
+        'total_qty'         => 'integer',
+        'batch_qty'         => 'integer',
+        'yellow_threshold'  => 'integer',
+        'red_threshold'     => 'integer',
     ];
 
     protected $appends = [
@@ -85,10 +91,8 @@ class Batch extends Model
                 return;
             }
 
-            // ✅ إصلاح 3: التحقق من وجود منتج مرتبط قبل إرسال الـ notification
-            // عند إنشاء Batch جديد، البيانات تُحفظ قبل BatchItem بفارق صغير
-            // لذلك نتحقق بدلاً من إطلاق exception
-            $hasProduct = $batch->batchItems()->exists();
+            // التحقق من وجود منتج مرتبط قبل إرسال الـ notification
+            $hasProduct = !is_null($batch->product_id) && $batch->product()->exists();
 
             if (!$hasProduct) {
                 Log::info("[Batch Hook] الدفعة {$batch->id} ليس لها منتج بعد — تم تأجيل الـ notification");
@@ -124,21 +128,17 @@ class Batch extends Model
 
     public function getTotalQuantityAttribute(): int
     {
-        return $this->relationLoaded('batchItems')
-            ? (int) $this->batchItems->sum('quantity')
-            : (int) $this->batchItems()->sum('quantity');
+        return $this->total_qty ?? 0;
     }
 
     public function getTotalSoldAttribute(): int
     {
-        return $this->relationLoaded('batchItems')
-            ? (int) $this->batchItems->sum('sold_quantity')
-            : (int) $this->batchItems()->sum('sold_quantity');
+        return ($this->total_qty ?? 0) - ($this->batch_qty ?? 0);
     }
 
     public function getTotalRemainingAttribute(): int
     {
-        return $this->total_quantity - $this->total_sold;
+        return $this->batch_qty ?? 0;
     }
 
     // ====================================================================
@@ -150,16 +150,14 @@ class Batch extends Model
         return $this->belongsTo(Merchant::class, 'merchant_id');
     }
 
-    public function batchItems(): HasMany
+    public function product(): BelongsTo
     {
-        return $this->hasMany(BatchItem::class, 'batch_id');
+        return $this->belongsTo(Product::class);
     }
 
-    public function products(): BelongsToMany
+    public function batchVariants(): HasMany
     {
-        return $this->belongsToMany(Product::class, 'batch_items')
-            ->withPivot(['quantity', 'sold_quantity'])
-            ->withTimestamps();
+        return $this->hasMany(BatchVariant::class);
     }
 
     public function activityLogs(): MorphMany
@@ -293,9 +291,8 @@ class Batch extends Model
 
     public function getThreshold(): int
     {
-        $product = $this->products()->first();
-        if ($product && method_exists($product, 'getCategoryThreshold')) {
-            $threshold = $product->getCategoryThreshold();
+        if ($this->product && method_exists($this->product, 'getCategoryThreshold')) {
+            $threshold = $this->product->getCategoryThreshold();
             if (!is_null($threshold)) return (int) $threshold;
         }
 
@@ -316,7 +313,7 @@ class Batch extends Model
         $merchant = $this->merchant;
         if (!$merchant) return;
 
-        if (!$this->batchItems()->exists()) return;
+        if (!$this->product_id || !$this->product()->exists()) return;
 
         try {
             $merchant->notify(new \App\Notifications\BatchExpiryNotification($this, $this->status));
