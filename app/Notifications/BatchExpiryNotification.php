@@ -75,16 +75,15 @@ class BatchExpiryNotification extends Notification
     }
 
     /**
-     * Get the product name safely — the batch may not have a product yet
-     * (happens when the saved event fires before BatchItem is created).
+     * Get the product name safely.
      */
     private function getProductName(): string
     {
         try {
-            $product = $this->batch->products()->first();
-            return $product?->name ?? $this->batch->name ?? 'منتج غير محدد';
+            $product = $this->batch->product;
+            return $product?->name ?? 'منتج غير محدد';
         } catch (\Throwable $e) {
-            return $this->batch->name ?? 'منتج غير محدد';
+            return 'منتج غير محدد';
         }
     }
 

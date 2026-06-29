@@ -292,7 +292,7 @@ class HareesApiController extends Controller
                     foreach ($variantsData as $v) {
                         if (isset($v['id'])) {
                             $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price'] ?? 0)];
-                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['quantity'] ?? 0)];
+                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['stock_quantity'] ?? 0)];
                         }
                     }
                 }

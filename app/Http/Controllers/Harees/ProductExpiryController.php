@@ -54,7 +54,7 @@ class ProductExpiryController extends Controller
                     foreach ($variantsData as $v) {
                         if (isset($v['id'])) {
                             $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price'] ?? 0)];
-                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['quantity'] ?? 0)];
+                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['stock_quantity'] ?? 0)];
                         }
                     }
                 }
@@ -320,17 +320,33 @@ class ProductExpiryController extends Controller
             $hasVariants = $batch->batchVariants()->exists();
 
             if ($hasVariants && !empty($originalVariantQtys)) {
+                $batchVariantMap = $batch->batchVariants->keyBy('variant_id');
+
                 foreach ($originalVariantQtys as $ovq) {
                     $variantId = $ovq['variant_id'] ?? null;
-                    $qty = (int) ($ovq['qty'] ?? 0);
-                    if ($variantId) {
-                        $sallaApi->updateBatchVariant($variantId, [
-                            'stock_quantity' => $qty,
-                        ]);
+                    if (!$variantId) continue;
+
+                    $originalStock = (int) ($ovq['qty'] ?? 0);
+                    $bv = $batchVariantMap->get($variantId);
+
+                    if ($bv) {
+                        $soldDuringBatch = $bv->total_qty - $bv->batch_qty;
+                        $restoreQty = max(0, $originalStock - $soldDuringBatch);
+                    } else {
+                        $restoreQty = $originalStock;
                     }
+
+                    $sallaApi->updateBatchVariant($variantId, [
+                        'stock_quantity' => $restoreQty,
+                    ]);
                 }
             } elseif ($originalQty !== null && $originalQty > 0) {
-                $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
+                $restoreQty = $originalQty;
+                if ($batch->total_qty && $batch->batch_qty !== null) {
+                    $soldDuringBatch = $batch->total_qty - $batch->batch_qty;
+                    $restoreQty = max(0, $originalQty - $soldDuringBatch);
+                }
+                $sallaApi->updateProductQuantity($product->salla_product_id, $restoreQty);
             }
 
             Log::info("[RestoreQty] تم استعادة الكمية الأصلية للمنتج {$product->id}", [

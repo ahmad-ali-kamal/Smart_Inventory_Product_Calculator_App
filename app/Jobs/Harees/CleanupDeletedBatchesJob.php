@@ -71,14 +71,25 @@ class CleanupDeletedBatchesJob implements ShouldQueue
 
             if ($hasVariants) {
                 if (!empty($originalVariantQtys)) {
+                    $batchVariantMap = $batch->batchVariants->keyBy('variant_id');
+
                     foreach ($originalVariantQtys as $ovq) {
                         $variantId = $ovq['variant_id'] ?? null;
-                        $qty = (int) ($ovq['qty'] ?? 0);
-                        if ($variantId) {
-                            $sallaApi->updateBatchVariant($variantId, [
-                                'stock_quantity' => $qty,
-                            ]);
+                        if (!$variantId) continue;
+
+                        $originalStock = (int) ($ovq['qty'] ?? 0);
+                        $bv = $batchVariantMap->get($variantId);
+
+                        if ($bv) {
+                            $soldDuringBatch = $bv->total_qty - $bv->batch_qty;
+                            $restoreQty = max(0, $originalStock - $soldDuringBatch);
+                        } else {
+                            $restoreQty = $originalStock;
                         }
+
+                        $sallaApi->updateBatchVariant($variantId, [
+                            'stock_quantity' => $restoreQty,
+                        ]);
                     }
                 }
 
@@ -103,7 +114,15 @@ class CleanupDeletedBatchesJob implements ShouldQueue
                     $batch->markAsPending();
                 }
             } else {
-                if ($originalQty !== null && $originalQty > 0) {
+                $restoreQty = $originalQty;
+                if ($batch->total_qty && $batch->batch_qty !== null) {
+                    $soldDuringBatch = $batch->total_qty - $batch->batch_qty;
+                    $restoreQty = max(0, ($originalQty ?? 0) - $soldDuringBatch);
+                }
+
+                if ($restoreQty > 0) {
+                    $sallaApi->updateProductQuantity($product->salla_product_id, $restoreQty);
+                } elseif ($originalQty !== null && $originalQty > 0) {
                     $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
                 }
 
