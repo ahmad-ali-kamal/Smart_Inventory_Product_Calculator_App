@@ -1,4 +1,4 @@
-import { useLang } from "@/Hooks/useLang";
+import { useLang } from "@/hooks/useLang";
 
 /**
  * Returns the correct heading + body font strings based on the active language.

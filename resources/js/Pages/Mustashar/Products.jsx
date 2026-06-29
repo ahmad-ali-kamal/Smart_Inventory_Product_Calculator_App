@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import useMustasharGuard from "../../Hooks/useMustasharGuard";
+import useMustasharGuard from "../../hooks/useMustasharGuard";
 import PageShell from "../../Components/Common/PageShell";
 import SetupBanner from "../../Components/Common/Feedback/SetupBanner";
 import TableToolbar from "../../Components/Common/Controls/TableToolbar";
@@ -7,9 +7,9 @@ import Pagination from "../../Components/Common/Controls/Pagination";
 import Card from "../../Components/Common/UI/Card";
 import ProductRow from "../../Components/Mustashar/ProductRow";
 import ProductTable from "../../Components/Mustashar/ProductTable";
-import { useProductsFilter } from "../../Hooks/useProductsFilter";
-import { useSettingsStatus } from "../../Hooks/useProducts";
-import { useToggleWithToast } from "../../Hooks/useToggleWithToast";
+import { useProductsFilter } from "../../hooks/useProductsFilter";
+import { useSettingsStatus } from "../../hooks/useProducts";
+import { useToggleWithToast } from "../../hooks/useToggleWithToast";
 
 export default function Products() {
     const { t } = useTranslation('mustashar');

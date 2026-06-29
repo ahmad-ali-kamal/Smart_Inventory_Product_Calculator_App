@@ -21,10 +21,10 @@
  *     → ThresholdCard, CategoryMappingCard, AutomationCard
  */
 
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
 import Layout from '../../Layouts/Layout';
-import { useInventorySettingsForm } from '../../Hooks/useInventorySettingsForm';
+import { useInventorySettingsForm } from '../../hooks/useInventorySettingsForm';
 import { FormSkeleton } from '../../Components/Common/Skeleton/FormSkeleton';
 import ThresholdCard from '../../Components/Harees/Settings/ThresholdCard';
 import CategoryMappingCard from '../../Components/Harees/Settings/CategoryMappingCard';

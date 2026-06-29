@@ -28,7 +28,7 @@ import { ExternalLink, Pencil, Check } from "lucide-react";
 import RowActionButton from "../Common/RowActionButton";
 import Toggle from "../Common/Toggle";
 import ProductAvatar from "../Common/UI/ProductAvatar";
-import { useUpdateProductCoverage, useUpdateProductWaste, useUpdateProductDimension } from "../../Hooks/useProducts";
+import { useUpdateProductCoverage, useUpdateProductWaste, useUpdateProductDimension } from "../../hooks/useProducts";
 import { validateCoverage, validateWaste } from "../../constants/calculatorSettings";
 import { useTranslation } from "react-i18next";
 

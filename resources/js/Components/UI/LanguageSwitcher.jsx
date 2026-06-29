@@ -1,4 +1,4 @@
-import { useLang } from '@/Hooks/useLang';
+import { useLang } from '@/hooks/useLang';
 
 export default function LanguageSwitcher() {
   const { lang, toggle, isAr } = useLang();

@@ -23,11 +23,11 @@
 
 import { Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { useLang } from '@/Hooks/useLang';
+import { useLang } from '@/hooks/useLang';
 import GuestLayout from '@/Layouts/GuestLayout';
 
 import globalStyles from '@/styles/globalStyles';
-import { useFonts } from '@/Hooks/useFonts';
+import { useFonts } from '@/hooks/useFonts';
 
 import Navbar           from '@/Components/Welcome/Navbar';
 import Footer           from '@/Components/Welcome/Footer';

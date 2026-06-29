@@ -26,7 +26,7 @@
 
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-import { useClickOutside } from '../../../Hooks/useClickOutside';
+import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useTranslation } from 'react-i18next';
 
 /**

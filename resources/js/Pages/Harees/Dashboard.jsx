@@ -21,12 +21,12 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { AlertCircle, ShieldCheck, Clock } from 'lucide-react';
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
 import StatCard from '../../Components/Common/StatCard';
 import SetupBanner from '../../Components/Common/Feedback/SetupBanner';
 import MonitoredProductsTable from '../../Components/Harees/Dashboard/MonitoredProductsTable';
-import { useHareesStats } from '../../Hooks/useHareesStats';
+import { useHareesStats } from '../../hooks/useHareesStats';
 
 /**
  * Dashboard

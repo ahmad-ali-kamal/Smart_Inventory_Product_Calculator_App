@@ -35,7 +35,7 @@ import SearchInput from './SearchInput';
 import DropdownFilter from './DropdownFilter';
 import SyncButton from './SyncButton';
 import PageBanner from '../PageBanner';
-import { useAutoClose } from '../../../Hooks/useAutoClose';
+import { useAutoClose } from '../../../hooks/useAutoClose';
 import { useTranslation } from 'react-i18next';
 
 /**

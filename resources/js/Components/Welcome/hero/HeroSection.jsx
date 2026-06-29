@@ -25,7 +25,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { Link } from '@inertiajs/react';
-import SplitText from '@/Components/ui/SplitText';
+import SplitText from '@/Components/UI/SplitText';
 import HeroRight  from '@/Components/Welcome/hero/HeroRight';
 
 /**

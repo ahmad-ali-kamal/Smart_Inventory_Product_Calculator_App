@@ -17,9 +17,9 @@
 import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useLang } from '@/Hooks/useLang';
+import { useLang } from '@/hooks/useLang';
 import LanguageSwitcher from '@/Components/UI/LanguageSwitcher';
-import { useFonts }  from '@/Hooks/useFonts';
+import { useFonts }  from '@/hooks/useFonts';
 
 /**
  * LoginLayout — shared two-panel login layout for Salla-integrated apps.

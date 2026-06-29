@@ -3,15 +3,15 @@ import { useRef, useState, useEffect, useMemo } from "react";
 import { Link } from "@inertiajs/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, CheckCircle2, Pencil } from "lucide-react";
-import useMustasharGuard from "../../Hooks/useMustasharGuard";
+import useMustasharGuard from "../../hooks/useMustasharGuard";
 import PageShell from "../../Components/Common/PageShell";
 import SetupBanner from "../../Components/Common/Feedback/SetupBanner";
 import StatCard from "../../Components/Common/StatCard";
 import Pagination, { ITEMS_PER_PAGE } from "../../Components/Common/Controls/Pagination";
 import ProductRow from "../../Components/Mustashar/ProductRow";
 import ProductTable from "../../Components/Mustashar/ProductTable";
-import { useActiveProducts, useMustasharSettings, useSettingsStatus } from "../../Hooks/useProducts";
-import { useToggleWithToast } from "../../Hooks/useToggleWithToast";
+import { useActiveProducts, useMustasharSettings, useSettingsStatus } from "../../hooks/useProducts";
+import { useToggleWithToast } from "../../hooks/useToggleWithToast";
 
 const EXIT_FADE_MS = 320;
 const EXIT_ANIM_MS = 380;

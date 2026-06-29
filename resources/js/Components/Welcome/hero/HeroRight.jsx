@@ -22,7 +22,7 @@
 
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
-import StatusPill from '@/Components/ui/StatusPill';
+import StatusPill from '@/Components/UI/StatusPill';
 
 // ---------------------------------------------------------------------------
 // Hardcoded UI strings — all display copy isolated here for easy i18n migration.

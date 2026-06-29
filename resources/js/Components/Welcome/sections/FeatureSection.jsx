@@ -13,7 +13,7 @@
 
 import { motion } from 'framer-motion';
 import { Settings2, Clock, TrendingUp } from 'lucide-react';
-import Reveal from '@/Components/ui/Reveal';
+import Reveal from '@/Components/UI/Reveal';
 
 // ---------------------------------------------------------------------------
 // Icon + colour palette for each feature card.

@@ -13,7 +13,7 @@
 import { motion } from 'framer-motion';
 import { Link } from '@inertiajs/react';
 import { ShoppingBag, CheckCircle2 } from 'lucide-react';
-import Reveal from '@/Components/ui/Reveal';
+import Reveal from '@/Components/UI/Reveal';
 
 // ---------------------------------------------------------------------------
 // Hardcoded UI strings (not driven by the `t` prop).

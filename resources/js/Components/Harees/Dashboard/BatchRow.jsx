@@ -34,8 +34,8 @@ import { Tag, Calendar, Loader2, Plus, Trash2, AlertTriangle } from 'lucide-reac
 import DiscountModal from '../DiscountModal';
 import StatusBadge from '../StatusBadge';
 import ProductAvatar from '../../Common/UI/ProductAvatar';
-import { useApplyDiscount } from '../../../Hooks/useApplyDiscount';
-import { useDeleteBatch } from '../../../Hooks/useInventory';
+import { useApplyDiscount } from '../../../hooks/useApplyDiscount';
+import { useDeleteBatch } from '../../../hooks/useInventory';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 

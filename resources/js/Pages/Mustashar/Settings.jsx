@@ -19,9 +19,9 @@
  * Used by: Inertia router (direct page render)
  */
 
-import useMustasharGuard from '../../Hooks/useMustasharGuard';
+import useMustasharGuard from '../../hooks/useMustasharGuard';
 import PageShell from '../../Components/Common/PageShell';
-import { useSettingsForm } from '../../Hooks/useSettingsForm';
+import { useSettingsForm } from '../../hooks/useSettingsForm';
 import { FormSkeleton } from '../../Components/Common/Skeleton/FormSkeleton';
 import Layout from '../../Layouts/Layout';
 import SettingsForm from '../../Components/Mustashar/SettingsForm';

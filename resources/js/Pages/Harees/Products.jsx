@@ -16,15 +16,15 @@
  */
 import { useTranslation } from 'react-i18next';
 import { useState } from "react";
-import useHareesGuard from '../../Hooks/useHareesGuard';
+import useHareesGuard from '../../hooks/useHareesGuard';
 import PageShell from '../../Components/Common/PageShell';
 import SetupBanner from '../../Components/Common/Feedback/SetupBanner';
 import TableToolbar from '../../Components/Common/Controls/TableToolbar';
 import Pagination from '../../Components/Common/Controls/Pagination';
 import ExpiryModal from '../../Components/Harees/ExpiryModal';
 import InventoryTable from '../../Components/Harees/Products/InventoryTable';
-import { useInventoryProductsFilter, FILTER_OPTIONS } from '../../Hooks/useInventoryProductsFilter';
-import { useHareesStats } from '../../Hooks/useHareesStats';
+import { useInventoryProductsFilter, FILTER_OPTIONS } from '../../hooks/useInventoryProductsFilter';
+import { useHareesStats } from '../../hooks/useHareesStats';
 
 /**
  * Products

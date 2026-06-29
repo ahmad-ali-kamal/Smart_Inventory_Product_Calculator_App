@@ -21,7 +21,7 @@
  * Used by: ProductRow
  */
 
-import { useLang } from '@/Hooks/useLang';
+import { useLang } from '@/hooks/useLang';
 
 /**
  * Toggle

@@ -12,7 +12,7 @@
  * Scroll-reveal animation is handled by the shared <Reveal> utility.
  */
 
-import Reveal from '@/Components/ui/Reveal';
+import Reveal from '@/Components/UI/Reveal';
 import { Link } from '@inertiajs/react';
 
 /**
