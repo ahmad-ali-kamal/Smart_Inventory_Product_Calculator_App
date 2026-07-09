@@ -27,7 +27,7 @@
     "features": [
       "Smart discounting on near-expiry items",
       "Instant sync with Salla catalog",
-      "Multi-batch expiry tracking",
+      "Expiry date tracking per product",
       "Automated alert notifications"
     ],
     "cta": "Explore Harees"

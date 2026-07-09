@@ -140,7 +140,7 @@ export default function PrivacyPolicy() {
                                                 {section.body}
                                             </p>
 
-                                            {section.title === 'Contact Us' && (
+                                            {i === sections.length - 1 && (
                                                 <div style={{
                                                     marginTop: '1rem',
                                                     display: 'flex', flexDirection: 'column', gap: '0.6rem',

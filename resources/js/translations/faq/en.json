@@ -13,7 +13,7 @@
         },
         {
           "q": "Is Quantix free to use?",
-          "a": "Quantix offers a free tier with basic features. Premium plans unlock advanced functionality such as automated discounting, batch tracking, and priority support. Visit our pricing page or contact support@quantixapp.dev for detailed plan comparison."
+          "a": "Quantix itself is not free. Each application — Harees and Qiasat — has its own independent subscription with its own pricing plan. Both applications offer a free trial period so you can evaluate their features before committing to a paid plan. For detailed pricing information, visit the Salla App Store or contact support@quantixapp.dev."
         },
         {
           "q": "Which Salla plan do I need?",
@@ -42,7 +42,7 @@
         },
         {
           "q": "Does Harees support multiple batches for the same product?",
-          "a": "Yes. You can add multiple batches with different expiry dates, quantities, and purchase prices for the same product. This is especially useful for products with staggered delivery or production runs."
+          "a": "Currently, Harees supports one batch per product. This means each product can have a single expiry date, quantity, and purchase price record. Support for multiple batches per product is planned for a future release but is not available yet."
         }
       ]
     },
@@ -67,16 +67,16 @@
       "category": "Account & Billing",
       "questions": [
         {
-          "q": "How do I connect my Salla store?",
-          "a": "Click \"Login with Salla\" on the Harees or Qiasat login page. You'll be redirected to Salla's authorization screen. Grant the requested permissions, and you'll be returned to your Quantix dashboard — fully synced."
+          "q": "How do I install and access Quantix applications?",
+          "a": "Installation is done through the Salla App Store. Find Harees or Qiasat in the App Store, select the subscription plan that suits you, and complete the installation. Authentication is handled through your Salla account — simply log in with Salla to access your application dashboard."
         },
         {
-          "q": "Can I cancel my subscription?",
-          "a": "Yes. You can cancel anytime from your account settings. Your subscription remains active until the end of the current billing period. After cancellation, you'll retain read-only access to your data for 30 days."
+          "q": "How does billing work?",
+          "a": "All billing, subscription management, renewals, upgrades, cancellations, and payment methods are handled entirely by the Salla App Store — not directly by Quantix. You manage everything through your Salla account's subscription settings."
         },
         {
-          "q": "What payment methods do you accept?",
-          "a": "We accept major credit and debit cards (Visa, Mastercard) and Salla Pay where available. All payments are processed securely through our payment partner."
+          "q": "Can I cancel or change my subscription plan?",
+          "a": "Yes. You can cancel, upgrade, or downgrade your subscription at any time through the Salla App Store. All subscription changes and payment management are handled via Salla's platform. Please refer to Salla's documentation for details on their billing and cancellation policies."
         }
       ]
     },
