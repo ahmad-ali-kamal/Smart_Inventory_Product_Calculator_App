@@ -87,29 +87,30 @@ export default function PrivacyPolicy() {
                     </div>
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, lineHeight: 0, zIndex: 3, pointerEvents: 'none' }}>
                         <svg viewBox="0 0 1440 56" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 56 }} xmlns="http://www.w3.org/2000/svg">
-                            <path d="M0,56 Q720,0 1440,56 L1440,56 L0,56 Z" fill="#ffffff" />
+                            <path d="M0,56 Q720,0 1440,56 L1440,56 L0,56 Z" fill="var(--q-bg)" />
                         </svg>
                     </div>
                 </section>
 
                 {/* ── Content Sections ── */}
                 <section style={{
-                    background: '#FFFFFF',
+                    background: 'var(--q-bg)',
                     padding: 'clamp(2.5rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)',
                 }}>
                     <div style={{ maxWidth: 860, margin: '0 auto' }}>
                         {sections.map((section, i) => (
                             <Reveal key={i} delay={i * 0.03} direction="up">
                                 <div style={{
-                                    background: '#FAFAFA',
-                                    border: '1px solid #F3F4F6',
+                                    background: 'var(--q-card)',
+                                    border: '1px solid var(--q-card-border)',
                                     borderRadius: 16,
                                     padding: '1.75rem 2rem',
                                     marginBottom: '1rem',
+                                    boxShadow: 'var(--q-card-shadow)',
                                     transition: 'box-shadow 0.2s',
                                 }}
-                                    onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,58,237,0.06)')}
-                                    onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+                                    onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,58,237,0.12)')}
+                                    onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--q-card-shadow)')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                                         <div style={{
@@ -149,9 +150,9 @@ export default function PrivacyPolicy() {
                                                         <div key={j} style={{
                                                             display: 'flex', alignItems: 'center', gap: 10,
                                                             padding: '0.6rem 1rem',
-                                                            background: 'white',
+                                                            background: 'var(--q-bg)',
                                                             borderRadius: 10,
-                                                            border: '1px solid #E5E7EB',
+                                                            border: '1px solid var(--q-card-border)',
                                                         }}>
                                                             <div style={{
                                                                 width: 32, height: 32, borderRadius: 8,

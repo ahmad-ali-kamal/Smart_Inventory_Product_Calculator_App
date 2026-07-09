@@ -11,6 +11,18 @@ const globalStyles = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { overflow-x: hidden; }
 
+    /* Brand background system */
+    :root {
+        --q-bg: #F8F7FF;
+        --q-bg-alt: #F3F0FF;
+        --q-card: #FFFFFF;
+        --q-card-border: #EDE9FE;
+        --q-card-shadow: 0 1px 4px rgba(124,58,237,0.06);
+        --q-text: #1F2937;
+        --q-text-muted: #6B7280;
+        --q-accent: #7C3AED;
+    }
+
     /* Hero responsive */
     @media (max-width: 960px) {
         .q-hero-grid   { grid-template-columns: 1fr !important; }

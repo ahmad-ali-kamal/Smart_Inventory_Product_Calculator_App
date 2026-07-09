@@ -240,7 +240,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
                     xmlns="http://www.w3.org/2000/svg"
                 >
                     {/* Quadratic bezier arc: flat edges → dipped centre */}
-                    <path d="M0,72 Q720,0 1440,72 L1440,72 L0,72 Z" fill="#ffffff" />
+                    <path d="M0,72 Q720,0 1440,72 L1440,72 L0,72 Z" fill="var(--q-bg)" />
                 </svg>
             </div>
         </section>

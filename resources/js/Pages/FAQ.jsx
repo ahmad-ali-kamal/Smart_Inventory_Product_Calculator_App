@@ -18,16 +18,16 @@ function AccordionItem({ question, answer, ff, bodyFont, isOpen, onToggle, index
         <motion.div
             initial={false}
             style={{
-                border: '1px solid #F3F4F6',
+                border: '1px solid var(--q-card-border)',
                 borderRadius: 14,
                 marginBottom: '0.6rem',
                 overflow: 'hidden',
-                background: isOpen ? '#FAFAFA' : 'white',
-                boxShadow: isOpen ? '0 4px 12px rgba(124,58,237,0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
+                background: isOpen ? 'var(--q-bg)' : 'var(--q-card)',
+                boxShadow: isOpen ? '0 4px 12px rgba(124,58,237,0.08)' : 'var(--q-card-shadow)',
                 transition: 'box-shadow 0.2s, background 0.2s',
             }}
-            onMouseEnter={e => { if (!isOpen) e.currentTarget.style.boxShadow = '0 2px 8px rgba(124,58,237,0.08)'; }}
-            onMouseLeave={e => { if (!isOpen) e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'; }}
+            onMouseEnter={e => { if (!isOpen) e.currentTarget.style.boxShadow = '0 2px 8px rgba(124,58,237,0.10)'; }}
+            onMouseLeave={e => { if (!isOpen) e.currentTarget.style.boxShadow = 'var(--q-card-shadow)'; }}
         >
             <button
                 onClick={onToggle}
@@ -66,7 +66,7 @@ function AccordionItem({ question, answer, ff, bodyFont, isOpen, onToggle, index
                             fontSize: 'clamp(0.82rem, 0.95vw, 0.88rem)',
                             color: '#4B5563',
                             lineHeight: 1.8,
-                            borderTop: '1px solid #F3F4F6',
+                            borderTop: '1px solid var(--q-card-border)',
                             paddingTop: '0.8rem',
                         }}>
                             {answer}
@@ -168,14 +168,14 @@ export default function FAQ() {
                     </div>
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, lineHeight: 0, zIndex: 3, pointerEvents: 'none' }}>
                         <svg viewBox="0 0 1440 56" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 56 }} xmlns="http://www.w3.org/2000/svg">
-                            <path d="M0,56 Q720,0 1440,56 L1440,56 L0,56 Z" fill="#ffffff" />
+                            <path d="M0,56 Q720,0 1440,56 L1440,56 L0,56 Z" fill="var(--q-bg)" />
                         </svg>
                     </div>
                 </section>
 
                 {/* ── FAQ Content ── */}
                 <section style={{
-                    background: '#FFFFFF',
+                    background: 'var(--q-bg)',
                     padding: 'clamp(2.5rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem)',
                 }}>
                     <div style={{ maxWidth: 860, margin: '0 auto' }}>

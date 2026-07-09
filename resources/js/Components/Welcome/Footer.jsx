@@ -34,7 +34,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
             id="stats"
             style={{
                 background: '#ffffff',
-                borderTop: '1px solid #E5E7EB',
+                borderTop: '1px solid var(--q-card-border)',
                 padding: '3rem 1.5rem 1.75rem',
                 color: '#1A1A1A',
             }}

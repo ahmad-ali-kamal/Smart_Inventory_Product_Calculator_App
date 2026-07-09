@@ -53,7 +53,7 @@ const FEATURE_ICONS = [
  */
 export default function FeaturesSection({ t, ff, bodyFont }) {
     return (
-        <section id="features" aria-labelledby="features-heading" style={{ background: '#FFFFFF', padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem)' }}>
+        <section id="features" aria-labelledby="features-heading" style={{ background: 'var(--q-bg)', padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem)' }}>
             <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
                 {/* ── Section label: uppercase eyebrow + accent underline bar ── */}
@@ -100,12 +100,12 @@ export default function FeaturesSection({ t, ff, bodyFont }) {
                                     whileHover={{ y: -6, boxShadow: '0 12px 32px rgba(124,58,237,0.12)' }}
                                     transition={{ duration: 0.28, ease: 'easeOut' }}
                                     style={{
-                                        border: '1px solid #F3F4F6', borderRadius: 18,
+                                        border: '1px solid var(--q-card-border)', borderRadius: 18,
                                         padding: '1.75rem 1.5rem',
-                                        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                                        background: 'white',
+                                        boxShadow: 'var(--q-card-shadow)',
+                                        background: 'var(--q-card)',
                                         cursor: 'default',
-                                        height: '100%', // ensures equal-height cards in the grid row
+                                        height: '100%',
                                     }}
                                 >
                                     {/* ── Coloured icon badge ── */}

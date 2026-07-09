@@ -60,8 +60,8 @@ function PlatformCard({ data, imgSrc, logoSrc, accentColor, loginUrl, ff, bodyFo
             whileHover={{ y: -5, boxShadow: '0 20px 48px rgba(124,58,237,0.13)' }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             style={{
-                border: '1px solid #E5E7EB', borderRadius: 18,
-                background: 'white', padding: '1.5rem', cursor: 'default',
+                border: '1px solid var(--q-card-border)', borderRadius: 18,
+                background: 'var(--q-card)', padding: '1.5rem', cursor: 'default',
             }}
         >
             {/* ── Header: tinted icon badge + platform name ── */}
@@ -166,7 +166,7 @@ function PlatformCard({ data, imgSrc, logoSrc, accentColor, loginUrl, ff, bodyFo
  */
 export default function PlatformsSection({ t, ff, bodyFont }) {
     return (
-        <section id="platforms" aria-labelledby="platforms-heading" style={{ background: '#F9FAFB', padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem)' }}>
+        <section id="platforms" aria-labelledby="platforms-heading" style={{ background: 'var(--q-bg-alt)', padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem)' }}>
             <div style={{ maxWidth: 1280, margin: '0 auto' }}>
 
                 {/* ── Section header: eyebrow label → h2 → supporting copy ── */}
