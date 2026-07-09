@@ -296,20 +296,7 @@ useEffect(() => {
                         )}
                     </div>
 
-                    {/* Mobile menu hamburger spacer - only on very small */}
-                    <button
-                        className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-[var(--accent)] transition-colors"
-                        onClick={toggleMobileNav}
-                        aria-label={isAr ? 'فتح القائمة' : 'Toggle menu'}
-                        aria-expanded={isMobileNavOpen}
-                    >
-                        <div className="w-5 h-4 relative flex flex-col justify-between">
-                            <span className={`block h-0.5 w-full bg-[var(--foreground)] rounded transition-transform duration-200 ${isMobileNavOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
-                            <span className={`block h-0.5 w-full bg-[var(--foreground)] rounded transition-opacity duration-200 ${isMobileNavOpen ? 'opacity-0' : ''}`} />
-                            <span className={`block h-0.5 w-full bg-[var(--foreground)] rounded transition-transform duration-200 ${isMobileNavOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
-                        </div>
-                    </button>
-                </div>
+                    </div>
             </div>
 
             {/* Mobile Navigation Overlay */}
