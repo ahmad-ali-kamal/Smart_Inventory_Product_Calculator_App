@@ -126,9 +126,10 @@ class CleanupDeletedBatchesJob implements ShouldQueue
                     $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
                 }
 
-                if ($originalPrice !== null && $originalPrice > 0) {
-                    $sallaApi->updateProductPrice($product->salla_product_id, $originalPrice, 0);
-                }
+                $restorePrice = ($originalPrice !== null && $originalPrice > 0)
+                    ? (float) $originalPrice
+                    : (float) ($product->price ?? 0);
+                $sallaApi->updateProductPrice($product->salla_product_id, $restorePrice, 0);
 
                 BatchDiscount::where('batch_id', $batch->id)
                     ->where('status', 'active')
@@ -172,8 +173,16 @@ class CleanupDeletedBatchesJob implements ShouldQueue
                     $daysLeft   = (int) $today->diffInDays($expiry, false);
                     $beforeDays = (int) ($settings->auto_hide_before_expiry_days ?? 0);
 
-                    if ($daysLeft <= $beforeDays) {
-                        $shouldHide = true;
+                    // If beforeDays is 0, only hide when batch is actually expired (red status)
+                    // This prevents yellow batches from being hidden early
+                    if ($beforeDays > 0) {
+                        if ($daysLeft <= $beforeDays) {
+                            $shouldHide = true;
+                        }
+                    } else {
+                        if ($daysLeft <= 0 && $batch->status === 'red') {
+                            $shouldHide = true;
+                        }
                     }
                 }
 

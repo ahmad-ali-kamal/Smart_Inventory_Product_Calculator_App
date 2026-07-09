@@ -203,7 +203,8 @@
   "status_badge": {
     "expired": "Expired",
     "approaching": "Approaching",
-    "safe": "Safe"
+    "safe": "Safe",
+    "hidden": "Hidden"
   },
 
   "automation_card": {

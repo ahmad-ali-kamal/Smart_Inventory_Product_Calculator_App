@@ -33,6 +33,7 @@ const STATUS_MAP = {
     approaching: 'Approaching',
     valid:       'Safe',
     safe:        'Safe',
+    hidden:      'Hidden',
 };
 
 /**
@@ -72,6 +73,12 @@ export function getStatusStyle(normalized) {
                 color:       'var(--status-approaching-text)',
                 background:  'var(--status-approaching-bg)',
                 borderColor: 'var(--status-approaching-border)',
+            };
+        case 'Hidden':
+            return {
+                color:       'var(--status-expired-text)',
+                background:  'var(--status-expired-bg)',
+                borderColor: 'var(--status-expired-border)',
             };
         default: // 'Safe'
             return {

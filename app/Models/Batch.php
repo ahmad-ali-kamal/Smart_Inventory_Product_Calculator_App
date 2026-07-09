@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class Batch extends Model
 {
@@ -44,6 +45,7 @@ class Batch extends Model
         'original_qty',
         'original_variant_prices',
         'original_variant_qtys',
+        'applied_sale_price',
     ];
 
     protected $casts = [
@@ -75,6 +77,7 @@ class Batch extends Model
 
         static::saving(function ($batch) {
             $batch->calculateStatus();
+            $batch->syncDiscountTypeForStatus();
         });
 
         static::saved(function ($batch) {
@@ -192,9 +195,60 @@ class Batch extends Model
         return $this->discount_type === self::DISCOUNT_PENDING;
     }
 
+    public function getEffectiveDiscountType(): string
+    {
+        if ($this->discount_type === self::DISCOUNT_MANUALLY_DISCOUNTED) {
+            return self::DISCOUNT_MANUALLY_DISCOUNTED;
+        }
+
+        if ($this->discount_type === self::DISCOUNT_AUTO_DISCOUNTED) {
+            return self::DISCOUNT_AUTO_DISCOUNTED;
+        }
+
+        if ($this->hasAppliedAutoDiscount()) {
+            return self::DISCOUNT_AUTO_DISCOUNTED;
+        }
+
+        return self::DISCOUNT_PENDING;
+    }
+
+    public function getEffectiveDiscountPercentage(): ?float
+    {
+        $activeDiscount = $this->discounts()->where('status', 'active')->first();
+        if ($activeDiscount) {
+            return (float) $activeDiscount->discount_percentage;
+        }
+
+        if ($this->discount_pct !== null && $this->discount_pct > 0) {
+            return (float) $this->discount_pct;
+        }
+
+        if ($this->applied_sale_price !== null && $this->applied_sale_price > 0 && $this->original_price !== null && $this->original_price > 0) {
+            $discountRatio = 1 - ((float) $this->applied_sale_price / (float) $this->original_price);
+            if ($discountRatio > 0) {
+                return round($discountRatio * 100, 2);
+            }
+        }
+
+        return null;
+    }
+
+    public function hasAppliedAutoDiscount(): bool
+    {
+        if (!empty($this->offer_id)) {
+            return true;
+        }
+
+        if ($this->applied_sale_price !== null && $this->applied_sale_price > 0 && $this->original_price !== null && $this->original_price > 0) {
+            return (float) $this->applied_sale_price < (float) $this->original_price;
+        }
+
+        return false;
+    }
+
     public function isAutoDiscounted(): bool
     {
-        return $this->discount_type === self::DISCOUNT_AUTO_DISCOUNTED;
+        return $this->getEffectiveDiscountType() === self::DISCOUNT_AUTO_DISCOUNTED;
     }
 
     public function isManuallyDiscounted(): bool
@@ -216,6 +270,27 @@ class Batch extends Model
     {
         $this->discount_type = self::DISCOUNT_AUTO_DISCOUNTED;
         $this->save();
+        Cache::forget("harees_dashboard_api_{$this->merchant_id}");
+    }
+
+    public function syncDiscountStateFromAppliedData(): void
+    {
+        if ($this->discount_type === self::DISCOUNT_MANUALLY_DISCOUNTED) {
+            return;
+        }
+
+        if ($this->hasAppliedAutoDiscount()) {
+            if ($this->discount_type !== self::DISCOUNT_AUTO_DISCOUNTED) {
+                $this->discount_type = self::DISCOUNT_AUTO_DISCOUNTED;
+                $this->save();
+            }
+            return;
+        }
+
+        if ($this->discount_type === self::DISCOUNT_AUTO_DISCOUNTED) {
+            $this->discount_type = self::DISCOUNT_PENDING;
+            $this->save();
+        }
     }
 
     public function markAsManuallyDiscounted(): void
@@ -295,6 +370,20 @@ class Batch extends Model
 
         $threshold    = $this->getThreshold();
         $this->status = ($daysLeft <= $threshold) ? 'yellow' : 'green';
+    }
+
+    public function syncDiscountTypeForStatus(): void
+    {
+        // This method is intentionally left as a no-op for status-syncing.
+        //
+        // Previously it set discount_type = 'auto_discounted' optimistically
+        // when the batch turned yellow and auto_discounts was enabled.
+        // However, doing so caused canAutoDiscount() to return false,
+        // preventing the actual Salla discount API call from ever executing.
+        //
+        // The discount_type is now set exclusively by markAsAutoDiscounted()
+        // after a successful Salla price update, ensuring the database always
+        // reflects real-world state rather than optimistic intent.
     }
 
     public function getThreshold(): int

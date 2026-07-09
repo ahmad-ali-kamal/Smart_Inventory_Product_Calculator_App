@@ -195,6 +195,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
     const existingPct = getDiscountPct(batch);
     const discountType = batch.discount_type;
     const batchStatus = batch.status?.toLowerCase();
+    const isProductHidden = product.product_status === 'hidden';
     const isApproaching = batchStatus === 'yellow' || batchStatus === 'approaching';
     const isExpired = batchStatus === 'red' || batchStatus === 'expired';
     const isSafe = batchStatus === 'green' || batchStatus === 'safe' || batchStatus === 'valid';
@@ -218,7 +219,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                 </div>
 
                 <div className="flex-1 py-3.5 px-4 flex justify-center">
-                    <StatusBadge status={batch.status} size="md" />
+                    <StatusBadge status={isProductHidden ? 'hidden' : batch.status} size="md" />
                 </div>
 
                 <div className="flex-1 py-3.5 px-4 flex justify-center">
@@ -242,7 +243,7 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                         </span>
                     )}
                 </div>
-
+                
                 <div className="flex-1 py-3.5 px-4 flex justify-center items-center gap-2">
                     {confirmDeleteBatchId === batch.id ? (
                         <div className="flex items-center gap-1.5">
@@ -275,7 +276,18 @@ export default function BatchRow({ product, autoDiscount, autoDiscountPercent, a
                                 <Trash2 size={11} />
                             </button>
 
-                            {isApproaching && batch.discount_type === 'pending' && (
+                            {isProductHidden ? (
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color: 'var(--status-expired-text)',
+                                        background: 'var(--status-expired-bg)',
+                                        borderColor: 'var(--status-expired-border)',
+                                    }}
+                                >
+                                    {t('status_badge.hidden')}
+                                </span>
+                            ) : isApproaching && batch.discount_type === 'pending' && !autoDiscount && (
                                 <button
                                     onClick={() => setSelectedBatch(batch)}
                                     disabled={isPending}

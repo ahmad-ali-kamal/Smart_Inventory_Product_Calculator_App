@@ -16,6 +16,18 @@ class BatchExpiryNotification extends Notification
         private string $status
     ) {}
 
+    /**
+     * Get a display-safe batch identifier (product name falls back to ID).
+     */
+    private function getBatchIdentifier(): string
+    {
+        $product = $this->batch->product;
+        if ($product?->name) {
+            return $product->name;
+        }
+        return '#' . $this->batch->id;
+    }
+
     public function via($notifiable): array
     {
         return ['database'];
@@ -29,16 +41,16 @@ class BatchExpiryNotification extends Notification
     private function toMailArabic($notifiable): MailMessage
     {
         $productName = $this->getProductName();
-        $batchCode   = $this->batch->batch_code ?? 'غير محدد';
+        $batchId     = $this->getBatchIdentifier();
         $expiryDate  = $this->batch->expiry_date?->format('Y-m-d') ?? 'غير محدد';
         $daysLeft    = $this->batch->days_until_expiry ?? 0;
 
         if ($this->status === 'red') {
             $subject = "⛔ تنبيه: دفعة منتهية الصلاحية — {$productName}";
-            $intro   = "انتهت صلاحية الدفعة **{$batchCode}** للمنتج **{$productName}**.";
+            $intro   = "انتهت صلاحية الدفعة **{$batchId}** للمنتج **{$productName}**.";
         } else {
             $subject = "⚠️ تحذير: دفعة تقترب من الانتهاء — {$productName}";
-            $intro   = "الدفعة **{$batchCode}** للمنتج **{$productName}** ستنتهي صلاحيتها خلال **{$daysLeft} يوم**.";
+            $intro   = "الدفعة **{$batchId}** للمنتج **{$productName}** ستنتهي صلاحيتها خلال **{$daysLeft} يوم**.";
         }
 
         return (new MailMessage)
@@ -53,16 +65,16 @@ class BatchExpiryNotification extends Notification
     private function toMailEnglish($notifiable): MailMessage
     {
         $productName = $this->getProductName();
-        $batchCode   = $this->batch->batch_code ?? 'N/A';
+        $batchId     = $this->getBatchIdentifier();
         $expiryDate  = $this->batch->expiry_date?->format('Y-m-d') ?? 'N/A';
         $daysLeft    = $this->batch->days_until_expiry ?? 0;
 
         if ($this->status === 'red') {
             $subject = "⛔ Alert: Expired Batch — {$productName}";
-            $intro   = "Batch **{$batchCode}** for product **{$productName}** has expired.";
+            $intro   = "Batch **{$batchId}** for product **{$productName}** has expired.";
         } else {
             $subject = "⚠️ Warning: Batch Approaching Expiry — {$productName}";
-            $intro   = "Batch **{$batchCode}** for product **{$productName}** will expire in **{$daysLeft} day(s)**.";
+            $intro   = "Batch **{$batchId}** for product **{$productName}** will expire in **{$daysLeft} day(s)**.";
         }
 
         return (new MailMessage)
@@ -90,23 +102,24 @@ class BatchExpiryNotification extends Notification
     public function toArray($notifiable): array
     {
         $productName = $this->getProductName();
+        $batchId     = $this->getBatchIdentifier();
 
         if ($this->status === 'red') {
             $titleAr = "⛔ دفعة منتهية الصلاحية: {$productName}";
             $titleEn = "⛔ Expired Batch: {$productName}";
-            $bodyAr  = "انتهت صلاحية الدفعة {$this->batch->batch_code} للمنتج {$productName}.";
-            $bodyEn  = "Batch {$this->batch->batch_code} for {$productName} has expired.";
+            $bodyAr  = "انتهت صلاحية الدفعة {$batchId} للمنتج {$productName}.";
+            $bodyEn  = "Batch {$batchId} for {$productName} has expired.";
         } else {
             $daysLeft = $this->batch->days_until_expiry ?? 0;
             $titleAr  = "⚠️ دفعة تقترب من الانتهاء: {$productName}";
             $titleEn  = "⚠️ Batch Approaching Expiry: {$productName}";
-            $bodyAr   = "الدفعة {$this->batch->batch_code} للمنتج {$productName} ستنتهي خلال {$daysLeft} يوم.";
-            $bodyEn   = "Batch {$this->batch->batch_code} for {$productName} will expire in {$daysLeft} day(s).";
+            $bodyAr   = "الدفعة {$batchId} للمنتج {$productName} ستنتهي خلال {$daysLeft} يوم.";
+            $bodyEn   = "Batch {$batchId} for {$productName} will expire in {$daysLeft} day(s).";
         }
 
         return [
             'batch_id'    => $this->batch->id,
-            'batch_code'  => $this->batch->batch_code,
+            'batch_code'  => $batchId,
             'product_name'=> $productName,
             'status'      => $this->status,
             'expiry_date' => $this->batch->expiry_date?->format('Y-m-d'),

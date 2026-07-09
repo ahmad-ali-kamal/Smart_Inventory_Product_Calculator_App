@@ -66,12 +66,13 @@ class HareesDashboardController extends Controller
                         && $batch->days_until_expiry <= ($batchSettings->auto_discount_duration_days ?? 7);
 
                     return (object) [
-                        'id'                  => $product->id,
-                        'name'                => $product->name,
-                        'image_url'           => $product->image_url,
-                        'status'              => $batch->status ?? 'green',
-                        'expiry_date'         => $batch->expiry_date?->format('Y-m-d'),
-                        'batches'             => collect([$batch]),
+                        'id'              => $product->id,
+                        'name'            => $product->name,
+                        'image_url'       => $product->image_url,
+                        'status'          => $batch->status ?? 'green',
+                        'product_status'  => $product->status ?? 'sale',
+                        'expiry_date'     => $batch->expiry_date?->format('Y-m-d'),
+                        'batches'         => collect([$batch]),
                         'has_active_discount' => $hasActiveManualDiscount || $hasActiveAutoDiscount,
                     ];
                 })

@@ -5,6 +5,7 @@ namespace App\Jobs\Harees;
 use App\Models\Batch;
 use App\Models\BatchSetting;
 use App\Models\Merchant;
+use App\Models\Product;
 use App\Services\SallaApiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class ApplyAutoDiscountsJob implements ShouldQueue
 {
@@ -97,15 +99,18 @@ class ApplyAutoDiscountsJob implements ShouldQueue
 
         $hasVariants = $batch->batchVariants()->exists();
 
+        $batch->markAsAutoDiscounted();
+
         if ($hasVariants) {
             $this->applyDiscountToVariants($sallaApi, $batch, $discountPercent);
-            $this->syncBatchQuantityToSalla($sallaApi, $batch, $product);
         } else {
             $this->applyDiscountToProduct($sallaApi, $batch, $discountPercent);
-            $this->syncBatchQuantityToSalla($sallaApi, $batch, $product);
         }
 
-        $batch->markAsAutoDiscounted();
+        $this->syncBatchQuantityToSalla($sallaApi, $batch, $product);
+
+        Cache::forget("harees_dashboard_api_{$batch->merchant_id}");
+
         Log::info("[AutoDiscount] ✅ الباتش {$batch->id} → auto_discounted");
     }
 
@@ -308,43 +313,17 @@ class ApplyAutoDiscountsJob implements ShouldQueue
         $daysLeft = $batch->days_until_expiry ?? 0;
         if ($daysLeft < 0) return 0;
 
-        $rawDurationDays = $settings->auto_discount_duration_days ?? 0;
-        $durationDays = ($rawDurationDays > 0) ? $rawDurationDays : 7;
         $discountPercent = (float) ($settings->auto_discount_percent ?? 20);
 
         Log::info('[AutoDiscount] إعدادات الخصم:', [
-            'duration_days'    => $durationDays,
             'discount_percent' => $discountPercent,
             'days_left'        => $daysLeft,
         ]);
 
-        if (is_numeric($durationDays)) {
-            if ($daysLeft <= (int) $durationDays && $discountPercent > 0) {
-                return $discountPercent;
-            }
-            return 0;
+        if ($discountPercent > 0) {
+            return $discountPercent;
         }
 
-        $rawDiscountDays = $settings->auto_discount_duration_days;
-        $autoDiscounts = [];
-        if (is_array($rawDiscountDays)) {
-            $autoDiscounts = $rawDiscountDays;
-        } elseif (is_string($rawDiscountDays)) {
-            $decoded = json_decode($rawDiscountDays, true);
-            $autoDiscounts = is_array($decoded) ? $decoded : [];
-        }
-
-        if (empty($autoDiscounts)) {
-            return 0;
-        }
-
-        $applicableDiscount = 0;
-        foreach ($autoDiscounts as $discountPct => $minDays) {
-            if ($daysLeft <= (int)$minDays) {
-                $applicableDiscount = max($applicableDiscount, (float)$discountPercent);
-            }
-        }
-
-        return $applicableDiscount;
+        return 0;
     }
 }

@@ -88,6 +88,8 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
     const hasExistingDiscount = (b) => !!(b.discount_percentage || b.latest_discount?.discount_percentage);
     const getDiscountPct = (b) => b.discount_percentage || b.latest_discount?.discount_percentage || 0;
 
+    const isProductHidden = product.product_status === 'hidden';
+
     if (!batch) {
         return (
             <tr>
@@ -126,7 +128,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                 </td>
 
                 <td className="py-3.5 px-4 text-center">
-                    <StatusBadge status={batch.status} size="md" />
+                    <StatusBadge status={isProductHidden ? 'hidden' : batch.status} size="md" />
                 </td>
 
                 <td className="py-3.5 px-4 text-center">
@@ -150,7 +152,7 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                         </span>
                     )}
                 </td>
-
+                
                 <td className="py-3.5 px-4 text-center">
                     <div className="flex justify-center items-center gap-2">
                         {confirmDeleteBatchId === batch.id ? (
@@ -175,92 +177,103 @@ export default function ProductRow({ product, autoDiscount, autoDiscountPercent,
                                 </button>
                             </div>
                         ) : (
-                            <>
-                                <button
-                                    onClick={() => setConfirmDeleteBatchId(batch.id)}
-                                    className="flex items-center justify-center w-[26px] h-[26px] rounded-full text-[var(--muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
-                                    title={t('batch_row.btn_delete_batch')}
+                        <>
+                            <button
+                                onClick={() => setConfirmDeleteBatchId(batch.id)}
+                                className="flex items-center justify-center w-[26px] h-[26px] rounded-full text-[var(--muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+                                title={t('batch_row.btn_delete_batch')}
+                            >
+                                <Trash2 size={11} />
+                            </button>
+
+                            {isProductHidden ? (
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color: 'var(--status-expired-text)',
+                                        background: 'var(--status-expired-bg)',
+                                        borderColor: 'var(--status-expired-border)',
+                                    }}
                                 >
-                                    <Trash2 size={11} />
-                                </button>
-
-                                {isApproaching && batch.discount_type === 'pending' && (
-                                    <button
-                                        onClick={() => setSelectedBatch(batch)}
-                                        disabled={isPending}
-                                        className={`${BTN_BASE} border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]`}
-                                    >
-                                        {isThisBatchLoading ? (
-                                            <Loader2 size={10} className="animate-spin" />
-                                        ) : (
-                                            <Plus size={10} />
-                                        )}
-                                        {isThisBatchLoading
-                                            ? t('batch_row.btn_applying')
-                                            : t('batch_row.btn_add_discount')
-                                        }
-                                    </button>
-                                )}
-
-                                {isApproaching && batch.discount_type === 'auto_discounted' && (
-                                    <span
-                                        className={PILL_BASE}
-                                        style={{
-                                            color: 'var(--status-approaching-text)',
-                                            background: 'var(--status-approaching-bg)',
-                                            borderColor: 'var(--status-approaching-border)',
-                                        }}
-                                    >
-                                        <Tag size={10} />
-                                        {autoDiscountPercent}% {t('batch_row.auto_discount_badge')}
-                                    </span>
-                                )}
-
-                                {isApproaching && batch.discount_type === 'manually_discounted' && (
-                                    <span
-                                        className={PILL_BASE}
-                                        style={{
-                                            color: 'var(--status-approaching-text)',
-                                            background: 'var(--status-approaching-bg)',
-                                            borderColor: 'var(--status-approaching-border)',
-                                        }}
-                                    >
-                                        <Tag size={10} />
-                                        {existingPct}% {t('batch_row.manual_discount')}
-                                    </span>
-                                )}
-
-                                {!isApproaching && isExpired ? (
-                                    autoHide ? (
-                                        <span
-                                            className={PILL_BASE}
-                                            style={{
-                                                color: 'var(--primary)',
-                                                background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
-                                                borderColor: 'color-mix(in srgb, var(--primary) 20%, transparent)',
-                                            }}
-                                        >
-                                            {t('batch_row.auto_hidden_badge')}
-                                        </span>
+                                    {t('status_badge.hidden')}
+                                </span>
+                            ) : isApproaching && batch.discount_type === 'pending' && !autoDiscount && (
+                                <button
+                                    onClick={() => setSelectedBatch(batch)}
+                                    disabled={isPending}
+                                    className={`${BTN_BASE} border-[var(--primary)]/20 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)]`}
+                                >
+                                    {isThisBatchLoading ? (
+                                        <Loader2 size={10} className="animate-spin" />
                                     ) : (
-                                        <span
-                                            className={PILL_BASE}
-                                            style={{
-                                                color: 'var(--muted-foreground)',
-                                                background: 'color-mix(in srgb, var(--muted-foreground) 6%, transparent)',
-                                                borderColor: 'color-mix(in srgb, var(--muted-foreground) 18%, transparent)',
-                                                opacity: 0.65,
-                                            }}
-                                        >
-                                            {t('batch_row.auto_hide_disabled_badge')}
-                                        </span>
-                                    )
-                                ) : !isApproaching && isSafe ? (
-                                    <span className="text-[var(--muted-foreground)] text-sm font-medium select-none text-center">
-                                        —
+                                        <Plus size={10} />
+                                    )}
+                                    {isThisBatchLoading
+                                        ? t('batch_row.btn_applying')
+                                        : t('batch_row.btn_add_discount')
+                                    }
+                                </button>
+                            )}
+
+                            {isApproaching && batch.discount_type === 'auto_discounted' && (
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color: 'var(--status-approaching-text)',
+                                        background: 'var(--status-approaching-bg)',
+                                        borderColor: 'var(--status-approaching-border)',
+                                    }}
+                                >
+                                    <Tag size={10} />
+                                    {autoDiscountPercent}% {t('batch_row.auto_discount_badge')}
+                                </span>
+                            )}
+
+                            {isApproaching && batch.discount_type === 'manually_discounted' && (
+                                <span
+                                    className={PILL_BASE}
+                                    style={{
+                                        color: 'var(--status-approaching-text)',
+                                        background: 'var(--status-approaching-bg)',
+                                        borderColor: 'var(--status-approaching-border)',
+                                    }}
+                                >
+                                    <Tag size={10} />
+                                    {existingPct}% {t('batch_row.manual_discount')}
+                                </span>
+                            )}
+
+                            {!isApproaching && isExpired ? (
+                                autoHide ? (
+                                    <span
+                                        className={PILL_BASE}
+                                        style={{
+                                            color: 'var(--primary)',
+                                            background: 'color-mix(in srgb, var(--primary) 8%, transparent)',
+                                            borderColor: 'color-mix(in srgb, var(--primary) 20%, transparent)',
+                                        }}
+                                    >
+                                        {t('batch_row.auto_hidden_badge')}
                                     </span>
-                                ) : null}
-                            </>
+                                ) : (
+                                    <span
+                                        className={PILL_BASE}
+                                        style={{
+                                            color: 'var(--muted-foreground)',
+                                            background: 'color-mix(in srgb, var(--muted-foreground) 6%, transparent)',
+                                            borderColor: 'color-mix(in srgb, var(--muted-foreground) 18%, transparent)',
+                                            opacity: 0.65,
+                                        }}
+                                    >
+                                        {t('batch_row.auto_hide_disabled_badge')}
+                                    </span>
+                                )
+                            ) : !isApproaching && isSafe ? (
+                                <span className="text-[var(--muted-foreground)] text-sm font-medium select-none text-center">
+                                    —
+                                </span>
+                            ) : null}
+                        </>
                         )}
                     </div>
                 </td>

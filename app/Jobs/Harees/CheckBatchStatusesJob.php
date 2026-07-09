@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class CheckBatchStatusesJob implements ShouldQueue
 {
@@ -47,12 +48,22 @@ class CheckBatchStatusesJob implements ShouldQueue
         $batch->calculateStatus();
         $batch->save();
 
+        Log::info('[CheckBatchStatusesJob] بعد حساب الحالة', [
+            'batch_id'      => $batch->id,
+            'old_status'    => $oldStatus,
+            'new_status'    => $batch->status,
+            'discount_type' => $batch->discount_type,
+        ]);
+
         if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
             $merchant->notify(new BatchExpiryNotification($batch, $batch->status));
+            Cache::forget("harees_dashboard_api_{$merchant->id}");
         }
 
-        // Apply auto discount immediately when batch transitions to yellow
-        if ($oldStatus !== $batch->status && $batch->status === 'yellow') {
+        // Apply auto discount for all yellow pending batches every cycle
+        // (not just on transition) to catch batches that were already yellow
+        if ($batch->status === 'yellow') {
+            Log::info('[CheckBatchStatusesJob] محاولة تطبيق الخصم التلقائي', ['batch_id' => $batch->id]);
             $this->applyAutoDiscountOnYellow($batch, $merchant);
         }
 
@@ -61,13 +72,26 @@ class CheckBatchStatusesJob implements ShouldQueue
 
     private function applyAutoDiscountOnYellow(Batch $batch, Merchant $merchant): void
     {
+        Log::info('[AutoDiscount::Job] بدء', ['batch_id' => $batch->id, 'discount_type' => $batch->discount_type]);
+
         try {
             $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
-            if (!$settings || !$settings->auto_discounts) return;
-            if (!$batch->canAutoDiscount()) return;
+            if (!$settings || !$settings->auto_discounts) {
+                Log::info('[AutoDiscount::Job] تخطي: الإعدادات غير مفعلة', ['batch_id' => $batch->id]);
+                return;
+            }
+            if (!$batch->canAutoDiscount()) {
+                Log::info('[AutoDiscount::Job] تخطي: cannot auto discount', ['batch_id' => $batch->id, 'discount_type' => $batch->discount_type]);
+                return;
+            }
 
             $product = $batch->product;
-            if (!$product || !$product->salla_product_id) return;
+            if (!$product || !$product->salla_product_id) {
+                Log::info('[AutoDiscount::Job] تخطي: المنتج غير مرتبط بسلة', ['batch_id' => $batch->id]);
+                return;
+            }
+
+            Log::info('[AutoDiscount::Job] جميع الشروط مستوفاة', ['batch_id' => $batch->id]);
 
             $sallaApi = SallaApiService::for($merchant);
 
@@ -106,6 +130,8 @@ class CheckBatchStatusesJob implements ShouldQueue
             // Apply discount
             $hasVariants = $batch->batchVariants()->exists();
 
+            $batch->markAsAutoDiscounted();
+
             if ($hasVariants) {
                 $this->applyDiscountToVariants($sallaApi, $batch, $discountPercent);
             } else {
@@ -114,7 +140,7 @@ class CheckBatchStatusesJob implements ShouldQueue
                     $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
                     if ($salePrice < $currentPrice) {
                         $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
-                        $batch->update(['applied_sale_price' => $salePrice]);
+                        try { $batch->update(['applied_sale_price' => $salePrice]); } catch (\Throwable $e) {}
                     }
                 }
             }
@@ -122,18 +148,31 @@ class CheckBatchStatusesJob implements ShouldQueue
             // Sync batch quantity to Salla
             if ($hasVariants) {
                 foreach ($batch->batchVariants as $bv) {
-                    $sallaApi->updateBatchVariant($bv->variant_id, [
-                        'stock_quantity' => $bv->batch_qty ?? 0,
-                    ]);
+                    try {
+                        $sallaApi->updateBatchVariant($bv->variant_id, [
+                            'stock_quantity' => $bv->batch_qty ?? 0,
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('[AutoDiscount] فشل تحديث كمية variant: ' . $e->getMessage(), [
+                            'batch_id'   => $batch->id,
+                            'variant_id' => $bv->variant_id,
+                        ]);
+                    }
                 }
             } else {
                 $batchQty = $batch->batch_qty ?? 0;
                 if ($batchQty > 0) {
-                    $sallaApi->updateProductQuantity($product->salla_product_id, $batchQty);
+                    try {
+                        $sallaApi->updateProductQuantity($product->salla_product_id, $batchQty);
+                    } catch (\Throwable $e) {
+                        Log::warning('[AutoDiscount] فشل تحديث كمية المنتج: ' . $e->getMessage(), [
+                            'batch_id' => $batch->id,
+                        ]);
+                    }
                 }
             }
 
-            $batch->markAsAutoDiscounted();
+            Cache::forget("harees_dashboard_api_{$merchant->id}");
 
             Log::info('[AutoDiscount] ✅ خصم تلقائي فوري عند التحول للأصفر', [
                 'batch_id'    => $batch->id,
@@ -196,9 +235,8 @@ class CheckBatchStatusesJob implements ShouldQueue
         if ($daysLeft < 0) return 0;
 
         $discountPercent = (float) ($settings->auto_discount_percent ?? 20);
-        $durationDays = (int) ($settings->auto_discount_duration_days ?? 7);
 
-        if ($durationDays > 0 && $daysLeft <= $durationDays && $discountPercent > 0) {
+        if ($discountPercent > 0) {
             return $discountPercent;
         }
 

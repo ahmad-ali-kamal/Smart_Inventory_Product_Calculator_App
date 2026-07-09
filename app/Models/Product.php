@@ -83,7 +83,7 @@ class Product extends Model
 
         // 3. إذا لم توجد خريطة أو إعدادات، نرجع القيمة الافتراضية (مثلاً 14 يوم)
         if (!$mapping || !$settings) {
-            return $settings->medium_term_days ?? 14;
+            return ($settings ? $settings->medium_term_days : null) ?? 14;
         }
 
         // 4. تحديد الأيام بناءً على النوع المربوط (Short, Medium, Long)

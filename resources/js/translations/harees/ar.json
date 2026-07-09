@@ -205,7 +205,8 @@
   "status_badge": {
     "expired": "منتهي الصلاحية",
     "approaching": "قريب الانتهاء",
-    "safe": "آمن"
+    "safe": "آمن",
+    "hidden": "مخفي"
   },
 
   "automation_card": {

@@ -545,6 +545,8 @@ class DiscountController extends Controller
                 }
             } elseif ($originalPrice !== null && $originalPrice > 0) {
                 $sallaApi->updateProductPrice($product->salla_product_id, $originalPrice, 0);
+            } else {
+                $sallaApi->updateProductPrice($product->salla_product_id, (float) ($product->price ?? 0), 0);
             }
 
             BatchDiscount::where('batch_id', $batch->id)

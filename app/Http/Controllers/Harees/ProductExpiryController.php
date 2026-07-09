@@ -104,7 +104,9 @@ class ProductExpiryController extends Controller
 
             $batch->sendExpiryNotificationIfNeeded();
 
-            $this->handleAutoHide($product, $merchant);
+            $this->applyAutoDiscountOnStore($batch, $merchant);
+
+            $this->handleAutoHide($product, $merchant, $batch);
 
             Cache::forget("harees_dashboard_{$merchant->id}");
             Cache::forget("harees_dashboard_api_{$merchant->id}");
@@ -217,7 +219,127 @@ class ProductExpiryController extends Controller
         }
     }
 
-    protected function handleAutoHide($product, $merchant): void
+    protected function applyAutoDiscountOnStore(Batch $batch, $merchant): void
+    {
+        Log::info('[AutoDiscount::Store] بدء', ['batch_id' => $batch->id, 'status' => $batch->status, 'discount_type' => $batch->discount_type]);
+
+        if ($batch->status !== 'yellow') {
+            Log::info('[AutoDiscount::Store] تخطي: الحالة ليست صفراء', ['batch_id' => $batch->id, 'status' => $batch->status]);
+            return;
+        }
+        if (!$batch->canAutoDiscount()) {
+            Log::info('[AutoDiscount::Store] تخطي: cannot auto discount', ['batch_id' => $batch->id, 'discount_type' => $batch->discount_type]);
+            return;
+        }
+
+        try {
+            $settings = BatchSetting::where('merchant_id', $merchant->id)->first();
+            if (!$settings || !$settings->auto_discounts) {
+                Log::info('[AutoDiscount::Store] تخطي: الإعدادات غير مفعلة', ['batch_id' => $batch->id, 'has_settings' => !is_null($settings), 'auto_discounts' => $settings?->auto_discounts]);
+                return;
+            }
+
+            $product = $batch->product;
+            if (!$product || !$product->salla_product_id) {
+                Log::info('[AutoDiscount::Store] تخطي: المنتج غير مرتبط بسلة', ['batch_id' => $batch->id, 'has_product' => !is_null($product), 'salla_product_id' => $product?->salla_product_id]);
+                return;
+            }
+
+            Log::info('[AutoDiscount::Store] جميع الشروط مستوفاة، بدء التطبيق', ['batch_id' => $batch->id]);
+
+            $sallaApi = \App\Services\SallaApiService::for($merchant);
+
+            if ($batch->original_price === null || $batch->original_qty === null) {
+                $productData = $sallaApi->getProduct($product->salla_product_id);
+                $data = $productData['data'] ?? [];
+
+                $originalPrice = (float) ($data['price']['amount'] ?? $product->price ?? 0);
+                $originalQty   = (int) ($data['quantity'] ?? $product->quantity ?? 0);
+
+                $originalVariantPrices = [];
+                $originalVariantQtys   = [];
+                $variants = $data['variants'] ?? [];
+                if (!empty($variants)) {
+                    foreach ($variants as $v) {
+                        if (isset($v['id'])) {
+                            $originalVariantPrices[] = ['variant_id' => $v['id'], 'price' => (float) ($v['price']['amount'] ?? 0)];
+                            $originalVariantQtys[]   = ['variant_id' => $v['id'], 'qty' => (int) ($v['stock_quantity'] ?? 0)];
+                        }
+                    }
+                }
+
+                $batch->update([
+                    'original_price'          => $originalPrice,
+                    'original_qty'            => $originalQty,
+                    'original_variant_prices'  => !empty($originalVariantPrices) ? $originalVariantPrices : null,
+                    'original_variant_qtys'    => !empty($originalVariantQtys) ? $originalVariantQtys : null,
+                ]);
+            }
+
+            $discountPercent = $batch->discount_pct && $batch->discount_pct > 0
+                ? (float) $batch->discount_pct
+                : (float) ($settings->auto_discount_percent ?? 20);
+
+            if ($discountPercent <= 0) return;
+
+            $hasVariants = $batch->batchVariants()->exists();
+
+            $batch->markAsAutoDiscounted();
+
+            if ($hasVariants) {
+                $currentVariants = $sallaApi->getProductVariants($product->salla_product_id);
+                $sallaVariants = $currentVariants['data'] ?? [];
+
+                foreach ($batch->batchVariants as $batchVariant) {
+                    $matchedVariant = null;
+                    foreach ($sallaVariants as $sv) {
+                        if ($sv['id'] == $batchVariant->variant_id) {
+                            $matchedVariant = $sv;
+                            break;
+                        }
+                    }
+                    if (!$matchedVariant) continue;
+
+                    $currentPrice = (float) ($matchedVariant['price']['amount'] ?? 0);
+                    if ($currentPrice <= 0) continue;
+
+                    $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
+                    if ($salePrice >= $currentPrice) continue;
+
+                    $sallaApi->updateBatchVariant($matchedVariant['id'], [
+                        'price'      => $currentPrice,
+                        'sale_price' => $salePrice,
+                    ]);
+                }
+
+                try { $batch->update(['applied_sale_price' => round($currentPrice * (1 - $discountPercent / 100), 2)]); } catch (\Throwable $e) {}
+            } else {
+                $currentPrice = $batch->original_price ?: (float) ($product->price ?? 0);
+                if ($currentPrice > 0) {
+                    $salePrice = round($currentPrice * (1 - $discountPercent / 100), 2);
+                    if ($salePrice < $currentPrice) {
+                        $sallaApi->updateProductPrice($product->salla_product_id, $currentPrice, $salePrice);
+                        try { $batch->update(['applied_sale_price' => $salePrice]); } catch (\Throwable $e) {}
+                    }
+                }
+            }
+
+            Cache::forget("harees_dashboard_{$merchant->id}");
+            Cache::forget("harees_dashboard_api_{$merchant->id}");
+
+            Log::info('[AutoDiscount] ✅ خصم تلقائي فوري عند إنشاء الدفعة', [
+                'batch_id'    => $batch->id,
+                'product'     => $product->name,
+                'discount_pct'=> $discountPercent,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[AutoDiscount] فشل الخصم التلقائي عند إنشاء الدفعة: ' . $e->getMessage(), [
+                'batch_id' => $batch->id,
+            ]);
+        }
+    }
+
+    protected function handleAutoHide($product, $merchant, $batch = null): void
     {
         try {
             if (!$merchant || !$product || !$product->salla_product_id) return;
@@ -225,7 +347,7 @@ class ProductExpiryController extends Controller
             $setting = BatchSetting::where('merchant_id', $merchant->id)->first();
             if (!$setting || !$setting->auto_hide_expired) return;
 
-            $batch = $product->batch;
+            $batch = $batch ?? $product->batch()->first();
             $shouldHide = false;
 
             if (!$batch) {
@@ -236,8 +358,16 @@ class ProductExpiryController extends Controller
                 $daysLeft = (int) $today->diffInDays($expiry, false);
                 $beforeDays = (int) ($setting->auto_hide_before_expiry_days ?? 0);
 
-                if ($daysLeft <= $beforeDays) {
-                    $shouldHide = true;
+                // If beforeDays is 0, only hide when batch is actually expired (red status)
+                // This prevents yellow batches from being hidden early
+                if ($beforeDays > 0) {
+                    if ($daysLeft <= $beforeDays) {
+                        $shouldHide = true;
+                    }
+                } else {
+                    if ($daysLeft <= 0 && $batch->status === 'red') {
+                        $shouldHide = true;
+                    }
                 }
             }
 
@@ -259,46 +389,48 @@ class ProductExpiryController extends Controller
     {
         if (!$product || $batchIds->isEmpty()) return;
 
-        $discounts = BatchDiscount::whereIn('batch_id', $batchIds)->active()->get();
-        if ($discounts->isEmpty()) return;
-
         try {
             $merchant = $product->merchant;
-            if ($merchant && $product->salla_product_id) {
-                $sallaApi = \App\Services\SallaApiService::for($merchant);
+            if (!$merchant || !$product->salla_product_id) return;
 
-                foreach ($discounts as $discount) {
-                    $batch = $discount->batch;
-                    if (!$batch) continue;
+            $sallaApi = \App\Services\SallaApiService::for($merchant);
 
-                    $variantIds = $batch->batchVariants()->pluck('variant_id');
+            // Always restore prices from batch original data, regardless of BatchDiscount records
+            $batches = Batch::with('batchVariants')->whereIn('id', $batchIds)->get();
 
-                    if ($variantIds->isNotEmpty()) {
-                        foreach ($batch->batchVariants as $bv) {
-                            $variantSku  = null;
-                            $originalPrice = $batch->original_price;
-                            $originalVariantPrices = $batch->original_variant_prices ?? [];
+            foreach ($batches as $batch) {
+                $variantIds = $batch->batchVariants->pluck('variant_id');
 
-                            $matchedVariantPrice = null;
-                            foreach ($originalVariantPrices as $ovp) {
-                                if ((int) ($ovp['variant_id'] ?? 0) === (int) $bv->variant_id) {
-                                    $matchedVariantPrice = (float) ($ovp['price'] ?? 0);
-                                    break;
-                                }
+                if ($variantIds->isNotEmpty()) {
+                    foreach ($batch->batchVariants as $bv) {
+                        $originalPrice = $batch->original_price;
+                        $originalVariantPrices = $batch->original_variant_prices ?? [];
+
+                        $matchedVariantPrice = null;
+                        foreach ($originalVariantPrices as $ovp) {
+                            if ((int) ($ovp['variant_id'] ?? 0) === (int) $bv->variant_id) {
+                                $matchedVariantPrice = (float) ($ovp['price'] ?? 0);
+                                break;
                             }
-
-                            $restorePrice = $matchedVariantPrice ?: ($originalPrice ?: 0);
-
-                            $sallaApi->updateBatchVariant($bv->variant_id, [
-                                'price'      => $restorePrice,
-                                'sale_price' => 0,
-                            ]);
                         }
-                    } else {
-                        $restorePrice = (float) ($batch->original_price ?: ($product->price ?? 0));
-                        $sallaApi->updateProductPrice($product->salla_product_id, $restorePrice, 0);
-                    }
 
+                        $restorePrice = $matchedVariantPrice ?: ($originalPrice ?: 0);
+
+                        $sallaApi->updateBatchVariant($bv->variant_id, [
+                            'price'      => $restorePrice,
+                            'sale_price' => 0,
+                        ]);
+                    }
+                } else {
+                    $restorePrice = (float) ($batch->original_price ?: ($product->price ?? 0));
+                    $sallaApi->updateProductPrice($product->salla_product_id, $restorePrice, 0);
+                }
+            }
+
+            // Cancel any active BatchDiscount records if they exist
+            $discounts = BatchDiscount::whereIn('batch_id', $batchIds)->active()->get();
+            if ($discounts->isNotEmpty()) {
+                foreach ($discounts as $discount) {
                     $discount->update(['status' => 'cancelled']);
                 }
             }
