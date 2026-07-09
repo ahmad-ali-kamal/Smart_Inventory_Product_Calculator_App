@@ -1,5 +1,5 @@
 {
-  "nav": ["Features", "Platforms"],
+  "nav": ["Home", "Features", "Platforms", "Privacy Policy", "FAQ"],
   "heroSub": "Welcome to Quantix.. Your Intelligent system for Salla management. Because successful come numbers, not expectations",
   "exploreCta": "Explore more",
   "platformsCta": "Our Platforms",
@@ -51,6 +51,12 @@
     "quickLinksLabel": "Discover More",
     "featuresLink": "Features",
     "platformsLink": " Apps",
+    "privacyLink": "Privacy Policy",
+    "faqLink": "FAQ",
+    "contactLabel": "Contact Us",
+    "contactDesc": "General inquiries, partnerships, and collaboration requests.",
+    "contactInfoDesc": "General information about Quantix, its products, and services.",
+    "contactSupportDesc": "Technical support, merchant assistance, and product issues.",
     "copyright": "All rights reserved to Quantix Digital Platform © 2026"
   },
   "statusLabels": {

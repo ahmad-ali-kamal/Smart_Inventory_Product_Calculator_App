@@ -14,6 +14,10 @@ use App\Http\Controllers\Harees\DiscountController;
 // الصفحة الرئيسية (Welcome)
 Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 
+// صفحات المحتوى
+Route::get('/privacy-policy', fn() => Inertia::render('PrivacyPolicy'))->name('privacy');
+Route::get('/faq', fn() => Inertia::render('FAQ'))->name('faq');
+
 // إدارة الدخول
 Route::get('/login', fn() => redirect()->route('harees.login'))->name('login');
 Route::get('/qiasat/login', fn() => inertia('Mustashar/Login'))->name('qiasat.login');

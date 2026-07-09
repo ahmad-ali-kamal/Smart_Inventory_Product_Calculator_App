@@ -70,6 +70,7 @@ export default function HeroSection({ t, ff, bodyFont, dir, NAV_H }) {
 
     return (
         <section
+            id="hero"
             ref={heroRef}
             aria-label="Hero"
             style={{

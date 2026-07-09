@@ -15,6 +15,10 @@ import mustasharLoginEn from "./translations/mustashar-login/en.json";
 import mustasharLoginAr from "./translations/mustashar-login/ar.json";
 import hareesLoginEn from "./translations/harees-login/en.json";
 import hareesLoginAr from "./translations/harees-login/ar.json";
+import privacyEn from "./translations/privacy/en.json";
+import privacyAr from "./translations/privacy/ar.json";
+import faqEn from "./translations/faq/en.json";
+import faqAr from "./translations/faq/ar.json";
 
 i18n.use(LanguageDetector)
     .use(initReactI18next)
@@ -27,6 +31,8 @@ i18n.use(LanguageDetector)
                 welcome: welcomeEn,
                 "mustashar-login": mustasharLoginEn,
                 "harees-login": hareesLoginEn,
+                privacy: privacyEn,
+                faq: faqEn,
             },
             ar: {
                 mustashar: ar,
@@ -35,6 +41,8 @@ i18n.use(LanguageDetector)
                 welcome: welcomeAr,
                 "mustashar-login": mustasharLoginAr,
                 "harees-login": hareesLoginAr,
+                privacy: privacyAr,
+                faq: faqAr,
             },
         },
         lng: "en",

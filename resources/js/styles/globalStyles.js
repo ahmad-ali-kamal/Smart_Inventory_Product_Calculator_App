@@ -24,12 +24,12 @@ const globalStyles = `
         .q-hero-visual { display: none !important; }
     }
 
-    /* Footer responsive */
-    @media (max-width: 680px) {
+    /* Footer responsive — 4 columns (brand + platforms + quick links + contact) */
+    @media (max-width: 960px) {
         .q-footer-grid  { grid-template-columns: 1fr 1fr !important; }
         .q-footer-brand { grid-column: span 2 !important; }
     }
-    @media (max-width: 400px) {
+    @media (max-width: 540px) {
         .q-footer-grid  { grid-template-columns: 1fr !important; }
         .q-footer-brand { grid-column: auto !important; }
     }

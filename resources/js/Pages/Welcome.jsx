@@ -21,6 +21,7 @@
  * @module Pages/Welcome
  */
 
+import { useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useLang } from '@/hooks/useLang';
@@ -62,7 +63,7 @@ export default function Welcome() {
      */
     const { dir } = useLang();
 
-    /** i18next translation function — scoped to the 'welcome' namespace. */
+    /** i18n translation function — scoped to the 'welcome' namespace. */
     const { t } = useTranslation('welcome');
 
     /*
@@ -72,6 +73,23 @@ export default function Welcome() {
      * Both are locale-aware (Arabic vs Latin typefaces).
      */
     const { ff, bodyFont } = useFonts();
+
+    /**
+     * On mount, if the URL contains a hash (e.g. /#features or /#platforms),
+     * scroll to that section. Handles cross-page navigation from the Navbar.
+     */
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash) {
+            // Small delay to let the DOM render fully
+            setTimeout(() => {
+                const el = document.querySelector(hash);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        }
+    }, []);
 
     return (
         <>

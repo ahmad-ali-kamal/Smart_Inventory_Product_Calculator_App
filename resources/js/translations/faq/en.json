@@ -1,0 +1,99 @@
+{
+  "metaTitle": "FAQ — Quantix",
+  "metaDescription": "Frequently asked questions about Quantix, Harees expiry monitoring, and Qiasat smart measurement calculator.",
+  "title": "Frequently Asked Questions",
+  "subtitle": "Everything you need to know about Quantix, Harees, and Qiasat.",
+  "categories": [
+    {
+      "category": "General",
+      "questions": [
+        {
+          "q": "What is Quantix?",
+          "a": "Quantix is an intelligent Salla store management platform comprising two specialized apps: Harees (batch-by-batch expiry date monitoring) and Qiasat (smart measurement calculator for area and quantity). Together they help Salla merchants reduce waste, increase sales, and streamline operations."
+        },
+        {
+          "q": "Is Quantix free to use?",
+          "a": "Quantix offers a free tier with basic features. Premium plans unlock advanced functionality such as automated discounting, batch tracking, and priority support. Visit our pricing page or contact support@quantixapp.dev for detailed plan comparison."
+        },
+        {
+          "q": "Which Salla plan do I need?",
+          "a": "Quantix works with any active Salla store. Some advanced features (like bulk product syncing) may require a Salla paid plan. Check Salla's documentation for compatibility details."
+        },
+        {
+          "q": "Do I need technical knowledge to use Quantix?",
+          "a": "No. Both Harees and Qiasat are designed for non-technical users. Installation takes just a few clicks through Salla's App Market, and the dashboard guides you through setup step by step."
+        }
+      ]
+    },
+    {
+      "category": "Harees — Expiry Monitoring",
+      "questions": [
+        {
+          "q": "How does Harees track product expiry dates?",
+          "a": "Harees connects to your Salla store and lets you add batch-by-batch expiry records for each product. It automatically flags items approaching their expiry date and sends notifications so you can take action before products expire."
+        },
+        {
+          "q": "How does the Harees discount workflow work?",
+          "a": "When a product is nearing its expiry date, Harees allows you to apply an automatic discount to accelerate its sale. The flow is: (1) Harees detects an expiring batch and prompts you to set a discount percentage and price; (2) You configure the discount in the Harees dashboard (percentage off, discounted price, and optional minimum quantity); (3) Harees applies the discount to the specific batch variant in Salla via the Salla API; (4) When the batch sells or is removed, Harees automatically cancels the discount in Salla so regular pricing is restored — no manual cleanup required. You can review active discounts at any time from the dashboard and cancel them early if needed."
+        },
+        {
+          "q": "What happens when a product expires?",
+          "a": "Harees marks expired batches in red on your dashboard. You can hide or remove expired batches from active inventory. Harees does not automatically delete products — you retain full control over what to do with expired stock."
+        },
+        {
+          "q": "Does Harees support multiple batches for the same product?",
+          "a": "Yes. You can add multiple batches with different expiry dates, quantities, and purchase prices for the same product. This is especially useful for products with staggered delivery or production runs."
+        }
+      ]
+    },
+    {
+      "category": "Qiasat — Smart Measurement Calculator",
+      "questions": [
+        {
+          "q": "What does Qiasat do?",
+          "a": "Qiasat embeds a smart measurement calculator directly into your Salla product pages. Customers can enter dimensions or quantities and get instant, accurate calculations — eliminating guesswork and reducing returns due to incorrect sizing."
+        },
+        {
+          "q": "Can I customize the calculation rules?",
+          "a": "Absolutely. Qiasat gives you full control over calculation formulas. You can set area-based pricing, quantity multipliers, waste factors, and dimension limits per product. Changes take effect immediately on your storefront."
+        },
+        {
+          "q": "Which types of products work with Qiasat?",
+          "a": "Qiasat is ideal for products sold by area (flooring, tiles, wallpaper), volume (concrete, gravel, liquids), or length (pipes, cables, fabrics). It works with any Salla product that has configurable options."
+        }
+      ]
+    },
+    {
+      "category": "Account & Billing",
+      "questions": [
+        {
+          "q": "How do I connect my Salla store?",
+          "a": "Click \"Login with Salla\" on the Harees or Qiasat login page. You'll be redirected to Salla's authorization screen. Grant the requested permissions, and you'll be returned to your Quantix dashboard — fully synced."
+        },
+        {
+          "q": "Can I cancel my subscription?",
+          "a": "Yes. You can cancel anytime from your account settings. Your subscription remains active until the end of the current billing period. After cancellation, you'll retain read-only access to your data for 30 days."
+        },
+        {
+          "q": "What payment methods do you accept?",
+          "a": "We accept major credit and debit cards (Visa, Mastercard) and Salla Pay where available. All payments are processed securely through our payment partner."
+        }
+      ]
+    },
+    {
+      "category": "Security & Privacy",
+      "questions": [
+        {
+          "q": "Is my Salla data safe with Quantix?",
+          "a": "Yes. Quantix uses industry-standard encryption (TLS 1.3) for all data in transit and AES-256 for data at rest. We never store your Salla password — authentication uses OAuth 2.0 tokens with scoped permissions. See our Privacy Policy for full details."
+        },
+        {
+          "q": "Does Quantix share my data with third parties?",
+          "a": "No. Quantix never sells or shares your data with third parties. We use sub-processors only for essential infrastructure (hosting, monitoring) under strict data processing agreements."
+        }
+      ]
+    }
+  ],
+  "stillHaveQuestions": "Still have questions?",
+  "contactPrompt": "Contact our support team at support@quantixapp.dev and we'll get back to you within 24 hours."
+}

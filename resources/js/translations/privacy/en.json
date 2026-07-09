@@ -1,0 +1,53 @@
+{
+  "metaTitle": "Privacy Policy — Quantix",
+  "metaDescription": "Quantix Privacy Policy explains how we collect, use, and protect your data when you use the Harees and Qiasat platforms.",
+  "title": "Privacy Policy",
+  "lastUpdated": "Last updated: June 1, 2026",
+  "sections": [
+    {
+      "title": "Introduction",
+      "body": "Quantix (\"we,\" \"our,\" or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platforms — Harees (expiry monitoring) and Qiasat (smart measurement calculator) — collectively referred to as the \"Services.\" By using our Services, you agree to the collection and use of information in accordance with this policy."
+    },
+    {
+      "title": "Information We Collect",
+      "body": "We collect information that you provide directly to us, including your name, email address, store name, and Salla account credentials, when you register for or use our Services. We also automatically collect certain information when you access or use the Services, such as your IP address, browser type, device information, and usage data (e.g., pages viewed, features used). If you connect your Salla store, we access your product catalog data (product names, SKUs, quantities, pricing, expiry dates) solely to provide the Services."
+    },
+    {
+      "title": "How We Use Your Information",
+      "body": "We use the information we collect to: (a) provide, maintain, and improve our Services; (b) process transactions and send related information; (c) send technical notices, updates, security alerts, and support messages; (d) respond to your comments, questions, and requests; (e) monitor and analyze usage trends to enhance user experience; (f) detect, prevent, and address fraud, security, or technical issues; and (g) comply with legal obligations."
+    },
+    {
+      "title": "Data Sharing and Disclosure",
+      "body": "We do not sell your personal information. We may share your information with third-party service providers who perform services on our behalf (such as hosting, analytics, and customer support), and only to the extent necessary for them to perform those services. We may also disclose your information if required by law, regulation, legal process, or governmental request, or to protect our rights, property, or safety, or those of our users."
+    },
+    {
+      "title": "Data Retention and Security",
+      "body": "We retain your personal information for as long as your account is active or as needed to provide you the Services. We implement industry-standard security measures — including encryption, access controls, and regular security audits — to protect your data. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security."
+    },
+    {
+      "title": "Your Rights and Choices",
+      "body": "You have the right to access, correct, update, or delete your personal information at any time by contacting us at the email addresses below. You may also opt out of marketing communications by following the unsubscribe instructions in those messages. Please note that certain data may be retained as required by applicable law or for legitimate business purposes."
+    },
+    {
+      "title": "Third-Party Services",
+      "body": "Our Services integrate with Salla (salla.dev) to function. Salla's own privacy policy governs how they handle your data. We encourage you to review Salla's privacy practices. We are not responsible for the privacy practices of any third-party services linked to or from our platform."
+    },
+    {
+      "title": "Changes to This Privacy Policy",
+      "body": "We may update this Privacy Policy from time to time. We will notify you of material changes by posting the new policy on this page and updating the \"Last updated\" date. Your continued use of the Services after changes take effect constitutes your acceptance of the revised policy."
+    },
+    {
+      "title": "Contact Us",
+      "body": "If you have questions or concerns about this Privacy Policy, or wish to exercise your rights regarding your personal data, please contact us at:"
+    }
+  ],
+  "contactEmails": [
+    { "label": "General Inquiries", "email": "contact@quantixapp.dev" },
+    { "label": "Support", "email": "support@quantixapp.dev" },
+    { "label": "Privacy Requests", "email": "info@quantixapp.dev" }
+  ],
+  "footer": {
+    "privacyLink": "Privacy Policy",
+    "faqLink": "FAQ"
+  }
+}

@@ -47,7 +47,7 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                         className="q-footer-grid"
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: 'minmax(200px, 280px) 1fr 1fr',
+                            gridTemplateColumns: 'minmax(200px, 280px) 1fr 1fr 1fr',
                             gap: 'clamp(1.5rem, 3vw, 3rem)',
                             marginBottom: '2.5rem',
                             flexWrap: 'wrap',
@@ -159,8 +159,112 @@ export default function Footer({ t, ff, bodyFont, dir }) {
                                         {t('footer.platformsLink')}
                                     </a>
                                 </li>
+                                <li>
+                                    <Link
+                                        href="/privacy-policy"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        {t('footer.privacyLink')}
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link
+                                        href="/faq"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        {t('footer.faqLink')}
+                                    </Link>
+                                </li>
                             </ul>
                         </nav>
+                        {/* ── Contact column ── */}
+                        <div>
+                            <h4 style={{
+                                fontFamily: ff,
+                                fontSize: 'clamp(0.65rem, 0.8vw, 0.75rem)', fontWeight: 800,
+                                letterSpacing: '0.14em', color: '#9CA3AF',
+                                marginBottom: '1rem',
+                            }}>
+                                {t('footer.contactLabel')}
+                            </h4>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                <li>
+                                    <a
+                                        href="mailto:contact@quantixapp.dev"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        contact@quantixapp.dev
+                                    </a>
+                                    <p style={{
+                                        fontFamily: bodyFont,
+                                        fontSize: 'clamp(0.65rem, 0.75vw, 0.75rem)', color: '#9CA3AF',
+                                        marginTop: '0.15rem', lineHeight: 1.4,
+                                    }}>
+                                        {t('footer.contactDesc')}
+                                    </p>
+                                </li>
+                                <li>
+                                    <a
+                                        href="mailto:info@quantixapp.dev"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        info@quantixapp.dev
+                                    </a>
+                                    <p style={{
+                                        fontFamily: bodyFont,
+                                        fontSize: 'clamp(0.65rem, 0.75vw, 0.75rem)', color: '#9CA3AF',
+                                        marginTop: '0.15rem', lineHeight: 1.4,
+                                    }}>
+                                        {t('footer.contactInfoDesc')}
+                                    </p>
+                                </li>
+                                <li>
+                                    <a
+                                        href="mailto:support@quantixapp.dev"
+                                        style={{
+                                            fontFamily: bodyFont,
+                                            fontSize: 'clamp(0.8rem, 1vw, 0.9rem)', color: '#4B5563',
+                                            textDecoration: 'none', transition: 'color 0.2s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.color = '#7C3AED')}
+                                        onMouseLeave={e => (e.currentTarget.style.color = '#4B5563')}
+                                    >
+                                        support@quantixapp.dev
+                                    </a>
+                                    <p style={{
+                                        fontFamily: bodyFont,
+                                        fontSize: 'clamp(0.65rem, 0.75vw, 0.75rem)', color: '#9CA3AF',
+                                        marginTop: '0.15rem', lineHeight: 1.4,
+                                    }}>
+                                        {t('footer.contactSupportDesc')}
+                                    </p>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </Reveal>
 
