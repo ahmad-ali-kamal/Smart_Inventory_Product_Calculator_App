@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use App\Jobs\FetchProductsJob;
 use App\Jobs\CheckBatchExpiryJob;
 use App\Services\SallaApiService;
+use App\Services\BatchInventoryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -278,6 +279,7 @@ class HareesApiController extends Controller
         try {
             // حذف الدفعة القديمة إن وجدت
             if ($product->batch) {
+                BatchInventoryService::restoreBatchQuantities($product->batch);
                 $product->batch->batchVariants()->delete();
                 $product->batch->delete();
             }

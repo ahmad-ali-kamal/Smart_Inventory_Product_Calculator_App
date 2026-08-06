@@ -5,7 +5,6 @@ namespace App\Jobs\Harees;
 use App\Models\Batch;
 use App\Models\BatchSetting;
 use App\Models\Merchant;
-use App\Notifications\BatchExpiryNotification;
 use App\Services\SallaApiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -56,7 +55,7 @@ class CheckBatchStatusesJob implements ShouldQueue
         ]);
 
         if ($oldStatus !== $batch->status && in_array($batch->status, ['yellow', 'red'])) {
-            $merchant->notify(new BatchExpiryNotification($batch, $batch->status));
+            \App\Services\BatchExpiryNotifierService::notify($batch, $batch->status, $merchant);
             Cache::forget("harees_dashboard_api_{$merchant->id}");
         }
 

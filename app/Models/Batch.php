@@ -111,8 +111,8 @@ class Batch extends Model
             }
 
             try {
-                $merchant->notify(new \App\Notifications\BatchExpiryNotification($batch, $newStatus));
-                Log::info("[Batch Hook] تم إرسال notification للتاجر: {$merchant->id}");
+                \App\Services\BatchExpiryNotifierService::notify($batch, $newStatus, $merchant);
+                Log::info("[Batch Hook] تمت معالجة notification للتاجر: {$merchant->id}");
             } catch (\Throwable $e) {
                 Log::error("[Batch Hook] فشل إرسال notification: " . $e->getMessage());
             }
@@ -413,8 +413,8 @@ class Batch extends Model
         if (!$this->product_id || !$this->product()->exists()) return;
 
         try {
-            $merchant->notify(new \App\Notifications\BatchExpiryNotification($this, $this->status));
-            Log::info("[Batch] Notification يدوية أُرسلت للدفعة: {$this->id}");
+            \App\Services\BatchExpiryNotifierService::notify($this, $this->status, $merchant);
+            Log::info("[Batch] Notification يدوية تمت معالجتها للدفعة: {$this->id}");
         } catch (\Throwable $e) {
             Log::error("[Batch] فشل إرسال notification يدوية: " . $e->getMessage());
         }

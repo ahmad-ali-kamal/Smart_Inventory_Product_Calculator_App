@@ -94,7 +94,7 @@ export default function Welcome() {
     return (
         <>
             {/* Browser tab title — shown in page title and social meta tags */}
-            <Head title="QUANTIX — منصة إدارة المتاجر الذكية" />
+            <Head title="QUANTIX" />
 
             {/* Inject global styles once at the page root (fonts, resets, breakpoints) */}
             <style>{globalStyles}</style>

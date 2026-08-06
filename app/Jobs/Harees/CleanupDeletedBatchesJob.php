@@ -8,6 +8,7 @@ use App\Models\BatchSetting;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Services\SallaApiService;
+use App\Services\BatchInventoryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -62,37 +63,14 @@ class CleanupDeletedBatchesJob implements ShouldQueue
         if (!$product || !$product->salla_product_id) return;
 
         try {
-            $originalQty = $batch->original_qty;
+            BatchInventoryService::restoreBatchQuantities($batch);
+
             $originalPrice = $batch->original_price;
-            $originalVariantQtys = $batch->original_variant_qtys ?? [];
             $originalVariantPrices = $batch->original_variant_prices ?? [];
 
             $hasVariants = $batch->batchVariants()->exists();
 
             if ($hasVariants) {
-                if (!empty($originalVariantQtys)) {
-                    $batchVariantMap = $batch->batchVariants->keyBy('variant_id');
-
-                    foreach ($originalVariantQtys as $ovq) {
-                        $variantId = $ovq['variant_id'] ?? null;
-                        if (!$variantId) continue;
-
-                        $originalStock = (int) ($ovq['qty'] ?? 0);
-                        $bv = $batchVariantMap->get($variantId);
-
-                        if ($bv) {
-                            $soldDuringBatch = $bv->total_qty - $bv->batch_qty;
-                            $restoreQty = max(0, $originalStock - $soldDuringBatch);
-                        } else {
-                            $restoreQty = $originalStock;
-                        }
-
-                        $sallaApi->updateBatchVariant($variantId, [
-                            'stock_quantity' => $restoreQty,
-                        ]);
-                    }
-                }
-
                 if (!empty($originalVariantPrices)) {
                     foreach ($originalVariantPrices as $ovp) {
                         $variantId = $ovp['variant_id'] ?? null;
@@ -114,18 +92,6 @@ class CleanupDeletedBatchesJob implements ShouldQueue
                     $batch->markAsPending();
                 }
             } else {
-                $restoreQty = $originalQty;
-                if ($batch->total_qty && $batch->batch_qty !== null) {
-                    $soldDuringBatch = $batch->total_qty - $batch->batch_qty;
-                    $restoreQty = max(0, ($originalQty ?? 0) - $soldDuringBatch);
-                }
-
-                if ($restoreQty > 0) {
-                    $sallaApi->updateProductQuantity($product->salla_product_id, $restoreQty);
-                } elseif ($originalQty !== null && $originalQty > 0) {
-                    $sallaApi->updateProductQuantity($product->salla_product_id, $originalQty);
-                }
-
                 $restorePrice = ($originalPrice !== null && $originalPrice > 0)
                     ? (float) $originalPrice
                     : (float) ($product->price ?? 0);
@@ -142,7 +108,6 @@ class CleanupDeletedBatchesJob implements ShouldQueue
 
             Log::info("[Cleanup] تم استعادة البيانات الأصلية للباتش {$batch->id}", [
                 'product' => $product->name,
-                'qty'     => $originalQty,
                 'price'   => $originalPrice,
             ]);
 

@@ -9,6 +9,7 @@ use App\Models\BatchSetting;
 use App\Models\BatchDiscount;
 use App\Models\ActivityLog;
 use App\Services\SallaApiService;
+use App\Services\BatchInventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -374,35 +375,7 @@ class DiscountController extends Controller
                     $sallaApi->updateProductPrice($product->salla_product_id, $restorePrice, 0);
                 }
 
-                $originalQty = $batch->original_qty;
-                if ($originalQty !== null && $originalQty > 0) {
-                    $originalVariantQtys = $batch->original_variant_qtys ?? [];
-                    if (!empty($originalVariantQtys)) {
-                        $batchVariantMap = $batch->batchVariants->keyBy('variant_id');
-                        foreach ($originalVariantQtys as $ovq) {
-                            $variantId = $ovq['variant_id'] ?? null;
-                            if (!$variantId) continue;
-                            $originalStock = (int) ($ovq['qty'] ?? 0);
-                            $bv = $batchVariantMap->get($variantId);
-                            if ($bv) {
-                                $soldDuringBatch = $bv->total_qty - $bv->batch_qty;
-                                $restoreQty = max(0, $originalStock - $soldDuringBatch);
-                            } else {
-                                $restoreQty = $originalStock;
-                            }
-                            $sallaApi->updateBatchVariant($variantId, [
-                                'stock_quantity' => $restoreQty,
-                            ]);
-                        }
-                    } else {
-                        $restoreQty = $originalQty;
-                        if ($batch->total_qty && $batch->batch_qty !== null) {
-                            $soldDuringBatch = $batch->total_qty - $batch->batch_qty;
-                            $restoreQty = max(0, $originalQty - $soldDuringBatch);
-                        }
-                        $sallaApi->updateProductQuantity($product->salla_product_id, $restoreQty);
-                    }
-                }
+                BatchInventoryService::restoreBatchQuantities($batch);
             }
 
             $discount->cancel();
@@ -479,33 +452,7 @@ class DiscountController extends Controller
 
                 $this->cancelDiscountForBatch($batch, $product, $sallaApi);
 
-                $originalQty = $batch->original_qty;
-                if ($originalQty !== null && $originalQty > 0) {
-                    $originalVariantQtys = $batch->original_variant_qtys ?? [];
-                    if (!empty($originalVariantQtys)) {
-                        $batchVariantMap = $batch->batchVariants->keyBy('variant_id');
-                        foreach ($originalVariantQtys as $ovq) {
-                            $variantId = $ovq['variant_id'] ?? null;
-                            if (!$variantId) continue;
-                            $originalStock = (int) ($ovq['qty'] ?? 0);
-                            $bv = $batchVariantMap->get($variantId);
-                            if ($bv) {
-                                $soldDuringBatch = $bv->total_qty - $bv->batch_qty;
-                                $restoreQty = max(0, $originalStock - $soldDuringBatch);
-                            } else {
-                                $restoreQty = $originalStock;
-                            }
-                            $sallaApi->updateBatchVariant($variantId, ['stock_quantity' => $restoreQty]);
-                        }
-                    } else {
-                        $restoreQty = $originalQty;
-                        if ($batch->total_qty && $batch->batch_qty !== null) {
-                            $soldDuringBatch = $batch->total_qty - $batch->batch_qty;
-                            $restoreQty = max(0, $originalQty - $soldDuringBatch);
-                        }
-                        $sallaApi->updateProductQuantity($product->salla_product_id, $restoreQty);
-                    }
-                }
+                BatchInventoryService::restoreBatchQuantities($batch);
             } catch (\Exception $e) {
                 Log::warning('[Restock] فشل استعادة البيانات: ' . $e->getMessage());
             }
