@@ -305,7 +305,15 @@ useEffect(() => {
             )}
 
             {/* Mobile Navigation Drawer */}
-            <div className={`fixed top-0 start-0 z-50 h-full w-3/4 max-w-xs bg-[var(--background)] border-e border-[var(--border)] shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
+            {/* The wrapper is exactly viewport-sized (inset-0) and clips the
+                off-screen drawer, so the closed drawer can never extend the
+                page beyond the viewport (no horizontal scroll / white gap).
+                It is pointer-events-none so clicks pass through to the overlay. */}
+            <div
+                className="fixed inset-0 z-50 pointer-events-none overflow-hidden md:hidden"
+                aria-hidden={!isMobileNavOpen}
+            >
+            <div className={`absolute top-0 start-0 h-full w-3/4 max-w-xs bg-[var(--background)] border-e border-[var(--border)] shadow-2xl transform transition-transform duration-300 ease-in-out pointer-events-auto ${
                 isMobileNavOpen ? 'translate-x-0' : isAr ? 'translate-x-full' : '-translate-x-full'
             }`}
                  role="dialog"
@@ -343,27 +351,8 @@ useEffect(() => {
                     })}
                 </nav>
             </div>
+            </div>
 
-            {/* Mobile bottom nav bar (horizontal scroll pills, visible only on mobile when drawer is closed) */}
-            {!isMobileNavOpen && (
-                <div className="md:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto border-t border-[var(--border)] pt-2 mt-1 scrollbar-hide"
-                     role="navigation"
-                     aria-label={isAr ? 'التنقل السريع' : 'Quick navigation'}
-                >
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            aria-current={url === item.href ? 'page' : undefined}
-                            className={`px-3 py-1 rounded-full text-xs whitespace-nowrap ${
-                                url === item.href ? 'bg-[var(--primary)] text-white' : 'text-[var(--muted-foreground)]'
-                            }`}
-                        >
-                            {item.label}
-                        </Link>
-                    ))}
-                </div>
-            )}
         </header>
     );
 }

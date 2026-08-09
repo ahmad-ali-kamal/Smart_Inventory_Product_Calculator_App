@@ -9,7 +9,11 @@
 // duplicates a request the document <head> already makes.
 const globalStyles = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { overflow-x: hidden; }
+    /* clip (not hidden): prevents the RTL scrollbar-gutter artifact where
+       overflow-x:hidden on body/html adds the scrollbar width as left-side
+       overflow on mobile, producing a horizontal white gap. Applied to html
+       too because the artifact lives on the documentElement. */
+    html, body { overflow-x: clip; }
 
     /* Brand background system */
     :root {
