@@ -29,6 +29,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') return;
         // 1. حذف foreign keys المؤقتاً (MySQL يمنع حذف index مستخدم في FK)
         Schema::table('batch_items', function (Blueprint $table) {
             $table->dropForeign(['batch_id']);
@@ -55,6 +56,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') return;
         Schema::table('batch_items', function (Blueprint $table) {
             $table->dropForeign(['batch_id']);
             $table->dropForeign(['product_id']);

@@ -61,4 +61,12 @@ return [
         'authorization_mode' => env('SALLA_AUTHORIZATION_MODE', 'easy'),
     ],
 
+    'quantix' => [
+        'harees_url'        => env('HAREES_APP_URL', env('APP_URL', 'http://localhost:8000') . '/harees/login'),
+        'qiyast_url'        => env('QIYAST_APP_URL', env('APP_URL', 'http://localhost:8000') . '/qiasat/login'),
+        'support_url'       => env('QUANTIX_SUPPORT_URL', 'https://quantixapp.dev/'),
+        'harees_support_url'=> env('HAREES_SUPPORT_URL', env('QUANTIX_SUPPORT_URL', 'https://quantixapp.dev/')),
+        'qiyast_support_url'=> env('QIYAST_SUPPORT_URL', env('QUANTIX_SUPPORT_URL', 'https://quantixapp.dev/')),
+    ],
+
 ];

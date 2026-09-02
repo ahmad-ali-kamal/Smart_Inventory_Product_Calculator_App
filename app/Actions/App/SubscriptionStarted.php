@@ -14,6 +14,27 @@ class SubscriptionStarted extends BaseAction
 {
     public function handle()
     {
-        // you can do whatever you want
+        $merchantId = (string) ($this->merchant ?? $this->data['merchant'] ?? '');
+        $payload = is_array($this->data) ? $this->data : [];
+        $body = $this->request ? $this->request->all() : ['merchant' => $merchantId, 'data' => $payload];
+        $appName = $this->detectApp();
+        if (!$merchantId) return;
+        if (!$appName) $appName = 'harees';
+        \App\Services\WelcomeEmailService::handleAppEvent('app.subscription.started', $appName, $merchantId, $body);
+    }
+
+    private function detectApp(): ?string
+    {
+        if (!$this->request) return null;
+        $payload = $this->request->getContent();
+        $sig = $this->request->header('X-Salla-Signature') ?? '';
+        $map = [
+            'harees' => env('SALLA_HAREES_WEBHOOK_SECRET') ?? config('services.salla_harees.webhook_secret'),
+            'mustashar' => env('SALLA_MUSTASHAR_WEBHOOK_SECRET') ?? config('services.salla_mustashar.webhook_secret'),
+        ];
+        foreach ($map as $app => $secret) {
+            if ($secret && hash_equals(hash_hmac('sha256', $payload, $secret), $sig)) return $app;
+        }
+        return null;
     }
 }

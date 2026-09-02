@@ -584,4 +584,9 @@ class SallaApiService
             'quantity' => $quantity,
         ]);
     }
+
+    public function getMerchantInfoViaApi(): array
+    {
+        return $this->request('get', 'oauth2/user/info');
+    }
 }

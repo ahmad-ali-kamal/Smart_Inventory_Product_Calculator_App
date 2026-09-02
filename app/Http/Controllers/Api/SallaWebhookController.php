@@ -56,10 +56,12 @@ class SallaWebhookController extends Controller
         // ─── 1. التحقق من التوقيع (Signature Verification) ───
         // سلة ترسل: X-Salla-Security-Strategy = Signature
         //           X-Salla-Signature = HMAC-SHA256(payload, webhook_secret)
-        if (!$this->verifySignature($request)) {
+        $signatureResult = $this->verifySignature($request);
+        if (!$signatureResult['valid']) {
             Log::warning('[Webhook] ❌ فشل التحقق من التوقيع');
             return response()->json(['success' => false, 'message' => 'Invalid signature'], 401);
         }
+        $matchedApp = $signatureResult['app_name'];
 
         // ─── 2. استخراج الحدث ───
         $event = $request->header('Salla-Event')
@@ -78,10 +80,17 @@ class SallaWebhookController extends Controller
         $data = $body['data'] ?? $body;
 
         // ─── 4. منع المعالجة المكررة (Idempotency) ───
-        $idempotencyKey = $this->getIdempotencyKey($event, $data);
-        if ($idempotencyKey && Cache::get($idempotencyKey)) {
+        $isWelcomeEvent = in_array($event, ['app.trial.started', 'app.subscription.started'], true);
+        $idempotencyKey = $this->getIdempotencyKey($event, $data, $isWelcomeEvent ? $matchedApp : null);
+        if ($idempotencyKey && Cache::get($idempotencyKey) && !$isWelcomeEvent) {
             Log::info('[Webhook] ⏭️ تم تجاوز حدث مكرر: ' . $event);
             return response()->json(['success' => true, 'note' => 'duplicate skipped']);
+        }
+        if ($isWelcomeEvent && $idempotencyKey && Cache::get($idempotencyKey)) {
+            Log::info('[Webhook] ⏭️ تم تجاوز حدث مكرر (welcome): ' . $event);
+            // For welcome events rely on DB idempotency; still return success but continue to ensure DB record exists
+            // Check quickly via service; skip heavy processing only if already handled via cache but still allow dispatch if needed
+            // We still proceed to merchant lookup to ensure idempotency via DB; cache is just short-term
         }
 
         Log::info('[Webhook] 📩 حدث من سلة', [
@@ -97,8 +106,17 @@ class SallaWebhookController extends Controller
 
         $merchant = Merchant::where('salla_merchant_id', $merchantId)->first();
         if (!$merchant) {
-            Log::error('[Webhook] تاجر غير موجود: ' . $merchantId);
-            return response()->json(['success' => true, 'note' => 'merchant not found']);
+            if ($isWelcomeEvent) {
+                $merchant = \App\Services\WelcomeEmailService::resolveMerchant((string) $merchantId);
+                Log::info('[Webhook] Created minimal merchant for welcome event', ['salla_merchant_id' => $merchantId, 'merchant_db_id' => $merchant?->id]);
+                if (!$merchant) {
+                    Log::error('[Webhook] Failed to resolve merchant for welcome event', ['merchant_id' => $merchantId]);
+                    return response()->json(['success' => true, 'note' => 'merchant not found']);
+                }
+            } else {
+                Log::error('[Webhook] تاجر غير موجود: ' . $merchantId);
+                return response()->json(['success' => true, 'note' => 'merchant not found']);
+            }
         }
 
         // ─── 6. تثبيت idempotency ───
@@ -108,6 +126,32 @@ class SallaWebhookController extends Controller
 
         // ─── 7. معالجة الحدث ───
         try {
+            if (in_array($event, ['app.trial.started', 'app.subscription.started'], true)) {
+                Log::info('[Webhook] Welcome diagnostic', [
+                    'event' => $event,
+                    'merchant' => $merchantId,
+                    'matchedApp' => $matchedApp,
+                    'body_keys' => array_keys($body),
+                    'data_keys' => is_array($data) ? array_keys($data) : [],
+                    'data_app_name' => $data['app_name'] ?? null,
+                    'has_data_app_id' => isset($data['app_id']) || isset($data['application_id']),
+                    'has_body_app_id' => isset($body['app_id']),
+                ]);
+                $appName = $matchedApp ?? $this->resolveAppFromPayload($request, $merchant);
+                Log::info('[Webhook] Welcome app resolution', [
+                    'event' => $event,
+                    'merchant' => $merchantId,
+                    'matchedApp' => $matchedApp,
+                    'resolvedApp' => $appName,
+                    'strategy' => $matchedApp ? 'hmac_secret' : ($appName ? 'payload_fallback' : 'failed'),
+                ]);
+                if ($appName) {
+                    \App\Services\WelcomeEmailService::handleAppEvent($event, $appName, (string) $merchantId, $body);
+                } else {
+                    Log::warning('[Webhook] Could not resolve app for welcome event', ['event' => $event, 'merchant' => $merchantId, 'data_app_name' => $data['app_name'] ?? null, 'body_keys' => array_keys($body), 'data_keys' => is_array($data) ? array_keys($data) : []]);
+                }
+            }
+
             match ($event) {
                 // ─── أحداث المنتجات ───
                 'product.created',
@@ -133,6 +177,9 @@ class SallaWebhookController extends Controller
 
                 // ─── أحداث الطلبات ───
                 'order.created'            => $this->handleOrderCreated($merchant, $data),
+
+                'app.trial.started',
+                'app.subscription.started' => null,
 
                 default => Log::info('[Webhook] حدث غير مُعالَج: ' . $event),
             };
@@ -161,13 +208,18 @@ class SallaWebhookController extends Controller
      * يتم حساب التوقيع بـ: hash_hmac('sha256', $payload, $secret)
      *
      * @param Request $request
-     * @return bool
+     * @return array{valid: bool, app_name: ?string}
      */
-    private function verifySignature(Request $request): bool
+    private function verifySignature(Request $request): array
     {
-        // في بيئة التطوير يمكن تخطي التحقق
-        if (app()->environment('local')) {
-            return true;
+        // Testing helper: X-App-Name allows deterministic app in tests (only local/testing)
+        $isTesting = app()->environment('testing');
+        $isLocal = app()->environment('local');
+        if (($isLocal || $isTesting)) {
+            $headerApp = $request->header('X-App-Name') ?? $request->header('x-app-name');
+            if ($headerApp && in_array($headerApp, ['harees', 'mustashar'], true)) {
+                return ['valid' => true, 'app_name' => $headerApp];
+            }
         }
 
         $signature = $request->header('X-Salla-Signature')
@@ -175,48 +227,101 @@ class SallaWebhookController extends Controller
                   ?? '';
 
         if (empty($signature)) {
+            if ($isLocal) {
+                Log::info('[Webhook] Local env - no signature, allowing without app');
+                return ['valid' => true, 'app_name' => null];
+            }
             Log::warning('[Webhook] لا يوجد توقيع في الطلب');
-            return false;
+            return ['valid' => false, 'app_name' => null];
         }
 
-        // تجربة أكثر من secret (لدعم التطبيقات المختلفة)
-        $secrets = array_filter([
-            env('SALLA_HAREES_WEBHOOK_SECRET'),
-            env('SALLA_MUSTASHAR_WEBHOOK_SECRET'),
-            env('SALLA_MANAGEMENT_WEBHOOK_SECRET'),
-            env('SALLA_CALCULATOR_WEBHOOK_SECRET'),
-            config('services.salla_harees.webhook_secret'),
-            config('services.salla.webhook_secret'),
+        $secretMap = array_filter([
+            'harees' => config('services.salla_harees.webhook_secret') ?? env('SALLA_HAREES_WEBHOOK_SECRET'),
+            'mustashar' => config('services.salla_mustashar.webhook_secret') ?? env('SALLA_MUSTASHAR_WEBHOOK_SECRET'),
+            'management' => config('services.salla_harees.webhook_secret') ? null : env('SALLA_MANAGEMENT_WEBHOOK_SECRET'),
+            'calculator' => config('services.salla_mustashar.webhook_secret') ? null : env('SALLA_CALCULATOR_WEBHOOK_SECRET'),
         ]);
 
-        if (empty($secrets)) {
+        if (empty($secretMap)) {
             Log::warning('[Webhook] لم يتم تكوين webhook secrets');
-            return false;
+            return ['valid' => false, 'app_name' => null];
         }
 
         $payload = $request->getContent();
 
-        foreach ($secrets as $secret) {
+        foreach ($secretMap as $appKey => $secret) {
+            if (empty($secret)) continue;
             $expected = hash_hmac('sha256', $payload, $secret);
             if (hash_equals($expected, $signature)) {
-                return true;
+                $normalized = $appKey === 'management' ? 'harees' : ($appKey === 'calculator' ? 'mustashar' : $appKey);
+                return ['valid' => true, 'app_name' => $normalized];
             }
         }
 
+        $fallback = config('services.salla.webhook_secret');
+        if ($fallback) {
+            $expected = hash_hmac('sha256', $payload, $fallback);
+            if (hash_equals($expected, $signature)) {
+                return ['valid' => true, 'app_name' => null];
+            }
+        }
+
+        if ($isLocal) {
+            Log::info('[Webhook] Local env - HMAC verification failed, allowing without app (welcome will try payload fallback)');
+            return ['valid' => true, 'app_name' => null];
+        }
         Log::warning('[Webhook] توقيع غير صالح');
-        return false;
+        return ['valid' => false, 'app_name' => null];
+    }
+
+    private function resolveAppFromPayload(Request $request, \App\Models\Merchant $merchant): ?string
+    {
+        $body = $request->all();
+        $data = $body['data'] ?? [];
+
+        $rawAppName = $data['app_name'] ?? $data['appName'] ?? $data['app'] ?? $body['app_name'] ?? null;
+        if ($rawAppName) {
+            $normalized = $this->normalizeAppName($rawAppName);
+            if ($normalized) return $normalized;
+        }
+
+        $appId = $data['app_id'] ?? $data['application_id'] ?? $body['app_id'] ?? null;
+        if ($appId) {
+            $hareesId = config('services.salla_harees.client_id') ?? env('SALLA_HAREES_CLIENT_ID');
+            $mustasharId = config('services.salla_mustashar.client_id') ?? env('SALLA_MUSTASHAR_CLIENT_ID');
+            if ($hareesId && (string) $appId === (string) $hareesId) return 'harees';
+            if ($mustasharId && (string) $appId === (string) $mustasharId) return 'mustashar';
+            $app = \App\Models\SallaApp::where('client_id', $appId)->where('merchant_id', $merchant->id)->first();
+            if ($app) {
+                if ($app->app_name === 'management') return 'harees';
+                if ($app->app_name === 'calculator') return 'mustashar';
+                return $app->app_name;
+            }
+        }
+        return null;
+    }
+
+    private function normalizeAppName(?string $raw): ?string
+    {
+        if (!$raw) return null;
+        $lower = mb_strtolower(trim($raw), 'UTF-8');
+        if (str_contains($lower, 'harees') || str_contains($lower, 'حريص') || str_contains($lower, 'management')) return 'harees';
+        if (str_contains($lower, 'qiyast') || str_contains($lower, 'mustashar') || str_contains($lower, 'قياسات') || str_contains($lower, 'calculator')) return 'mustashar';
+        return null;
     }
 
     /**
      * إنشاء مفتاح idempotency بناءً على الحدث والبيانات
      * يمنع معالجة نفس الحدث أكثر من مرة
      */
-    private function getIdempotencyKey(string $event, array $data): ?string
+    private function getIdempotencyKey(string $event, array $data, ?string $appName = null): ?string
     {
         $id = $data['id'] ?? $data['product_id'] ?? null;
         if (!$id) return null;
 
-        return 'webhook_idempotent_' . md5($event . '_' . $id . '_' . ($data['updated_at'] ?? ''));
+        $key = $event . '_' . $id . '_' . ($data['updated_at'] ?? '');
+        if ($appName) $key .= '_' . $appName;
+        return 'webhook_idempotent_' . md5($key);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -9,6 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            if (Schema::hasTable('product_discounts') && !Schema::hasTable('batch_discounts')) {
+                Schema::rename('product_discounts', 'batch_discounts');
+            }
+            return;
+        }
         // Check if we need to rename (old table exists)
         $tables = DB::select('SHOW TABLES');
         $tableNames = array_map(fn($t) => array_values((array)$t)[0], $tables);
@@ -19,6 +25,7 @@ return new class extends Migration
         }
 
         // If batch_discounts exists (old or new), alter it
+        if (DB::getDriverName() === 'sqlite') return;
         if (Schema::hasTable('batch_discounts')) {
             // Remove AI-related columns (manual discounts only now)
             if (Schema::hasColumn('batch_discounts', 'is_ai_suggested')) {

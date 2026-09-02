@@ -9,7 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('batches', function (Blueprint $table) {
-            $table->dropColumn('salla_variant_id');
+            try { $table->dropIndex(['salla_variant_id']); } catch (\Throwable $e) {}
+            if (Schema::hasColumn('batches', 'salla_variant_id')) {
+                $table->dropColumn('salla_variant_id');
+            }
         });
     }
 
